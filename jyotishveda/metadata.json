@@ -1,0 +1,7 @@
+{
+  "name": "JyotishVeda - Ancient Vedic Horoscope & Numerology Platform",
+  "description": "Global astrology, matchmaking (36 Gunas Ashta Koota Kundli Milan, Manglik Dosha, downloadable reports) and numerology platform with multi-language support (Indian languages, Urdu, French, German, Chinese, Japanese, Spanish, Zulu), Vedic/Western choice, universal zodiac horoscopes, and AI counselling.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
+
