@@ -41,15 +41,17 @@ import { ApiError } from '../services/api';
 interface MatchmakingViewProps {
   currentProfile: UserProfile;
   profiles: UserProfile[];
-  language: string;
+  language?: string;
   isAuthenticated?: boolean;
+  theme?: 'light' | 'dark';
 }
 
 export const MatchmakingView: React.FC<MatchmakingViewProps> = ({
   currentProfile,
   profiles,
-  language,
+  language = 'en',
   isAuthenticated,
+  theme = 'dark',
 }) => {
   // Select partner 1 and partner 2
   const [partner1, setPartner1] = useState<UserProfile>(() => {
@@ -511,7 +513,7 @@ Issued by JyotishVeda AI Daivajna Astrological Intelligence Engine
       </div>
 
       {/* Main Score Hero Card */}
-      <div className="bg-gradient-to-br from-[#1A1A1E] via-[#141418] to-[#0D0D0F] border border-[#C9A050]/40 rounded-3xl p-6 sm:p-10 shadow-2xl relative overflow-hidden">
+      <div className={`${theme === 'dark' ? 'bg-gradient-to-br from-[#1A1A1E] via-[#141418] to-[#0D0D0F]' : 'bg-[#FFFFFF]'} border border-[#C9A050]/40 rounded-3xl p-6 sm:p-10 shadow-2xl relative overflow-hidden`}>
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8">
           {/* Left: Overall Guna Gauge */}
           <div className="flex items-center space-x-6">

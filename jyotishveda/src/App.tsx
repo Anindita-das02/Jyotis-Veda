@@ -13,6 +13,8 @@ import { AdminKGraphView } from './components/AdminKGraphView';
 import { ProfileModal } from './components/ProfileModal';
 import { DisclaimerModal } from './components/DisclaimerModal';
 import { Footer } from './components/Footer';
+import { StarfieldBackground } from './components/StarfieldBackground';
+import { motion, AnimatePresence } from 'framer-motion';
 
 import {
   UserProfile,
@@ -40,7 +42,11 @@ import {
 } from './services/kGraphData';
 
 import { getToken, clearToken } from './services/api';
-import { getCurrentUser, logout as logoutRequest, AuthUser } from './services/authApi';
+import {
+  getCurrentUser,
+  logout as logoutRequest,
+  AuthUser,
+} from './services/authApi';
 import * as profileApi from './services/profileApi';
 
 const DEFAULT_PROFILES: UserProfile[] = [
@@ -54,8 +60,12 @@ const DEFAULT_PROFILES: UserProfile[] = [
     latitude: 28.6139,
     longitude: 77.2090,
     timezone: 5.5,
-    focusAreas: ['Career & Executive Leadership', 'Wealth, Investments & Business'],
-    notes: 'Planning global tech expansion and career milestone promotion.',
+    focusAreas: [
+      'Career & Executive Leadership',
+      'Wealth, Investments & Business',
+    ],
+    notes:
+      'Planning global tech expansion and career milestone promotion.',
     createdAt: new Date().toISOString(),
     isPremium: true,
     horoscopeSystem: 'vedic',
@@ -70,8 +80,12 @@ const DEFAULT_PROFILES: UserProfile[] = [
     latitude: 19.0760,
     longitude: 72.8777,
     timezone: 5.5,
-    focusAreas: ['Marriage, Love & Kundli Milan', 'Spiritual Dharma & Moksha'],
-    notes: 'Looking for auspicious marriage timing and business partnership compatibility.',
+    focusAreas: [
+      'Marriage, Love & Kundli Milan',
+      'Spiritual Dharma & Moksha',
+    ],
+    notes:
+      'Looking for auspicious marriage timing and business partnership compatibility.',
     createdAt: new Date().toISOString(),
     isPremium: false,
     horoscopeSystem: 'western',
@@ -85,10 +99,12 @@ export function App() {
   // On load, if a token exists, verify it's still valid before showing the app.
   useEffect(() => {
     const token = getToken();
+
     if (!token) {
       setAuthChecked(true);
       return;
     }
+
     getCurrentUser()
       .then((user) => setAuthUser(user))
       .catch(() => clearToken())
@@ -101,11 +117,20 @@ export function App() {
   };
 
   const [activeTab, setActiveTab] = useState<string>('daily');
-  const [tradition, setTradition] = useState<HoroscopeTradition>('parashari');
+
+  // Scroll to top when navigating between pages/tabs
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [activeTab]);
+
+  const [tradition, setTradition] =
+    useState<HoroscopeTradition>('parashari');
+
   const [profiles, setProfiles] = useState<UserProfile[]>(() => {
     const saved = localStorage.getItem('jyotish_profiles');
     return saved ? JSON.parse(saved) : DEFAULT_PROFILES;
   });
+
   const [currentProfile, setCurrentProfile] = useState<UserProfile>(() => {
     return profiles[0] || DEFAULT_PROFILES[0];
   });
@@ -113,7 +138,7 @@ export function App() {
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [isDisclaimerModalOpen, setIsDisclaimerModalOpen] = useState(false);
 
-  // Language state (multi-language support for Indian languages, Urdu, French, German, Chinese, Japanese, Spanish, Zulu, etc.)
+  // Language state
   const [language, setLanguage] = useState<string>(() => {
     return localStorage.getItem('jyotish_language') || 'en';
   });
@@ -130,6 +155,7 @@ export function App() {
 
   useEffect(() => {
     localStorage.setItem('jyotish_theme', theme);
+
     if (theme === 'light') {
       document.documentElement.classList.add('light');
       document.documentElement.classList.remove('dark');
@@ -147,21 +173,31 @@ export function App() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
 
   // 10-Year Roadmap
-  const [roadmap, setRoadmap] = useState<LifeMilestone[]>(DEFAULT_ROADMAP);
+  const [roadmap, setRoadmap] =
+    useState<LifeMilestone[]>(DEFAULT_ROADMAP);
 
   // Admin K-Graph & Runbooks
-  const [kGraphNodes, setKGraphNodes] = useState<KGraphNode[]>(INITIAL_KGRAPH_NODES);
-  const [kGraphEdges, setKGraphEdges] = useState<KGraphEdge[]>(INITIAL_KGRAPH_EDGES);
-  const [runbooks, setRunbooks] = useState<RunbookConfig[]>(INITIAL_RUNBOOKS);
+  const [kGraphNodes, setKGraphNodes] =
+    useState<KGraphNode[]>(INITIAL_KGRAPH_NODES);
 
-  // Save profiles to localStorage (cache, used as fallback if backend is unreachable)
+  const [kGraphEdges, setKGraphEdges] =
+    useState<KGraphEdge[]>(INITIAL_KGRAPH_EDGES);
+
+  const [runbooks, setRunbooks] =
+    useState<RunbookConfig[]>(INITIAL_RUNBOOKS);
+
+  // Save profiles to localStorage
   useEffect(() => {
-    localStorage.setItem('jyotish_profiles', JSON.stringify(profiles));
+    localStorage.setItem(
+      'jyotish_profiles',
+      JSON.stringify(profiles)
+    );
   }, [profiles]);
 
   // Once logged in, load the user's real saved profiles from the backend.
   useEffect(() => {
     if (!authUser) return;
+
     profileApi
       .fetchProfiles()
       .then((remoteProfiles) => {
@@ -170,100 +206,203 @@ export function App() {
           setCurrentProfile(remoteProfiles[0]);
         } else {
           // If no profiles exist, use a default but with the user's actual name
-          const newProfile = { ...DEFAULT_PROFILES[0], fullName: authUser.fullName, id: 'profile-new' };
+          const newProfile = {
+            ...DEFAULT_PROFILES[0],
+            fullName: authUser.fullName,
+            id: 'profile-new',
+          };
+
           setProfiles([newProfile]);
           setCurrentProfile(newProfile);
         }
       })
       .catch((err) => {
         // Backend unreachable or empty — keep local cache so the demo still works.
-        console.warn('Could not load profiles from server:', err);
+        console.warn(
+          'Could not load profiles from server:',
+          err
+        );
       });
   }, [authUser]);
 
   // Derived Astrological & Numerological Data
-  const [chartData, setChartData] = useState(() => calculateVedicChart(currentProfile));
+  const [chartData, setChartData] = useState(() =>
+    calculateVedicChart(currentProfile)
+  );
 
   useEffect(() => {
     let active = true;
+
     const loadRealChart = async () => {
       try {
-        const response = await fetch('http://127.0.0.1:5001/api/ephemeris/chart', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(currentProfile)
-        });
+        const response = await fetch(
+          'http://127.0.0.1:5001/api/ephemeris/chart',
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(currentProfile),
+          }
+        );
+
         const data = await response.json();
-        if (data && data.status === 'success' && active) {
-           const fullChart = calculateVedicChart(currentProfile, data.data);
-           setChartData(fullChart);
+
+        if (
+          data &&
+          data.status === 'success' &&
+          active
+        ) {
+          const fullChart = calculateVedicChart(
+            currentProfile,
+            data.data
+          );
+
+          setChartData(fullChart);
         }
       } catch (err) {
-        console.error('Failed to load real ephemeris data', err);
+        console.error(
+          'Failed to load real ephemeris data',
+          err
+        );
+
         if (active) {
-          setChartData(calculateVedicChart(currentProfile)); // fallback
+          setChartData(
+            calculateVedicChart(currentProfile)
+          );
         }
       }
     };
-    
+
     // Set immediate fallback on profile change, then fetch
     setChartData(calculateVedicChart(currentProfile));
     loadRealChart();
-    
-    return () => { active = false; };
+
+    return () => {
+      active = false;
+    };
   }, [currentProfile]);
 
-  const [panchang, setPanchang] = useState<PanchangInfo>(() => calculateDailyPanchang(currentProfile.latitude, currentProfile.longitude));
+  const [panchang, setPanchang] = useState<PanchangInfo>(() =>
+    calculateDailyPanchang(
+      currentProfile.latitude,
+      currentProfile.longitude
+    )
+  );
 
   useEffect(() => {
     let active = true;
+
     const loadRealPanchang = async () => {
       try {
         const now = new Date();
-        const dateStr = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
-        const timeStr = String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
-        const tzOffset = -now.getTimezoneOffset() / 60;
-        
-        const response = await fetch('http://127.0.0.1:5001/api/ephemeris/panchang', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            date: dateStr,
-            time: timeStr,
-            timezone: tzOffset
-          })
-        });
+
+        const dateStr =
+          now.getFullYear() +
+          '-' +
+          String(now.getMonth() + 1).padStart(2, '0') +
+          '-' +
+          String(now.getDate()).padStart(2, '0');
+
+        const timeStr =
+          String(now.getHours()).padStart(2, '0') +
+          ':' +
+          String(now.getMinutes()).padStart(2, '0');
+
+        const tzOffset =
+          -now.getTimezoneOffset() / 60;
+
+        const response = await fetch(
+          'http://127.0.0.1:5001/api/ephemeris/panchang',
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              date: dateStr,
+              time: timeStr,
+              timezone: tzOffset,
+            }),
+          }
+        );
+
         const result = await response.json();
-        if (result && result.status === 'success' && active) {
-           const realPanchang = calculateDailyPanchang(currentProfile.latitude, currentProfile.longitude, result.data);
-           setPanchang(realPanchang);
+
+        if (
+          result &&
+          result.status === 'success' &&
+          active
+        ) {
+          const realPanchang =
+            calculateDailyPanchang(
+              currentProfile.latitude,
+              currentProfile.longitude,
+              result.data
+            );
+
+          setPanchang(realPanchang);
         }
       } catch (err) {
-        console.error('Failed to load real panchang data', err);
+        console.error(
+          'Failed to load real panchang data',
+          err
+        );
+
         if (active) {
-          setPanchang(calculateDailyPanchang(currentProfile.latitude, currentProfile.longitude)); // fallback
+          setPanchang(
+            calculateDailyPanchang(
+              currentProfile.latitude,
+              currentProfile.longitude
+            )
+          );
         }
       }
     };
-    
-    setPanchang(calculateDailyPanchang(currentProfile.latitude, currentProfile.longitude));
+
+    setPanchang(
+      calculateDailyPanchang(
+        currentProfile.latitude,
+        currentProfile.longitude
+      )
+    );
+
     loadRealPanchang();
-    
-    return () => { active = false; };
-  }, [currentProfile.latitude, currentProfile.longitude]);
+
+    return () => {
+      active = false;
+    };
+  }, [
+    currentProfile.latitude,
+    currentProfile.longitude,
+  ]);
 
   const numerology = useMemo(() => {
-    return calculateNumerology(currentProfile.fullName, currentProfile.birthDate);
-  }, [currentProfile.fullName, currentProfile.birthDate]);
+    return calculateNumerology(
+      currentProfile.fullName,
+      currentProfile.birthDate
+    );
+  }, [
+    currentProfile.fullName,
+    currentProfile.birthDate,
+  ]);
 
-  const handleSaveProfile = (newProfile: UserProfile) => {
-    const existingIndex = profiles.findIndex((p) => p.id === newProfile.id);
-    const isExisting = existingIndex >= 0 && !newProfile.id.startsWith('profile-draft-');
+  const handleSaveProfile = (
+    newProfile: UserProfile
+  ) => {
+    const existingIndex = profiles.findIndex(
+      (p) => p.id === newProfile.id
+    );
+
+    const isExisting =
+      existingIndex >= 0 &&
+      !newProfile.id.startsWith('profile-draft-');
 
     // Optimistic local update so the UI feels instant.
     if (isExisting) {
       const updated = [...profiles];
       updated[existingIndex] = newProfile;
+
       setProfiles(updated);
       setCurrentProfile(newProfile);
     } else {
@@ -271,9 +410,10 @@ export function App() {
       setCurrentProfile(newProfile);
     }
 
-    if (!authUser) return; // not logged in — local-only (demo) mode
+    if (!authUser) return;
 
     const { id, createdAt, ...payload } = newProfile;
+
     const persist = isExisting
       ? profileApi.updateProfile(id, payload)
       : profileApi.createProfile(payload);
@@ -281,36 +421,72 @@ export function App() {
     persist
       .then((saved) => {
         setProfiles((prev) => {
-          const idx = prev.findIndex((p) => p.id === newProfile.id || p.id === saved.id);
-          if (idx === -1) return [saved, ...prev];
+          const idx = prev.findIndex(
+            (p) =>
+              p.id === newProfile.id ||
+              p.id === saved.id
+          );
+
+          if (idx === -1) {
+            return [saved, ...prev];
+          }
+
           const next = [...prev];
           next[idx] = saved;
+
           return next;
         });
-        setCurrentProfile((prev) => (prev.id === newProfile.id ? saved : prev));
+
+        setCurrentProfile((prev) =>
+          prev.id === newProfile.id
+            ? saved
+            : prev
+        );
       })
       .catch((err) => {
-        console.error('Could not save profile to server:', err);
+        console.error(
+          'Could not save profile to server:',
+          err
+        );
       });
   };
 
-  const handleAskAIForSign = (signName: string, promptText: string) => {
+  const handleAskAIForSign = (
+    signName: string,
+    promptText: string
+  ) => {
     setActiveTab('counsellor');
+
     const userMessage: ChatMessage = {
       id: `msg-${Date.now()}`,
       role: 'user',
       content: promptText,
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      timestamp: new Date().toLocaleTimeString(
+        [],
+        {
+          hour: '2-digit',
+          minute: '2-digit',
+        }
+      ),
     };
-    setMessages((prev) => [...prev, userMessage]);
+
+    setMessages((prev) => [
+      ...prev,
+      userMessage,
+    ]);
 
     // Send to backend
     fetch('/api/gemini/chat', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+      },
       body: JSON.stringify({
         message: promptText,
-        history: messages.map((m) => ({ role: m.role, content: m.content })),
+        history: messages.map((m) => ({
+          role: m.role,
+          content: m.content,
+        })),
         profile: currentProfile,
         tradition,
         chartData,
@@ -320,14 +496,29 @@ export function App() {
     })
       .then((res) => res.json())
       .then((data) => {
-        const replyContent = data.response || data.reply || data.interpretation || `Analysis complete for ${signName}.`;
+        const replyContent =
+          data.response ||
+          data.reply ||
+          data.interpretation ||
+          `Analysis complete for ${signName}.`;
+
         const assistantMessage: ChatMessage = {
           id: `msg-ai-${Date.now()}`,
           role: 'assistant',
           content: replyContent,
-          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          timestamp: new Date().toLocaleTimeString(
+            [],
+            {
+              hour: '2-digit',
+              minute: '2-digit',
+            }
+          ),
         };
-        setMessages((prev) => [...prev, assistantMessage]);
+
+        setMessages((prev) => [
+          ...prev,
+          assistantMessage,
+        ]);
       })
       .catch((err) => {
         console.error(err);
@@ -351,8 +542,15 @@ export function App() {
   return (
     <div
       dir={isRtl ? 'rtl' : 'ltr'}
-      className="min-h-screen bg-[#0D0D0F] text-[#E5E1D8] flex flex-col selection:bg-[#C9A050] selection:text-[#0D0D0F] font-sans"
+      className={`min-h-screen flex flex-col font-sans relative z-10 transition-colors duration-300 ${
+        theme === 'dark'
+          ? 'bg-transparent text-[#E5E1D8] selection:bg-[#C9A050] selection:text-[#0D0D0F]'
+          : 'light bg-[#F0ECE1] text-[#0D0D0F] selection:bg-[#D4AF37] selection:text-[#FFFFFF]'
+      }`}
     >
+      {/* Animated Space Background - Only in Dark Mode */}
+      {theme === 'dark' && <StarfieldBackground />}
+
       {/* Header & Navigation */}
       <Navbar
         activeTab={activeTab}
@@ -360,8 +558,12 @@ export function App() {
         currentProfile={currentProfile}
         profiles={profiles}
         onSelectProfile={setCurrentProfile}
-        onOpenNewProfile={() => setIsProfileModalOpen(true)}
-        onOpenDisclaimer={() => setIsDisclaimerModalOpen(true)}
+        onOpenNewProfile={() =>
+          setIsProfileModalOpen(true)
+        }
+        onOpenDisclaimer={() =>
+          setIsDisclaimerModalOpen(true)
+        }
         tradition={tradition}
         setTradition={setTradition}
         theme={theme}
@@ -372,99 +574,131 @@ export function App() {
       />
 
       {/* Main Container */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
-        {activeTab === 'daily' && (
-          <DailyHoroscopeView
-            profile={currentProfile}
-            panchang={panchang}
-            numerology={numerology}
-            chartData={chartData}
-            onNavigateToTab={setActiveTab}
-          />
-        )}
-
-        {activeTab === 'zodiac' && (
-          <GlobalZodiacView
-            language={language}
-            onAskAIForSign={handleAskAIForSign}
-          />
-        )}
-
-        {activeTab === 'horoscope' && (
-          <HoroscopeTraditionsView
-            profile={currentProfile}
-            tradition={tradition}
-            setTradition={setTradition}
-            chartData={chartData}
-            numerology={numerology}
-            language={language}
-          />
-        )}
-
-        {activeTab === 'matchmaking' && (
-          <MatchmakingView
-            currentProfile={currentProfile}
-            profiles={profiles}
-            language={language}
-            isAuthenticated={!!authUser}
-          />
-        )}
-
-        {activeTab === 'numerology' && (
-          <NumerologyView
-            profile={currentProfile}
-            numerology={numerology}
-            isAuthenticated={!!authUser}
-          />
-        )}
-
-        {activeTab === 'counsellor' && (
-          <AICounsellorChat
-            profile={currentProfile}
-            tradition={tradition}
-            chartData={chartData}
-            numerology={numerology}
-            messages={messages}
-            setMessages={setMessages}
-            language={language}
-            isAuthenticated={!!authUser}
-          />
-        )}
-
-        {activeTab === 'roadmap' && (
-          <LifeRoadmapView
-            profile={currentProfile}
-            tradition={tradition}
-            chartData={chartData}
-            numerology={numerology}
-            roadmap={roadmap}
-            setRoadmap={setRoadmap}
-          />
-        )}
-
-        {activeTab === 'consultations' && (
-          <ConsultationsPaymentView
-            profile={currentProfile}
-            tiers={DEFAULT_CONSULTATION_TIERS}
-            onPaymentSuccess={(tier) => {
-              // Upgrade profile
-              const updatedProfile = { ...currentProfile, isPremium: true };
-              handleSaveProfile(updatedProfile);
+      <main className="flex-1 w-full px-4 sm:px-6 lg:px-8 py-6 sm:py-8 overflow-x-hidden">
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={activeTab}
+            initial={{
+              opacity: 0,
+              y: 15,
             }}
-          />
-        )}
+            animate={{
+              opacity: 1,
+              y: 0,
+            }}
+            exit={{
+              opacity: 0,
+              y: -15,
+            }}
+            transition={{
+              duration: 0.3,
+              ease: 'easeOut',
+            }}
+            className="w-full"
+          >
+            {activeTab === 'daily' && (
+              <DailyHoroscopeView
+                profile={currentProfile}
+                panchang={panchang}
+                numerology={numerology}
+                chartData={chartData}
+                onNavigateToTab={setActiveTab}
+                theme={theme}
+              />
+            )}
 
-        {activeTab === 'admin' && (
-          <AdminKGraphView
-            nodes={kGraphNodes}
-            setNodes={setKGraphNodes}
-            edges={kGraphEdges}
-            setEdges={setKGraphEdges}
-            runbooks={runbooks}
-            setRunbooks={setRunbooks}
-            profiles={profiles}
-          />
-        )}
+            {activeTab === 'zodiac' && (
+              <GlobalZodiacView
+                language={language}
+                onAskAIForSign={handleAskAIForSign}
+                theme={theme}
+              />
+            )}
+
+            {activeTab === 'horoscope' && (
+              <HoroscopeTraditionsView
+                profile={currentProfile}
+                tradition={tradition}
+                setTradition={setTradition}
+                chartData={chartData}
+                numerology={numerology}
+                language={language}
+              />
+            )}
+
+            {activeTab === 'matchmaking' && (
+              <MatchmakingView
+                currentProfile={currentProfile}
+                profiles={profiles}
+                language={language}
+                isAuthenticated={!!authUser}
+                theme={theme}
+              />
+            )}
+
+            {activeTab === 'numerology' && (
+              <NumerologyView
+                profile={currentProfile}
+                numerology={numerology}
+                isAuthenticated={!!authUser}
+              />
+            )}
+
+            {activeTab === 'counsellor' && (
+              <AICounsellorChat
+                profile={currentProfile}
+                tradition={tradition}
+                chartData={chartData}
+                numerology={numerology}
+                messages={messages}
+                setMessages={setMessages}
+                language={language}
+                isAuthenticated={!!authUser}
+                theme={theme}
+              />
+            )}
+
+            {activeTab === 'roadmap' && (
+              <LifeRoadmapView
+                profile={currentProfile}
+                tradition={tradition}
+                chartData={chartData}
+                numerology={numerology}
+                roadmap={roadmap}
+                setRoadmap={setRoadmap}
+              />
+            )}
+
+            {activeTab === 'consultations' && (
+              <ConsultationsPaymentView
+                profile={currentProfile}
+                tiers={DEFAULT_CONSULTATION_TIERS}
+                theme={theme}
+                onPaymentSuccess={(tier) => {
+                  // Upgrade profile
+                  const updatedProfile = {
+                    ...currentProfile,
+                    isPremium: true,
+                  };
+
+                  handleSaveProfile(updatedProfile);
+                }}
+              />
+            )}
+
+            {activeTab === 'admin' && (
+              <AdminKGraphView
+                nodes={kGraphNodes}
+                setNodes={setKGraphNodes}
+                edges={kGraphEdges}
+                setEdges={setKGraphEdges}
+                runbooks={runbooks}
+                setRunbooks={setRunbooks}
+                profiles={profiles}
+              />
+            )}
+          </motion.div>
+        </AnimatePresence>
       </main>
 
       {/* Profile Creation / Edit Modal */}
@@ -473,17 +707,22 @@ export function App() {
         onClose={() => setIsProfileModalOpen(false)}
         onSave={handleSaveProfile}
         initialProfile={currentProfile}
+        theme={theme}
       />
 
       {/* Ethical & Astrological Disclaimer Modal */}
       <DisclaimerModal
         isOpen={isDisclaimerModalOpen}
-        onClose={() => setIsDisclaimerModalOpen(false)}
+        onClose={() =>
+          setIsDisclaimerModalOpen(false)
+        }
       />
 
       {/* Footer */}
       <Footer
-        onOpenDisclaimer={() => setIsDisclaimerModalOpen(true)}
+        onOpenDisclaimer={() =>
+          setIsDisclaimerModalOpen(true)
+        }
         setActiveTab={setActiveTab}
         theme={theme}
         language={language}
@@ -491,4 +730,5 @@ export function App() {
     </div>
   );
 }
+
 export default App;

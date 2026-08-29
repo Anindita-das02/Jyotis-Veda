@@ -32,6 +32,7 @@ interface AICounsellorChatProps {
   setMessages: React.Dispatch<React.SetStateAction<ChatMessage[]>>;
   language?: string;
   isAuthenticated?: boolean;
+  theme?: 'light' | 'dark';
 }
 
 const PRESET_QUESTIONS: Record<string, string[]> = {
@@ -99,6 +100,7 @@ export const AICounsellorChat: React.FC<AICounsellorChatProps> = ({
   setMessages,
   language = 'en',
   isAuthenticated,
+  theme = 'dark',
 }) => {
   const [inputText, setInputText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -376,7 +378,7 @@ export const AICounsellorChat: React.FC<AICounsellorChatProps> = ({
       {/* Top Banner */}
       <div className="bg-[#141418] border border-[#2A2A2E] rounded-xl p-5 text-[#E5E1D8] shadow-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center space-x-3.5">
-          <AncientTraditionLogo size="md" />
+          <AncientTraditionLogo size="md" isLight={theme === 'light'} />
           <div>
             <h2 className="text-base font-bold text-[#F0ECE1] flex items-center space-x-2">
               <span>{t('counsellor.title')}</span>

@@ -13,8 +13,8 @@ export const DisclaimerModal: React.FC<DisclaimerModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-black/85 backdrop-blur-sm flex items-center justify-center p-4 font-sans">
-      <div className="bg-[#141418] border border-[#2A2A2E] rounded-xl max-w-2xl w-full p-6 text-[#E5E1D8] shadow-2xl relative max-h-[90vh] overflow-y-auto space-y-5">
+    <div className="fixed inset-0 z-50 overflow-y-auto bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 font-sans">
+      <div className="bg-[#141418]/85 backdrop-blur-2xl border border-[#2A2A2E]/80 rounded-xl max-w-2xl w-full p-6 text-[#E5E1D8] shadow-[0_8px_32px_rgba(0,0,0,0.5)] relative max-h-[90vh] overflow-y-auto space-y-5">
         <button
           onClick={onClose}
           className="absolute top-4 right-4 text-[#9E9A90] hover:text-[#F0ECE1] p-1.5 rounded-lg bg-[#1A1A1E] border border-[#2A2A2E] hover:bg-[#2A2A2E] transition cursor-pointer"

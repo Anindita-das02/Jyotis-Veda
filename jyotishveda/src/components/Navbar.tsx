@@ -59,6 +59,8 @@ export const Navbar: React.FC<NavbarProps> = ({
 }) => {
   const [isLangMenuOpen, setIsLangMenuOpen] = useState(false);
   const langMenuRef = useRef<HTMLDivElement>(null);
+  const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
+  const profileMenuRef = useRef<HTMLDivElement>(null);
 
   const t = (key: string) => getTranslation(key, language);
 
@@ -68,6 +70,9 @@ export const Navbar: React.FC<NavbarProps> = ({
     const handleClickOutside = (event: MouseEvent) => {
       if (langMenuRef.current && !langMenuRef.current.contains(event.target as Node)) {
         setIsLangMenuOpen(false);
+      }
+      if (profileMenuRef.current && !profileMenuRef.current.contains(event.target as Node)) {
+        setIsProfileMenuOpen(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -87,9 +92,9 @@ export const Navbar: React.FC<NavbarProps> = ({
   ];
 
   return (
-    <header className="sticky top-0 z-40 bg-[#0D0D0F]/95 backdrop-blur-md border-b border-[#2A2A2E] text-[#E5E1D8] shadow-2xl transition-colors">
+    <header className={`sticky top-0 z-40 backdrop-blur-xl border-b shadow-2xl transition-colors ${theme === 'dark' ? 'bg-[#0D0D0F]/80 border-[#2A2A2E]/80 text-[#E5E1D8]' : 'bg-[#F9F7F1]/85 border-[#E5E1D8] text-[#0D0D0F]'}`}>
       {/* Top Auspicious & Astronomical Banner */}
-      <div className="bg-[#08080A] px-4 py-1.5 text-xs border-b border-[#2A2A2E]/60 flex items-center justify-between text-[#C9A050]/90 overflow-x-auto">
+      <div className={`px-4 py-1.5 text-xs border-b flex items-center justify-between text-[#C9A050]/90 overflow-x-auto ${theme === 'dark' ? 'bg-[#08080A] border-[#2A2A2E]/60' : 'bg-[#F0ECE1] border-[#E5E1D8]'}`}>
         <div className="flex items-center space-x-2 shrink-0">
           <span className="font-semibold tracking-wide text-[#C9A050] text-[12px]">
             {t('header.ephemeris')}
@@ -115,8 +120,8 @@ export const Navbar: React.FC<NavbarProps> = ({
       </div>
 
       {/* Main Header Row */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
+      <div className="w-full px-4 sm:px-6 lg:px-8 py-2">
+        <div className="flex items-center justify-between h-20">
           {/* Logo & Brand */}
           <div className="flex items-center space-x-3 cursor-pointer select-none" onClick={() => setActiveTab('daily')}>
             <AncientTraditionLogo size="md" isLight={theme === 'light'} />
@@ -214,22 +219,43 @@ export const Navbar: React.FC<NavbarProps> = ({
             )}
 
             {/* Active Profile Dropdown */}
-            <div className="relative flex items-center bg-[#141418] border border-[#2A2A2E] rounded-lg p-1.5 text-xs shadow-inner">
+            <div className="relative flex items-center bg-[#141418] border border-[#2A2A2E] rounded-lg p-1.5 text-xs shadow-inner" ref={profileMenuRef}>
               <User className="w-3.5 h-3.5 text-[#C9A050] ml-1 mr-1.5" />
-              <select
-                value={currentProfile.id}
-                onChange={(e) => {
-                  const selected = profiles.find((p) => p.id === e.target.value);
-                  if (selected) onSelectProfile(selected);
-                }}
-                className="bg-transparent text-[#E5E1D8] focus:outline-none pr-5 cursor-pointer text-xs max-w-[120px] sm:max-w-none truncate"
+              <button
+                onClick={() => setIsProfileMenuOpen((prev) => !prev)}
+                className="bg-transparent text-[#E5E1D8] focus:outline-none pr-5 cursor-pointer text-xs max-w-[120px] sm:max-w-none truncate flex items-center"
               >
-                {profiles.map((p) => (
-                  <option key={p.id} value={p.id} className="bg-[#141418] text-[#E5E1D8]">
-                    {p.fullName} ({p.horoscopeSystem === 'western' ? 'Western' : 'Vedic'})
-                  </option>
-                ))}
-              </select>
+                <span className="truncate">{currentProfile.fullName} ({currentProfile.horoscopeSystem === 'western' ? 'Western' : 'Vedic'})</span>
+                <ChevronDown className="w-3.5 h-3.5 ml-1 absolute right-6 text-[#9E9A90]" />
+              </button>
+
+              {isProfileMenuOpen && (
+                <div className="absolute top-full right-0 mt-2 w-48 bg-[#141418] border border-[#2A2A2E] rounded-xl shadow-xl shadow-[#0D0D0F]/50 overflow-hidden z-50">
+                  <div className="py-1">
+                    {profiles.map((p) => {
+                      const isSelected = p.id === currentProfile.id;
+                      return (
+                        <button
+                          key={p.id}
+                          onClick={() => {
+                            onSelectProfile(p);
+                            setIsProfileMenuOpen(false);
+                          }}
+                          className={`w-full flex items-center justify-between px-3 py-2 text-xs transition cursor-pointer text-left ${
+                            isSelected
+                              ? 'bg-[#C9A050]/20 text-[#C9A050] font-bold'
+                              : 'text-[#E5E1D8] hover:bg-[#1C1C22] hover:text-[#F0ECE1]'
+                          }`}
+                        >
+                          <span className="truncate">{p.fullName} ({p.horoscopeSystem === 'western' ? 'Western' : 'Vedic'})</span>
+                          {isSelected && <Check className="w-3.5 h-3.5 text-[#C9A050]" />}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
               <button
                 onClick={onOpenNewProfile}
                 title={t('header.add_profile')}
@@ -242,7 +268,11 @@ export const Navbar: React.FC<NavbarProps> = ({
             {/* Quick Action: Ask AI */}
             <button
               onClick={() => setActiveTab('counsellor')}
-              className="hidden lg:flex items-center space-x-1.5 px-3.5 py-1.5 rounded-lg bg-gradient-to-r from-[#C9A050] to-[#A07828] hover:from-[#D4AF37] hover:to-[#B38730] text-[#0D0D0F] font-bold text-xs shadow-md shadow-[#C9A050]/20 transition-all cursor-pointer shrink-0"
+              className={`hidden lg:flex items-center space-x-1.5 px-3.5 py-1.5 rounded-lg font-bold text-xs shadow-md transition-all duration-300 cursor-pointer shrink-0 hover:-translate-y-0.5 hover:scale-105 ${
+                theme === 'dark'
+                  ? 'bg-gradient-to-r from-[#C9A050] to-[#A07828] hover:from-[#D4AF37] hover:to-[#B38730] text-[#0D0D0F] shadow-[#C9A050]/20 hover:shadow-[#C9A050]/40'
+                  : 'bg-[#FFFFFF] border border-[#C9A050]/50 text-[#C9A050] hover:bg-[#C9A050]/10 shadow-[#C9A050]/10 hover:shadow-[#C9A050]/20'
+              }`}
             >
               <Sparkles className="w-3.5 h-3.5" />
               <span>{t('header.ask_ai')}</span>
@@ -252,9 +282,9 @@ export const Navbar: React.FC<NavbarProps> = ({
       </div>
 
       {/* Navigation Tabs Bar */}
-      <div className="border-t border-[#2A2A2E] bg-[#08080A]/80 overflow-x-auto">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <nav className="flex space-x-1 py-1.5" aria-label="Tabs">
+      <div className={`border-t backdrop-blur-lg ${theme === 'dark' ? 'border-[#2A2A2E]/60 bg-[#08080A]/60' : 'border-[#E5E1D8] bg-[#F9F7F1]/70'}`}>
+        <div className="w-full px-4 sm:px-6 lg:px-8">
+          <nav className="flex items-center justify-between py-2 w-full" aria-label="Tabs">
             {tabs.map((tab) => {
               const Icon = tab.icon;
               const isActive = activeTab === tab.id;
@@ -262,10 +292,10 @@ export const Navbar: React.FC<NavbarProps> = ({
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`flex items-center space-x-2 px-3.5 py-1.5 rounded-md text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
+                  className={`flex items-center justify-center space-x-1.5 px-2 py-1.5 rounded-md text-[11px] lg:text-xs font-semibold whitespace-nowrap transition-all duration-300 ease-out cursor-pointer hover:-translate-y-0.5 hover:scale-[1.02] ${
                     isActive
                       ? 'bg-[#C9A050]/15 text-[#C9A050] border border-[#C9A050]/40 shadow-sm'
-                      : 'text-[#9E9A90] hover:text-[#E5E1D8] hover:bg-[#141418]'
+                      : `${theme === 'dark' ? 'text-[#9E9A90] hover:text-[#E5E1D8] hover:bg-[#1C1C22]' : 'text-[#6C6960] hover:text-[#0D0D0F] hover:bg-[#E5E1D8]'} hover:shadow-md hover:shadow-[#C9A050]/10`
                   }`}
                 >
                   <Icon className={`w-4 h-4 ${isActive ? 'text-[#C9A050]' : 'text-[#9E9A90]'}`} />

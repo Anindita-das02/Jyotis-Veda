@@ -24,13 +24,15 @@ import { ZODIAC_SIGNS, ZodiacSign, calculateZodiacCompatibility, ZodiacCompatibi
 import { getTranslation } from '../services/translations';
 
 interface GlobalZodiacViewProps {
-  language: string;
+  language?: string;
   onAskAIForSign?: (signName: string, promptText: string) => void;
+  theme?: 'light' | 'dark';
 }
 
 export const GlobalZodiacView: React.FC<GlobalZodiacViewProps> = ({
-  language,
+  language = 'en',
   onAskAIForSign,
+  theme = 'dark',
 }) => {
   const [selectedElement, setSelectedElement] = useState<'All' | 'Fire' | 'Earth' | 'Air' | 'Water'>('All');
   const [timeframe, setTimeframe] = useState<'today' | 'week' | 'month' | 'year'>('today');
@@ -99,6 +101,21 @@ export const GlobalZodiacView: React.FC<GlobalZodiacViewProps> = ({
   };
 
   const getElementBadge = (element: string) => {
+    if (theme === 'light') {
+      let Icon = Globe;
+      if (element === 'Fire') Icon = Flame;
+      if (element === 'Earth') Icon = Mountain;
+      if (element === 'Air') Icon = Wind;
+      if (element === 'Water') Icon = Droplets;
+
+      return (
+        <span className="inline-flex items-center space-x-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-[#C9A050]/10 text-[#C9A050] border border-[#C9A050]/30">
+          <Icon className="w-3 h-3 text-[#C9A050]" />
+          <span>{element}</span>
+        </span>
+      );
+    }
+
     switch (element) {
       case 'Fire':
         return (
@@ -200,10 +217,10 @@ export const GlobalZodiacView: React.FC<GlobalZodiacViewProps> = ({
                   : 'bg-[#1C1C22] text-[#9E9A90] hover:text-[#E5E1D8] border border-[#2A2A2E]'
               }`}
             >
-              {el === 'Fire' && <Flame className="w-3 h-3 text-rose-400" />}
-              {el === 'Earth' && <Mountain className="w-3 h-3 text-emerald-400" />}
-              {el === 'Air' && <Wind className="w-3 h-3 text-sky-400" />}
-              {el === 'Water' && <Droplets className="w-3 h-3 text-indigo-400" />}
+              {el === 'Fire' && <Flame className={`w-3 h-3 ${theme === 'dark' ? 'text-rose-400' : 'text-[#C9A050]'}`} />}
+              {el === 'Earth' && <Mountain className={`w-3 h-3 ${theme === 'dark' ? 'text-emerald-400' : 'text-[#C9A050]'}`} />}
+              {el === 'Air' && <Wind className={`w-3 h-3 ${theme === 'dark' ? 'text-sky-400' : 'text-[#C9A050]'}`} />}
+              {el === 'Water' && <Droplets className={`w-3 h-3 ${theme === 'dark' ? 'text-indigo-400' : 'text-[#C9A050]'}`} />}
               <span>{el === 'All' ? t('zodiac.filter.all') : el}</span>
             </button>
           ))}
@@ -254,19 +271,21 @@ export const GlobalZodiacView: React.FC<GlobalZodiacViewProps> = ({
             <button
               key={sign.id}
               onClick={() => setSelectedSignId(sign.id)}
-              className={`p-4 rounded-xl border text-left transition duration-200 cursor-pointer flex flex-col justify-between relative overflow-hidden group ${
+              className={`p-4 rounded-xl border text-left transition-all duration-300 ease-out cursor-pointer flex flex-col justify-between relative overflow-hidden group hover:scale-[1.03] hover:-translate-y-1 hover:shadow-xl hover:shadow-[#C9A050]/20 ${
                 isSelected
-                  ? 'bg-gradient-to-b from-[#1C1C22] to-[#141418] border-[#C9A050] shadow-xl shadow-[#C9A050]/15 ring-1 ring-[#C9A050]'
-                  : 'bg-[#141418] border-[#2A2A2E] hover:border-[#C9A050]/60 hover:bg-[#1A1A20]'
+                  ? theme === 'dark'
+                    ? 'bg-gradient-to-b from-[#1C1C22] to-[#141418] border-transparent shadow-xl shadow-[#C9A050]/25 ring-2 ring-[#C9A050]'
+                    : 'bg-[#FFFFFF] border-transparent shadow-xl shadow-[#C9A050]/25 ring-2 ring-[#C9A050]'
+                  : 'bg-[#141418] border-[#2A2A2E] hover:border-[#C9A050]/60 hover:bg-[#1A1A20] ring-0'
               }`}
             >
-              {isSelected && (
-                <div className="absolute top-0 right-0 w-2 h-2 bg-[#C9A050] rounded-bl-md" />
-              )}
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-2xl font-serif text-[#C9A050] group-hover:scale-110 transition duration-200">
-                    {sign.symbol}
+                  <span 
+                    className="text-2xl font-serif text-[#C9A050] group-hover:scale-110 transition duration-200"
+                    style={{ fontVariantEmoji: 'text', fontFamily: '"Segoe UI Symbol", "Apple Symbols", sans-serif' }}
+                  >
+                    {sign.symbol}&#xFE0E;
                   </span>
                   {getElementBadge(sign.element)}
                 </div>
@@ -283,7 +302,7 @@ export const GlobalZodiacView: React.FC<GlobalZodiacViewProps> = ({
 
               <div className="mt-3 pt-3 border-t border-[#2A2A2E]/60 flex items-center justify-between text-[10px] text-[#9E9A90]">
                 <span>{sign.glyph}</span>
-                <span className="font-semibold text-emerald-400">{sign.vitalityToday}% Vitality</span>
+                <span className={`font-semibold ${theme === 'dark' ? 'text-emerald-400' : 'text-[#C9A050]'}`}>{sign.vitalityToday}% Vitality</span>
               </div>
             </button>
           );
@@ -295,8 +314,8 @@ export const GlobalZodiacView: React.FC<GlobalZodiacViewProps> = ({
         {/* Top Highlight Info */}
         <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6 pb-6 border-b border-[#2A2A2E]">
           <div className="flex items-center space-x-4">
-            <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-[#C9A050] to-[#8C6D2E] flex items-center justify-center text-[#0D0D0F] font-serif text-3xl font-bold shadow-lg shadow-[#C9A050]/20">
-              {activeSign.symbol}
+            <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-[#C9A050] to-[#8C6D2E] flex items-center justify-center text-[#0D0D0F] font-serif text-3xl font-bold shadow-lg shadow-[#C9A050]/20" style={{ fontVariantEmoji: 'text', fontFamily: '"Segoe UI Symbol", "Apple Symbols", sans-serif' }}>
+              {activeSign.symbol}&#xFE0E;
             </div>
             <div>
               <div className="flex flex-wrap items-center gap-2 mb-1">
@@ -343,14 +362,14 @@ export const GlobalZodiacView: React.FC<GlobalZodiacViewProps> = ({
           <div className="bg-[#0D0D0F] p-4 rounded-xl border border-[#2A2A2E]">
             <div className="flex items-center justify-between text-xs text-[#9E9A90] mb-2">
               <span className="flex items-center space-x-1.5">
-                <Heart className="w-3.5 h-3.5 text-rose-400" />
+                <Heart className={`w-3.5 h-3.5 ${theme === 'dark' ? 'text-rose-400' : 'text-[#C9A050]'}`} />
                 <span>{t('zodiac.love_rating')}</span>
               </span>
-              <span className="font-bold text-rose-400">{currentDynamicData?.loveRating || activeSign.loveRating}%</span>
+              <span className={`font-bold ${theme === 'dark' ? 'text-rose-400' : 'text-[#C9A050]'}`}>{currentDynamicData?.loveRating || activeSign.loveRating}%</span>
             </div>
             <div className="w-full bg-[#1C1C22] h-2 rounded-full overflow-hidden">
               <div
-                className="bg-rose-500 h-full rounded-full transition-all duration-500"
+                className={`${theme === 'dark' ? 'bg-rose-500' : 'bg-[#C9A050]'} h-full rounded-full transition-all duration-500`}
                 style={{ width: `${currentDynamicData?.loveRating || activeSign.loveRating}%` }}
               />
             </div>
@@ -359,14 +378,14 @@ export const GlobalZodiacView: React.FC<GlobalZodiacViewProps> = ({
           <div className="bg-[#0D0D0F] p-4 rounded-xl border border-[#2A2A2E]">
             <div className="flex items-center justify-between text-xs text-[#9E9A90] mb-2">
               <span className="flex items-center space-x-1.5">
-                <Briefcase className="w-3.5 h-3.5 text-sky-400" />
+                <Briefcase className={`w-3.5 h-3.5 ${theme === 'dark' ? 'text-sky-400' : 'text-[#C9A050]'}`} />
                 <span>{t('zodiac.career_rating')}</span>
               </span>
-              <span className="font-bold text-sky-400">{currentDynamicData?.careerRating || activeSign.careerRating}%</span>
+              <span className={`font-bold ${theme === 'dark' ? 'text-sky-400' : 'text-[#C9A050]'}`}>{currentDynamicData?.careerRating || activeSign.careerRating}%</span>
             </div>
             <div className="w-full bg-[#1C1C22] h-2 rounded-full overflow-hidden">
               <div
-                className="bg-sky-500 h-full rounded-full transition-all duration-500"
+                className={`${theme === 'dark' ? 'bg-sky-500' : 'bg-[#C9A050]'} h-full rounded-full transition-all duration-500`}
                 style={{ width: `${currentDynamicData?.careerRating || activeSign.careerRating}%` }}
               />
             </div>
@@ -375,14 +394,14 @@ export const GlobalZodiacView: React.FC<GlobalZodiacViewProps> = ({
           <div className="bg-[#0D0D0F] p-4 rounded-xl border border-[#2A2A2E]">
             <div className="flex items-center justify-between text-xs text-[#9E9A90] mb-2">
               <span className="flex items-center space-x-1.5">
-                <Coins className="w-3.5 h-3.5 text-amber-400" />
+                <Coins className={`w-3.5 h-3.5 ${theme === 'dark' ? 'text-amber-400' : 'text-[#C9A050]'}`} />
                 <span>{t('zodiac.wealth_rating')}</span>
               </span>
-              <span className="font-bold text-amber-400">{currentDynamicData?.wealthRating || activeSign.wealthRating}%</span>
+              <span className={`font-bold ${theme === 'dark' ? 'text-amber-400' : 'text-[#C9A050]'}`}>{currentDynamicData?.wealthRating || activeSign.wealthRating}%</span>
             </div>
             <div className="w-full bg-[#1C1C22] h-2 rounded-full overflow-hidden">
               <div
-                className="bg-amber-500 h-full rounded-full transition-all duration-500"
+                className={`${theme === 'dark' ? 'bg-amber-500' : 'bg-[#C9A050]'} h-full rounded-full transition-all duration-500`}
                 style={{ width: `${currentDynamicData?.wealthRating || activeSign.wealthRating}%` }}
               />
             </div>
@@ -391,14 +410,14 @@ export const GlobalZodiacView: React.FC<GlobalZodiacViewProps> = ({
           <div className="bg-[#0D0D0F] p-4 rounded-xl border border-[#2A2A2E]">
             <div className="flex items-center justify-between text-xs text-[#9E9A90] mb-2">
               <span className="flex items-center space-x-1.5">
-                <Zap className="w-3.5 h-3.5 text-emerald-400" />
+                <Zap className={`w-3.5 h-3.5 ${theme === 'dark' ? 'text-emerald-400' : 'text-[#C9A050]'}`} />
                 <span>{t('zodiac.vitality_meter')}</span>
               </span>
-              <span className="font-bold text-emerald-400">{currentDynamicData?.vitalityToday || activeSign.vitalityToday}%</span>
+              <span className={`font-bold ${theme === 'dark' ? 'text-emerald-400' : 'text-[#C9A050]'}`}>{currentDynamicData?.vitalityToday || activeSign.vitalityToday}%</span>
             </div>
             <div className="w-full bg-[#1C1C22] h-2 rounded-full overflow-hidden">
               <div
-                className="bg-emerald-500 h-full rounded-full transition-all duration-500"
+                className={`${theme === 'dark' ? 'bg-emerald-500' : 'bg-[#C9A050]'} h-full rounded-full transition-all duration-500`}
                 style={{ width: `${currentDynamicData?.vitalityToday || activeSign.vitalityToday}%` }}
               />
             </div>
@@ -576,12 +595,12 @@ export const GlobalZodiacView: React.FC<GlobalZodiacViewProps> = ({
               </div>
 
               <div className="bg-[#141418] p-3 rounded-lg border border-[#2A2A2E]/80">
-                <span className="font-semibold text-rose-400 block mb-0.5">Romantic & Soul Synergy:</span>
+                <span className={`font-semibold block mb-0.5 ${theme === 'dark' ? 'text-rose-400' : 'text-[#C9A050]'}`}>Romantic & Soul Synergy:</span>
                 <span className="text-[#9E9A90]">{compatResult.romanceAnalysis}</span>
               </div>
 
               <div className="bg-[#141418] p-3 rounded-lg border border-[#2A2A2E]/80">
-                <span className="font-semibold text-emerald-400 block mb-0.5">Evolution & Remedial Guidance:</span>
+                <span className={`font-semibold block mb-0.5 ${theme === 'dark' ? 'text-emerald-400' : 'text-[#C9A050]'}`}>Evolution & Remedial Guidance:</span>
                 <span className="text-[#9E9A90]">{compatResult.remedialAdvice}</span>
               </div>
             </div>

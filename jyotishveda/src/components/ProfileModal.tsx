@@ -8,6 +8,7 @@ interface ProfileModalProps {
   onClose: () => void;
   onSave: (profile: UserProfile) => void;
   initialProfile?: UserProfile | null;
+  theme?: 'dark' | 'light';
 }
 
 const PRESET_CITIES = [
@@ -43,6 +44,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
   onClose,
   onSave,
   initialProfile,
+  theme = 'dark',
 }) => {
   if (!isOpen) return null;
 
@@ -136,8 +138,8 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="bg-[#141418] border border-[#2A2A2E] rounded-xl max-w-2xl w-full p-6 text-[#E5E1D8] shadow-2xl relative max-h-[90vh] overflow-y-auto font-sans">
+    <div className="fixed inset-0 z-50 overflow-y-auto bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+      <div className="bg-[#141418]/85 backdrop-blur-2xl border border-[#2A2A2E]/80 rounded-xl max-w-2xl w-full p-6 text-[#E5E1D8] shadow-[0_8px_32px_rgba(0,0,0,0.5)] relative max-h-[90vh] overflow-y-auto font-sans">
         {/* Close Button */}
         <button
           onClick={onClose}
@@ -148,7 +150,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
 
         {/* Header */}
         <div className="flex items-center space-x-3 mb-6 pb-4 border-b border-[#2A2A2E]">
-          <AncientTraditionLogo size="md" />
+          <AncientTraditionLogo size="md" isLight={theme === 'light'} />
           <div>
             <h2 className="text-xl font-serif font-bold text-[#F0ECE1]">
               {initialProfile ? 'Edit Astrological Profile' : 'New Astrological & Numerology Profile'}
@@ -218,15 +220,15 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
               >
                 <div className="flex items-start justify-between">
                   <div className="flex items-center space-x-2">
-                    <div className="w-7 h-7 rounded-lg bg-[#4A7C59]/20 flex items-center justify-center text-[#7EBC89]">
+                    <div className={`w-7 h-7 rounded-lg flex items-center justify-center ${theme === 'dark' ? 'bg-[#4A7C59]/20 text-[#7EBC89]' : 'bg-[#E5E1D8] text-[#9E9A90]'}`}>
                       <Globe className="w-3.5 h-3.5" />
                     </div>
                     <div>
                       <div className="text-xs font-bold text-[#F0ECE1] flex items-center space-x-1">
                         <span>Western Horoscope</span>
-                        <span className="text-[10px] font-normal text-[#7EBC89]">(Tropical)</span>
+                        <span className={`text-[10px] font-normal ${theme === 'dark' ? 'text-[#7EBC89]' : 'text-[#9E9A90]'}`}>(Tropical)</span>
                       </div>
-                      <div className="text-[10px] text-[#9E9A90]">Sayana • Equinox Based</div>
+                      <div className="text-[10px] text-[#9E9A90]">Sayana &middot; Equinox Based</div>
                     </div>
                   </div>
                   <div className={`w-4 h-4 rounded-full border flex items-center justify-center ${

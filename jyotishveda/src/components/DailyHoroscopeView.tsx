@@ -23,6 +23,7 @@ interface DailyHoroscopeViewProps {
   numerology: NumerologyReport;
   chartData: any;
   onNavigateToTab: (tab: string) => void;
+  theme: 'light' | 'dark';
 }
 
 interface DailyAiInsights {
@@ -43,6 +44,7 @@ export const DailyHoroscopeView: React.FC<DailyHoroscopeViewProps> = ({
   numerology,
   chartData,
   onNavigateToTab,
+  theme,
 }) => {
   const [aiInsights, setAiInsights] = useState<DailyAiInsights | null>(null);
   const [isLoadingAi, setIsLoadingAi] = useState(false);
@@ -183,7 +185,7 @@ export const DailyHoroscopeView: React.FC<DailyHoroscopeViewProps> = ({
   return (
     <div className="space-y-6">
       {/* Top Banner: Greeting & Cosmic Alignment Score */}
-      <div className="relative overflow-hidden rounded-xl bg-[#141418] border border-[#2A2A2E] p-6 sm:p-8 text-[#E5E1D8] shadow-2xl">
+      <div className={`relative overflow-hidden rounded-xl border p-6 sm:p-8 shadow-2xl ${theme === 'dark' ? 'bg-[#141418] border-[#2A2A2E] text-[#E5E1D8]' : 'bg-white border-[#E5E1D8] text-[#2A2A2E]'}`}>
         <div className="absolute top-0 right-0 -mr-16 -mt-16 w-64 h-64 bg-[#C9A050]/5 rounded-full blur-3xl pointer-events-none" />
         
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10">
@@ -194,24 +196,24 @@ export const DailyHoroscopeView: React.FC<DailyHoroscopeViewProps> = ({
                 {profile.horoscopeSystem === 'western' ? 'Western Tropical' : 'Vedic Sidereal'} Daily Transit • {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
               </span>
             </div>
-            <h1 className="text-3xl sm:text-4xl font-serif font-bold tracking-tight text-[#F0ECE1]">
+            <h1 className={`text-3xl sm:text-4xl font-serif font-bold tracking-tight ${theme === 'dark' ? 'text-[#F0ECE1]' : 'text-[#0D0D0F]'}`}>
               {getGreeting()}, <span className="text-[#C9A050] italic">{profile.fullName}</span>
             </h1>
             <p className="text-sm font-sans text-[#9E9A90] mt-2 max-w-2xl leading-relaxed">
-              Your natal {profile.horoscopeSystem === 'western' ? 'Ascendant' : 'Lagna'} is <span className="font-semibold text-[#E5E1D8]">{chartData?.ascendant?.signName}</span> ({profile.horoscopeSystem === 'western' ? 'Tropical Sayana' : 'Sidereal Nirayana'}) with{' '}
+              Your natal {profile.horoscopeSystem === 'western' ? 'Ascendant' : 'Lagna'} is <span className={`font-semibold ${theme === 'dark' ? 'text-[#E5E1D8]' : 'text-[#2A2A2E]'}`}>{chartData?.ascendant?.signName}</span> ({profile.horoscopeSystem === 'western' ? 'Tropical Sayana' : 'Sidereal Nirayana'}) with{' '}
               <span className="font-semibold text-[#C9A050]">Mulank {numerology.mulank}</span> ({numerology.mulankPlanet.split('(')[0]}). 
               {getIntroText(panchang.auspiciousScore)}
             </p>
           </div>
 
           {/* Alignment Score Meter */}
-          <div className="flex items-center space-x-4 bg-[#1A1A1E] border border-[#2A2A2E] rounded-xl p-4 shrink-0 shadow-lg">
+          <div className={`flex items-center space-x-4 border rounded-xl p-4 shrink-0 shadow-lg ${theme === 'dark' ? 'bg-[#1A1A1E] border-[#2A2A2E]' : 'bg-[#F9F7F1] border-[#E5E1D8]'}`}>
             <div className="text-center">
               <div className="text-3xl font-serif font-black text-[#C9A050]">{panchang.auspiciousScore}%</div>
               <div className="text-[9px] uppercase font-sans font-bold tracking-widest text-[#9E9A90]">Cosmic Harmony</div>
             </div>
             <div className="h-10 w-[1px] bg-[#2A2A2E]" />
-            <div className="text-xs font-sans text-[#E5E1D8] space-y-1">
+            <div className={`text-xs font-sans space-y-1 ${theme === 'dark' ? 'text-[#E5E1D8]' : 'text-[#2A2A2E]'}`}>
               <div className={`flex items-center space-x-1.5 font-medium ${harmony.color}`}>
                 <harmony.icon className="w-3.5 h-3.5" />
                 <span>{harmony.title}</span>
@@ -222,14 +224,14 @@ export const DailyHoroscopeView: React.FC<DailyHoroscopeViewProps> = ({
         </div>
 
         {/* Quick Auspicious Attributes Strip */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-6 pt-6 border-t border-[#2A2A2E]">
-          <div className="bg-[#1A1A1E]/80 p-3.5 rounded-lg border border-[#2A2A2E]">
+        <div className={`grid grid-cols-2 sm:grid-cols-4 gap-3 mt-6 pt-6 border-t ${theme === 'dark' ? 'border-[#2A2A2E]' : 'border-[#E5E1D8]'}`}>
+          <div className={`p-3.5 rounded-lg border ${theme === 'dark' ? 'bg-[#1A1A1E]/80 border-[#2A2A2E]' : 'bg-[#F9F7F1]/80 border-[#E5E1D8]'}`}>
             <div className="text-[9px] text-[#9E9A90] uppercase font-sans font-bold tracking-wider">Lucky Number Today</div>
             <div className="text-xl font-serif font-bold text-[#C9A050] mt-0.5">{numerology.luckyNumbers[0] || numerology.mulank}</div>
             <div className="text-[11px] text-[#9E9A90]">Ruled by {numerology.mulankPlanet.split('(')[0]}</div>
           </div>
 
-          <div className="bg-[#1A1A1E]/80 p-3.5 rounded-lg border border-[#2A2A2E]">
+          <div className={`p-3.5 rounded-lg border ${theme === 'dark' ? 'bg-[#1A1A1E]/80 border-[#2A2A2E]' : 'bg-[#F9F7F1]/80 border-[#E5E1D8]'}`}>
             <div className="text-[9px] text-[#9E9A90] uppercase font-sans font-bold tracking-wider">Lucky Color & Tone</div>
             <div className="text-xl font-serif font-bold text-[#C9A050] mt-0.5">{numerology.luckyColors[0] || 'Golden Saffron'}</div>
             <div className="text-[11px] text-[#9E9A90] line-clamp-1" title={aiInsights?.lucky_color_desc || getLuckyColorDesc(numerology.luckyColors[0])}>
@@ -237,17 +239,17 @@ export const DailyHoroscopeView: React.FC<DailyHoroscopeViewProps> = ({
             </div>
           </div>
 
-          <div className="bg-[#1A1A1E]/80 p-3.5 rounded-lg border border-[#2A2A2E]">
+          <div className={`p-3.5 rounded-lg border ${theme === 'dark' ? 'bg-[#1A1A1E]/80 border-[#2A2A2E]' : 'bg-[#F9F7F1]/80 border-[#E5E1D8]'}`}>
             <div className="text-[9px] text-[#9E9A90] uppercase font-sans font-bold tracking-wider">Shubh Abhijit Muhurta</div>
-            <div className="text-sm font-sans font-bold text-emerald-400 mt-1">{panchang.abhijitMuhurta.split('(')[0].trim()}</div>
+            <div className={`text-sm font-sans font-bold mt-1 ${theme === 'dark' ? 'text-emerald-400' : 'text-[#C9A050]'}`}>{panchang.abhijitMuhurta.split('(')[0].trim()}</div>
             <div className="text-[11px] text-[#9E9A90]">
               {panchang.abhijitMuhurta.match(/\(([^)]+)\)/)?.[1] || 'Victory window for tasks'}
             </div>
           </div>
 
-          <div className="bg-[#1A1A1E]/80 p-3.5 rounded-lg border border-[#2A2A2E]">
+          <div className={`p-3.5 rounded-lg border ${theme === 'dark' ? 'bg-[#1A1A1E]/80 border-[#2A2A2E]' : 'bg-[#F9F7F1]/80 border-[#E5E1D8]'}`}>
             <div className="text-[9px] text-[#9E9A90] uppercase font-sans font-bold tracking-wider">Rahu Kaal (Avoid Starts)</div>
-            <div className="text-sm font-sans font-bold text-rose-400 mt-1">{panchang.rahuKaal.split('(')[0].trim()}</div>
+            <div className={`text-sm font-sans font-bold mt-1 ${theme === 'dark' ? 'text-rose-400' : 'text-[#C9A050]'}`}>{panchang.rahuKaal.split('(')[0].trim()}</div>
             <div className="text-[11px] text-[#9E9A90]">
               {panchang.rahuKaal.match(/\(([^)]+)\)/)?.[1] || 'Inauspicious time bracket'}
             </div>
@@ -260,14 +262,14 @@ export const DailyHoroscopeView: React.FC<DailyHoroscopeViewProps> = ({
         {/* Left 2 Cols: Daily AI Insights & Daily Ritual */}
         <div className="lg:col-span-2 space-y-6">
           {/* AI Personalized Forecast Card */}
-          <div className="bg-[#141418] border border-[#2A2A2E] rounded-xl p-6 text-[#E5E1D8] shadow-xl">
-            <div className="flex items-center justify-between pb-4 border-b border-[#2A2A2E] mb-4">
+          <div className={`border rounded-xl p-6 shadow-xl ${theme === 'dark' ? 'bg-[#141418] border-[#2A2A2E] text-[#E5E1D8]' : 'bg-white border-[#E5E1D8] text-[#2A2A2E]'}`}>
+            <div className={`flex items-center justify-between pb-4 border-b mb-4 ${theme === 'dark' ? 'border-[#2A2A2E]' : 'border-[#E5E1D8]'}`}>
               <div className="flex items-center space-x-2.5">
                 <div className="p-2 rounded-lg bg-[#C9A050]/15 text-[#C9A050] border border-[#C9A050]/30">
                   <Sparkles className="w-4 h-4" />
                 </div>
                 <div>
-                  <h2 className="text-xl font-serif font-bold text-[#F0ECE1]">Daily AI Vedic Horoscope Interpretation</h2>
+                  <h2 className={`text-xl font-serif font-bold ${theme === 'dark' ? 'text-[#F0ECE1]' : 'text-[#0D0D0F]'}`}>Daily AI Vedic Horoscope Interpretation</h2>
                   <p className="text-xs font-sans text-[#9E9A90]">Personalized transit synthesis based on your specific birth chart & active dasha</p>
                 </div>
               </div>
@@ -289,7 +291,7 @@ export const DailyHoroscopeView: React.FC<DailyHoroscopeViewProps> = ({
                     </button>
                     <button
                       onClick={handleShare}
-                      className="p-2 rounded-lg bg-[#1A1A1E] border border-[#2A2A2E] text-[#E5E1D8] hover:text-white transition cursor-pointer text-xs flex items-center space-x-1"
+                      className={`p-2 rounded-lg border hover:text-white transition cursor-pointer text-xs flex items-center space-x-1 ${theme === 'dark' ? 'bg-[#1A1A1E] border-[#2A2A2E] text-[#E5E1D8]' : 'bg-[#F9F7F1] border-[#E5E1D8] text-[#2A2A2E]'}`}
                       title="Copy & Share"
                     >
                       <Share2 className="w-4 h-4" />
@@ -301,7 +303,11 @@ export const DailyHoroscopeView: React.FC<DailyHoroscopeViewProps> = ({
                 <button
                   onClick={fetchDailyAiReading}
                   disabled={isLoadingAi}
-                  className="px-3.5 py-2 rounded-lg bg-gradient-to-r from-[#C9A050] to-[#A07828] hover:from-[#D4AF37] hover:to-[#B38730] text-[#0D0D0F] font-bold text-xs shadow-md shadow-[#C9A050]/15 transition cursor-pointer flex items-center space-x-1.5 disabled:opacity-50"
+                  className={`px-3.5 py-2 rounded-lg font-bold text-xs shadow-md transition cursor-pointer flex items-center space-x-1.5 disabled:opacity-50 ${
+                    theme === 'dark'
+                      ? 'bg-gradient-to-r from-[#C9A050] to-[#A07828] hover:from-[#D4AF37] hover:to-[#B38730] text-[#0D0D0F] shadow-[#C9A050]/15'
+                      : 'bg-[#FFFFFF] border border-[#C9A050]/50 text-[#C9A050] hover:bg-[#C9A050]/10 shadow-[#C9A050]/10'
+                  }`}
                 >
                   <Sparkles className={`w-3.5 h-3.5 ${isLoadingAi ? 'animate-spin' : ''}`} />
                   <span>{isLoadingAi ? 'Consulting...' : aiInsights ? 'Regenerate Insight' : 'Generate Full AI Reading'}</span>
@@ -318,19 +324,19 @@ export const DailyHoroscopeView: React.FC<DailyHoroscopeViewProps> = ({
               </div>
             ) : aiInsights ? (
               <div className="space-y-4">
-                <div className="prose prose-invert max-w-none text-[#E5E1D8] text-xs sm:text-sm leading-relaxed space-y-3 whitespace-pre-line bg-[#08080A] p-5 rounded-xl border border-[#2A2A2E] font-serif">
+                <div className={`prose prose-invert max-w-none text-xs sm:text-sm leading-relaxed space-y-3 whitespace-pre-line p-5 rounded-xl border font-serif ${theme === 'dark' ? 'border-[#2A2A2E] text-[#E5E1D8] bg-[#08080A]' : 'border-[#E5E1D8] text-[#2A2A2E] bg-[#F0ECE1]'}`}>
                   {aiInsights.summary}
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <div className="p-3.5 bg-[#1A1A1E]/60 rounded-lg border border-[#2A2A2E]">
+                  <div className={`p-3.5 /60 rounded-lg border ${theme === 'dark' ? 'bg-[#1A1A1E] border-[#2A2A2E]' : 'bg-[#F9F7F1] border-[#E5E1D8]'}`}>
                     <span className="text-[9px] uppercase font-sans font-bold tracking-wider text-[#C9A050]">Career & Commerce</span>
                     <p className="text-xs font-sans text-[#9E9A90] mt-1">{aiInsights.career}</p>
                   </div>
-                  <div className="p-3.5 bg-[#1A1A1E]/60 rounded-lg border border-[#2A2A2E]">
+                  <div className={`p-3.5 /60 rounded-lg border ${theme === 'dark' ? 'bg-[#1A1A1E] border-[#2A2A2E]' : 'bg-[#F9F7F1] border-[#E5E1D8]'}`}>
                     <span className="text-[9px] uppercase font-sans font-bold tracking-wider text-[#C9A050]">Love & Harmony</span>
                     <p className="text-xs font-sans text-[#9E9A90] mt-1">{aiInsights.love}</p>
                   </div>
-                  <div className="p-3.5 bg-[#1A1A1E]/60 rounded-lg border border-[#2A2A2E]">
+                  <div className={`p-3.5 /60 rounded-lg border ${theme === 'dark' ? 'bg-[#1A1A1E] border-[#2A2A2E]' : 'bg-[#F9F7F1] border-[#E5E1D8]'}`}>
                     <span className="text-[9px] uppercase font-sans font-bold tracking-wider text-[#C9A050]">Health & Prana</span>
                     <p className="text-xs font-sans text-[#9E9A90] mt-1">{aiInsights.health}</p>
                   </div>
@@ -338,12 +344,12 @@ export const DailyHoroscopeView: React.FC<DailyHoroscopeViewProps> = ({
               </div>
             ) : (
               <div className="space-y-4">
-                <div className="p-4 rounded-xl bg-[#1A1A1E]/80 border border-[#2A2A2E] space-y-2">
+                <div className={`p-4 rounded-xl border space-y-2 ${theme === 'dark' ? 'bg-[#1A1A1E]/80 border-[#2A2A2E]' : 'bg-[#F9F7F1]/80 border-[#E5E1D8]'}`}>
                   <div className="text-sm font-serif font-semibold text-[#C9A050] flex items-center space-x-2">
                     <Sun className="w-4 h-4 text-[#C9A050]" />
                     <span>Today’s Dominant Cosmic Rhythm: {panchang.tithi} in {panchang.nakshatra}</span>
                   </div>
-                  <p className="text-xs font-sans text-[#E5E1D8] leading-relaxed">
+                  <p className={`text-xs font-sans leading-relaxed ${theme === 'dark' ? 'text-[#E5E1D8]' : 'text-[#2A2A2E]'}`}>
                     {panchang.auspiciousScore >= 80 ? "The Moon traverses through highly auspicious degrees today, stimulating sharp communication, favorable business contracts, and relationship harmony." 
                     : panchang.auspiciousScore >= 60 ? "Planetary aspects indicate a balanced rhythm today. Steady progress is favored over risky leaps, maintaining equilibrium in daily affairs."
                     : panchang.auspiciousScore >= 40 ? "Mixed cosmic influences suggest proceeding with awareness. Unexpected shifts might require adaptable responses rather than rigid plans."
@@ -353,7 +359,7 @@ export const DailyHoroscopeView: React.FC<DailyHoroscopeViewProps> = ({
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <div className="p-3.5 bg-[#1A1A1E]/60 rounded-lg border border-[#2A2A2E]">
+                  <div className={`p-3.5 /60 rounded-lg border ${theme === 'dark' ? 'bg-[#1A1A1E] border-[#2A2A2E]' : 'bg-[#F9F7F1] border-[#E5E1D8]'}`}>
                     <span className="text-[9px] uppercase font-sans font-bold tracking-wider text-[#C9A050]">Career & Commerce</span>
                     <p className="text-xs font-sans text-[#9E9A90] mt-1">
                       {panchang.auspiciousScore >= 80 ? "Excellent for structured negotiations, strategy decks, and leadership decisions."
@@ -362,7 +368,7 @@ export const DailyHoroscopeView: React.FC<DailyHoroscopeViewProps> = ({
                       : "Not ideal for initiating new ventures. Focus on clearing backlogs silently."}
                     </p>
                   </div>
-                  <div className="p-3.5 bg-[#1A1A1E]/60 rounded-lg border border-[#2A2A2E]">
+                  <div className={`p-3.5 /60 rounded-lg border ${theme === 'dark' ? 'bg-[#1A1A1E] border-[#2A2A2E]' : 'bg-[#F9F7F1] border-[#E5E1D8]'}`}>
                     <span className="text-[9px] uppercase font-sans font-bold tracking-wider text-[#C9A050]">Love & Harmony</span>
                     <p className="text-xs font-sans text-[#9E9A90] mt-1">
                       {panchang.auspiciousScore >= 80 ? "Nurturing dialogue resolves past hesitations; evening hours favor quiet companionship."
@@ -371,7 +377,7 @@ export const DailyHoroscopeView: React.FC<DailyHoroscopeViewProps> = ({
                       : "Give space to loved ones. Solitude might be more restorative than socializing today."}
                     </p>
                   </div>
-                  <div className="p-3.5 bg-[#1A1A1E]/60 rounded-lg border border-[#2A2A2E]">
+                  <div className={`p-3.5 /60 rounded-lg border ${theme === 'dark' ? 'bg-[#1A1A1E] border-[#2A2A2E]' : 'bg-[#F9F7F1] border-[#E5E1D8]'}`}>
                     <span className="text-[9px] uppercase font-sans font-bold tracking-wider text-[#C9A050]">Health & Prana</span>
                     <p className="text-xs font-sans text-[#9E9A90] mt-1">
                       {panchang.auspiciousScore >= 80 ? "High stamina; hydrate with warm herbal infusions to balance Pitta-Vata energy."
@@ -394,16 +400,16 @@ export const DailyHoroscopeView: React.FC<DailyHoroscopeViewProps> = ({
           </div>
 
           {/* Daily Vedic Sadhana & Upaya Card */}
-          <div className="bg-[#141418] border border-[#2A2A2E] rounded-xl p-6 text-[#E5E1D8] shadow-xl">
+          <div className={`border rounded-xl p-6 shadow-xl ${theme === 'dark' ? 'bg-[#141418] border-[#2A2A2E] text-[#E5E1D8]' : 'bg-white border-[#E5E1D8] text-[#2A2A2E]'}`}>
             <div className="flex items-center space-x-2 text-[#C9A050] font-serif font-bold text-base mb-3">
               <Flame className="w-4 h-4" />
               <span>Recommended Daily Vedic Ritual (Nitya Sadhana)</span>
             </div>
             
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="bg-[#1A1A1E]/80 p-4 rounded-xl border border-[#2A2A2E]">
+              <div className={`p-4 rounded-xl border ${theme === 'dark' ? 'bg-[#1A1A1E]/80 border-[#2A2A2E]' : 'bg-[#F9F7F1]/80 border-[#E5E1D8]'}`}>
                 <span className="text-[9px] uppercase font-sans font-bold text-[#C9A050] tracking-widest">Morning Sadhana</span>
-                <h4 className="text-sm font-serif font-bold text-[#F0ECE1] mt-1">
+                <h4 className={`text-sm font-serif font-bold mt-1 ${theme === 'dark' ? 'text-[#F0ECE1]' : 'text-[#0D0D0F]'}`}>
                   {aiInsights?.morning_ritual_title || getDailyRituals(new Date().getDay(), panchang.sunrise).morningTitle}
                 </h4>
                 <p className="text-xs font-sans text-[#9E9A90] mt-1 leading-relaxed">
@@ -411,9 +417,9 @@ export const DailyHoroscopeView: React.FC<DailyHoroscopeViewProps> = ({
                 </p>
               </div>
 
-              <div className="bg-[#1A1A1E]/80 p-4 rounded-xl border border-[#2A2A2E]">
+              <div className={`p-4 rounded-xl border ${theme === 'dark' ? 'bg-[#1A1A1E]/80 border-[#2A2A2E]' : 'bg-[#F9F7F1]/80 border-[#E5E1D8]'}`}>
                 <span className="text-[9px] uppercase font-sans font-bold text-[#C9A050] tracking-widest">Evening Sadhana</span>
-                <h4 className="text-sm font-serif font-bold text-[#F0ECE1] mt-1">
+                <h4 className={`text-sm font-serif font-bold mt-1 ${theme === 'dark' ? 'text-[#F0ECE1]' : 'text-[#0D0D0F]'}`}>
                   {aiInsights?.evening_ritual_title || getDailyRituals(new Date().getDay(), panchang.sunrise).eveningTitle}
                 </h4>
                 <p className="text-xs font-sans text-[#9E9A90] mt-1 leading-relaxed">
@@ -427,61 +433,61 @@ export const DailyHoroscopeView: React.FC<DailyHoroscopeViewProps> = ({
         {/* Right 1 Col: Complete Vedic Panchang Breakdown & Fast Actions */}
         <div className="space-y-6">
           {/* Panchang Deep Dive Card */}
-          <div className="bg-[#141418] border border-[#2A2A2E] rounded-xl p-6 text-[#E5E1D8] shadow-xl">
-            <div className="flex items-center justify-between pb-3 border-b border-[#2A2A2E] mb-4">
+          <div className={`border rounded-xl p-6 shadow-xl ${theme === 'dark' ? 'bg-[#141418] border-[#2A2A2E] text-[#E5E1D8]' : 'bg-white border-[#E5E1D8] text-[#2A2A2E]'}`}>
+            <div className={`flex items-center justify-between pb-3 border-b mb-4 ${theme === 'dark' ? 'border-[#2A2A2E]' : 'border-[#E5E1D8]'}`}>
               <div className="flex items-center space-x-2">
                 <Calendar className="w-4 h-4 text-[#C9A050]" />
-                <h3 className="text-base font-serif font-bold text-[#F0ECE1]">Sacred Panchang Parameters</h3>
+                <h3 className={`text-base font-serif font-bold ${theme === 'dark' ? 'text-[#F0ECE1]' : 'text-[#0D0D0F]'}`}>Sacred Panchang Parameters</h3>
               </div>
               <span className="text-[10px] font-sans text-[#C9A050]/80 font-medium">Sidereal Vedic</span>
             </div>
 
             <div className="space-y-3 text-xs font-sans">
-              <div className="flex justify-between items-center py-1.5 border-b border-[#2A2A2E]/60">
+              <div className={`flex justify-between items-center py-1.5 border-b /60 ${theme === 'dark' ? 'border-[#2A2A2E]' : 'border-[#E5E1D8]'}`}>
                 <span className="text-[#9E9A90]">Tithi (Lunar Day)</span>
-                <span className="font-semibold text-[#F0ECE1] text-right">{panchang.tithi}</span>
+                <span className={`font-semibold text-right ${theme === 'dark' ? 'text-[#F0ECE1]' : 'text-[#0D0D0F]'}`}>{panchang.tithi}</span>
               </div>
-              <div className="flex justify-between items-center py-1.5 border-b border-[#2A2A2E]/60">
+              <div className={`flex justify-between items-center py-1.5 border-b /60 ${theme === 'dark' ? 'border-[#2A2A2E]' : 'border-[#E5E1D8]'}`}>
                 <span className="text-[#9E9A90]">Nakshatra (Asterism)</span>
-                <span className="font-semibold text-[#C9A050] text-right font-serif">{panchang.nakshatra}</span>
+                <span className={`font-semibold text-right font-serif ${theme === 'dark' ? 'text-[#F0ECE1]' : 'text-[#0D0D0F]'}`}>{panchang.nakshatra}</span>
               </div>
-              <div className="flex justify-between items-center py-1.5 border-b border-[#2A2A2E]/60">
+              <div className={`flex justify-between items-center py-1.5 border-b /60 ${theme === 'dark' ? 'border-[#2A2A2E]' : 'border-[#E5E1D8]'}`}>
                 <span className="text-[#9E9A90]">Vedic Yoga</span>
-                <span className="font-semibold text-[#F0ECE1] text-right">{panchang.yoga}</span>
+                <span className={`font-semibold text-right ${theme === 'dark' ? 'text-[#F0ECE1]' : 'text-[#0D0D0F]'}`}>{panchang.yoga}</span>
               </div>
-              <div className="flex justify-between items-center py-1.5 border-b border-[#2A2A2E]/60">
+              <div className={`flex justify-between items-center py-1.5 border-b /60 ${theme === 'dark' ? 'border-[#2A2A2E]' : 'border-[#E5E1D8]'}`}>
                 <span className="text-[#9E9A90]">Karana (Half Tithi)</span>
-                <span className="font-semibold text-[#F0ECE1] text-right">{panchang.karana}</span>
+                <span className={`font-semibold text-right ${theme === 'dark' ? 'text-[#F0ECE1]' : 'text-[#0D0D0F]'}`}>{panchang.karana}</span>
               </div>
-              <div className="flex justify-between items-center py-1.5 border-b border-[#2A2A2E]/60">
+              <div className={`flex justify-between items-center py-1.5 border-b /60 ${theme === 'dark' ? 'border-[#2A2A2E]' : 'border-[#E5E1D8]'}`}>
                 <span className="text-[#9E9A90]">Sun Sign (Surya Rashi)</span>
-                <span className="font-semibold text-[#F0ECE1] text-right">{panchang.solarSign}</span>
+                <span className={`font-semibold text-right ${theme === 'dark' ? 'text-[#F0ECE1]' : 'text-[#0D0D0F]'}`}>{panchang.solarSign}</span>
               </div>
-              <div className="flex justify-between items-center py-1.5 border-b border-[#2A2A2E]/60">
+              <div className={`flex justify-between items-center py-1.5 border-b /60 ${theme === 'dark' ? 'border-[#2A2A2E]' : 'border-[#E5E1D8]'}`}>
                 <span className="text-[#9E9A90]">Moon Sign (Chandra Rashi)</span>
-                <span className="font-semibold text-[#C9A050] text-right font-serif">{panchang.lunarSign}</span>
+                <span className={`font-semibold text-right font-serif ${theme === 'dark' ? 'text-[#F0ECE1]' : 'text-[#0D0D0F]'}`}>{panchang.lunarSign}</span>
               </div>
-              <div className="flex justify-between items-center py-1.5 border-b border-[#2A2A2E]/60">
+              <div className={`flex justify-between items-center py-1.5 border-b /60 ${theme === 'dark' ? 'border-[#2A2A2E]' : 'border-[#E5E1D8]'}`}>
                 <span className="text-[#9E9A90]">Sunrise / Sunset</span>
-                <span className="font-semibold text-[#F0ECE1] text-right">{panchang.sunrise} / {panchang.sunset}</span>
+                <span className={`font-semibold text-right ${theme === 'dark' ? 'text-[#F0ECE1]' : 'text-[#0D0D0F]'}`}>{panchang.sunrise} / {panchang.sunset}</span>
               </div>
               <div className="flex justify-between items-center py-1.5">
                 <span className="text-[#9E9A90]">Brahma Muhurta</span>
-                <span className="font-semibold text-emerald-400 text-right">{panchang.brahmaMuhurta}</span>
+                <span className={`font-semibold text-right ${theme === 'dark' ? 'text-[#F0ECE1]' : 'text-[#0D0D0F]'}`}>{panchang.brahmaMuhurta}</span>
               </div>
             </div>
           </div>
 
           {/* Quick Nav Cards */}
-          <div className="bg-[#141418] border border-[#2A2A2E] rounded-xl p-5 text-[#E5E1D8] shadow-xl space-y-3">
+          <div className={`border rounded-xl p-5 shadow-xl space-y-3 ${theme === 'dark' ? 'bg-[#141418] border-[#2A2A2E] text-[#E5E1D8]' : 'bg-white border-[#E5E1D8] text-[#2A2A2E]'}`}>
             <h3 className="text-xs font-sans font-bold text-[#C9A050] uppercase tracking-wider">Explore Your Vedic Blueprint</h3>
             
             <button
               onClick={() => onNavigateToTab('horoscope')}
-              className="w-full text-left p-3 rounded-lg bg-[#1A1A1E] hover:bg-[#1E1E24] border border-[#2A2A2E] transition cursor-pointer flex items-center justify-between group"
+              className={`w-full text-left p-3 rounded-lg hover:bg-[#1E1E24] border transition cursor-pointer flex items-center justify-between group ${theme === 'dark' ? 'bg-[#1A1A1E] border-[#2A2A2E]' : 'bg-[#F9F7F1] border-[#E5E1D8]'}`}
             >
               <div>
-                <div className="text-xs font-semibold text-[#F0ECE1] group-hover:text-[#C9A050] transition">5 Indian Ancient Traditions</div>
+                <div className={`text-xs font-semibold group-hover:text-[#C9A050] transition ${theme === 'dark' ? 'text-[#F0ECE1]' : 'text-[#0D0D0F]'}`}>5 Indian Ancient Traditions</div>
                 <div className="text-[11px] text-[#9E9A90]">Parashari, Jaimini, Lal Kitab, KP & Nadi</div>
               </div>
               <Compass className="w-4 h-4 text-[#C9A050] group-hover:translate-x-0.5 transition" />
@@ -489,10 +495,10 @@ export const DailyHoroscopeView: React.FC<DailyHoroscopeViewProps> = ({
 
             <button
               onClick={() => onNavigateToTab('counsellor')}
-              className="w-full text-left p-3 rounded-lg bg-[#1A1A1E] hover:bg-[#1E1E24] border border-[#2A2A2E] transition cursor-pointer flex items-center justify-between group"
+              className={`w-full text-left p-3 rounded-lg hover:bg-[#1E1E24] border transition cursor-pointer flex items-center justify-between group ${theme === 'dark' ? 'bg-[#1A1A1E] border-[#2A2A2E]' : 'bg-[#F9F7F1] border-[#E5E1D8]'}`}
             >
               <div>
-                <div className="text-xs font-semibold text-[#F0ECE1] group-hover:text-[#C9A050] transition">Interactive AI Astrologer</div>
+                <div className={`text-xs font-semibold group-hover:text-[#C9A050] transition ${theme === 'dark' ? 'text-[#F0ECE1]' : 'text-[#0D0D0F]'}`}>Interactive AI Astrologer</div>
                 <div className="text-[11px] text-[#9E9A90]">Counselling grounded in your exact birth chart</div>
               </div>
               <Sparkles className="w-4 h-4 text-[#C9A050] group-hover:translate-x-0.5 transition" />
@@ -500,10 +506,10 @@ export const DailyHoroscopeView: React.FC<DailyHoroscopeViewProps> = ({
 
             <button
               onClick={() => onNavigateToTab('roadmap')}
-              className="w-full text-left p-3 rounded-lg bg-[#1A1A1E] hover:bg-[#1E1E24] border border-[#2A2A2E] transition cursor-pointer flex items-center justify-between group"
+              className={`w-full text-left p-3 rounded-lg hover:bg-[#1E1E24] border transition cursor-pointer flex items-center justify-between group ${theme === 'dark' ? 'bg-[#1A1A1E] border-[#2A2A2E]' : 'bg-[#F9F7F1] border-[#E5E1D8]'}`}
             >
               <div>
-                <div className="text-xs font-semibold text-[#F0ECE1] group-hover:text-[#C9A050] transition">Personal & Career Roadmap</div>
+                <div className={`text-xs font-semibold group-hover:text-[#C9A050] transition ${theme === 'dark' ? 'text-[#F0ECE1]' : 'text-[#0D0D0F]'}`}>Personal & Career Roadmap</div>
                 <div className="text-[11px] text-[#9E9A90]">10-Year milestone forecasts & dasha windows</div>
               </div>
               <Zap className="w-4 h-4 text-[#C9A050] group-hover:translate-x-0.5 transition" />

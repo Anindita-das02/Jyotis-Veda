@@ -22,12 +22,14 @@ interface ConsultationsPaymentViewProps {
   profile: UserProfile;
   tiers: ConsultationTier[];
   onPaymentSuccess?: (tier: ConsultationTier, txId: string) => void;
+  theme?: 'light' | 'dark';
 }
 
 export const ConsultationsPaymentView: React.FC<ConsultationsPaymentViewProps> = ({
   profile,
   tiers,
   onPaymentSuccess,
+  theme = 'dark',
 }) => {
   const [selectedTier, setSelectedTier] = useState<ConsultationTier | null>(null);
   const [paymentMethod, setPaymentMethod] = useState<'upi' | 'card' | 'netbanking'>('upi');
@@ -147,7 +149,7 @@ export const ConsultationsPaymentView: React.FC<ConsultationsPaymentViewProps> =
               key={tier.id}
               className={`bg-[#141418] border rounded-xl p-6 text-[#E5E1D8] shadow-xl flex flex-col justify-between transition relative ${
                 tier.isPopular
-                  ? 'border-[#C9A050] ring-1 ring-[#C9A050]/40 bg-gradient-to-b from-[#C9A050]/5 to-[#141418]'
+                  ? `border-[#C9A050] ring-1 ring-[#C9A050]/40 bg-gradient-to-b from-[#C9A050]/5 ${theme === 'dark' ? 'to-[#141418]' : 'to-white'}`
                   : 'border-[#2A2A2E] hover:border-[#C9A050]/50'
               }`}
             >
