@@ -37,24 +37,24 @@ export const NAKSHATRAS = [
   { name: 'Ardra', lord: 'Rahu', deity: 'Rudra', degrees: 13.3333 },
   { name: 'Punarvasu', lord: 'Jupiter', deity: 'Aditi', degrees: 13.3333 },
   { name: 'Pushya', lord: 'Saturn', deity: 'Brihaspati', degrees: 13.3333 },
-  { name: 'Ashlesha', lord: 'Mercury', deity: 'Nagas / Serpents', degrees: 13.3333 },
-  { name: 'Magha', lord: 'Ketu', deity: 'Pitris (Ancestors)', degrees: 13.3333 },
-  { name: 'Purva Phalguni', lord: 'Venus', deity: 'Bhaga', degrees: 13.3333 },
-  { name: 'Uttara Phalguni', lord: 'Sun', deity: 'Aryaman', degrees: 13.3333 },
+  { name: 'Ashlesha', lord: 'Mercury', deity: 'Nagas', degrees: 13.3333 },
+  { name: 'Magha', lord: 'Ketu', deity: 'Pitris', degrees: 13.3333 },
+  { name: 'Purva Phalguni', lord: 'Venus', deity: 'Aryaman', degrees: 13.3333 },
+  { name: 'Uttara Phalguni', lord: 'Sun', deity: 'Bhaga', degrees: 13.3333 },
   { name: 'Hasta', lord: 'Moon', deity: 'Savitr', degrees: 13.3333 },
-  { name: 'Chitra', lord: 'Mars', deity: 'Vishwakarma', degrees: 13.3333 },
+  { name: 'Chitra', lord: 'Mars', deity: 'Tvastar', degrees: 13.3333 },
   { name: 'Swati', lord: 'Rahu', deity: 'Vayu', degrees: 13.3333 },
-  { name: 'Vishakha', lord: 'Jupiter', deity: 'Indra-Agni', degrees: 13.3333 },
+  { name: 'Vishakha', lord: 'Jupiter', deity: 'Indrani', degrees: 13.3333 },
   { name: 'Anuradha', lord: 'Saturn', deity: 'Mitra', degrees: 13.3333 },
   { name: 'Jyeshtha', lord: 'Mercury', deity: 'Indra', degrees: 13.3333 },
   { name: 'Mula', lord: 'Ketu', deity: 'Nirriti', degrees: 13.3333 },
-  { name: 'Purva Ashadha', lord: 'Venus', deity: 'Apas (Water)', degrees: 13.3333 },
-  { name: 'Uttara Ashadha', lord: 'Sun', deity: 'Vishwadevas', degrees: 13.3333 },
+  { name: 'Purva Ashadha', lord: 'Venus', deity: 'Apah', degrees: 13.3333 },
+  { name: 'Uttara Ashadha', lord: 'Sun', deity: 'Vishvedevas', degrees: 13.3333 },
   { name: 'Shravana', lord: 'Moon', deity: 'Vishnu', degrees: 13.3333 },
-  { name: 'Dhanishta', lord: 'Mars', deity: 'Ashta Vasus', degrees: 13.3333 },
+  { name: 'Dhanishta', lord: 'Mars', deity: 'Vasus', degrees: 13.3333 },
   { name: 'Shatabhisha', lord: 'Rahu', deity: 'Varuna', degrees: 13.3333 },
   { name: 'Purva Bhadrapada', lord: 'Jupiter', deity: 'Aja Ekapada', degrees: 13.3333 },
-  { name: 'Uttara Bhadrapada', lord: 'Saturn', deity: 'Ahirbudhnya', degrees: 13.3333 },
+  { name: 'Uttara Bhadrapada', lord: 'Saturn', deity: 'Ahir Budhyana', degrees: 13.3333 },
   { name: 'Revati', lord: 'Mercury', deity: 'Pushan', degrees: 13.3333 },
 ];
 
@@ -122,7 +122,7 @@ export function reduceToSingleDigit(num: number, keepMasters: boolean = false): 
 }
 
 // Calculate Sidereal or Tropical Planetary & Chart data from birth date, time, and coords
-export function calculateVedicChart(profile: UserProfile): {
+export function calculateVedicChart(profile: UserProfile, ephemerisData?: any): {
   system: 'vedic' | 'western';
   systemTitle: string;
   ayanamshaShift: number;
@@ -140,31 +140,46 @@ export function calculateVedicChart(profile: UserProfile): {
   const dayOfYear = Math.floor((bDate.getTime() - new Date(bDate.getFullYear(), 0, 0).getTime()) / 86400000);
   const birthHours = bDate.getHours() + bDate.getMinutes() / 60;
   
-  // Seed hash for consistent deterministic astronomical approximations
+  // Seed hash for consistent deterministic astronomical approximations (fallback)
   const seed = (bDate.getFullYear() * 365 + dayOfYear) * 24 + birthHours + profile.latitude * 0.5 + profile.longitude * 0.2;
   
   // Ascendant Calculation
-  let totalLagnaDeg = (Math.floor(seed * 1.618 + (profile.longitude / 15) * 30 + birthHours * 15 + ayanamshaShift)) % 360;
+  let totalLagnaDeg = ephemerisData 
+    ? ephemerisData.ascendant + ayanamshaShift
+    : (Math.floor(seed * 1.618 + (profile.longitude / 15) * 30 + birthHours * 15 + ayanamshaShift)) % 360;
+    
+  if (totalLagnaDeg >= 360) totalLagnaDeg -= 360;
   if (totalLagnaDeg < 0) totalLagnaDeg += 360;
+  
   const lagnaSignIndex = Math.floor(totalLagnaDeg / 30);
   const lagnaDeg = totalLagnaDeg % 30;
   const lagnaNakshatraIdx = Math.floor(totalLagnaDeg / 13.3333) % 27;
 
   // Planets calculation
   const planetConfigs = [
-    { id: 'sun', name: 'Sun', sanskrit: 'Surya (सूर्य)', symbol: '☉', baseRate: 0.9856, offset: 280, gemstone: 'Ruby (Manik)', element: 'Fire' },
-    { id: 'moon', name: 'Moon', sanskrit: 'Chandra (चन्द्र)', symbol: '☽', baseRate: 13.176, offset: 45, gemstone: 'Pearl (Moti)', element: 'Water' },
-    { id: 'mars', name: 'Mars', sanskrit: 'Mangal (मंगल)', symbol: '♂', baseRate: 0.524, offset: 120, gemstone: 'Red Coral (Moonga)', element: 'Fire' },
-    { id: 'mercury', name: 'Mercury', sanskrit: 'Budha (बुध)', symbol: '☿', baseRate: 1.2, offset: 310, gemstone: 'Emerald (Panna)', element: 'Earth' },
-    { id: 'jupiter', name: 'Jupiter', sanskrit: 'Guru (गुरु)', symbol: '♃', baseRate: 0.083, offset: 190, gemstone: 'Yellow Sapphire (Pukhraj)', element: 'Ether' },
-    { id: 'venus', name: 'Venus', sanskrit: 'Shukra (शुक्र)', symbol: '♀', baseRate: 1.15, offset: 70, gemstone: 'Diamond / Opal (Heera)', element: 'Water' },
-    { id: 'saturn', name: 'Saturn', sanskrit: 'Shani (शनि)', symbol: '♄', baseRate: 0.033, offset: 240, gemstone: 'Blue Sapphire (Neelam)', element: 'Air' },
-    { id: 'rahu', name: 'Rahu', sanskrit: 'Rahu (राहु)', symbol: '☊', baseRate: -0.052, offset: 15, gemstone: 'Hessonite Garnet (Gomed)', element: 'Shadow' },
-    { id: 'ketu', name: 'Ketu', sanskrit: 'Ketu (केतु)', symbol: '☋', baseRate: -0.052, offset: 195, gemstone: "Cat's Eye (Lehsuniya)", element: 'Shadow' },
+    { id: 'sun', name: 'Sun', sanskrit: 'Surya (सूर्य)', symbol: '☉', baseRate: 0.9856, offset: 280, gemstone: 'gemstone.sun', element: 'element.fire' },
+    { id: 'moon', name: 'Moon', sanskrit: 'Chandra (चन्द्र)', symbol: '☽', baseRate: 13.176, offset: 45, gemstone: 'gemstone.moon', element: 'element.water' },
+    { id: 'mars', name: 'Mars', sanskrit: 'Mangal (मंगल)', symbol: '♂', baseRate: 0.524, offset: 120, gemstone: 'gemstone.mars', element: 'element.fire' },
+    { id: 'mercury', name: 'Mercury', sanskrit: 'Budha (बुध)', symbol: '☿', baseRate: 1.2, offset: 310, gemstone: 'gemstone.mercury', element: 'element.earth' },
+    { id: 'jupiter', name: 'Jupiter', sanskrit: 'Guru (गुरु)', symbol: '♃', baseRate: 0.083, offset: 190, gemstone: 'gemstone.jupiter', element: 'element.ether' },
+    { id: 'venus', name: 'Venus', sanskrit: 'Shukra (शुक्र)', symbol: '♀', baseRate: 1.15, offset: 70, gemstone: 'gemstone.venus', element: 'element.water' },
+    { id: 'saturn', name: 'Saturn', sanskrit: 'Shani (शनि)', symbol: '♄', baseRate: 0.033, offset: 240, gemstone: 'gemstone.saturn', element: 'element.air' },
+    { id: 'rahu', name: 'Rahu', sanskrit: 'Rahu (राहु)', symbol: '☊', baseRate: -0.052, offset: 15, gemstone: 'gemstone.rahu', element: 'element.shadow' },
+    { id: 'ketu', name: 'Ketu', sanskrit: 'Ketu (केतु)', symbol: '☋', baseRate: -0.052, offset: 195, gemstone: 'gemstone.ketu', element: 'element.shadow' },
   ];
 
   const calculatedPlanets: PlanetPosition[] = planetConfigs.map((p, idx) => {
-    let totDeg = (p.offset + (seed * p.baseRate * 0.1) + idx * 23.5 + ayanamshaShift) % 360;
+    let totDeg = 0;
+    let isRetro = false;
+    
+    if (ephemerisData && ephemerisData.planets && ephemerisData.planets[p.id]) {
+      totDeg = (ephemerisData.planets[p.id].longitude + ayanamshaShift) % 360;
+      isRetro = ephemerisData.planets[p.id].isRetrograde;
+    } else {
+      totDeg = (p.offset + (seed * p.baseRate * 0.1) + idx * 23.5 + ayanamshaShift) % 360;
+      isRetro = (idx === 2 || idx === 4 || idx === 6) ? (Math.sin(seed * idx) > 0.4) : false;
+    }
+    
     if (totDeg < 0) totDeg += 360;
     const signIdx = Math.floor(totDeg / 30);
     const degInSign = parseFloat((totDeg % 30).toFixed(2));
@@ -173,7 +188,6 @@ export function calculateVedicChart(profile: UserProfile): {
     
     // House placement relative to Lagna / Ascendant
     let house = ((signIdx - lagnaSignIndex + 12) % 12) + 1;
-    const isRetro = (idx === 2 || idx === 4 || idx === 6) ? (Math.sin(seed * idx) > 0.4) : false;
 
     // Determine Dignity
     let dignity: PlanetPosition['dignity'] = 'Neutral';
@@ -395,16 +409,20 @@ export function calculateVedicChart(profile: UserProfile): {
   }
 
   // 4. Dhana Yoga (Lords of 1st, 2nd, 5th, 9th, 11th interacting)
-  yogas.push({
-    id: 'dhana_yoga',
-    name: 'Maha Lakshmi Dhana Yoga (महालक्ष्मी धन योग)',
-    sanskritName: 'Dhana Yoga',
-    type: 'Dhana Yoga',
-    planetsInvolved: ['Venus', 'Mercury', 'Jupiter'],
-    description: 'Harmonious geometric relationship between wealth houses (2nd Dhana, 9th Bhagya, 11th Labha).',
-    effect: 'Steady accumulation of assets, multiple lucrative income streams, real estate expansion, and business acumen.',
-    remedy: 'Recite Sri Suktam or Kanakadhara Stotram on Fridays.',
-  });
+  // Check if benefic planets (Jupiter, Venus, Mercury) are in wealth houses (2, 9, 11)
+  const hasDhanaYoga = [jupiter, venus, mercury].some(p => [2, 9, 11].includes(p.house) && (p.dignity === 'Own' || p.dignity === 'Exalted' || p.dignity === 'Friendly'));
+  if (hasDhanaYoga) {
+    yogas.push({
+      id: 'dhana_yoga',
+      name: 'Maha Lakshmi Dhana Yoga (महालक्ष्मी धन योग)',
+      sanskritName: 'Dhana Yoga',
+      type: 'Dhana Yoga',
+      planetsInvolved: ['Venus', 'Mercury', 'Jupiter'],
+      description: 'Benefic planets are strongly placed in wealth-giving houses (2nd Dhana, 9th Bhagya, 11th Labha).',
+      effect: 'Steady accumulation of assets, multiple lucrative income streams, real estate expansion, and business acumen.',
+      remedy: 'Recite Sri Suktam or Kanakadhara Stotram on Fridays.',
+    });
+  }
 
   // Detect Vedic Doshas
   const doshas: VedicDosha[] = [];
@@ -414,7 +432,7 @@ export function calculateVedicChart(profile: UserProfile): {
   doshas.push({
     id: 'manglik_dosha',
     name: 'Manglik / Kuja Dosha (मांगलिक दोष)',
-    severity: isManglik ? (mars.house === 7 || mars.house === 8 ? 'Moderate' : 'Mild') : 'None',
+    severity: isManglik ? (mars.house === 7 || mars.house === 8 ? 'Moderate' : 'Severe') : 'None',
     isPresent: isManglik,
     description: isManglik
       ? `Mars is positioned in house ${mars.house}, which can trigger passionate intensity, direct temperament, and initial hurdles in marital alignment.`
@@ -431,11 +449,24 @@ export function calculateVedicChart(profile: UserProfile): {
   // 2. Kaal Sarp Dosha (All planets hemmed between Rahu & Ketu axis)
   const rahu = calculatedPlanets.find(p => p.id === 'rahu')!;
   const ketu = calculatedPlanets.find(p => p.id === 'ketu')!;
-  const allHemmed = Math.abs(rahu.house - ketu.house) === 6 && (Math.sin(seed * 2) > 0.6);
+  
+  // Check if all 7 classical planets are on one side of the nodal axis
+  const classicalPlanets = [sun, moon, mars, mercury, jupiter, venus, saturn];
+  let allOnOneSide = true;
+  let allOnOtherSide = true;
+  
+  for (const p of classicalPlanets) {
+    const diffRahu = (p.totalDegree - rahu.totalDegree + 360) % 360;
+    if (diffRahu > 180) allOnOneSide = false;
+    if (diffRahu < 180) allOnOtherSide = false;
+  }
+  
+  const allHemmed = allOnOneSide || allOnOtherSide;
+
   doshas.push({
     id: 'kaalsarp_dosha',
     name: 'Kaal Sarp Yoga / Dosha (कालसर्प योग)',
-    severity: allHemmed ? 'Moderate' : 'None',
+    severity: allHemmed ? 'Severe' : 'None',
     isPresent: allHemmed,
     description: allHemmed
       ? 'Planetary cluster aligns along the nodal axis of Rahu-Ketu (Anant / Vasuki type), creating cyclical delays followed by sudden meteoric rises.'
@@ -452,7 +483,7 @@ export function calculateVedicChart(profile: UserProfile): {
   // 3. Sade Sati Phase (Saturn transit over natal Moon: 12th, 1st, 2nd from Moon)
   // Approximate based on current year vs natal Moon sign
   const moonSign = moon.signIndex;
-  const currentSaturnTransitSign = 10; // Approx Aquarius / Pisces in recent years
+  const currentSaturnTransitSign = 11; // 2026: Saturn is in Sidereal Pisces (11)
   const sadeSatiDiff = (currentSaturnTransitSign - moonSign + 12) % 12;
   let sadeSatiPhase = 'Not in active Sade Sati';
   let isSadeSatiActive = false;
@@ -746,7 +777,7 @@ export function calculateNumerology(profileOrName: UserProfile | string, birthDa
 }
 
 // Calculate Daily Vedic Panchang info for any given date
-export function getDailyPanchang(dateOrLat?: Date | number, lng?: number): PanchangInfo {
+export function getDailyPanchang(dateOrLat?: Date | number, lng?: number, apiData?: any): PanchangInfo {
   const date = dateOrLat instanceof Date ? dateOrLat : new Date();
   const lat = typeof dateOrLat === 'number' ? dateOrLat : 28.6139; // Default to New Delhi
   const longitude = lng || 77.209;
@@ -777,16 +808,15 @@ export function getDailyPanchang(dateOrLat?: Date | number, lng?: number): Panch
   
   // Real world lunar cycle approximation (Known new moon: Jan 11, 2024)
   const daysSinceNewMoon = (date.getTime() - new Date('2024-01-11T11:57:00Z').getTime()) / 86400000;
-  // A lunar month is ~29.53 days. There are 30 Tithis in a lunar month.
   const phase = (daysSinceNewMoon % 29.530588 + 29.530588) % 29.530588;
-  const tithiIdx = Math.floor(phase * (30 / 29.530588)) % 30;
+  const tithiIdx = apiData && apiData.tithiIndex !== undefined ? apiData.tithiIndex : (Math.floor(phase * (30 / 29.530588)) % 30);
   
   // Nakshatra approximation (Moon travels ~13.33 degrees per day, 27.32 days per orbit)
   const daysSinceKnownNak = (date.getTime() - new Date('2024-01-01T00:00:00Z').getTime()) / 86400000;
-  const nakIdx = Math.floor((daysSinceKnownNak % 27.321661 + 27.321661) % 27.321661) % 27;
+  const nakIdx = apiData && apiData.nakshatraIndex !== undefined ? apiData.nakshatraIndex : (Math.floor((daysSinceKnownNak % 27.321661 + 27.321661) % 27.321661) % 27);
 
-  const yogaIdx = (dayOfYear * 3) % yogas.length;
-  const karanaIdx = (dayOfYear * 4) % karanas.length;
+  const yogaIdx = apiData && apiData.yogaIndex !== undefined ? apiData.yogaIndex : ((dayOfYear * 3) % yogas.length);
+  const karanaIdx = apiData && apiData.karanaIndex !== undefined ? (apiData.karanaIndex % karanas.length) : ((dayOfYear * 4) % karanas.length);
 
   const dayOfWeek = date.getDay(); // 0 = Sunday, 1 = Monday, etc.
   

@@ -26,6 +26,8 @@ import {
   NumerologyReport,
 } from '../types';
 
+import { getTranslation } from '../services/translations';
+
 interface HoroscopeTraditionsViewProps {
   profile: UserProfile;
   tradition: HoroscopeTradition;
@@ -39,6 +41,7 @@ interface HoroscopeTraditionsViewProps {
     doshas: VedicDosha[];
   };
   numerology: NumerologyReport;
+  language?: string;
 }
 
 export const HoroscopeTraditionsView: React.FC<HoroscopeTraditionsViewProps> = ({
@@ -47,6 +50,7 @@ export const HoroscopeTraditionsView: React.FC<HoroscopeTraditionsViewProps> = (
   setTradition,
   chartData,
   numerology,
+  language = 'en',
 }) => {
   const [chartStyle, setChartStyle] = useState<ChartStyle>('north_indian');
   const [selectedHouse, setSelectedHouse] = useState<HouseData | null>(chartData.houses[0]);
@@ -55,36 +59,38 @@ export const HoroscopeTraditionsView: React.FC<HoroscopeTraditionsViewProps> = (
   const [isLoadingAi, setIsLoadingAi] = useState(false);
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
 
+  const t = (key: string) => getTranslation(key, language);
+
   const traditionsList: { id: HoroscopeTradition; name: string; tag: string; description: string }[] = [
     {
       id: 'parashari',
-      name: 'Parashari Jyotish',
-      tag: 'Brihat Parashara Hora Shastra',
-      description: 'Foundational Vedic system: 12 Bhavas, Vimshottari Dasha, Bhavat Bhavam & Raja/Dhana Yogas.',
+      name: t('tradition.parashari.name'),
+      tag: t('tradition.parashari.tag'),
+      description: t('tradition.parashari.desc'),
     },
     {
       id: 'jaimini',
-      name: 'Jaimini Sutras',
-      tag: 'Chara Karakas & Arudha',
-      description: 'Soul purpose (Atmakaraka), career (Amatyakaraka), spouse (Darakaraka) & Chara Dasha.',
+      name: t('tradition.jaimini.name'),
+      tag: t('tradition.jaimini.tag'),
+      description: t('tradition.jaimini.desc'),
     },
     {
       id: 'lal_kitab',
-      name: 'Lal Kitab (1952)',
-      tag: 'Farman & Karmic Upay',
-      description: 'Fixed house alignments, dormant planets (Soyi Kismat), and practical non-mantric remedies.',
+      name: t('tradition.lal_kitab.name'),
+      tag: t('tradition.lal_kitab.tag'),
+      description: t('tradition.lal_kitab.desc'),
     },
     {
       id: 'kp_system',
-      name: 'KP System',
-      tag: 'Krishnamurti Paddhati',
-      description: 'Cuspal Sub-Lords, Placidus house divisions, and binary event timing precision.',
+      name: t('tradition.kp_system.name'),
+      tag: t('tradition.kp_system.tag'),
+      description: t('tradition.kp_system.desc'),
     },
     {
       id: 'bhrigu_nadi',
-      name: 'Bhrigu Nandi Nadi',
-      tag: 'Jeeva-Karma Conjunctions',
-      description: 'Directional chart synthesis, past-life karma, and rapid transit trigger rules.',
+      name: t('tradition.bhrigu_nadi.name'),
+      tag: t('tradition.bhrigu_nadi.tag'),
+      description: t('tradition.bhrigu_nadi.desc'),
     },
   ];
 
@@ -674,7 +680,7 @@ export const HoroscopeTraditionsView: React.FC<HoroscopeTraditionsViewProps> = (
                       {tradition === 'jaimini' && (
                         <td className="py-2.5 text-[#C9A050] font-medium font-serif">{p.karaka || '-'}</td>
                       )}
-                      <td className="py-2.5 text-[11px] text-[#9E9A90]">{p.gemstone.split('(')[0]}</td>
+                      <td className="py-2.5 text-[11px] text-[#9E9A90]">{t(p.gemstone).split('(')[0]}</td>
                     </tr>
                   );
                 })}

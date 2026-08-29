@@ -8,11 +8,18 @@ from controllers import profile_controller
 from controllers import numerology_controller
 from controllers import matchmaking_controller
 from controllers import counselling_controller
+from controllers.daily_insights_controller import daily_insights_bp
+from controllers.global_zodiac_controller import global_zodiac_bp
+from controllers.birth_chart_controller import birth_chart_bp
 from utils.security import require_auth, decode_token
 import jwt as pyjwt
 
 app = Flask(__name__)
 CORS(app)
+
+app.register_blueprint(daily_insights_bp)
+app.register_blueprint(global_zodiac_bp)
+app.register_blueprint(birth_chart_bp)
 
 
 @app.route("/")
@@ -155,51 +162,6 @@ def get_session_messages(session_id):
 @require_auth
 def post_session_message(session_id):
     return counselling_controller.send_message(request.user_id, session_id)
-
-
-@app.route("/api/gemini/daily-horoscope", methods=["POST"])
-def daily_horoscope():
-    data = request.json
-    if not data:
-        return jsonify({"status": "error", "message": "No data provided"}), 400
-
-    profile = data.get("profile", {})
-    chart_data = data.get("chartData", {})
-    panchang = data.get("panchang", {})
-    numerology = data.get("numerology", {})
-
-    try:
-        from services.llm_service import get_daily_insights_response
-        json_res = get_daily_insights_response(profile, chart_data, panchang, numerology)
-        import json
-        return jsonify({"insights": json.loads(json_res)})
-    except Exception as e:
-        print(f"Error in daily_horoscope: {e}")
-        return jsonify({"status": "error", "message": str(e)}), 500
-
-
-@app.route("/api/gemini/zodiac-forecast", methods=["POST"])
-def zodiac_forecast():
-    data = request.json
-    if not data:
-        return jsonify({"status": "error", "message": "No data provided"}), 400
-
-    sign = data.get("sign", "")
-    timeframe = data.get("timeframe", "today")
-    language = data.get("language", "en")
-
-    if not sign:
-        return jsonify({"status": "error", "message": "Sign is required"}), 400
-
-    try:
-        from services.llm_service import get_zodiac_forecast_response
-        import json
-        forecast_json_str = get_zodiac_forecast_response(sign, timeframe, language)
-        forecast_data = json.loads(forecast_json_str)
-        return jsonify({"data": forecast_data})
-    except Exception as e:
-        print(f"Error in zodiac_forecast: {e}")
-        return jsonify({"status": "error", "message": str(e)}), 500
 
 
 if __name__ == "__main__":

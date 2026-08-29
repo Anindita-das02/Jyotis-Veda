@@ -56,7 +56,7 @@ def _call_mistral_local(system_prompt: str, history: list) -> str:
         resp = requests.post(
             f"{base_url}/api/chat",
             json={"model": model, "messages": messages, "stream": False},
-            timeout=60,
+            timeout=300,
         )
     except requests.RequestException as e:
         raise LLMError(f"Could not reach local Mistral server at {base_url}: {e}")

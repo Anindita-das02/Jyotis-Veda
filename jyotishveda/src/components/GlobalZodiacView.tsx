@@ -94,7 +94,7 @@ export const GlobalZodiacView: React.FC<GlobalZodiacViewProps> = ({
         return sign.yearly2026Forecast;
       case 'today':
       default:
-        return sign.todayForecast;
+        return t(sign.todayForecast);
     }
   };
 
@@ -420,7 +420,7 @@ export const GlobalZodiacView: React.FC<GlobalZodiacViewProps> = ({
           </div>
 
           <div className="text-sm text-[#E5E1D8] leading-relaxed min-h-[60px]">
-            {isFetchingForecast && !dynamicForecasts[`${activeSign.id}-${timeframe}-${language}`] ? (
+            {isFetchingForecast && !dynamicZodiacData[`${activeSign.id}-${timeframe}-${language}`] ? (
               <div className="animate-pulse flex space-x-2 items-center text-[#C9A050]">
                 <Sparkles className="w-4 h-4 animate-spin-slow" />
                 <span>Consulting AI Daivajna for personalized transits...</span>
@@ -433,7 +433,7 @@ export const GlobalZodiacView: React.FC<GlobalZodiacViewProps> = ({
           <div className="pt-3 border-t border-[#2A2A2E]/40 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-[#9E9A90]">
             <div className="flex items-center space-x-2">
               <span className="text-[#C9A050] font-semibold">Celestial Affirmation:</span>
-              <span className="italic text-[#E5E1D8]">&ldquo;{currentDynamicData?.affirmation || activeSign.affirmation}&rdquo;</span>
+              <span className="italic text-[#E5E1D8]">&ldquo;{currentDynamicData?.affirmation || t(activeSign.affirmation)}&rdquo;</span>
             </div>
             <div>
               <span className="text-[#C9A050] font-semibold">Resonant Chakra:</span> {currentDynamicData?.resonantChakra || activeSign.resonantChakra}
@@ -487,15 +487,15 @@ export const GlobalZodiacView: React.FC<GlobalZodiacViewProps> = ({
             </div>
             <div className="flex justify-between text-[#9E9A90]">
               <span>{t('zodiac.lucky_gem')}:</span>
-              <span className="text-[#F0ECE1] font-semibold">{currentDynamicData?.luckyGemstone || activeSign.luckyGemstone}</span>
+              <span className="text-[#F0ECE1] font-semibold">{currentDynamicData?.luckyGemstone || t(activeSign.luckyGemstone)}</span>
             </div>
             <div className="flex justify-between text-[#9E9A90]">
               <span>{t('zodiac.lucky_color')}:</span>
-              <span className="text-[#F0ECE1] font-semibold">{currentDynamicData?.luckyColor || activeSign.luckyColor}</span>
+              <span className="text-[#F0ECE1] font-semibold">{currentDynamicData?.luckyColor || t(activeSign.luckyColor)}</span>
             </div>
             <div className="flex justify-between text-[#9E9A90]">
               <span>{t('zodiac.lucky_day')}:</span>
-              <span className="text-[#F0ECE1] font-semibold">{currentDynamicData?.luckyDay || activeSign.luckyDay}</span>
+              <span className="text-[#F0ECE1] font-semibold">{currentDynamicData?.luckyDay || t(activeSign.luckyDay)}</span>
             </div>
             <div className="flex justify-between text-[#9E9A90]">
               <span>{t('zodiac.power_numbers')}:</span>

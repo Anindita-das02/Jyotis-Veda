@@ -182,12 +182,74 @@ export function App() {
   }, [authUser]);
 
   // Derived Astrological & Numerological Data
-  const chartData = useMemo(() => {
-    return calculateVedicChart(currentProfile);
+  const [chartData, setChartData] = useState(() => calculateVedicChart(currentProfile));
+
+  useEffect(() => {
+    let active = true;
+    const loadRealChart = async () => {
+      try {
+        const response = await fetch('http://127.0.0.1:5001/api/ephemeris/chart', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(currentProfile)
+        });
+        const data = await response.json();
+        if (data && data.status === 'success' && active) {
+           const fullChart = calculateVedicChart(currentProfile, data.data);
+           setChartData(fullChart);
+        }
+      } catch (err) {
+        console.error('Failed to load real ephemeris data', err);
+        if (active) {
+          setChartData(calculateVedicChart(currentProfile)); // fallback
+        }
+      }
+    };
+    
+    // Set immediate fallback on profile change, then fetch
+    setChartData(calculateVedicChart(currentProfile));
+    loadRealChart();
+    
+    return () => { active = false; };
   }, [currentProfile]);
 
-  const panchang = useMemo(() => {
-    return calculateDailyPanchang(currentProfile.latitude, currentProfile.longitude);
+  const [panchang, setPanchang] = useState<PanchangInfo>(() => calculateDailyPanchang(currentProfile.latitude, currentProfile.longitude));
+
+  useEffect(() => {
+    let active = true;
+    const loadRealPanchang = async () => {
+      try {
+        const now = new Date();
+        const dateStr = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
+        const timeStr = String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
+        const tzOffset = -now.getTimezoneOffset() / 60;
+        
+        const response = await fetch('http://127.0.0.1:5001/api/ephemeris/panchang', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            date: dateStr,
+            time: timeStr,
+            timezone: tzOffset
+          })
+        });
+        const result = await response.json();
+        if (result && result.status === 'success' && active) {
+           const realPanchang = calculateDailyPanchang(currentProfile.latitude, currentProfile.longitude, result.data);
+           setPanchang(realPanchang);
+        }
+      } catch (err) {
+        console.error('Failed to load real panchang data', err);
+        if (active) {
+          setPanchang(calculateDailyPanchang(currentProfile.latitude, currentProfile.longitude)); // fallback
+        }
+      }
+    };
+    
+    setPanchang(calculateDailyPanchang(currentProfile.latitude, currentProfile.longitude));
+    loadRealPanchang();
+    
+    return () => { active = false; };
   }, [currentProfile.latitude, currentProfile.longitude]);
 
   const numerology = useMemo(() => {
@@ -335,6 +397,7 @@ export function App() {
             setTradition={setTradition}
             chartData={chartData}
             numerology={numerology}
+            language={language}
           />
         )}
 
