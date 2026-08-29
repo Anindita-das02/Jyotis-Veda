@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import { api } from '../services/api';
+import React, { useState, useEffect } from 'react';
 import {
   Milestone,
   Sparkles,
@@ -65,19 +66,14 @@ export const LifeRoadmapView: React.FC<LifeRoadmapViewProps> = ({
   const handleGenerateAiRoadmap = async () => {
     setIsLoadingAi(true);
     try {
-      const res = await fetch('/api/gemini/roadmap', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          profile,
-          tradition,
-          chartData,
-          numerology,
-        }),
+      const data = await api.post<any>('/gemini/roadmap', {
+        profile,
+        tradition,
+        chartData,
+        numerology,
       });
 
-      const data = await res.json();
-      if (data.milestones && Array.isArray(data.milestones)) {
+      if (data && data.milestones && Array.isArray(data.milestones)) {
         setRoadmap(data.milestones);
       }
     } catch (e) {

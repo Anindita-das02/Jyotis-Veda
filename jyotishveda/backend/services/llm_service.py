@@ -264,3 +264,213 @@ The numbers (ratings) should be integers between 0 and 100 based on the astrolog
         return res.strip()
     except Exception as e:
         raise LLMError(f"Failed to generate zodiac forecast: {str(e)}")
+
+
+def get_numerology_insights_response(
+    mulank: int,
+    bhagyank: int,
+    namank: int,
+    missing_numbers: list,
+    language: str = "en"
+) -> str:
+    active_llm = os.getenv("ACTIVE_LLM", "mistral_local")
+    system_prompt = f"""You are an expert Vedic Numerologist and Vastu Consultant. 
+The user's numerology profile is:
+- Mulank (Psychic Number): {mulank}
+- Bhagyank (Destiny Number): {bhagyank}
+- Namank (Name Number): {namank}
+- Missing Numbers in Lo Shu Grid: {missing_numbers}
+
+You MUST respond with ONLY a valid JSON object matching exactly this structure, no markdown formatting or backticks around it:
+{{
+  "mulankCharacteristics": ["Trait 1", "Trait 2", "Trait 3"],
+  "remedies": ["Custom Vastu remedy for missing {missing_numbers[0] if missing_numbers else 'numbers'}", "Custom remedy 2"],
+  "planeMeanings": {{
+    "Mental Plane (4-9-2)": "Dynamic analysis of their mental plane based on their grid.",
+    "Emotional Plane (3-5-7)": "Dynamic analysis...",
+    "Practical Plane (8-1-6)": "Dynamic analysis...",
+    "Thought Plane (4-3-8)": "Dynamic analysis...",
+    "Will Plane (9-5-1)": "Dynamic analysis...",
+    "Action Plane (2-7-6)": "Dynamic analysis...",
+    "Determination Plane (4-5-6)": "Dynamic analysis...",
+    "Spiritual Plane (2-5-8)": "Dynamic analysis..."
+  }}
+}}
+
+All text fields MUST be in the requested language: {language}.
+If the language is 'bn', use natural Bengali script.
+Provide exactly 3 short traits for mulankCharacteristics. Provide customized remedies for the exact missing numbers (or general if none missing). Provide 1-sentence analysis for each of the 8 Lo Shu planes.
+"""
+    history = [{"role": "user", "content": "Generate the Numerology JSON insights."}]
+
+    try:
+        if active_llm == "mistral_local":
+            res = _call_mistral_local(system_prompt, history)
+        elif active_llm == "mistral_cloud":
+            res = _call_mistral_cloud(system_prompt, history)
+        elif active_llm == "gemini":
+            res = _call_gemini(system_prompt, history)
+        else:
+            raise LLMError(f"Unknown ACTIVE_LLM value: '{active_llm}'.")
+        
+        # Clean up possible markdown code blocks
+        res = res.strip()
+        if res.startswith("```json"):
+            res = res[7:]
+        if res.startswith("```"):
+            res = res[3:]
+        if res.endswith("```"):
+            res = res[:-3]
+        return res.strip()
+    except Exception as e:
+        raise LLMError(f"Failed to generate numerology insights: {str(e)}")
+
+
+
+def get_roadmap_insights_response(
+    profile: dict,
+    tradition: str,
+    chart_data: dict,
+    numerology: dict,
+    language: str = "en"
+) -> str:
+    active_llm = os.getenv("ACTIVE_LLM", "mistral_local")
+    
+    # Safely extract values to prevent key errors
+    profile_name = profile.get("fullName", "User")
+    horoscope_sys = profile.get("horoscopeSystem", "Vedic")
+    dob = profile.get("birthDate", "Unknown")
+    time = profile.get("birthTime", "Unknown")
+    place = profile.get("birthPlace", "Unknown")
+    
+    # Safely extract nested chart data
+    lagna_info = chart_data.get("ascendant", {})
+    lagna_rashi = lagna_info.get("rashi", "Unknown")
+    lagna_lord = lagna_info.get("lord", "Unknown")
+    
+    moon_info = chart_data.get("moon", {})
+    moon_rashi = moon_info.get("rashi", "Unknown")
+    nakshatra = moon_info.get("nakshatra", "Unknown")
+    
+    dasha_info = chart_data.get("currentDasha", {})
+    maha_dasha = dasha_info.get("mahadasha", "Unknown")
+    antar_dasha = dasha_info.get("antardasha", "Unknown")
+    
+    mulank = numerology.get("mulank", "Unknown")
+    bhagyank = numerology.get("bhagyank", "Unknown")
+
+    system_prompt = f"""You are JyotishVeda AI, an expert 10-Year Vedic Astrological Forecaster.
+Generate a 10-Year Astrological Destiny Roadmap for the user based on their specific Lagna, Moon Sign, and Current Dasha.
+
+User Details:
+Name: {profile_name}
+System: {horoscope_sys} ({tradition} tradition)
+DOB: {dob}, Time: {time}, Place: {place}
+Lagna (Ascendant): {lagna_rashi} (Lord: {lagna_lord})
+Moon Sign (Rashi): {moon_rashi}, Nakshatra: {nakshatra}
+Active Vimshottari Dasha: {maha_dasha} Mahadasha / {antar_dasha} Antardasha
+Numerology: Psychic {mulank}, Destiny {bhagyank}
+
+You MUST return a JSON object with EXACTLY this structure:
+{{
+  "milestones": [
+    {{
+      "id": "string (e.g. ms-1)",
+      "timeframe": "string (Must be one of: '0-12 Months', '1-3 Years', '3-5 Years', '5-10 Years')",
+      "category": "string (Must be one of: 'Career', 'Wealth', 'Relationships', 'Health', 'Spirituality')",
+      "title": "Short strategic title",
+      "guidance": "Detailed 2-3 sentence prediction based on their dasha and transits.",
+      "favorableTransits": "Short transit explanation (e.g., 'Jupiter transit over {lagna_rashi}')",
+      "remedialAction": "1 specific Vedic/Vastu remedy",
+      "status": "string (Must be 'In-Progress' for 0-12 months, and 'Pending' for others)"
+    }}
+  ]
+}}
+
+Requirements:
+- Generate EXACTLY 5 milestones, one for each category (Career, Wealth, Relationships, Health, Spirituality).
+- Distribute the timeframes logically across the 10 years (e.g., Career in 0-12 Months, Wealth in 1-3 Years, etc.).
+- The predictions MUST specifically mention their {lagna_rashi} ascendant and {maha_dasha}/{antar_dasha} dasha period so it feels deeply personalized!
+- All text values MUST be translated directly into the language code: {language}. If 'bn', use Bengali script.
+- Do NOT output anything outside the JSON object. No markdown formatting.
+"""
+
+    history = [{"role": "user", "content": "Generate the 10-Year Roadmap JSON."}]
+
+    try:
+        if active_llm == "mistral_local":
+            res = _call_mistral_local(system_prompt, history)
+        elif active_llm == "mistral_cloud":
+            res = _call_mistral_cloud(system_prompt, history)
+        elif active_llm == "gemini":
+            res = _call_gemini(system_prompt, history)
+        else:
+            raise LLMError(f"Unknown ACTIVE_LLM value: '{active_llm}'.")
+        
+        # Clean up possible markdown code blocks
+        res = res.strip()
+        if res.startswith("```json"):
+            res = res[7:]
+        if res.startswith("```"):
+            res = res[3:]
+        if res.endswith("```"):
+            res = res[:-3]
+        return res.strip()
+    except Exception as e:
+        raise LLMError(f"Failed to generate roadmap: {str(e)}")
+
+
+
+def get_interpret_response(
+    profile: dict,
+    tradition: str,
+    chart_data: dict,
+    numerology: dict,
+    language: str = "en"
+) -> str:
+    active_llm = os.getenv("ACTIVE_LLM", "mistral_local")
+    
+    # Safely extract values
+    profile_name = profile.get("fullName", "User")
+    
+    lagna_info = chart_data.get("ascendant", {})
+    lagna_rashi = lagna_info.get("signName", "Unknown")
+    lagna_nak = lagna_info.get("nakshatra", "Unknown")
+    
+    dasha_info = chart_data.get("currentDasha", {})
+    maha_dasha = dasha_info.get("mahadasha", "Unknown")
+    antar_dasha = dasha_info.get("antardasha", "Unknown")
+    
+    system_prompt = f"""You are JyotishVeda AI, a Master Astrologer specializing in the {tradition.upper()} tradition.
+Generate a deeply insightful and personalized Vedic astrological interpretation for the user.
+
+User Details:
+Name: {profile_name}
+Tradition System: {tradition.upper()}
+Lagna (Ascendant): {lagna_rashi} (Nakshatra: {lagna_nak})
+Active Dasha: {maha_dasha} Mahadasha / {antar_dasha} Antardasha
+
+Instructions:
+1. Start with a section: "### 🌟 Cosmic Synthesis & Lagna Archetype". Explain their life path based on their Ascendant ({lagna_rashi}) and how it shapes their fundamental nature.
+2. Add a section: "### 🪐 Tradition-Specific Deep Dive ({tradition.upper()})". Use the rules of the {tradition.upper()} system to explain their current active Dasha ({maha_dasha}/{antar_dasha}) and what it means for them right now.
+3. Keep the output beautifully formatted using markdown. Use bullet points where appropriate.
+4. Do NOT use any JSON wrapping. Output pure markdown text.
+5. All text MUST be translated into the language code: {language}. If 'bn', output in Bengali script.
+"""
+
+    history = [{"role": "user", "content": f"Analyze my chart using {tradition}."}]
+
+    try:
+        if active_llm == "mistral_local":
+            res = _call_mistral_local(system_prompt, history)
+        elif active_llm == "mistral_cloud":
+            res = _call_mistral_cloud(system_prompt, history)
+        elif active_llm == "gemini":
+            res = _call_gemini(system_prompt, history)
+        else:
+            raise LLMError(f"Unknown ACTIVE_LLM value: '{active_llm}'.")
+        
+        return res.strip()
+    except Exception as e:
+        raise LLMError(f"Failed to generate interpretation: {str(e)}")
+

@@ -24,3 +24,20 @@ def calculate_ephemeris_chart():
     except Exception as e:
         print(f"Error in calculate_ephemeris_chart: {e}")
         return jsonify({"status": "error", "message": str(e)}), 500
+
+@birth_chart_bp.route("/api/gemini/interpret", methods=["POST"])
+def post_interpret():
+    body = request.get_json(silent=True) or {}
+    profile = body.get("profile", {})
+    tradition = body.get("tradition", "parashari")
+    chart_data = body.get("chartData", {})
+    numerology = body.get("numerology", {})
+    language = body.get("language", "en")
+    
+    try:
+        from services.llm_service import get_interpret_response
+        interpretation = get_interpret_response(profile, tradition, chart_data, numerology, language)
+        return jsonify({"status": "success", "data": {"interpretation": interpretation}})
+    except Exception as e:
+        print(f"Error in interpret insights: {e}")
+        return jsonify({"status": "error", "message": str(e), "error_code": "LLM_ERROR"}), 500

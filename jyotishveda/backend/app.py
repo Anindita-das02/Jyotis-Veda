@@ -90,6 +90,13 @@ def get_numerology(profile_id):
     return numerology_controller.get_numerology(request.user_id, profile_id)
 
 
+
+@app.route("/api/gemini/numerology-insights", methods=["POST"])
+def post_numerology_insights():
+    return numerology_controller.get_dynamic_insights()
+
+
+
 # ---------------- Matchmaking / Kundli Milan reports (require login) ----------------
 
 @app.route("/api/matchmaking/reports", methods=["POST"])

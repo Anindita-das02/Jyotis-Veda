@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Hash,
   Sparkles,
@@ -19,7 +19,7 @@ import {
 import { UserProfile, NumerologyReport } from '../types';
 import { CHALDEAN_VALUES, reduceToSingleDigit } from '../services/astroEngine';
 import { saveNumerologyReport } from '../services/numerologyApi';
-import { ApiError } from '../services/api';
+import { ApiError, api } from '../services/api';
 
 interface NumerologyViewProps {
   profile: UserProfile;
@@ -33,6 +33,34 @@ export const NumerologyView: React.FC<NumerologyViewProps> = ({
   isAuthenticated,
 }) => {
   const [testName, setTestName] = useState(profile.fullName);
+  
+  const [aiInsights, setAiInsights] = useState<any>(null);
+  const [isAiLoading, setIsAiLoading] = useState(false);
+
+  useEffect(() => {
+    const fetchAiInsights = async () => {
+      setIsAiLoading(true);
+      try {
+        const missingNumbers = [1, 2, 3, 4, 5, 6, 7, 8, 9].filter(n => !numerology.loShuGrid[n]);
+        const data = await api.post<any>('/gemini/numerology-insights', {
+          mulank: numerology.mulank,
+          bhagyank: numerology.bhagyank,
+          namank: numerology.namankChaldean,
+          missingNumbers,
+          language: 'en'
+        });
+        
+        if (data) {
+          setAiInsights(data);
+        }
+      } catch (e) {
+        console.error('Failed to fetch AI Numerology Insights', e);
+      } finally {
+        setIsAiLoading(false);
+      }
+    };
+    fetchAiInsights();
+  }, [numerology.mulank, numerology.bhagyank]);
   const [activeTab, setActiveTab] = useState<'matrix' | 'loshu' | 'name_correction' | 'remedies'>('matrix');
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -208,7 +236,7 @@ export const NumerologyView: React.FC<NumerologyViewProps> = ({
               <div>
                 <span className="text-[9px] uppercase font-bold text-[#9E9A90] tracking-wider">Psychological Drivers</span>
                 <div className="flex flex-wrap gap-1.5 mt-1.5">
-                  {numerology.mulankCharacteristics.map((trait) => (
+                  {(aiInsights?.mulankCharacteristics || numerology.mulankCharacteristics).map((trait: string) => (
                     <span
                       key={trait}
                       className="px-2.5 py-1 rounded-lg bg-[#1A1A1E] border border-[#2A2A2E] text-[#C9A050] font-medium"
@@ -367,7 +395,13 @@ export const NumerologyView: React.FC<NumerologyViewProps> = ({
                       />
                     </div>
 
-                    <p className="text-[11px] text-[#9E9A90] leading-relaxed">{plane.meaning}</p>
+                    <p className="text-[11px] text-[#9E9A90] leading-relaxed">
+                      {isAiLoading ? (
+                        <span className="flex items-center text-[#C9A050] space-x-2 animate-pulse"><Sparkles className="w-3 h-3" /> <span>Synthesizing Vedic Insights...</span></span>
+                      ) : (
+                        (aiInsights?.planeMeanings && aiInsights.planeMeanings[plane.name]) || plane.meaning
+                      )}
+                    </p>
                   </div>
                 ))}
               </div>
@@ -462,7 +496,7 @@ export const NumerologyView: React.FC<NumerologyViewProps> = ({
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 font-sans">
-            {numerology.remedies.map((rem, idx) => (
+            {(aiInsights?.remedies || numerology.remedies).map((rem: string, idx: number) => (
               <div key={idx} className="p-3.5 bg-[#1A1A1E] rounded-xl border border-[#2A2A2E] flex items-start space-x-3">
                 <span className="w-6 h-6 rounded-full bg-[#C9A050]/20 text-[#C9A050] font-serif font-bold text-xs flex items-center justify-center shrink-0 mt-0.5 border border-[#C9A050]/30">
                   {idx + 1}

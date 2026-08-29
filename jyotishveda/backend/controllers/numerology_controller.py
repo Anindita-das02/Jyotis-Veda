@@ -70,3 +70,26 @@ def get_numerology(user_id: str, profile_id: str):
         return _error("No saved numerology report for this profile", "NOT_FOUND", 404)
 
     return jsonify({"status": "success", "data": _row_to_report(rows[0])})
+
+
+def get_dynamic_insights():
+    body = request.get_json(silent=True) or {}
+    mulank = body.get("mulank")
+    bhagyank = body.get("bhagyank")
+    namank = body.get("namank")
+    missing_numbers = body.get("missingNumbers", [])
+    language = body.get("language", "en")
+    
+    if mulank is None or bhagyank is None:
+        return _error("mulank and bhagyank are required", "VALIDATION_ERROR")
+        
+    try:
+        from services.llm_service import get_numerology_insights_response
+        json_res = get_numerology_insights_response(mulank, bhagyank, namank, missing_numbers, language)
+        import json
+        insights_data = json.loads(json_res)
+        return jsonify({"status": "success", "data": insights_data})
+    except Exception as e:
+        print(f"Error in get_dynamic_insights: {e}")
+        return _error(str(e), "LLM_ERROR", 500)
+

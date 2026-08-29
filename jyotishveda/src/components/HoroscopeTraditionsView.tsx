@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Compass,
   Sparkles,
@@ -27,6 +27,7 @@ import {
 } from '../types';
 
 import { getTranslation } from '../services/translations';
+import { api } from '../services/api';
 
 interface HoroscopeTraditionsViewProps {
   profile: UserProfile;
@@ -97,18 +98,14 @@ export const HoroscopeTraditionsView: React.FC<HoroscopeTraditionsViewProps> = (
   const handleGenerateAIInterpretation = async () => {
     setIsLoadingAi(true);
     try {
-      const res = await fetch('/api/gemini/interpret', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          profile,
-          tradition,
-          chartData,
-          numerology,
-        }),
+      const data = await api.post<any>('/gemini/interpret', {
+        profile,
+        tradition,
+        chartData,
+        numerology,
+        language
       });
-      const data = await res.json();
-      if (data.interpretation) {
+      if (data && data.interpretation) {
         setAiInterpretation(data.interpretation);
       }
     } catch (e) {
@@ -832,7 +829,7 @@ export const HoroscopeTraditionsView: React.FC<HoroscopeTraditionsViewProps> = (
             {isLoadingAi ? (
               <div className="py-12 flex flex-col items-center justify-center space-y-3 text-center">
                 <div className="w-9 h-9 border-2 border-[#C9A050] border-t-transparent rounded-full animate-spin" />
-                <p className="text-xs text-[#C9A050] font-serif font-semibold">Gemini 3.7 synthesizing multi-tradition Vedic sutras...</p>
+                <p className="text-xs text-[#C9A050] font-serif font-semibold">JyotishVeda AI synthesizing multi-tradition Vedic sutras...</p>
               </div>
             ) : aiInterpretation ? (
               <div className="prose prose-invert max-w-none text-[#E5E1D8] text-xs sm:text-sm leading-relaxed space-y-3 whitespace-pre-line bg-[#08080A] p-5 rounded-xl border border-[#2A2A2E] font-serif">
