@@ -301,11 +301,11 @@ export const NumerologyView: React.FC<NumerologyViewProps> = ({
               <div className="grid grid-cols-2 gap-3 pt-1">
                 <div className="p-3 bg-[#1A1A1E]/60 rounded-lg border border-[#2A2A2E]">
                   <span className="text-[9px] text-[#9E9A90] block uppercase font-bold tracking-wider">Friendly Numbers</span>
-                  <span className="font-semibold text-emerald-400">{numerology.luckyNumbers.join(', ')}</span>
+                  <span className="font-semibold text-[#C9A050]">{numerology.luckyNumbers.join(', ')}</span>
                 </div>
                 <div className="p-3 bg-[#1A1A1E]/60 rounded-lg border border-[#2A2A2E]">
                   <span className="text-[9px] text-[#9E9A90] block uppercase font-bold tracking-wider">Unfavorable Numbers</span>
-                  <span className="font-semibold text-rose-400">{numerology.unfavorableNumbers.join(', ') || 'None (Universal Friend)'}</span>
+                  <span className="font-semibold text-[#C9A050]">{numerology.unfavorableNumbers.join(', ') || 'None (Universal Friend)'}</span>
                 </div>
               </div>
             </div>
@@ -374,12 +374,8 @@ export const NumerologyView: React.FC<NumerologyViewProps> = ({
                     <div className="flex justify-between items-center text-xs">
                       <span className="font-serif font-bold text-[#F0ECE1]">{plane.name}</span>
                       <span
-                        className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                          plane.status === 'Strong'
-                            ? 'bg-emerald-500/20 text-emerald-300'
-                            : plane.status === 'Moderate'
-                            ? 'bg-blue-500/20 text-blue-300'
-                            : plane.status === 'Weak'
+                        className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider border border-transparent ${
+                          plane.status !== 'Empty' && plane.status !== 'Absent'
                             ? 'bg-[#C9A050]/20 text-[#C9A050]'
                             : 'bg-[#141418] text-[#9E9A90]'
                         }`}

@@ -155,7 +155,7 @@ export function App() {
   // Theme Management (Dark / Light)
   const [theme, setTheme] = useState<'dark' | 'light'>(() => {
     const savedTheme = localStorage.getItem('jyotish_theme');
-    return savedTheme === 'light' ? 'light' : 'dark';
+    return savedTheme === 'dark' ? 'dark' : 'light';
   });
 
   useEffect(() => {
@@ -585,7 +585,7 @@ export function App() {
             key={activeTab}
             initial={{
               opacity: 0,
-              y: 15,
+              y: 25,
             }}
             animate={{
               opacity: 1,
@@ -593,11 +593,11 @@ export function App() {
             }}
             exit={{
               opacity: 0,
-              y: -15,
+              y: -25,
             }}
             transition={{
-              duration: 0.3,
-              ease: 'easeOut',
+              duration: 0.4,
+              ease: [0.16, 1, 0.3, 1], // Custom spring-like easing for a premium glide
             }}
             className="w-full"
           >

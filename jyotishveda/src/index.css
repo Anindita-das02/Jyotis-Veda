@@ -216,7 +216,6 @@
 
 .light input,
 .light select,
-.light option,
 .light textarea {
   background-color: #FFFFFF !important;
   color: #1A1816 !important;
@@ -228,10 +227,29 @@
   color: #9A948C !important;
 }
 
-.light option {
-  background-color: #FFFFFF !important;
-  color: #1A1816 !important;
-}
+/* Dignity & Dosha Badges */
+.dignity-badge-debilitated { background-color: rgba(225, 29, 72, 0.2); color: #FDA4AF; }
+.light .dignity-badge-debilitated { background-color: #F5F3ED !important; color: #6E6860 !important; }
+
+.dignity-badge-own { background-color: rgba(59, 130, 246, 0.2); color: #93C5FD; }
+.light .dignity-badge-own { background-color: #F5F3ED !important; color: #6E6860 !important; }
+
+.dignity-badge-neutral { background-color: rgba(201, 160, 80, 0.15); color: #C9A050; }
+.light .dignity-badge-neutral { background-color: #F5F3ED !important; color: #94691E !important; }
+
+.dignity-badge-severe { background-color: rgba(201, 160, 80, 0.2); color: #C9A050; }
+.light .dignity-badge-severe { background-color: #F5F3ED !important; color: #94691E !important; }
+
+/* Matchmaking Avatars */
+.matchmaking-avatar-a { background-color: rgba(59, 130, 246, 0.1); border-color: rgba(59, 130, 246, 0.3); color: #60A5FA; }
+.light .matchmaking-avatar-a { background-color: rgba(148, 105, 30, 0.1) !important; border-color: rgba(148, 105, 30, 0.3) !important; color: #94691E !important; }
+
+.matchmaking-avatar-b { background-color: rgba(236, 72, 153, 0.1); border-color: rgba(236, 72, 153, 0.3); color: #F472B6; }
+.light .matchmaking-avatar-b { background-color: rgba(148, 105, 30, 0.1) !important; border-color: rgba(148, 105, 30, 0.3) !important; color: #94691E !important; }
+
+/* Matchmaking Circle Track */
+.matchmaking-circle-track { color: #2A2A2E; }
+.light .matchmaking-circle-track { color: #E5E1D8 !important; }
 
 /* Theme utility classes */
 .theme-bg-canvas {

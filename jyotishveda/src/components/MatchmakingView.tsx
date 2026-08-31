@@ -243,10 +243,7 @@ Issued by JyotishVeda AI Daivajna Astrological Intelligence Engine
 
   // Get score color
   const getScoreColor = (points: number, max: number) => {
-    const ratio = points / max;
-    if (ratio >= 0.75) return 'text-[#C9A050] bg-[#C9A050]/15 border-[#C9A050]/30';
-    if (ratio >= 0.5) return 'text-[#7EBC89] bg-[#7EBC89]/15 border-[#7EBC89]/30';
-    return 'text-[#E06C75] bg-[#E06C75]/15 border-[#E06C75]/30';
+    return 'text-[#C9A050] bg-[#C9A050]/15 border-[#C9A050]/30';
   };
 
   return (
@@ -316,7 +313,7 @@ Issued by JyotishVeda AI Daivajna Astrological Intelligence Engine
         <div className="bg-[#141418] border border-[#2A2A2E] rounded-2xl p-6 shadow-lg relative">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center space-x-2.5">
-              <div className="w-8 h-8 rounded-full bg-blue-500/10 border border-blue-500/30 flex items-center justify-center text-blue-400 font-bold text-xs">
+              <div className="w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs border matchmaking-avatar-a">
                 A
               </div>
               <div>
@@ -416,7 +413,7 @@ Issued by JyotishVeda AI Daivajna Astrological Intelligence Engine
         <div className="bg-[#141418] border border-[#2A2A2E] rounded-2xl p-6 shadow-lg relative">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center space-x-2.5">
-              <div className="w-8 h-8 rounded-full bg-pink-500/10 border border-pink-500/30 flex items-center justify-center text-pink-400 font-bold text-xs">
+              <div className="w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs border matchmaking-avatar-b">
                 B
               </div>
               <div>
@@ -524,7 +521,7 @@ Issued by JyotishVeda AI Daivajna Astrological Intelligence Engine
                   cx="60"
                   cy="60"
                   r="50"
-                  className="text-[#2A2A2E]"
+                  className="matchmaking-circle-track"
                   strokeWidth="10"
                   stroke="currentColor"
                   fill="transparent"
@@ -574,7 +571,7 @@ Issued by JyotishVeda AI Daivajna Astrological Intelligence Engine
           {/* Right: Key Compatibility Metrics */}
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
             <div className="p-3.5 rounded-xl bg-[#0D0D0F]/80 border border-[#2A2A2E] text-center">
-              <div className="flex items-center justify-center text-orange-400 mb-1">
+              <div className="flex items-center justify-center text-[#C9A050] mb-1">
                 <Flame className="w-4 h-4" />
               </div>
               <span className="text-[10px] text-[#9E9A90] uppercase tracking-wider block">Manglik Dosha</span>
@@ -584,7 +581,7 @@ Issued by JyotishVeda AI Daivajna Astrological Intelligence Engine
             </div>
 
             <div className="p-3.5 rounded-xl bg-[#0D0D0F]/80 border border-[#2A2A2E] text-center">
-              <div className="flex items-center justify-center text-emerald-400 mb-1">
+              <div className="flex items-center justify-center text-[#C9A050] mb-1">
                 <Dna className="w-4 h-4" />
               </div>
               <span className="text-[10px] text-[#9E9A90] uppercase tracking-wider block">Nadi Vitality</span>
@@ -594,7 +591,7 @@ Issued by JyotishVeda AI Daivajna Astrological Intelligence Engine
             </div>
 
             <div className="p-3.5 rounded-xl bg-[#0D0D0F]/80 border border-[#2A2A2E] text-center">
-              <div className="flex items-center justify-center text-purple-400 mb-1">
+              <div className="flex items-center justify-center text-[#C9A050] mb-1">
                 <Heart className="w-4 h-4" />
               </div>
               <span className="text-[10px] text-[#9E9A90] uppercase tracking-wider block">Bhakoot Harmony</span>

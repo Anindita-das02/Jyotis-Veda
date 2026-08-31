@@ -49,7 +49,7 @@ const PlanetBadge = ({
 
       <div className="flex items-center gap-1.5 mt-1 opacity-90">
         {p.isRetrograde && (
-          <span className="text-rose-400 uppercase tracking-wider text-[8px] font-bold bg-rose-500/15 px-1 rounded border border-rose-500/30">
+          <span className="text-[#C9A050] uppercase tracking-wider text-[8px] font-bold bg-[#C9A050]/15 px-1 rounded border border-[#C9A050]/30">
             Retrograde
           </span>
         )}
@@ -1101,7 +1101,7 @@ export const HoroscopeTraditionsView: React.FC<
                         <span>{p.name}</span>
 
                         {p.isRetrograde && (
-                          <span className="text-[10px] text-rose-400 font-bold">
+                          <span className="text-[10px] text-[#C9A050] font-bold">
                             (R)
                           </span>
                         )}
@@ -1123,13 +1123,12 @@ export const HoroscopeTraditionsView: React.FC<
                         <span
                           className={`px-1.5 py-0.5 rounded text-[10px] font-semibold ${
                             p.dignity === 'Exalted'
-                              ? 'bg-emerald-500/20 text-emerald-300'
+                              ? 'dignity-badge-neutral'
                               : p.dignity === 'Own'
-                              ? 'bg-blue-500/20 text-blue-300'
-                              : p.dignity ===
-                                'Debilitated'
-                              ? 'bg-rose-500/20 text-rose-300'
-                              : 'bg-[#1A1A1E] text-[#9E9A90]'
+                              ? 'dignity-badge-own'
+                              : p.dignity === 'Debilitated'
+                              ? 'dignity-badge-debilitated'
+                              : 'dignity-badge-neutral'
                           }`}
                         >
                           {p.dignity}
@@ -1303,8 +1302,8 @@ export const HoroscopeTraditionsView: React.FC<
                       <span
                         className={`text-[10px] px-1.5 py-0.5 rounded font-bold font-sans ${
                           d.isPresent
-                            ? 'bg-[#C9A050]/20 text-[#C9A050]'
-                            : 'bg-emerald-500/20 text-emerald-300'
+                            ? 'dignity-badge-severe'
+                            : 'dignity-badge-neutral'
                         }`}
                       >
                         {d.isPresent
@@ -1365,7 +1364,7 @@ export const HoroscopeTraditionsView: React.FC<
                     handleGenerateAIInterpretation
                   }
                   disabled={isLoadingAi}
-                  className="px-3.5 py-2 rounded-lg bg-gradient-to-r from-[#C9A050] to-[#A07828] hover:from-[#D4AF37] hover:to-[#B38730] text-[#0D0D0F] font-bold text-xs shadow-md shadow-[#C9A050]/20 transition cursor-pointer flex items-center space-x-1.5 disabled:opacity-50"
+                  className="px-3.5 py-2 rounded-lg bg-[#C9A050]/15 hover:bg-[#C9A050]/25 border border-[#C9A050]/40 text-[#C9A050] font-bold text-xs shadow-sm transition cursor-pointer flex items-center space-x-1.5 disabled:opacity-50"
                 >
                   <Sparkles
                     className={`w-3.5 h-3.5 ${
