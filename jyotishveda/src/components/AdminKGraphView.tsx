@@ -145,20 +145,15 @@ export const AdminKGraphView: React.FC<AdminKGraphViewProps> = ({
     ]);
   };
 
-  const getNodeColor = (cat: string) => {
-    switch (cat) {
+  const getNodeColor = (category: string) => {
+    switch (category) {
       case 'planet':
-        return 'bg-[#C9A050]/15 text-[#C9A050] border-[#C9A050]/40';
       case 'house':
-        return 'bg-blue-500/15 text-blue-300 border-blue-500/30';
       case 'rashi':
-        return 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30';
       case 'yoga':
-        return 'bg-purple-500/15 text-purple-300 border-purple-500/30';
       case 'dosha':
-        return 'bg-rose-500/15 text-rose-300 border-rose-500/30';
       case 'treatise':
-        return 'bg-cyan-500/15 text-cyan-300 border-cyan-500/30';
+        return 'bg-[#C9A050]/15 text-[#C9A050] border-[#C9A050]/40';
       default:
         return 'bg-[#1A1A1E] text-[#9E9A90] border-[#2A2A2E]';
     }
@@ -193,7 +188,7 @@ export const AdminKGraphView: React.FC<AdminKGraphViewProps> = ({
             </div>
             <div className="bg-[#1A1A1E] border border-[#2A2A2E] px-3.5 py-1.5 rounded-lg text-center">
               <div className="text-[9px] text-[#9E9A90] uppercase font-bold tracking-wider">Active Profiles</div>
-              <div className="text-base font-serif font-bold text-[#F0ECE1]">{profiles.length}</div>
+              <div className="text-base font-serif font-bold text-[#C9A050]">{profiles.length}</div>
             </div>
           </div>
         </div>

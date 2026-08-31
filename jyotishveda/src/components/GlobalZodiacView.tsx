@@ -17,11 +17,78 @@ import {
   CheckCircle,
   ShieldCheck,
   ChevronRight,
+  ChevronDown,
   RefreshCw,
   Zap,
 } from 'lucide-react';
 import { ZODIAC_SIGNS, ZodiacSign, calculateZodiacCompatibility, ZodiacCompatibilityResult } from '../services/zodiacData';
 import { getTranslation } from '../services/translations';
+
+const CustomZodiacSelect = ({ value, onChange, theme, label }: any) => {
+  const [isOpen, React_useState] = React.useState(false);
+  const selectedSign = ZODIAC_SIGNS.find(s => s.id === value) || ZODIAC_SIGNS[0];
+  const dropdownRef = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        React_useState(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  return (
+    <div className="relative" ref={dropdownRef}>
+      {label && <label className="text-[11px] text-[#9E9A90] block mb-1">{label}</label>}
+      <button
+        onClick={() => React_useState(!isOpen)}
+        className={`w-full flex items-center justify-between border px-3 py-1.5 rounded-lg text-xs font-semibold focus:outline-none transition-colors ${
+          theme === 'dark' 
+            ? 'bg-[#1C1C22] border-[#2A2A2E] text-[#F0ECE1] hover:border-[#C9A050]' 
+            : 'bg-[#FFFFFF] border-[#E5E1D8] text-[#2A2A2E] hover:border-[#C9A050]'
+        } ${isOpen ? 'border-[#C9A050] ring-1 ring-[#C9A050]/50' : ''}`}
+      >
+        <div className="flex items-center space-x-2">
+          <span className="text-lg text-[#C9A050]" style={{ fontFamily: '"Segoe UI Symbol", "Apple Symbols", sans-serif' }}>
+            {selectedSign.symbol}&#xFE0E;
+          </span>
+          <span>{selectedSign.name} ({selectedSign.sanskritName})</span>
+        </div>
+        <ChevronDown className="w-3.5 h-3.5 opacity-70" />
+      </button>
+
+      {isOpen && (
+        <div className={`absolute z-50 w-full mt-1 border rounded-lg shadow-xl max-h-60 overflow-y-auto scrollbar-thin ${
+          theme === 'dark'
+            ? 'bg-[#1C1C22] border-[#2A2A2E]'
+            : 'bg-[#FFFFFF] border-[#E5E1D8] shadow-black/5'
+        }`}>
+          {ZODIAC_SIGNS.map((s) => (
+            <div
+              key={s.id}
+              onClick={() => {
+                onChange(s.id);
+                React_useState(false);
+              }}
+              className={`flex items-center space-x-2 px-3 py-2 cursor-pointer transition-colors text-xs font-semibold ${
+                value === s.id 
+                  ? (theme === 'dark' ? 'bg-[#C9A050]/20 text-[#C9A050]' : 'bg-[#C9A050]/10 text-[#94691E]') 
+                  : (theme === 'dark' ? 'text-[#F0ECE1] hover:bg-[#2A2A2E]' : 'text-[#2A2A2E] hover:bg-[#FAF8F2]')
+              }`}
+            >
+              <span className={`text-lg ${value === s.id ? '' : 'text-[#C9A050]'}`} style={{ fontFamily: '"Segoe UI Symbol", "Apple Symbols", sans-serif' }}>
+                {s.symbol}&#xFE0E;
+              </span>
+              <span>{s.name} ({s.sanskritName})</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
 
 interface GlobalZodiacViewProps {
   language?: string;
@@ -314,7 +381,7 @@ export const GlobalZodiacView: React.FC<GlobalZodiacViewProps> = ({
         {/* Top Highlight Info */}
         <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6 pb-6 border-b border-[#2A2A2E]">
           <div className="flex items-center space-x-4">
-            <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-[#C9A050] to-[#8C6D2E] flex items-center justify-center text-[#0D0D0F] font-serif text-3xl font-bold shadow-lg shadow-[#C9A050]/20" style={{ fontVariantEmoji: 'text', fontFamily: '"Segoe UI Symbol", "Apple Symbols", sans-serif' }}>
+            <div className="w-16 h-16 rounded-2xl bg-[#C9A050]/15 border border-[#C9A050]/30 flex items-center justify-center text-[#C9A050] font-serif text-3xl font-bold shadow-sm" style={{ fontVariantEmoji: 'text', fontFamily: '"Segoe UI Symbol", "Apple Symbols", sans-serif' }}>
               {activeSign.symbol}&#xFE0E;
             </div>
             <div>
@@ -349,7 +416,7 @@ export const GlobalZodiacView: React.FC<GlobalZodiacViewProps> = ({
                   `Please provide a comprehensive astrological reading for ${activeSign.name} (${activeSign.sanskritName}) for the current astrological planetary cycle.`
                 )
               }
-              className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-[#C9A050] to-[#8C6D2E] text-[#0D0D0F] font-bold text-xs hover:brightness-110 transition shadow-lg shadow-[#C9A050]/20 flex items-center space-x-2 cursor-pointer"
+              className="px-4 py-2.5 rounded-xl bg-[#C9A050]/15 border border-[#C9A050]/30 text-[#C9A050] font-bold text-xs hover:bg-[#C9A050]/25 transition shadow-sm flex items-center space-x-2 cursor-pointer"
             >
               <MessageSquareText className="w-4 h-4" />
               <span>Consult AI on {activeSign.name}</span>
@@ -530,7 +597,7 @@ export const GlobalZodiacView: React.FC<GlobalZodiacViewProps> = ({
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-4 border-b border-[#2A2A2E]">
             <div>
               <h3 className="text-base font-bold text-[#F0ECE1] flex items-center space-x-2">
-                <Heart className="w-4 h-4 text-rose-400" />
+                <Heart className="w-4 h-4 text-[#C9A050]" />
                 <span>{t('zodiac.compat_title')}</span>
               </h3>
               <p className="text-xs text-[#9E9A90] mt-0.5">
@@ -539,34 +606,22 @@ export const GlobalZodiacView: React.FC<GlobalZodiacViewProps> = ({
             </div>
 
             <div className="flex items-center space-x-3 text-xs">
-              <div>
-                <label className="text-[11px] text-[#9E9A90] block mb-1">{t('zodiac.sign_a')}</label>
-                <select
+              <div className="min-w-[180px]">
+                <CustomZodiacSelect
                   value={compatSignA}
-                  onChange={(e) => setCompatSignA(e.target.value)}
-                  className="bg-[#1C1C22] border border-[#2A2A2E] text-[#F0ECE1] px-3 py-1.5 rounded-lg text-xs font-semibold focus:outline-none focus:border-[#C9A050]"
-                >
-                  {ZODIAC_SIGNS.map((s) => (
-                    <option key={s.id} value={s.id}>
-                      {s.symbol} {s.name} ({s.sanskritName})
-                    </option>
-                  ))}
-                </select>
+                  onChange={setCompatSignA}
+                  theme={theme}
+                  label={t('zodiac.sign_a')}
+                />
               </div>
 
-              <div>
-                <label className="text-[11px] text-[#9E9A90] block mb-1">{t('zodiac.sign_b')}</label>
-                <select
+              <div className="min-w-[180px]">
+                <CustomZodiacSelect
                   value={compatSignB}
-                  onChange={(e) => setCompatSignB(e.target.value)}
-                  className="bg-[#1C1C22] border border-[#2A2A2E] text-[#F0ECE1] px-3 py-1.5 rounded-lg text-xs font-semibold focus:outline-none focus:border-[#C9A050]"
-                >
-                  {ZODIAC_SIGNS.map((s) => (
-                    <option key={s.id} value={s.id}>
-                      {s.symbol} {s.name} ({s.sanskritName})
-                    </option>
-                  ))}
-                </select>
+                  onChange={setCompatSignB}
+                  theme={theme}
+                  label={t('zodiac.sign_b')}
+                />
               </div>
             </div>
           </div>

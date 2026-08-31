@@ -97,8 +97,8 @@ export const DailyHoroscopeView: React.FC<DailyHoroscopeViewProps> = ({
   };
 
   const getCosmicHarmony = (score: number) => {
-    if (score >= 80) return { title: 'High Pranic Vitality', desc: 'Optimal for key initiatives', color: 'text-emerald-400', icon: CheckCircle2 };
-    if (score >= 60) return { title: 'Balanced Energy', desc: 'Favorable for routine tasks', color: 'text-amber-400', icon: Sparkles };
+    if (score >= 80) return { title: 'High Pranic Vitality', desc: 'Optimal for key initiatives', color: 'text-[#C9A050]', icon: CheckCircle2 };
+    if (score >= 60) return { title: 'Balanced Energy', desc: 'Favorable for routine tasks', color: 'text-[#C9A050]', icon: Sparkles };
     if (score >= 40) return { title: 'Mixed Harmonics', desc: 'Proceed with awareness', color: 'text-orange-400', icon: Compass };
     return { title: 'Low Vitality', desc: 'Avoid major new beginnings', color: 'text-rose-400', icon: AlertTriangle };
   };

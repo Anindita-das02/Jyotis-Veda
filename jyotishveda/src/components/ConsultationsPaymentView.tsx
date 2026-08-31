@@ -115,7 +115,7 @@ export const ConsultationsPaymentView: React.FC<ConsultationsPaymentViewProps> =
           </div>
 
           <div className="flex items-center space-x-2 bg-[#1A1A1E] border border-[#C9A050]/30 px-3.5 py-2 rounded-xl text-xs text-[#C9A050] font-sans">
-            <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
+            <ShieldCheck className="w-4 h-4 text-[#C9A050] shrink-0" />
             <span>100% Satisfaction & Authenticity Guarantee</span>
           </div>
         </div>

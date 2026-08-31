@@ -189,8 +189,15 @@ export const AICounsellorChat: React.FC<AICounsellorChatProps> = ({
   const t = (key: string) => getTranslation(key, language);
   const activeQuestions = PRESET_QUESTIONS[language] || PRESET_QUESTIONS['en'];
 
+  const chatContainerRef = useRef<HTMLDivElement>(null);
+
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (chatContainerRef.current) {
+      chatContainerRef.current.scrollTo({
+        top: chatContainerRef.current.scrollHeight,
+        behavior: 'smooth'
+      });
+    }
   };
 
   useEffect(() => {
@@ -382,7 +389,7 @@ export const AICounsellorChat: React.FC<AICounsellorChatProps> = ({
           <div>
             <h2 className="text-base font-bold text-[#F0ECE1] flex items-center space-x-2">
               <span>{t('counsellor.title')}</span>
-              <span className="px-2 py-0.5 rounded-full text-[9px] tracking-wider bg-emerald-500/20 text-emerald-300 font-semibold border border-emerald-500/30 uppercase">
+              <span className="px-2 py-0.5 rounded-full text-[9px] tracking-wider bg-[#C9A050]/20 text-[#C9A050] font-semibold border border-[#C9A050]/30 uppercase">
                 Active & Grounded
               </span>
             </h2>
@@ -437,7 +444,7 @@ export const AICounsellorChat: React.FC<AICounsellorChatProps> = ({
                               onKeyDown={(e) => e.key === 'Enter' && handleRenameSession(s.id)}
                               className="flex-1 bg-[#0D0D0F] border border-[#2A2A2E] rounded px-2 py-1 text-xs text-[#F0ECE1] focus:outline-none focus:border-[#C9A050]"
                             />
-                            <button onClick={() => handleRenameSession(s.id)} className="text-emerald-400 cursor-pointer">
+                            <button onClick={() => handleRenameSession(s.id)} className="text-[#C9A050] cursor-pointer">
                               <Check className="w-3.5 h-3.5" />
                             </button>
                             <button onClick={() => setRenamingSessionId(null)} className="text-[#9E9A90] cursor-pointer">
@@ -484,8 +491,7 @@ export const AICounsellorChat: React.FC<AICounsellorChatProps> = ({
 
           <button
             onClick={handleExportTranscript}
-            disabled={messages.length === 0}
-            className="p-2 px-3 rounded-lg bg-[#1A1A1E] hover:bg-[#2A2A2E] border border-[#2A2A2E] text-[#9E9A90] hover:text-[#F0ECE1] transition cursor-pointer text-xs flex items-center space-x-1.5 disabled:opacity-40"
+            className="p-2 px-3 rounded-lg bg-[#1A1A1E] hover:bg-[#2A2A2E] border border-[#2A2A2E] text-[#9E9A90] hover:text-[#F0ECE1] transition cursor-pointer text-xs flex items-center space-x-1.5"
             title="Export Consultation Transcript"
           >
             <Download className="w-3.5 h-3.5" />
@@ -493,8 +499,7 @@ export const AICounsellorChat: React.FC<AICounsellorChatProps> = ({
           </button>
           <button
             onClick={handleClearHistory}
-            disabled={messages.length === 0}
-            className="p-2 rounded-lg bg-[#1A1A1E] hover:bg-rose-950/40 border border-[#2A2A2E] text-[#9E9A90] hover:text-rose-300 transition cursor-pointer text-xs disabled:opacity-40"
+            className="p-2 rounded-lg bg-[#1A1A1E] hover:bg-[#2A2A2E] border border-[#2A2A2E] text-[#9E9A90] hover:text-[#F0ECE1] transition cursor-pointer text-xs"
             title="Clear Chat History"
           >
             <Trash2 className="w-3.5 h-3.5" />
@@ -521,7 +526,10 @@ export const AICounsellorChat: React.FC<AICounsellorChatProps> = ({
       </div>
 
       {/* Chat Messages Container */}
-      <div className="bg-[#141418] border border-[#2A2A2E] rounded-xl p-4 sm:p-6 text-[#E5E1D8] shadow-xl min-h-[480px] max-h-[600px] overflow-y-auto flex flex-col space-y-4">
+      <div 
+        ref={chatContainerRef}
+        className="bg-[#141418] border border-[#2A2A2E] rounded-xl p-4 sm:p-6 text-[#E5E1D8] shadow-xl min-h-[480px] max-h-[600px] overflow-y-auto flex flex-col space-y-4"
+      >
         {messages.length === 0 ? (
           <div className="my-auto flex flex-col items-center justify-center text-center p-6 space-y-3">
             <div className="w-14 h-14 rounded-2xl bg-[#C9A050]/10 border border-[#C9A050]/30 flex items-center justify-center text-[#C9A050]">
