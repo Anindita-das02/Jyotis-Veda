@@ -370,15 +370,11 @@ export const NumerologyView: React.FC<NumerologyViewProps> = ({
 
               <div className="space-y-3 font-sans">
                 {numerology.loShuPlanes.map((plane) => (
-                  <div key={plane.name} className="p-3.5 bg-[#1A1A1E] rounded-xl border border-[#2A2A2E] space-y-1.5">
+                  <div key={plane.name} className="p-3.5 bg-[#1A1A1E] rounded-xl border border-[#2A2A2E] space-y-1.5 transition-all duration-300 ease-out hover:-translate-y-1 hover:shadow-lg hover:shadow-[#C9A050]/20 hover:border-[#C9A050]/40">
                     <div className="flex justify-between items-center text-xs">
                       <span className="font-serif font-bold text-[#F0ECE1]">{plane.name}</span>
                       <span
-                        className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider border border-transparent ${
-                          plane.status !== 'Empty' && plane.status !== 'Absent'
-                            ? 'bg-[#C9A050]/20 text-[#C9A050]'
-                            : 'bg-[#141418] text-[#9E9A90]'
-                        }`}
+                        className="px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider border border-transparent bg-[#C9A050]/20 text-[#C9A050]"
                       >
                         {plane.status} ({Math.round(plane.strength)}%)
                       </span>

@@ -5,7 +5,7 @@ import { getTranslation } from '../services/translations';
 
 interface FooterProps {
   onOpenDisclaimer: () => void;
-  setActiveTab: (tab: string) => void;
+  setActiveTab?: (tab: string) => void;
   theme?: 'dark' | 'light';
   language?: string;
 }
@@ -35,25 +35,29 @@ export const Footer: React.FC<FooterProps> = ({
           </div>
 
           <div className="flex flex-wrap justify-center gap-5 text-xs text-[#9E9A90]">
-            <button onClick={() => setActiveTab('daily')} className="hover:text-[#C9A050] transition cursor-pointer">
-              {t('tab.daily')}
-            </button>
-            <button onClick={() => setActiveTab('zodiac')} className="hover:text-[#C9A050] transition cursor-pointer flex items-center space-x-1">
-              <Globe className="w-3 h-3 text-[#C9A050]" />
-              <span>{t('tab.zodiac')}</span>
-            </button>
-            <button onClick={() => setActiveTab('horoscope')} className="hover:text-[#C9A050] transition cursor-pointer">
-              {t('tab.horoscope')}
-            </button>
-            <button onClick={() => setActiveTab('numerology')} className="hover:text-[#C9A050] transition cursor-pointer">
-              {t('tab.numerology')}
-            </button>
-            <button onClick={() => setActiveTab('counsellor')} className="hover:text-[#C9A050] transition cursor-pointer">
-              {t('tab.counsellor')}
-            </button>
-            <button onClick={() => setActiveTab('roadmap')} className="hover:text-[#C9A050] transition cursor-pointer">
-              {t('tab.roadmap')}
-            </button>
+            {setActiveTab && (
+              <>
+                <button onClick={() => setActiveTab('daily')} className="hover:text-[#C9A050] transition cursor-pointer">
+                  {t('tab.daily')}
+                </button>
+                <button onClick={() => setActiveTab('zodiac')} className="hover:text-[#C9A050] transition cursor-pointer flex items-center space-x-1">
+                  <Globe className="w-3 h-3 text-[#C9A050]" />
+                  <span>{t('tab.zodiac')}</span>
+                </button>
+                <button onClick={() => setActiveTab('horoscope')} className="hover:text-[#C9A050] transition cursor-pointer">
+                  {t('tab.horoscope')}
+                </button>
+                <button onClick={() => setActiveTab('numerology')} className="hover:text-[#C9A050] transition cursor-pointer">
+                  {t('tab.numerology')}
+                </button>
+                <button onClick={() => setActiveTab('counsellor')} className="hover:text-[#C9A050] transition cursor-pointer">
+                  {t('tab.counsellor')}
+                </button>
+                <button onClick={() => setActiveTab('roadmap')} className="hover:text-[#C9A050] transition cursor-pointer">
+                  {t('tab.roadmap')}
+                </button>
+              </>
+            )}
             <button onClick={onOpenDisclaimer} className="text-[#C9A050] hover:text-[#D4AF37] transition cursor-pointer flex items-center space-x-1.5 font-semibold">
               <ShieldCheck className="w-3.5 h-3.5" />
               <span>{t('header.disclaimer')}</span>
