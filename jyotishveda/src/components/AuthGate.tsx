@@ -5,10 +5,11 @@ import { ApiError } from '../services/api';
 
 interface AuthGateProps {
   onAuthenticated: (user: AuthUser) => void;
+  initialMode?: 'login' | 'register';
 }
 
-export function AuthGate({ onAuthenticated }: AuthGateProps) {
-  const [mode, setMode] = useState<'login' | 'register'>('login');
+export function AuthGate({ onAuthenticated, initialMode = 'login' }: AuthGateProps) {
+  const [mode, setMode] = useState<'login' | 'register'>(initialMode);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');

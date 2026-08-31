@@ -375,7 +375,7 @@ export const NumerologyView: React.FC<NumerologyViewProps> = ({
                       <span className="font-serif font-bold text-[#F0ECE1]">{plane.name}</span>
                       <span
                         className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider border border-transparent ${
-                          plane.status !== 'Empty' && plane.status !== 'Absent'
+                          plane.status !== 'Empty'
                             ? 'bg-[#C9A050]/20 text-[#C9A050]'
                             : 'bg-[#141418] text-[#9E9A90]'
                         }`}

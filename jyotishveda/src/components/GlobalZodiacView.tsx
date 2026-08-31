@@ -640,7 +640,7 @@ export const GlobalZodiacView: React.FC<GlobalZodiacViewProps> = ({
               <div className="min-w-[170px]">
                 <CustomZodiacSelect
                   value={compatSignA}
-                  onChange={(val) => handleCompatChange('A', val)}
+                  onChange={setCompatSignA}
                   theme={theme}
                   label={t('zodiac.sign_a')}
                 />
@@ -649,7 +649,7 @@ export const GlobalZodiacView: React.FC<GlobalZodiacViewProps> = ({
               <div className="min-w-[170px]">
                 <CustomZodiacSelect
                   value={compatSignB}
-                  onChange={(val) => handleCompatChange('B', val)}
+                  onChange={setCompatSignB}
                   theme={theme}
                   label={t('zodiac.sign_b')}
                 />
@@ -658,7 +658,7 @@ export const GlobalZodiacView: React.FC<GlobalZodiacViewProps> = ({
               <div className="flex flex-col">
                 <label className="text-[11px] block mb-1 opacity-0 select-none pointer-events-none">Analyze</label>
                 <button
-                  onClick={handleCalculateCompat}
+                  onClick={() => {}}
                   className={`px-6 rounded-lg font-bold text-sm transition shadow-sm flex items-center justify-center h-[40px] ${theme === 'dark' ? 'bg-[#C9A050] text-[#141418] hover:bg-[#D4AF60]' : 'bg-[#C9A050] text-white hover:bg-[#B88E40]'}`}
                 >
                   <span>Analyze</span>

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Navbar } from './components/Navbar';
 import { AuthGate } from './components/AuthGate';
+import { LandingPage } from './components/LandingPage';
 import { DailyHoroscopeView } from './components/DailyHoroscopeView';
 import { HoroscopeTraditionsView } from './components/HoroscopeTraditionsView';
 import { GlobalZodiacView } from './components/GlobalZodiacView';
@@ -100,6 +101,8 @@ const DEFAULT_PROFILES: UserProfile[] = [
 export function App() {
   const [authUser, setAuthUser] = useState<AuthUser | null>(null);
   const [authChecked, setAuthChecked] = useState(false);
+  const [showAuthGate, setShowAuthGate] = useState(false);
+  const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
 
   // On load, if a token exists, verify it's still valid before showing the app.
   useEffect(() => {
@@ -541,7 +544,32 @@ export function App() {
   }
 
   if (!authUser) {
-    return <AuthGate onAuthenticated={setAuthUser} />;
+    if (showAuthGate) {
+      return (
+        <div className="relative">
+          <AuthGate
+            onAuthenticated={setAuthUser}
+            initialMode={authMode}
+          />
+          <button
+            onClick={() => setShowAuthGate(false)}
+            className="absolute top-6 left-6 text-sm text-[#9E9A90] hover:text-[#C9A050] transition cursor-pointer"
+          >
+            ← Back to Home
+          </button>
+        </div>
+      );
+    }
+    
+    return (
+      <LandingPage
+        onLoginClick={() => { setAuthMode('login'); setShowAuthGate(true); }}
+        onRegisterClick={() => { setAuthMode('register'); setShowAuthGate(true); }}
+        onOpenDisclaimer={() => setIsDisclaimerModalOpen(true)}
+        theme={theme}
+        toggleTheme={toggleTheme}
+      />
+    );
   }
 
   return (
