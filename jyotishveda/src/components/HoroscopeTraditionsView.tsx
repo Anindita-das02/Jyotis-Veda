@@ -22,6 +22,7 @@ import {
 
 import { getTranslation } from '../services/translations';
 import { api } from '../services/api';
+import { API_ENDPOINTS } from '../config/api_config';
 
 const PlanetBadge = ({
   p,
@@ -165,7 +166,7 @@ export const HoroscopeTraditionsView: React.FC<
 
     try {
       const data = await api.post<any>(
-        '/gemini/interpret',
+        API_ENDPOINTS.BIRTH_CHART.INTERPRET,
         {
           profile,
           tradition,

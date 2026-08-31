@@ -1,8 +1,5 @@
-from flask import Blueprint, request, jsonify
+from flask import request, jsonify
 
-roadmap_bp = Blueprint('roadmap', __name__)
-
-@roadmap_bp.route("/api/gemini/roadmap", methods=["POST"])
 def post_roadmap_insights():
     body = request.get_json(silent=True) or {}
     profile = body.get("profile", {})

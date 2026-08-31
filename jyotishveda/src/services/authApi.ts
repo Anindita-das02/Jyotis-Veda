@@ -1,4 +1,5 @@
 import { api, setToken, clearToken } from './api';
+import { API_ENDPOINTS } from '../config/api_config';
 
 export interface AuthUser {
   id: string;
@@ -17,7 +18,7 @@ export async function register(
   password: string,
   fullName: string,
 ): Promise<AuthUser> {
-  const data = await api.post<AuthResponse>('/auth/register', {
+  const data = await api.post<AuthResponse>(API_ENDPOINTS.AUTH.REGISTER, {
     email,
     password,
     fullName,
@@ -27,7 +28,7 @@ export async function register(
 }
 
 export async function login(email: string, password: string): Promise<AuthUser> {
-  const data = await api.post<AuthResponse>('/auth/login', { email, password });
+  const data = await api.post<AuthResponse>(API_ENDPOINTS.AUTH.LOGIN, { email, password });
   setToken(data.token);
   return data.user;
 }
@@ -37,5 +38,5 @@ export function logout(): void {
 }
 
 export async function getCurrentUser(): Promise<AuthUser> {
-  return api.get<AuthUser>('/auth/me');
+  return api.get<AuthUser>(API_ENDPOINTS.AUTH.CURRENT_USER);
 }

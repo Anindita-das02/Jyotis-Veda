@@ -17,6 +17,7 @@ import {
   AlertCircle,
 } from 'lucide-react';
 import { UserProfile, LifeMilestone, HoroscopeTradition, NumerologyReport } from '../types';
+import { API_ENDPOINTS } from '../config/api_config';
 
 interface LifeRoadmapViewProps {
   profile: UserProfile;
@@ -66,7 +67,7 @@ export const LifeRoadmapView: React.FC<LifeRoadmapViewProps> = ({
   const handleGenerateAiRoadmap = async () => {
     setIsLoadingAi(true);
     try {
-      const data = await api.post<any>('/gemini/roadmap', {
+      const data = await api.post<any>(API_ENDPOINTS.ROADMAP.GENERATE, {
         profile,
         tradition,
         chartData,

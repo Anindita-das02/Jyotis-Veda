@@ -20,6 +20,8 @@ import {
 import { UserProfile, ChatMessage, HoroscopeTradition, NumerologyReport } from '../types';
 import { AncientTraditionLogo } from './AncientTraditionLogo';
 import { getTranslation } from '../services/translations';
+import { API_ENDPOINTS } from '../config/api_config';
+import { API_BASE_URL } from '../services/api';
 import * as counsellingApi from '../services/counsellingApi';
 import { ApiError } from '../services/api';
 
@@ -269,7 +271,7 @@ export const AICounsellorChat: React.FC<AICounsellorChatProps> = ({
 
     // Not logged in — fall back to the demo Gemini proxy, unchanged.
     try {
-      const res = await fetch('/api/gemini/chat', {
+      const res = await fetch(`${API_BASE_URL}${API_ENDPOINTS.COUNSELLOR.DEFAULT_MESSAGES}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

@@ -14,7 +14,9 @@ import {
   Compass,
   Zap,
 } from 'lucide-react';
+import { motion } from 'framer-motion';
 import { api } from '../services/api';
+import { API_ENDPOINTS } from '../config/api_config';
 import { UserProfile, PanchangInfo, NumerologyReport } from '../types';
 
 interface DailyHoroscopeViewProps {
@@ -54,7 +56,7 @@ export const DailyHoroscopeView: React.FC<DailyHoroscopeViewProps> = ({
   const fetchDailyAiReading = async () => {
     setIsLoadingAi(true);
     try {
-      const data = await api.post<{ insights: DailyAiInsights }>('/gemini/daily-horoscope', {
+      const data = await api.post<{ insights: DailyAiInsights }>(API_ENDPOINTS.INSIGHTS.DAILY_HOROSCOPE, {
         profile,
         chartData,
         panchang,

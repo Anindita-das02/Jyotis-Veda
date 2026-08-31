@@ -34,8 +34,9 @@ import { motion, AnimatePresence } from 'motion/react';
 import ReactMarkdown from 'react-markdown';
 import { UserProfile, AshtaKootaMilanResult, KootaItem } from '../types';
 import { calculateKundliMilan, PRESET_MATCHMAKING_COUPLES, calculateVedicChart, calculateNumerology } from '../services/astroEngine';
+import { MatchReportSummary, MatchReportFull, saveMatchReport, listMatchReports, fetchMatchReport, getMatchReportPdfUrl } from '../services/matchmakingApi';
 import { getTranslation } from '../services/translations';
-import { saveMatchReport, getMatchReportPdfUrl } from '../services/matchmakingApi';
+import { API_ENDPOINTS } from '../config/api_config';
 import { ApiError } from '../services/api';
 
 interface MatchmakingViewProps {
@@ -119,7 +120,7 @@ export const MatchmakingView: React.FC<MatchmakingViewProps> = ({
   const handleGenerateAISynthesis = async () => {
     setIsGeneratingAI(true);
     try {
-      const response = await fetch('/api/gemini/matchmaking-synthesis', {
+      const response = await fetch(API_ENDPOINTS.MATCHMAKING.SYNTHESIS, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

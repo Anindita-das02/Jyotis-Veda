@@ -20,6 +20,7 @@ import { UserProfile, NumerologyReport } from '../types';
 import { CHALDEAN_VALUES, reduceToSingleDigit } from '../services/astroEngine';
 import { saveNumerologyReport } from '../services/numerologyApi';
 import { ApiError, api } from '../services/api';
+import { API_ENDPOINTS } from '../config/api_config';
 
 interface NumerologyViewProps {
   profile: UserProfile;
@@ -42,7 +43,7 @@ export const NumerologyView: React.FC<NumerologyViewProps> = ({
       setIsAiLoading(true);
       try {
         const missingNumbers = [1, 2, 3, 4, 5, 6, 7, 8, 9].filter(n => !numerology.loShuGrid[n]);
-        const data = await api.post<any>('/gemini/numerology-insights', {
+        const data = await api.post<any>(API_ENDPOINTS.NUMEROLOGY.AI_INSIGHTS, {
           mulank: numerology.mulank,
           bhagyank: numerology.bhagyank,
           namank: numerology.namankChaldean,

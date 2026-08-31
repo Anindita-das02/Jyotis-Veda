@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Globe,
   Sparkles,
@@ -22,14 +22,45 @@ import {
 } from 'lucide-react';
 import { ZODIAC_SIGNS, ZodiacSign, calculateZodiacCompatibility, ZodiacCompatibilityResult } from '../services/zodiacData';
 import { getTranslation } from '../services/translations';
+import { API_ENDPOINTS } from '../config/api_config';
+import { API_BASE_URL } from '../services/api';
+import { UserProfile } from '../types';
+
+function getZodiacSignId(dateStr?: string): string {
+  if (!dateStr) return 'aries';
+  const date = new Date(dateStr);
+  if (isNaN(date.getTime())) return 'aries';
+  
+  const m = date.getMonth() + 1; // 1-12
+  const d = date.getDate();
+
+  if ((m === 3 && d >= 21) || (m === 4 && d <= 19)) return 'aries';
+  if ((m === 4 && d >= 20) || (m === 5 && d <= 20)) return 'taurus';
+  if ((m === 5 && d >= 21) || (m === 6 && d <= 20)) return 'gemini';
+  if ((m === 6 && d >= 21) || (m === 7 && d <= 22)) return 'cancer';
+  if ((m === 7 && d >= 23) || (m === 8 && d <= 22)) return 'leo';
+  if ((m === 8 && d >= 23) || (m === 9 && d <= 22)) return 'virgo';
+  if ((m === 9 && d >= 23) || (m === 10 && d <= 22)) return 'libra';
+  if ((m === 10 && d >= 23) || (m === 11 && d <= 21)) return 'scorpio';
+  if ((m === 11 && d >= 22) || (m === 12 && d <= 21)) return 'sagittarius';
+  if ((m === 12 && d >= 22) || (m === 1 && d <= 19)) return 'capricorn';
+  if ((m === 1 && d >= 20) || (m === 2 && d <= 18)) return 'aquarius';
+  if ((m === 2 && d >= 19) || (m === 3 && d <= 20)) return 'pisces';
+  
+  return 'aries';
+}
 
 interface GlobalZodiacViewProps {
+  profile?: UserProfile;
+  chartData?: any;
   language?: string;
   onAskAIForSign?: (signName: string, promptText: string) => void;
   theme?: 'light' | 'dark';
 }
 
 export const GlobalZodiacView: React.FC<GlobalZodiacViewProps> = ({
+  profile,
+  chartData,
   language = 'en',
   onAskAIForSign,
   theme = 'dark',
@@ -38,6 +69,31 @@ export const GlobalZodiacView: React.FC<GlobalZodiacViewProps> = ({
   const [timeframe, setTimeframe] = useState<'today' | 'week' | 'month' | 'year'>('today');
   const [zodiacSystem, setZodiacSystem] = useState<'tropical' | 'sidereal'>('tropical');
   const [selectedSignId, setSelectedSignId] = useState<string>('aries');
+
+  useEffect(() => {
+    let signId = 'aries';
+    if (chartData?.ascendant?.signName) {
+      signId = chartData.ascendant.signName.toLowerCase();
+    } else if (profile?.birthDate) {
+      signId = getZodiacSignId(profile.birthDate);
+    }
+    setSelectedSignId(signId);
+    
+    setCompatSignA(signId);
+    
+    // Find highest compatibility match
+    let bestMatchId = signId === 'aries' ? 'leo' : 'aries';
+    let maxScore = -1;
+    for (const sign of ZODIAC_SIGNS) {
+      if (sign.id === signId) continue;
+      const res = calculateZodiacCompatibility(signId, sign.id, zodiacSystem);
+      if (res.overallScore > maxScore) {
+        maxScore = res.overallScore;
+        bestMatchId = sign.id;
+      }
+    }
+    setCompatSignB(bestMatchId);
+  }, [profile, chartData, zodiacSystem]);
 
   // Compatibility state
   const [compatSignA, setCompatSignA] = useState<string>('aries');
@@ -52,7 +108,7 @@ export const GlobalZodiacView: React.FC<GlobalZodiacViewProps> = ({
   );
 
   const activeSign = ZODIAC_SIGNS.find((s) => s.id === selectedSignId) || ZODIAC_SIGNS[0];
-  const compatResult: ZodiacCompatibilityResult = calculateZodiacCompatibility(compatSignA, compatSignB);
+  const compatResult: ZodiacCompatibilityResult = calculateZodiacCompatibility(compatSignA, compatSignB, zodiacSystem);
 
   const t = (key: string) => getTranslation(key, language);
 
@@ -63,7 +119,7 @@ export const GlobalZodiacView: React.FC<GlobalZodiacViewProps> = ({
 
       setIsFetchingForecast(true);
       try {
-        const response = await fetch('http://127.0.0.1:5001/api/gemini/zodiac-forecast', {
+        const response = await fetch(`${API_BASE_URL}${API_ENDPOINTS.ZODIAC.GLOBAL_FORECAST}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ sign: activeSign.name, timeframe, language })
@@ -302,7 +358,7 @@ export const GlobalZodiacView: React.FC<GlobalZodiacViewProps> = ({
 
               <div className="mt-3 pt-3 border-t border-[#2A2A2E]/60 flex items-center justify-between text-[10px] text-[#9E9A90]">
                 <span>{sign.glyph}</span>
-                <span className={`font-semibold ${theme === 'dark' ? 'text-emerald-400' : 'text-[#C9A050]'}`}>{sign.vitalityToday}% Vitality</span>
+                <span className={`font-semibold ${theme === 'dark' ? 'text-emerald-400' : 'text-[#C9A050]'}`}>{zodiacSystem === 'sidereal' ? Math.max(0, sign.vitalityToday - 3) : sign.vitalityToday}% Vitality</span>
               </div>
             </button>
           );
@@ -359,69 +415,58 @@ export const GlobalZodiacView: React.FC<GlobalZodiacViewProps> = ({
 
         {/* 4 Dimension Energy Meter */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-          <div className="bg-[#0D0D0F] p-4 rounded-xl border border-[#2A2A2E]">
-            <div className="flex items-center justify-between text-xs text-[#9E9A90] mb-2">
-              <span className="flex items-center space-x-1.5">
-                <Heart className={`w-3.5 h-3.5 ${theme === 'dark' ? 'text-rose-400' : 'text-[#C9A050]'}`} />
-                <span>{t('zodiac.love_rating')}</span>
-              </span>
-              <span className={`font-bold ${theme === 'dark' ? 'text-rose-400' : 'text-[#C9A050]'}`}>{currentDynamicData?.loveRating || activeSign.loveRating}%</span>
-            </div>
-            <div className="w-full bg-[#1C1C22] h-2 rounded-full overflow-hidden">
-              <div
-                className={`${theme === 'dark' ? 'bg-rose-500' : 'bg-[#C9A050]'} h-full rounded-full transition-all duration-500`}
-                style={{ width: `${currentDynamicData?.loveRating || activeSign.loveRating}%` }}
-              />
-            </div>
-          </div>
-
-          <div className="bg-[#0D0D0F] p-4 rounded-xl border border-[#2A2A2E]">
-            <div className="flex items-center justify-between text-xs text-[#9E9A90] mb-2">
-              <span className="flex items-center space-x-1.5">
-                <Briefcase className={`w-3.5 h-3.5 ${theme === 'dark' ? 'text-sky-400' : 'text-[#C9A050]'}`} />
-                <span>{t('zodiac.career_rating')}</span>
-              </span>
-              <span className={`font-bold ${theme === 'dark' ? 'text-sky-400' : 'text-[#C9A050]'}`}>{currentDynamicData?.careerRating || activeSign.careerRating}%</span>
-            </div>
-            <div className="w-full bg-[#1C1C22] h-2 rounded-full overflow-hidden">
-              <div
-                className={`${theme === 'dark' ? 'bg-sky-500' : 'bg-[#C9A050]'} h-full rounded-full transition-all duration-500`}
-                style={{ width: `${currentDynamicData?.careerRating || activeSign.careerRating}%` }}
-              />
-            </div>
-          </div>
-
-          <div className="bg-[#0D0D0F] p-4 rounded-xl border border-[#2A2A2E]">
-            <div className="flex items-center justify-between text-xs text-[#9E9A90] mb-2">
-              <span className="flex items-center space-x-1.5">
-                <Coins className={`w-3.5 h-3.5 ${theme === 'dark' ? 'text-amber-400' : 'text-[#C9A050]'}`} />
-                <span>{t('zodiac.wealth_rating')}</span>
-              </span>
-              <span className={`font-bold ${theme === 'dark' ? 'text-amber-400' : 'text-[#C9A050]'}`}>{currentDynamicData?.wealthRating || activeSign.wealthRating}%</span>
-            </div>
-            <div className="w-full bg-[#1C1C22] h-2 rounded-full overflow-hidden">
-              <div
-                className={`${theme === 'dark' ? 'bg-amber-500' : 'bg-[#C9A050]'} h-full rounded-full transition-all duration-500`}
-                style={{ width: `${currentDynamicData?.wealthRating || activeSign.wealthRating}%` }}
-              />
-            </div>
-          </div>
-
-          <div className="bg-[#0D0D0F] p-4 rounded-xl border border-[#2A2A2E]">
-            <div className="flex items-center justify-between text-xs text-[#9E9A90] mb-2">
-              <span className="flex items-center space-x-1.5">
-                <Zap className={`w-3.5 h-3.5 ${theme === 'dark' ? 'text-emerald-400' : 'text-[#C9A050]'}`} />
-                <span>{t('zodiac.vitality_meter')}</span>
-              </span>
-              <span className={`font-bold ${theme === 'dark' ? 'text-emerald-400' : 'text-[#C9A050]'}`}>{currentDynamicData?.vitalityToday || activeSign.vitalityToday}%</span>
-            </div>
-            <div className="w-full bg-[#1C1C22] h-2 rounded-full overflow-hidden">
-              <div
-                className={`${theme === 'dark' ? 'bg-emerald-500' : 'bg-[#C9A050]'} h-full rounded-full transition-all duration-500`}
-                style={{ width: `${currentDynamicData?.vitalityToday || activeSign.vitalityToday}%` }}
-              />
-            </div>
-          </div>
+          {[
+            {
+              key: 'love',
+              label: t('zodiac.love_rating'),
+              value: (currentDynamicData?.loveRating || activeSign.loveRating) + (zodiacSystem === 'sidereal' ? 2 : 0),
+              Icon: Heart,
+              color: theme === 'dark' ? 'text-rose-400' : 'text-[#C9A050]',
+              bg: theme === 'dark' ? 'bg-rose-500' : 'bg-[#C9A050]',
+            },
+            {
+              key: 'career',
+              label: t('zodiac.career_rating'),
+              value: (currentDynamicData?.careerRating || activeSign.careerRating) + (zodiacSystem === 'sidereal' ? -1 : 0),
+              Icon: Briefcase,
+              color: theme === 'dark' ? 'text-sky-400' : 'text-[#C9A050]',
+              bg: theme === 'dark' ? 'bg-sky-500' : 'bg-[#C9A050]',
+            },
+            {
+              key: 'wealth',
+              label: t('zodiac.wealth_rating'),
+              value: (currentDynamicData?.wealthRating || activeSign.wealthRating) + (zodiacSystem === 'sidereal' ? 3 : 0),
+              Icon: Coins,
+              color: theme === 'dark' ? 'text-amber-400' : 'text-[#C9A050]',
+              bg: theme === 'dark' ? 'bg-amber-500' : 'bg-[#C9A050]',
+            },
+            {
+              key: 'vitality',
+              label: t('zodiac.vitality_meter'),
+              value: (currentDynamicData?.vitalityToday || activeSign.vitalityToday) + (zodiacSystem === 'sidereal' ? -3 : 0),
+              Icon: Zap,
+              color: theme === 'dark' ? 'text-emerald-400' : 'text-[#C9A050]',
+              bg: theme === 'dark' ? 'bg-emerald-500' : 'bg-[#C9A050]',
+            }
+          ]
+            .sort((a, b) => b.value - a.value)
+            .map((metric) => (
+              <div key={metric.key} className="bg-[#0D0D0F] p-4 rounded-xl border border-[#2A2A2E]">
+                <div className="flex items-center justify-between text-xs text-[#9E9A90] mb-2">
+                  <span className="flex items-center space-x-1.5">
+                    <metric.Icon className={`w-3.5 h-3.5 ${metric.color}`} />
+                    <span>{metric.label}</span>
+                  </span>
+                  <span className={`font-bold ${metric.color}`}>{metric.value}%</span>
+                </div>
+                <div className="w-full bg-[#1C1C22] h-2 rounded-full overflow-hidden">
+                  <div
+                    className={`${metric.bg} h-full rounded-full transition-all duration-500`}
+                    style={{ width: `${metric.value}%` }}
+                  />
+                </div>
+              </div>
+            ))}
         </div>
 
         {/* Selected Timeframe Forecast Content */}

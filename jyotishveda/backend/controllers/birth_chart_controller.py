@@ -1,9 +1,6 @@
-from flask import Blueprint, request, jsonify
+from flask import request, jsonify
 from services.ephemeris_service import calculate_chart_data
 
-birth_chart_bp = Blueprint('birth_chart', __name__)
-
-@birth_chart_bp.route("/api/ephemeris/chart", methods=["POST"])
 def calculate_ephemeris_chart():
     data = request.json
     if not data:
@@ -25,7 +22,6 @@ def calculate_ephemeris_chart():
         print(f"Error in calculate_ephemeris_chart: {e}")
         return jsonify({"status": "error", "message": str(e)}), 500
 
-@birth_chart_bp.route("/api/gemini/interpret", methods=["POST"])
 def post_interpret():
     body = request.get_json(silent=True) or {}
     profile = body.get("profile", {})

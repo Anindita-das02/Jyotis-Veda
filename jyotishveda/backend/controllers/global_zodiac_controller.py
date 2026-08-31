@@ -1,10 +1,7 @@
-from flask import Blueprint, request, jsonify
+from flask import request, jsonify
 import json
 from services.llm_service import get_zodiac_forecast_response
 
-global_zodiac_bp = Blueprint('global_zodiac', __name__)
-
-@global_zodiac_bp.route("/api/gemini/zodiac-forecast", methods=["POST"])
 def zodiac_forecast():
     data = request.json
     if not data:

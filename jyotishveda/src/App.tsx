@@ -10,6 +10,10 @@ import { AICounsellorChat } from './components/AICounsellorChat';
 import { LifeRoadmapView } from './components/LifeRoadmapView';
 import { ConsultationsPaymentView } from './components/ConsultationsPaymentView';
 import { AdminKGraphView } from './components/AdminKGraphView';
+import PanjikaCalendarView from './components/PanjikaCalendarView';
+
+import { API_ENDPOINTS } from './config/api_config';
+import { API_BASE_URL } from './services/api';
 import { ProfileModal } from './components/ProfileModal';
 import { DisclaimerModal } from './components/DisclaimerModal';
 import { Footer } from './components/Footer';
@@ -20,6 +24,7 @@ import {
   UserProfile,
   HoroscopeTradition,
   ChatMessage,
+  PanchangInfo,
   LifeMilestone,
   ConsultationTier,
   KGraphNode,
@@ -236,7 +241,7 @@ export function App() {
     const loadRealChart = async () => {
       try {
         const response = await fetch(
-          'http://127.0.0.1:5001/api/ephemeris/chart',
+          `${API_BASE_URL}${API_ENDPOINTS.BIRTH_CHART.GENERATE}`,
           {
             method: 'POST',
             headers: {
@@ -313,7 +318,7 @@ export function App() {
           -now.getTimezoneOffset() / 60;
 
         const response = await fetch(
-          'http://127.0.0.1:5001/api/ephemeris/panchang',
+          `${API_BASE_URL}${API_ENDPOINTS.INSIGHTS.PANCHANG}`,
           {
             method: 'POST',
             headers: {
@@ -476,7 +481,7 @@ export function App() {
     ]);
 
     // Send to backend
-    fetch('/api/gemini/chat', {
+    fetch(`${API_BASE_URL}${API_ENDPOINTS.COUNSELLOR.DEFAULT_MESSAGES}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -607,8 +612,14 @@ export function App() {
               />
             )}
 
+            {activeTab === 'panjika' && (
+              <PanjikaCalendarView />
+            )}
+
             {activeTab === 'zodiac' && (
               <GlobalZodiacView
+                profile={currentProfile}
+                chartData={chartData}
                 language={language}
                 onAskAIForSign={handleAskAIForSign}
                 theme={theme}

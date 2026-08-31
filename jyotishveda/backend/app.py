@@ -8,18 +8,52 @@ from controllers import profile_controller
 from controllers import numerology_controller
 from controllers import matchmaking_controller
 from controllers import counselling_controller
-from controllers.daily_insights_controller import daily_insights_bp
-from controllers.global_zodiac_controller import global_zodiac_bp
-from controllers.birth_chart_controller import birth_chart_bp
+from controllers import daily_insights_controller
+from controllers import global_zodiac_controller
+from controllers import birth_chart_controller
+from controllers import roadmap_controller
+from controllers import calendar_controller
 from utils.security import require_auth, decode_token
 import jwt as pyjwt
 
 app = Flask(__name__)
 CORS(app)
 
-app.register_blueprint(daily_insights_bp)
-app.register_blueprint(global_zodiac_bp)
-app.register_blueprint(birth_chart_bp)
+@app.route("/daily-insights/panchang", methods=["POST"])
+def calculate_ephemeris_panchang():
+    return daily_insights_controller.calculate_ephemeris_panchang()
+
+@app.route("/daily-insights/horoscope", methods=["POST"])
+def daily_horoscope():
+    return daily_insights_controller.daily_horoscope()
+
+@app.route("/zodiac/global-forecast", methods=["POST"])
+def zodiac_forecast():
+    return global_zodiac_controller.zodiac_forecast()
+
+@app.route("/birth-chart/generate", methods=["POST"])
+def calculate_ephemeris_chart():
+    return birth_chart_controller.calculate_ephemeris_chart()
+
+@app.route("/birth-chart/ai-interpretation", methods=["POST"])
+def post_interpret():
+    return birth_chart_controller.post_interpret()
+
+@app.route("/ai/roadmap", methods=["POST"])
+def generate_roadmap():
+    return roadmap_controller.post_roadmap_insights()
+
+@app.route("/calendar/convert", methods=["POST"])
+def convert_calendar():
+    return calendar_controller.convert_date()
+
+@app.route("/calendar/month", methods=["POST"])
+def get_calendar_month():
+    return calendar_controller.get_panjika_month()
+
+@app.route("/calendar/full-panjika", methods=["POST"])
+def get_full_panjika():
+    return calendar_controller.get_full_panjika()
 
 
 @app.route("/")
@@ -27,24 +61,24 @@ def home():
     return "Server is running!"
 
 
-@app.route("/api/health")
+@app.route("/health")
 def health():
     return get_sample_data()
 
 
 # ---------------- Auth ----------------
 
-@app.route("/api/auth/register", methods=["POST"])
+@app.route("/auth/register", methods=["POST"])
 def register():
     return auth_controller.register()
 
 
-@app.route("/api/auth/login", methods=["POST"])
+@app.route("/auth/login", methods=["POST"])
 def login():
     return auth_controller.login()
 
 
-@app.route("/api/auth/me", methods=["GET"])
+@app.route("/auth/current-user", methods=["GET"])
 @require_auth
 def me():
     return auth_controller.me(request.user_id)
@@ -52,25 +86,25 @@ def me():
 
 # ---------------- Profiles (require login) ----------------
 
-@app.route("/api/profiles", methods=["GET"])
+@app.route("/user/profiles", methods=["GET"])
 @require_auth
 def get_profiles():
     return profile_controller.list_profiles(request.user_id)
 
 
-@app.route("/api/profiles", methods=["POST"])
+@app.route("/user/profiles", methods=["POST"])
 @require_auth
 def post_profile():
     return profile_controller.create_profile(request.user_id)
 
 
-@app.route("/api/profiles/<profile_id>", methods=["PUT"])
+@app.route("/user/profiles/<profile_id>", methods=["PUT"])
 @require_auth
 def put_profile(profile_id):
     return profile_controller.update_profile(request.user_id, profile_id)
 
 
-@app.route("/api/profiles/<profile_id>", methods=["DELETE"])
+@app.route("/user/profiles/<profile_id>", methods=["DELETE"])
 @require_auth
 def delete_profile(profile_id):
     return profile_controller.delete_profile(request.user_id, profile_id)
@@ -78,20 +112,20 @@ def delete_profile(profile_id):
 
 # ---------------- Numerology reports (require login) ----------------
 
-@app.route("/api/numerology", methods=["POST"])
+@app.route("/numerology/reports", methods=["POST"])
 @require_auth
 def post_numerology():
     return numerology_controller.save_numerology(request.user_id)
 
 
-@app.route("/api/numerology/<profile_id>", methods=["GET"])
+@app.route("/numerology/reports/<profile_id>", methods=["GET"])
 @require_auth
 def get_numerology(profile_id):
     return numerology_controller.get_numerology(request.user_id, profile_id)
 
 
 
-@app.route("/api/gemini/numerology-insights", methods=["POST"])
+@app.route("/numerology/ai-insights", methods=["POST"])
 def post_numerology_insights():
     return numerology_controller.get_dynamic_insights()
 
@@ -99,25 +133,25 @@ def post_numerology_insights():
 
 # ---------------- Matchmaking / Kundli Milan reports (require login) ----------------
 
-@app.route("/api/matchmaking/reports", methods=["POST"])
+@app.route("/matchmaking/reports", methods=["POST"])
 @require_auth
 def post_match_report():
     return matchmaking_controller.create_match_report(request.user_id)
 
 
-@app.route("/api/matchmaking/reports", methods=["GET"])
+@app.route("/matchmaking/reports", methods=["GET"])
 @require_auth
 def get_match_reports():
     return matchmaking_controller.list_match_reports(request.user_id)
 
 
-@app.route("/api/matchmaking/reports/<report_id>", methods=["GET"])
+@app.route("/matchmaking/reports/<report_id>", methods=["GET"])
 @require_auth
 def get_match_report(report_id):
     return matchmaking_controller.get_match_report(request.user_id, report_id)
 
 
-@app.route("/api/matchmaking/reports/<report_id>/pdf", methods=["GET"])
+@app.route("/matchmaking/reports/<report_id>/pdf", methods=["GET"])
 def get_match_report_pdf(report_id):
     # PDF downloads are triggered via direct navigation/window.open, which
     # cannot set an Authorization header — so this endpoint also accepts
@@ -135,37 +169,37 @@ def get_match_report_pdf(report_id):
 
 # ---------------- AI Counsellor sessions & messages (require login) ----------------
 
-@app.route("/api/counsellor/sessions", methods=["GET"])
+@app.route("/ai-counsellor/sessions", methods=["GET"])
 @require_auth
 def get_sessions():
     return counselling_controller.list_sessions(request.user_id)
 
 
-@app.route("/api/counsellor/sessions", methods=["POST"])
+@app.route("/ai-counsellor/sessions", methods=["POST"])
 @require_auth
 def post_session():
     return counselling_controller.create_session(request.user_id)
 
 
-@app.route("/api/counsellor/sessions/<session_id>", methods=["PUT"])
+@app.route("/ai-counsellor/sessions/<session_id>", methods=["PUT"])
 @require_auth
 def put_session(session_id):
     return counselling_controller.rename_session(request.user_id, session_id)
 
 
-@app.route("/api/counsellor/sessions/<session_id>", methods=["DELETE"])
+@app.route("/ai-counsellor/sessions/<session_id>", methods=["DELETE"])
 @require_auth
 def delete_session(session_id):
     return counselling_controller.delete_session(request.user_id, session_id)
 
 
-@app.route("/api/counsellor/sessions/<session_id>/messages", methods=["GET"])
+@app.route("/ai-counsellor/sessions/<session_id>/messages", methods=["GET"])
 @require_auth
 def get_session_messages(session_id):
     return counselling_controller.get_messages(request.user_id, session_id)
 
 
-@app.route("/api/counsellor/sessions/<session_id>/messages", methods=["POST"])
+@app.route("/ai-counsellor/sessions/<session_id>/messages", methods=["POST"])
 @require_auth
 def post_session_message(session_id):
     return counselling_controller.send_message(request.user_id, session_id)

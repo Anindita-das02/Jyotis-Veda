@@ -1,11 +1,8 @@
-from flask import Blueprint, request, jsonify
+from flask import request, jsonify
 import json
 from services.llm_service import get_daily_insights_response
 from services.ephemeris_service import calculate_panchang_data
 
-daily_insights_bp = Blueprint('daily_insights', __name__)
-
-@daily_insights_bp.route("/api/ephemeris/panchang", methods=["POST"])
 def calculate_ephemeris_panchang():
     data = request.json
     if not data:
@@ -25,7 +22,6 @@ def calculate_ephemeris_panchang():
         print(f"Error in calculate_ephemeris_panchang: {e}")
         return jsonify({"status": "error", "message": str(e)}), 500
 
-@daily_insights_bp.route("/api/gemini/daily-horoscope", methods=["POST"])
 def daily_horoscope():
     data = request.json
     if not data:

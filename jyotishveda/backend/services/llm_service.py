@@ -1,5 +1,7 @@
 import os
 import requests
+import json
+import concurrent.futures
 
 
 class LLMError(Exception):
@@ -51,12 +53,17 @@ def _call_mistral_local(system_prompt: str, history: list) -> str:
             "Set MISTRAL_LOCAL_URL in backend/.env (e.g. http://localhost:11434 for Ollama)."
         )
 
-    messages = [{"role": "system", "content": system_prompt}] + history
+    prompt = system_prompt + "\n\n"
+    for msg in history:
+        role = msg.get("role", "user").capitalize()
+        content = msg.get("content", "")
+        prompt += f"{role}: {content}\n\n"
+
     try:
         resp = requests.post(
-            f"{base_url}/api/chat",
-            json={"model": model, "messages": messages, "stream": False},
-            timeout=300,
+            f"{base_url}/api/generate",
+            json={"model": model, "prompt": prompt, "stream": False},
+            timeout=900,
         )
     except requests.RequestException as e:
         raise LLMError(f"Could not reach local Mistral server at {base_url}: {e}")
@@ -65,9 +72,9 @@ def _call_mistral_local(system_prompt: str, history: list) -> str:
         raise LLMError(f"Local Mistral server returned HTTP {resp.status_code}: {resp.text[:300]}")
 
     data = resp.json()
-    content = (data.get("message") or {}).get("content")
+    content = data.get("response", "")
     if not content:
-        raise LLMError("Local Mistral server returned an unexpected response shape (no message.content).")
+        raise LLMError("Local Mistral server returned an unexpected response shape (no response field).")
     return content
 
 
@@ -216,32 +223,105 @@ def get_zodiac_forecast_response(
     language: str = "en"
 ) -> str:
     active_llm = os.getenv("ACTIVE_LLM", "mistral_local")
-    system_prompt = f"""You are an expert Astrologer. Generate a personalized astrological forecast and attributes for the Zodiac Sign: {sign.capitalize()}.
-The timeframe for this forecast is: {timeframe} (options: 'today', 'week', 'month', 'year').
+    
+    def fetch_part(system_prompt):
+        history = [{"role": "user", "content": f"Generate the {timeframe} JSON forecast for {sign}."}]
+        if active_llm == "mistral_local":
+            res = _call_mistral_local(system_prompt, history)
+        elif active_llm == "mistral_cloud":
+            res = _call_mistral_cloud(system_prompt, history)
+        elif active_llm == "gemini":
+            res = _call_gemini(system_prompt, history)
+        else:
+            raise LLMError(f"Unknown ACTIVE_LLM value: '{active_llm}'.")
+            
+        res = res.strip()
+        start = res.find("{")
+        end = res.rfind("}")
+        if start != -1 and end != -1 and end > start:
+            res = res[start:end+1]
+        try:
+            return json.loads(res)
+        except Exception:
+            return {}
 
-You MUST respond with ONLY a valid JSON object matching exactly this structure, no markdown formatting or backticks around it:
+    prompt1 = f"""You are an expert Astrologer. Generate part 1 of the astrological forecast for Zodiac Sign: {sign.capitalize()}.
+Timeframe: {timeframe} ('today', 'week', 'month', 'year').
+MUST respond ONLY with valid JSON, in language {language} (if 'bn' use Bengali):
 {{
-  "forecast": "A highly realistic, mystical yet practical reading focusing on general cosmic transits (3-5 sentences maximum).",
+  "forecast": "A highly realistic reading focusing on cosmic transits (3-5 sentences maximum).",
+  "luckyGemstone": "Name of gemstone",
+  "luckyColor": "Name of color",
+  "luckyDay": "Day of the week",
+  "powerNumbers": [3, 7, 9],
+  "resonantChakra": "Name of chakra",
+  "affirmation": "A positive affirmation sentence"
+}}"""
+
+    prompt2 = f"""You are an expert Astrologer. Generate part 2 (ratings and matches) for Zodiac Sign: {sign.capitalize()}.
+Timeframe: {timeframe} ('today', 'week', 'month', 'year').
+MUST respond ONLY with valid JSON, text in {language} (if 'bn' use Bengali), ratings 0-100:
+{{
   "vitalityToday": 88,
   "loveRating": 75,
   "careerRating": 92,
   "wealthRating": 85,
-  "luckyGemstone": "Name of a gemstone",
-  "luckyColor": "Name of a color",
-  "luckyDay": "Day of the week",
-  "powerNumbers": [3, 7, 9],
-  "resonantChakra": "Name of chakra",
-  "affirmation": "A positive affirmation sentence",
   "bestRomanceMatches": ["Sign1", "Sign2"],
   "bestCareerMatches": ["Sign3", "Sign4"],
   "growthMatches": ["Sign5"]
+}}"""
+
+    try:
+        part1_data = fetch_part(prompt1)
+        part2_data = fetch_part(prompt2)
+        
+        combined_data = {**part1_data, **part2_data}
+        # Provide fallbacks if JSON parsing failed entirely for a part
+        if not combined_data.get("forecast"):
+            combined_data["forecast"] = "Forecast unavailable at the moment."
+            combined_data["vitalityToday"] = 50
+            
+        return json.dumps(combined_data)
+    except Exception as e:
+        raise LLMError(f"Failed to generate zodiac forecast: {str(e)}")
+
+
+def get_numerology_insights_response(
+    mulank: int,
+    bhagyank: int,
+    namank: int,
+    missing_numbers: list,
+    language: str = "en"
+) -> str:
+    active_llm = os.getenv("ACTIVE_LLM", "mistral_local")
+    system_prompt = f"""You are an expert Vedic Numerologist and Vastu Consultant. 
+The user's numerology profile is:
+- Mulank (Psychic Number): {mulank}
+- Bhagyank (Destiny Number): {bhagyank}
+- Namank (Name Number): {namank}
+- Missing Numbers in Lo Shu Grid: {missing_numbers}
+
+You MUST respond with ONLY a valid JSON object matching exactly this structure, no markdown formatting or backticks around it:
+{{
+  "mulankCharacteristics": ["Trait 1", "Trait 2", "Trait 3"],
+  "remedies": ["Custom Vastu remedy for missing {missing_numbers[0] if missing_numbers else 'numbers'}", "Custom remedy 2"],
+  "planeMeanings": {{
+    "Mental Plane (4-9-2)": "Dynamic analysis of their mental plane based on their grid.",
+    "Emotional Plane (3-5-7)": "Dynamic analysis...",
+    "Practical Plane (8-1-6)": "Dynamic analysis...",
+    "Thought Plane (4-3-8)": "Dynamic analysis...",
+    "Will Plane (9-5-1)": "Dynamic analysis...",
+    "Action Plane (2-7-6)": "Dynamic analysis...",
+    "Determination Plane (4-5-6)": "Dynamic analysis...",
+    "Spiritual Plane (2-5-8)": "Dynamic analysis..."
+  }}
 }}
 
-All text fields (except sign names in arrays) MUST be in the requested language: {language}.
-If the language is 'bn', use natural Bengali script for text fields.
-The numbers (ratings) should be integers between 0 and 100 based on the astrological aspects for this {timeframe}.
+All text fields MUST be in the requested language: {language}.
+If the language is 'bn', use natural Bengali script.
+Provide exactly 3 short traits for mulankCharacteristics. Provide customized remedies for the exact missing numbers (or general if none missing). Provide 1-sentence analysis for each of the 8 Lo Shu planes.
 """
-    history = [{"role": "user", "content": f"Generate the {timeframe} JSON forecast for {sign}."}]
+    history = [{"role": "user", "content": "Generate the Numerology JSON insights."}]
 
     try:
         if active_llm == "mistral_local":
@@ -263,7 +343,80 @@ The numbers (ratings) should be integers between 0 and 100 based on the astrolog
             res = res[:-3]
         return res.strip()
     except Exception as e:
-        raise LLMError(f"Failed to generate zodiac forecast: {str(e)}")
+        raise LLMError(f"Failed to generate numerology insights: {str(e)}")
+
+
+
+def get_roadmap_insights_response(
+    profile: dict,
+    tradition: str,
+    chart_data: dict,
+    numerology: dict,
+    language: str = "en"
+) -> str:
+    active_llm = os.getenv("ACTIVE_LLM", "mistral_local")
+    
+    # Safely extract values to prevent key errors
+    profile_name = profile.get("fullName", "User")
+    horoscope_sys = profile.get("horoscopeSystem", "Vedic")
+    dob = profile.get("birthDate", "Unknown")
+    time = profile.get("birthTime", "Unknown")
+    place = profile.get("birthPlace", "Unknown")
+    
+    # Safely extract nested chart data
+    lagna_info = chart_data.get("ascendant", {})
+    lagna_rashi = lagna_info.get("rashi", "Unknown")
+    lagna_lord = lagna_info.get("lord", "Unknown")
+    
+    moon_info = chart_data.get("moon", {})
+    moon_rashi = moon_info.get("rashi", "Unknown")
+    nakshatra = moon_info.get("nakshatra", "Unknown")
+    
+    dasha_info = chart_data.get("currentDasha", {})
+    maha_dasha = dasha_info.get("mahadasha", "Unknown")
+    antar_dasha = dasha_info.get("antardasha", "Unknown")
+    
+    mulank = numerology.get("mulank", "Unknown")
+    bhagyank = numerology.get("bhagyank", "Unknown")
+
+    system_prompt = f"""You are JyotishVeda AI, an expert 10-Year Vedic Astrological Forecaster.
+Generate a 10-Year Astrological Destiny Roadmap for the user based on their specific Lagna, Moon Sign, and Current Dasha.
+
+User Details:
+Name: {profile_name}
+System: {horoscope_sys} ({tradition} tradition)
+DOB: {dob}, Time: {time}, Place: {place}
+Lagna (Ascendant): {lagna_rashi} (Lord: {lagna_lord})
+Moon Sign (Rashi): {moon_rashi}, Nakshatra: {nakshatra}
+Active Vimshottari Dasha: {maha_dasha} Mahadasha / {antar_dasha} Antardasha
+Numerology: Psychic {mulank}, Destiny {bhagyank}
+
+You MUST return a JSON object with EXACTLY this structure:
+{{
+  "milestones": [
+    {{
+      "id": "string (e.g. ms-1)",
+      "timeframe": "string (Must be one of: '0-12 Months', '1-3 Years', '3-5 Years', '5-10 Years')",
+      "category": "string (Must be one of: 'Career', 'Wealth', 'Relationships', 'Health', 'Spirituality')",
+      "title": "Short strategic title",
+      "guidance": "Detailed 2-3 sentence prediction based on their dasha and transits.",
+      "favorableTransits": "Short transit explanation (e.g., 'Jupiter transit over {lagna_rashi}')",
+      "remedialAction": "1 specific Vedic/Vastu remedy",
+      "status": "string (Must be 'In-Progress' for 0-12 months, and 'Pending' for others)"
+    }}
+  ]
+}}
+
+Requirements:
+- Generate EXACTLY 5 milestones, one for each category (Career, Wealth, Relationships, Health, Spirituality).
+- Distribute the timeframes logically across the 10 years (e.g., Career in 0-12 Months, Wealth in 1-3 Years, etc.).
+- The predictions MUST specifically mention their {lagna_rashi} ascendant and {maha_dasha}/{antar_dasha} dasha period so it feels deeply personalized!
+- All text values MUST be translated directly into the language code: {language}. If 'bn', use Bengali script.
+- Do NOT output anything outside the JSON object. No markdown formatting.
+"""
+
+    history = [{"role": "user", "content": "Generate the 10-Year Roadmap JSON."}]
+
 
 
 def get_numerology_insights_response(
@@ -441,26 +594,8 @@ def get_interpret_response(
     maha_dasha = dasha_info.get("mahadasha", "Unknown")
     antar_dasha = dasha_info.get("antardasha", "Unknown")
     
-    system_prompt = f"""You are JyotishVeda AI, a Master Astrologer specializing in the {tradition.upper()} tradition.
-Generate a deeply insightful and personalized Vedic astrological interpretation for the user.
-
-User Details:
-Name: {profile_name}
-Tradition System: {tradition.upper()}
-Lagna (Ascendant): {lagna_rashi} (Nakshatra: {lagna_nak})
-Active Dasha: {maha_dasha} Mahadasha / {antar_dasha} Antardasha
-
-Instructions:
-1. Start with a section: "### 🌟 Cosmic Synthesis & Lagna Archetype". Explain their life path based on their Ascendant ({lagna_rashi}) and how it shapes their fundamental nature.
-2. Add a section: "### 🪐 Tradition-Specific Deep Dive ({tradition.upper()})". Use the rules of the {tradition.upper()} system to explain their current active Dasha ({maha_dasha}/{antar_dasha}) and what it means for them right now.
-3. Keep the output beautifully formatted using markdown. Use bullet points where appropriate.
-4. Do NOT use any JSON wrapping. Output pure markdown text.
-5. All text MUST be translated into the language code: {language}. If 'bn', output in Bengali script.
-"""
-
-    history = [{"role": "user", "content": f"Analyze my chart using {tradition}."}]
-
-    try:
+    def fetch_part(system_prompt):
+        history = [{"role": "user", "content": f"Analyze my chart using {tradition}."}]
         if active_llm == "mistral_local":
             res = _call_mistral_local(system_prompt, history)
         elif active_llm == "mistral_cloud":
@@ -469,8 +604,36 @@ Instructions:
             res = _call_gemini(system_prompt, history)
         else:
             raise LLMError(f"Unknown ACTIVE_LLM value: '{active_llm}'.")
-        
         return res.strip()
+    
+    prompt1 = f"""You are JyotishVeda AI, a Master Astrologer specializing in the {tradition.upper()} tradition.
+Generate Part 1 of a deeply insightful and personalized Vedic astrological interpretation for the user.
+
+User Details: Name: {profile_name}, Lagna: {lagna_rashi} ({lagna_nak})
+
+Instructions:
+1. Output ONLY a section titled: "### 🌟 Cosmic Synthesis & Lagna Archetype".
+2. Explain their life path based on their Ascendant ({lagna_rashi}) and how it shapes their fundamental nature.
+3. Keep the output beautifully formatted using markdown. Use bullet points where appropriate.
+4. All text MUST be translated into the language code: {language}. If 'bn', output in Bengali script.
+"""
+
+    prompt2 = f"""You are JyotishVeda AI, a Master Astrologer specializing in the {tradition.upper()} tradition.
+Generate Part 2 of a deeply insightful and personalized Vedic astrological interpretation for the user.
+
+User Details: Name: {profile_name}, Active Dasha: {maha_dasha} Mahadasha / {antar_dasha} Antardasha
+
+Instructions:
+1. Output ONLY a section titled: "### 🪐 Tradition-Specific Deep Dive ({tradition.upper()})".
+2. Use the rules of the {tradition.upper()} system to explain their current active Dasha ({maha_dasha}/{antar_dasha}) and what it means for them right now.
+3. Keep the output beautifully formatted using markdown. Use bullet points where appropriate.
+4. All text MUST be translated into the language code: {language}. If 'bn', output in Bengali script.
+"""
+    
+    try:
+        part1_res = fetch_part(prompt1)
+        part2_res = fetch_part(prompt2)
+        
+        return f"{part1_res}\n\n{part2_res}"
     except Exception as e:
         raise LLMError(f"Failed to generate interpretation: {str(e)}")
-

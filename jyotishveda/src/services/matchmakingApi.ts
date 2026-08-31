@@ -1,4 +1,5 @@
 import { api, getToken } from './api';
+import { API_ENDPOINTS } from '../config/api_config';
 import { AshtaKootaMilanResult } from '../types';
 
 export interface MatchReportSummary {
@@ -20,7 +21,7 @@ export interface MatchReportFull extends MatchReportSummary {
 export async function saveMatchReport(
   result: AshtaKootaMilanResult,
 ): Promise<MatchReportFull> {
-  return api.post<MatchReportFull>('/matchmaking/reports', {
+  return api.post<MatchReportFull>(API_ENDPOINTS.MATCHMAKING.REPORTS, {
     partner1Name: result.partner1.fullName,
     partner1BirthDate: result.partner1.birthDate,
     partner2Name: result.partner2.fullName,
@@ -36,11 +37,11 @@ export async function saveMatchReport(
 }
 
 export async function listMatchReports(): Promise<MatchReportSummary[]> {
-  return api.get<MatchReportSummary[]>('/matchmaking/reports');
+  return api.get<MatchReportSummary[]>(API_ENDPOINTS.MATCHMAKING.REPORTS);
 }
 
 export async function fetchMatchReport(id: string): Promise<MatchReportFull> {
-  return api.get<MatchReportFull>(`/matchmaking/reports/${id}`);
+  return api.get<MatchReportFull>(`${API_ENDPOINTS.MATCHMAKING.REPORTS}/${id}`);
 }
 
 /**
@@ -51,7 +52,7 @@ export async function fetchMatchReport(id: string): Promise<MatchReportFull> {
  */
 export function getMatchReportPdfUrl(id: string): string {
   const base: string =
-    (import.meta as any).env?.VITE_API_BASE_URL || 'http://localhost:5001/api';
+    (import.meta as any).env?.VITE_API_BASE_URL || 'http://localhost:5001';
   const token = getToken() || '';
-  return `${base}/matchmaking/reports/${id}/pdf?token=${encodeURIComponent(token)}`;
+  return `${base}${API_ENDPOINTS.MATCHMAKING.REPORTS}/${id}/pdf?token=${encodeURIComponent(token)}`;
 }

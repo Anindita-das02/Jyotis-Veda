@@ -481,7 +481,7 @@ export interface ZodiacCompatibilityResult {
   remedialAdvice: string;
 }
 
-export function calculateZodiacCompatibility(signAId: string, signBId: string): ZodiacCompatibilityResult {
+export function calculateZodiacCompatibility(signAId: string, signBId: string, system: 'tropical' | 'sidereal' = 'tropical'): ZodiacCompatibilityResult {
   const signA = ZODIAC_SIGNS.find((s) => s.id === signAId) || ZODIAC_SIGNS[0];
   const signB = ZODIAC_SIGNS.find((s) => s.id === signBId) || ZODIAC_SIGNS[1];
 
@@ -489,7 +489,7 @@ export function calculateZodiacCompatibility(signAId: string, signBId: string): 
 
   // Same element (Fire+Fire, Earth+Earth, etc.)
   if (signA.element === signB.element) {
-    baseScore += 18;
+    baseScore += signA.id === signB.id ? 12 : 18; // slightly lower for identical signs
   } else if (
     (signA.element === 'Fire' && signB.element === 'Air') ||
     (signA.element === 'Air' && signB.element === 'Fire') ||
@@ -509,7 +509,42 @@ export function calculateZodiacCompatibility(signAId: string, signBId: string): 
     baseScore += 2;
   }
 
-  const overallScore = Math.min(99, Math.max(55, baseScore));
+  // Bonus for explicit matches
+  if (signA.bestRomanceMatches.includes(signB.name)) {
+    baseScore += 5;
+  }
+  if (signA.growthMatches.includes(signB.name)) {
+    baseScore += 3;
+  }
+  if (signB.bestRomanceMatches.includes(signA.name)) {
+    baseScore += 5;
+  }
+
+  // Vedic Sidereal specific adjustments (e.g. planetary friendships can shift scores slightly)
+  if (system === 'sidereal') {
+    const asuraGroup = ['Mercury', 'Venus', 'Saturn'];
+    const devaGroup = ['Sun', 'Moon', 'Mars', 'Jupiter'];
+    
+    if (signA.ruler === signB.ruler) {
+      baseScore += 4;
+    } else if (asuraGroup.includes(signA.ruler) && asuraGroup.includes(signB.ruler)) {
+      baseScore += 3;
+    } else if (devaGroup.includes(signA.ruler) && devaGroup.includes(signB.ruler)) {
+      baseScore += 3;
+    } else {
+      baseScore -= 6; // Cross-group friction in Vedic
+    }
+    
+    // Ensure there is always a slight visible shift for the user to see the system changed
+    if (baseScore % 2 === 0) {
+      baseScore -= 1;
+    } else {
+      baseScore += 2;
+    }
+  }
+
+  // Calculate final score with a slightly lower cap for tropical so sidereal can exceed it, or just use 99
+  let overallScore = Math.min(99, Math.max(55, baseScore));
 
   const isFireAir = (signA.element === 'Fire' && signB.element === 'Air') || (signA.element === 'Air' && signB.element === 'Fire');
   const isEarthWater = (signA.element === 'Earth' && signB.element === 'Water') || (signA.element === 'Water' && signB.element === 'Earth');
