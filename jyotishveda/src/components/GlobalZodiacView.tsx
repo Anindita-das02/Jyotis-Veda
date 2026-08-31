@@ -136,6 +136,12 @@ export const GlobalZodiacView: React.FC<GlobalZodiacViewProps> = ({
   const [timeframe, setTimeframe] = useState<'today' | 'week' | 'month' | 'year'>('today');
   const [zodiacSystem, setZodiacSystem] = useState<'tropical' | 'sidereal'>('tropical');
   const [selectedSignId, setSelectedSignId] = useState<string>('aries');
+  const [hasSelectedSign, setHasSelectedSign] = useState(false);
+  const [isScreenLoading, setIsScreenLoading] = useState(false);
+  const [hasAnalyzed, setHasAnalyzed] = useState(false);
+  const [isCompatLoading, setIsCompatLoading] = useState(false);
+  const deepDiveRef = React.useRef<HTMLDivElement>(null);
+  const compatResultRef = React.useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     let signId = 'aries';
@@ -275,6 +281,18 @@ export const GlobalZodiacView: React.FC<GlobalZodiacViewProps> = ({
 
   return (
     <div className="space-y-10 animate-fade-in text-[#E5E1D8]">
+      {/* Screen Middle Loader */}
+      {isScreenLoading && (
+        <div className="fixed inset-0 bg-black/75 backdrop-blur-md flex flex-col items-center justify-center z-[9999] animate-in fade-in duration-300">
+          <div className="relative flex items-center justify-center">
+            <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-[#C9A050]"></div>
+            <div className="absolute text-xl font-serif text-[#C9A050] animate-pulse">✨</div>
+          </div>
+          <p className="mt-4 text-sm font-semibold tracking-wider text-[#C9A050] animate-pulse font-serif">
+            {language === 'bn' ? 'নক্ষত্র ও কোষ্ঠী বিশ্লেষণ করা হচ্ছে...' : 'Aligning Stars & Consulting Cosmos...'}
+          </p>
+        </div>
+      )}
       {/* Header Banner */}
       <div className="bg-[#141418] border border-[#2A2A2E] rounded-2xl p-6 sm:p-8 shadow-2xl relative overflow-hidden">
         <div className="absolute top-0 right-0 -mr-16 -mt-16 w-64 h-64 bg-[#C9A050]/10 rounded-full blur-3xl pointer-events-none" />
@@ -393,7 +411,24 @@ export const GlobalZodiacView: React.FC<GlobalZodiacViewProps> = ({
           return (
             <button
               key={sign.id}
-              onClick={() => setSelectedSignId(sign.id)}
+              onClick={() => {
+                setIsScreenLoading(true);
+                setSelectedSignId(sign.id);
+                setTimeout(() => {
+                  setIsScreenLoading(false);
+                  setHasSelectedSign(true);
+                  setTimeout(() => {
+                    if (deepDiveRef.current) {
+                      const elementPosition = deepDiveRef.current.getBoundingClientRect().top;
+                      const offsetPosition = elementPosition + window.pageYOffset - 90;
+                      window.scrollTo({
+                        top: offsetPosition,
+                        behavior: 'smooth'
+                      });
+                    }
+                  }, 100);
+                }, 1200);
+              }}
               className={`p-4 rounded-xl border text-left transition-all duration-300 ease-out cursor-pointer flex flex-col justify-between relative overflow-hidden group hover:scale-[1.03] hover:-translate-y-1 hover:shadow-xl hover:shadow-[#C9A050]/20 ${
                 isSelected
                   ? theme === 'dark'
@@ -433,7 +468,9 @@ export const GlobalZodiacView: React.FC<GlobalZodiacViewProps> = ({
       </div>
 
       {/* Selected Sign Detailed Deep-Dive Container */}
-      <div className="bg-[#141418] border border-[#2A2A2E] rounded-2xl p-6 sm:p-8 shadow-2xl space-y-8">
+      {hasSelectedSign && (
+        <div ref={deepDiveRef} className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 w-full">
+          <div className="bg-[#141418] border border-[#2A2A2E] rounded-2xl p-6 sm:p-8 shadow-2xl space-y-8">
         {/* Top Highlight Info */}
         <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6 pb-6 border-b border-[#2A2A2E]">
           <div className="flex items-center space-x-4">
@@ -622,8 +659,11 @@ export const GlobalZodiacView: React.FC<GlobalZodiacViewProps> = ({
             </div>
           </div>
         </div>
+      </div>
+      </div>
+      )}
 
-        {/* Compatibility Matrix Interactive Tool */}
+      {/* Compatibility Matrix Interactive Tool */}
         <div className="bg-[#0D0D0F] p-6 rounded-xl border border-[#2A2A2E] space-y-6">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-4 border-b border-[#2A2A2E]">
             <div>
@@ -640,7 +680,10 @@ export const GlobalZodiacView: React.FC<GlobalZodiacViewProps> = ({
               <div className="min-w-[170px]">
                 <CustomZodiacSelect
                   value={compatSignA}
-                  onChange={setCompatSignA}
+                  onChange={(val: string) => {
+                    setCompatSignA(val);
+                    setHasAnalyzed(false);
+                  }}
                   theme={theme}
                   label={t('zodiac.sign_a')}
                 />
@@ -649,7 +692,10 @@ export const GlobalZodiacView: React.FC<GlobalZodiacViewProps> = ({
               <div className="min-w-[170px]">
                 <CustomZodiacSelect
                   value={compatSignB}
-                  onChange={setCompatSignB}
+                  onChange={(val: string) => {
+                    setCompatSignB(val);
+                    setHasAnalyzed(false);
+                  }}
                   theme={theme}
                   label={t('zodiac.sign_b')}
                 />
@@ -658,7 +704,24 @@ export const GlobalZodiacView: React.FC<GlobalZodiacViewProps> = ({
               <div className="flex flex-col">
                 <label className="text-[11px] block mb-1 opacity-0 select-none pointer-events-none">Analyze</label>
                 <button
-                  onClick={() => {}}
+                  onClick={() => {
+                    setIsCompatLoading(true);
+                    setHasAnalyzed(false);
+                    setTimeout(() => {
+                      setIsCompatLoading(false);
+                      setHasAnalyzed(true);
+                      setTimeout(() => {
+                        if (compatResultRef.current) {
+                          const elementPosition = compatResultRef.current.getBoundingClientRect().top;
+                          const offsetPosition = elementPosition + window.pageYOffset - 90;
+                          window.scrollTo({
+                            top: offsetPosition,
+                            behavior: 'smooth'
+                          });
+                        }
+                      }, 100);
+                    }, 1200);
+                  }}
                   className={`px-6 rounded-lg font-bold text-sm transition shadow-sm flex items-center justify-center h-[40px] ${theme === 'dark' ? 'bg-[#C9A050] text-[#141418] hover:bg-[#D4AF60]' : 'bg-[#C9A050] text-white hover:bg-[#B88E40]'}`}
                 >
                   <span>Analyze</span>
@@ -668,7 +731,17 @@ export const GlobalZodiacView: React.FC<GlobalZodiacViewProps> = ({
           </div>
 
           {/* Compatibility Breakdown Card */}
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 items-center">
+          {isCompatLoading && (
+            <div className="flex flex-col items-center justify-center p-12 bg-[#141418] rounded-xl border border-[#2A2A2E] text-center animate-pulse w-full">
+              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#C9A050] mb-4"></div>
+              <p className="text-sm font-semibold tracking-wider text-[#C9A050] animate-pulse font-serif">
+                {language === 'bn' ? 'গ্রহের সংযোগ এবং নক্ষত্রের সামঞ্জস্য গণনা করা হচ্ছে...' : 'Calculating Cosmic Harmony & Planetary Alignments...'}
+              </p>
+            </div>
+          )}
+
+          {hasAnalyzed && !isCompatLoading && (
+            <div ref={compatResultRef} className="grid grid-cols-1 lg:grid-cols-4 gap-6 items-center animate-in fade-in slide-in-from-bottom-4 duration-500">
             {/* Score circle */}
             <div className="lg:col-span-1 flex flex-col items-center justify-center p-6 bg-[#141418] rounded-xl border border-[#2A2A2E] text-center">
               <div className="w-20 h-20 rounded-full border-4 border-[#C9A050] flex flex-col items-center justify-center text-[#F0ECE1] shadow-lg shadow-[#C9A050]/20">
@@ -701,8 +774,8 @@ export const GlobalZodiacView: React.FC<GlobalZodiacViewProps> = ({
               </div>
             </div>
           </div>
+          )}
         </div>
-      </div>
     </div>
   );
 };

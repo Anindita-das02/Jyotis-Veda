@@ -5,7 +5,7 @@ from reportlab.lib.units import mm
 from reportlab.lib import colors
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.platypus import (
-    SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, PageBreak,
+    SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
 )
 
 GOLD = colors.HexColor("#8C6D23")
@@ -90,20 +90,30 @@ def generate_match_report_pdf(report: dict) -> bytes:
 
     report_json = report.get("report_json") or {}
 
+    verdict_title = report_json.get("verdictTitle")
+    verdict_desc = report_json.get("verdictDescription")
+    if verdict_title or verdict_desc:
+        story.append(Paragraph(f"Verdict: {verdict_title or 'Analysis'}", styles["JVSection"]))
+        if verdict_desc:
+            story.append(Paragraph(verdict_desc, styles["JVBody"]))
+
     kootas = report_json.get("kootas")
     if isinstance(kootas, list) and kootas:
         story.append(Paragraph("Ashta Koota Analysis", styles["JVSection"]))
         rows = [["Koota", "Points", "Max", "Notes"]]
         for k in kootas:
+            # Wrap the notes text in a Paragraph so it wraps onto multiple lines instead of being cut off
+            desc_text = str(k.get("description", k.get("notes", "")))
+            notes_paragraph = Paragraph(desc_text, styles["JVBody"])
             rows.append([
                 str(k.get("name", "")),
                 str(k.get("points", k.get("score", ""))),
                 str(k.get("maxPoints", k.get("max", ""))),
-                str(k.get("description", k.get("notes", "")))[:70],
+                notes_paragraph,
             ])
         koota_table = Table(rows, colWidths=[80, 40, 40, 260])
         koota_table.setStyle(TableStyle([
-            ("FONTSIZE", (0, 0), (-1, -1), 8),
+            ("FONTSIZE", (0, 0), (-1, 0), 8),
             ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#F0E6C8")),
             ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
             ("GRID", (0, 0), (-1, -1), 0.4, colors.lightgrey),
@@ -112,6 +122,19 @@ def generate_match_report_pdf(report: dict) -> bytes:
             ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
         ]))
         story.append(koota_table)
+
+    manglik = report_json.get("manglik")
+    if isinstance(manglik, dict):
+        story.append(Paragraph("Manglik (Kuja) Dosha Analysis", styles["JVSection"]))
+        story.append(Paragraph(str(manglik.get("conclusion", "")), styles["JVBody"]))
+        if manglik.get("cancellationRules"):
+            story.append(Paragraph(f"<b>Cancellations:</b> {', '.join(manglik.get('cancellationRules', []))}", styles["JVBody"]))
+
+    remedies = report_json.get("remedies")
+    if isinstance(remedies, list) and remedies:
+        story.append(Paragraph("Recommended Remedies", styles["JVSection"]))
+        for r in remedies:
+            story.append(Paragraph(f"• {r}", styles["JVBody"]))
 
     strengths = report_json.get("strengths")
     if isinstance(strengths, list) and strengths:

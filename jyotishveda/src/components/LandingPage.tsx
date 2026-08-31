@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, MessageSquareText, X, Send, Bot, Lock, Compass, Hash, Milestone, ShieldAlert, Sun, Moon, Home, Globe } from 'lucide-react';
+import { Sparkles, MessageSquareText, X, Send, Bot, Lock, Compass, Hash, Milestone, ShieldAlert, Sun, Moon, Home, Globe, Calendar } from 'lucide-react';
 import { ZODIAC_SIGNS } from '../services/zodiacData';
 import { StarfieldBackground } from './StarfieldBackground';
 import { GlobalZodiacView } from './GlobalZodiacView';
+import PanjikaCalendarView from './PanjikaCalendarView';
 import { Footer } from './Footer';
 
 interface LandingPageProps {
@@ -93,6 +94,10 @@ export function LandingPage({ onLoginClick, onRegisterClick, onOpenDisclaimer, t
               <button onClick={() => scrollToSection('hero-section')} className={`flex items-center space-x-1.5 text-sm font-semibold transition-colors hover:text-[#C9A050] ${theme === 'dark' ? 'text-[#E5E1D8]' : 'text-[#2A2A2E]'}`}>
                 <Home className="w-4 h-4" />
                 <span>Home</span>
+              </button>
+              <button onClick={() => scrollToSection('panjika-section')} className={`flex items-center space-x-1.5 text-sm font-semibold transition-colors hover:text-[#C9A050] ${theme === 'dark' ? 'text-[#9E9A90]' : 'text-gray-600'}`}>
+                <Calendar className="w-4 h-4" />
+                <span>Panjika & Calendar</span>
               </button>
               <button onClick={() => scrollToSection('zodiac-section')} className={`flex items-center space-x-1.5 text-sm font-semibold transition-colors hover:text-[#C9A050] ${theme === 'dark' ? 'text-[#9E9A90]' : 'text-gray-600'}`}>
                 <Globe className="w-4 h-4" />
@@ -224,6 +229,11 @@ export function LandingPage({ onLoginClick, onRegisterClick, onOpenDisclaimer, t
             </div>
           </div>
         </div>  
+
+          {/* Panjika & Calendar Section */}
+          <div id="panjika-section" className="w-full text-left mt-8 scroll-mt-24">
+            <PanjikaCalendarView />
+          </div>
           {/* Full Global Zodiac Section */}
           <div id="zodiac-section" className="w-full text-left mt-8 scroll-mt-24">
             <GlobalZodiacView 

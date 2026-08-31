@@ -6,7 +6,7 @@ from controllers.sample import get_sample_data
 from controllers import auth_controller
 from controllers import profile_controller
 from controllers import numerology_controller
-from controllers import matchmaking_controller
+from controllers import match_making
 from controllers import counselling_controller
 from controllers import daily_insights_controller
 from controllers import global_zodiac_controller
@@ -133,29 +133,31 @@ def post_numerology_insights():
 
 # ---------------- Matchmaking / Kundli Milan reports (require login) ----------------
 
-@app.route("/matchmaking/reports", methods=["POST"])
+
+@app.route("/api/matchmaking/reports", methods=["POST"])
 @require_auth
-def post_match_report():
-    return matchmaking_controller.create_match_report(request.user_id)
+def post_match_report1():
+    # ডাইনামিক কুন্ডলী মিলন এবং রিপোর্ট সেভ করার জন্য কল হবে
+    return match_making.create_match_report(request.user_id)
 
 
-@app.route("/matchmaking/reports", methods=["GET"])
+@app.route("/api/matchmaking/reports", methods=["GET"])
 @require_auth
-def get_match_reports():
-    return matchmaking_controller.list_match_reports(request.user_id)
+def get_match_reports1():
+    # ইউজারের আগের সেভ করা সমস্ত রিপোর্ট দেখার জন্য
+    return match_making.list_match_reports(request.user_id)
 
 
-@app.route("/matchmaking/reports/<report_id>", methods=["GET"])
+@app.route("/api/matchmaking/reports/<report_id>", methods=["GET"])
 @require_auth
-def get_match_report(report_id):
-    return matchmaking_controller.get_match_report(request.user_id, report_id)
+def get_match_report1(report_id):
+    # নির্দিষ্ট কোনো একটি রিপোর্টের বিস্তারিত জানার জন্য
+    return match_making.get_match_report(request.user_id, report_id)
 
 
-@app.route("/matchmaking/reports/<report_id>/pdf", methods=["GET"])
-def get_match_report_pdf(report_id):
-    # PDF downloads are triggered via direct navigation/window.open, which
-    # cannot set an Authorization header — so this endpoint also accepts
-    # the JWT as a `token` query param, validated the same way.
+@app.route("/api/matchmaking/reports/<report_id>/pdf", methods=["GET"])
+def get_match_report_pdf1(report_id):
+    # PDF ডাউনলোড করার জন্য (এখানে টোকেন URL প্যারামিটারে আসে)
     token = request.args.get("token", "")
     if not token:
         return jsonify({"status": "error", "message": "Missing token", "error_code": "AUTH_REQUIRED"}), 401
@@ -164,7 +166,8 @@ def get_match_report_pdf(report_id):
     except pyjwt.PyJWTError:
         return jsonify({"status": "error", "message": "Invalid or expired token", "error_code": "TOKEN_INVALID"}), 401
 
-    return matchmaking_controller.download_match_report_pdf(payload["sub"], report_id)
+    return match_making.download_match_report_pdf(payload["sub"], report_id)
+
 
 
 # ---------------- AI Counsellor sessions & messages (require login) ----------------

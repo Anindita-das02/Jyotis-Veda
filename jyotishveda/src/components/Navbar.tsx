@@ -82,12 +82,10 @@ export const Navbar: React.FC<NavbarProps> = ({
 
   const tabs = [
     { id: 'daily', label: t('tab.daily'), icon: Sun },
-    { id: 'panjika', label: 'Panjika & Calendar', icon: Calendar },
     { id: 'zodiac', label: t('tab.zodiac'), icon: Globe },
     { id: 'horoscope', label: t('tab.horoscope'), icon: Compass },
     { id: 'matchmaking', label: t('tab.matchmaking'), icon: HeartHandshake },
     { id: 'numerology', label: t('tab.numerology'), icon: Hash },
-    { id: 'counsellor', label: t('tab.counsellor'), icon: MessageSquareText },
     { id: 'roadmap', label: t('tab.roadmap'), icon: Milestone },
     { id: 'consultations', label: t('tab.consultations'), icon: CreditCard },
     { id: 'admin', label: t('tab.admin'), icon: Network },

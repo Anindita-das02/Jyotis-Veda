@@ -114,44 +114,44 @@ const PanjikaCalendarView = () => {
   const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
   return (
-    <div className="min-h-screen bg-[#F0ECE1] dark:bg-[#0A0A0A] text-[#0D0D0F] dark:text-[#F4F4F5] p-4 sm:p-6 lg:p-10 font-sans transition-colors duration-300">
-      <div className="max-w-7xl mx-auto space-y-8 lg:space-y-12">
+    <div className=" bg-[#F0ECE1]  text-[#0D0D0F]  p-4 lg:p-6 font-sans transition-colors duration-300">
+      <div className="max-w-7xl mx-auto space-y-4 lg:space-y-4">
         
         {/* Header & Location */}
-        <header className="flex flex-col lg:flex-row justify-between items-start lg:items-end border-b border-[#E5E1D8] dark:border-[#2A2A2A] pb-6 gap-6 transition-colors">
+        <header className="flex flex-col lg:flex-row justify-between items-start lg:items-end border-b border-[#E5E1D8]  pb-6 gap-6 transition-colors">
           <div>
             <div className="flex items-center space-x-3 text-[#C9A050] mb-2">
               <Calendar className="w-6 h-6" />
               <span className="uppercase tracking-widest text-sm font-semibold">Universal Chronology</span>
             </div>
-            <h1 className="text-4xl md:text-5xl font-light tracking-tight text-[#0D0D0F] dark:text-white font-serif transition-colors">
+            <h1 className="text-4xl md:text-5xl font-light tracking-tight text-[#0D0D0F]  font-serif transition-colors">
               Panjika & <span className="text-[#C9A050]">Cosmic Calendar</span>
             </h1>
-            <p className="text-gray-600 dark:text-gray-400 mt-3 max-w-2xl font-light transition-colors text-sm sm:text-base">
+            <p className="text-gray-600  mt-3 max-w-2xl font-light transition-colors text-sm sm:text-base">
               Precise 6-way date conversion and detailed Panjika Engine based on Drik Siddhanta calculations.
             </p>
           </div>
           
-          <div className="flex items-center bg-[#F9F7F1] dark:bg-[#111111] border border-[#E5E1D8] dark:border-[#222] rounded-xl px-4 py-2 transition-colors">
+          <div className="flex items-center bg-[#F9F7F1]  border border-[#E5E1D8]  rounded-xl px-4 py-2 transition-colors">
             <MapPin className="w-5 h-5 text-[#C9A050] mr-3" />
             <div className="flex flex-col">
               <span className="text-xs text-gray-500 uppercase tracking-wider font-semibold">Calculation Location</span>
               <select 
                 value={location.name}
                 onChange={(e) => setLocation(LOCATIONS.find(l => l.name === e.target.value) || LOCATIONS[0])}
-                className="bg-transparent text-sm font-medium outline-none text-[#0D0D0F] dark:text-white cursor-pointer"
+                className="bg-transparent text-sm font-medium outline-none text-[#0D0D0F]  cursor-pointer"
               >
-                {LOCATIONS.map(loc => <option key={loc.name} value={loc.name} className="bg-white dark:bg-[#1A1A1A]">{loc.name}</option>)}
+                {LOCATIONS.map(loc => <option key={loc.name} value={loc.name} className="bg-white ">{loc.name}</option>)}
               </select>
             </div>
           </div>
         </header>
 
         {/* Horizontal Date Converter */}
-        <div className="bg-[#F9F7F1] dark:bg-[#111111] border border-[#E5E1D8] dark:border-[#222] p-4 sm:p-6 rounded-xl transition-colors shadow-sm">
+        <div className="bg-[#F9F7F1]  border border-[#E5E1D8]  p-4 rounded-xl transition-colors shadow-sm">
            <div className="flex items-center space-x-2 text-[#C9A050] mb-4">
               <ArrowRightLeft className="w-5 h-5" />
-              <h3 className="text-lg font-serif text-[#0D0D0F] dark:text-white">6-Way Date Converter</h3>
+              <h3 className="text-lg font-serif text-[#0D0D0F] ">6-Way Date Converter</h3>
            </div>
            
            <div className="flex flex-col lg:flex-row items-end gap-6 lg:gap-8">
@@ -162,7 +162,7 @@ const PanjikaCalendarView = () => {
                  <select 
                    value={convertFrom}
                    onChange={e => setConvertFrom(e.target.value as any)}
-                   className="w-full sm:w-1/3 bg-[#F0ECE1] dark:bg-[#1A1A1A] border border-[#D4CFC4] dark:border-[#333] text-[#0D0D0F] dark:text-white p-3 rounded-lg focus:outline-none focus:border-[#C9A050] transition-colors"
+                   className="w-full sm:w-1/3 bg-[#F0ECE1]  border border-[#D4CFC4]  text-[#0D0D0F]  p-3 rounded-lg focus:outline-none focus:border-[#C9A050] transition-colors"
                  >
                    <option value="english">Gregorian</option>
                    <option value="bengali">Bangabda</option>
@@ -171,29 +171,29 @@ const PanjikaCalendarView = () => {
 
                  {/* Inputs based on selection */}
                  {convertFrom === 'english' && (
-                   <input type="date" value={engDate} onChange={e => setEngDate(e.target.value)} className="w-full sm:w-2/3 bg-[#F0ECE1] dark:bg-[#1A1A1A] border border-[#D4CFC4] dark:border-[#333] text-[#0D0D0F] dark:text-white p-3 rounded-lg focus:outline-none focus:border-[#C9A050]" />
+                   <input type="date" value={engDate} onChange={e => setEngDate(e.target.value)} className="w-full sm:w-2/3 bg-[#F0ECE1]  border border-[#D4CFC4]  text-[#0D0D0F]  p-3 rounded-lg focus:outline-none focus:border-[#C9A050]" />
                  )}
                  {convertFrom === 'bengali' && (
                    <div className="w-full sm:w-2/3 grid grid-cols-3 gap-3">
-                     <input type="number" placeholder="Day" value={benDay} onChange={e=>setBenDay(e.target.value)} className="w-full bg-[#F0ECE1] dark:bg-[#1A1A1A] border border-[#D4CFC4] dark:border-[#333] text-center p-3 rounded-lg text-sm" />
-                     <select value={benMonth} onChange={e=>setBenMonth(e.target.value)} className="w-full bg-[#F0ECE1] dark:bg-[#1A1A1A] border border-[#D4CFC4] dark:border-[#333] text-center p-3 rounded-lg text-sm truncate">
+                     <input type="number" placeholder="Day" value={benDay} onChange={e=>setBenDay(e.target.value)} className="w-full bg-[#F0ECE1]  border border-[#D4CFC4]  text-center p-3 rounded-lg text-sm" />
+                     <select value={benMonth} onChange={e=>setBenMonth(e.target.value)} className="w-full bg-[#F0ECE1]  border border-[#D4CFC4]  text-center p-3 rounded-lg text-sm truncate">
                        {BENGALI_MONTHS.map(m => <option key={m} value={m}>{m}</option>)}
                      </select>
-                     <input type="number" placeholder="Year" value={benYear} onChange={e=>setBenYear(e.target.value)} className="w-full bg-[#F0ECE1] dark:bg-[#1A1A1A] border border-[#D4CFC4] dark:border-[#333] text-center p-3 rounded-lg text-sm" />
+                     <input type="number" placeholder="Year" value={benYear} onChange={e=>setBenYear(e.target.value)} className="w-full bg-[#F0ECE1]  border border-[#D4CFC4]  text-center p-3 rounded-lg text-sm" />
                    </div>
                  )}
                  {convertFrom === 'hindi' && (
                    <div className="w-full sm:w-2/3 grid grid-cols-2 lg:grid-cols-4 gap-3">
-                     <select value={hinTithi} onChange={e=>setHinTithi(e.target.value)} className="w-full bg-[#F0ECE1] dark:bg-[#1A1A1A] border border-[#D4CFC4] dark:border-[#333] p-3 rounded-lg text-xs truncate">
+                     <select value={hinTithi} onChange={e=>setHinTithi(e.target.value)} className="w-full bg-[#F0ECE1]  border border-[#D4CFC4]  p-3 rounded-lg text-xs truncate">
                        {TITHIS.map(t => <option key={t} value={t}>{t}</option>)}
                      </select>
-                     <select value={hinPaksha} onChange={e=>setHinPaksha(e.target.value)} className="w-full bg-[#F0ECE1] dark:bg-[#1A1A1A] border border-[#D4CFC4] dark:border-[#333] p-3 rounded-lg text-xs">
+                     <select value={hinPaksha} onChange={e=>setHinPaksha(e.target.value)} className="w-full bg-[#F0ECE1]  border border-[#D4CFC4]  p-3 rounded-lg text-xs">
                        {PAKSHAS.map(p => <option key={p} value={p}>{p} Paksha</option>)}
                      </select>
-                     <select value={hinMonth} onChange={e=>setHinMonth(e.target.value)} className="w-full bg-[#F0ECE1] dark:bg-[#1A1A1A] border border-[#D4CFC4] dark:border-[#333] p-3 rounded-lg text-xs">
+                     <select value={hinMonth} onChange={e=>setHinMonth(e.target.value)} className="w-full bg-[#F0ECE1]  border border-[#D4CFC4]  p-3 rounded-lg text-xs">
                        {HINDI_MONTHS.map(m => <option key={m} value={m}>{m}</option>)}
                      </select>
-                     <input type="number" placeholder="Year" value={hinYear} onChange={e=>setHinYear(e.target.value)} className="w-full bg-[#F0ECE1] dark:bg-[#1A1A1A] border border-[#D4CFC4] dark:border-[#333] text-center p-3 rounded-lg text-xs" />
+                     <input type="number" placeholder="Year" value={hinYear} onChange={e=>setHinYear(e.target.value)} className="w-full bg-[#F0ECE1]  border border-[#D4CFC4]  text-center p-3 rounded-lg text-xs" />
                    </div>
                  )}
                </div>
@@ -209,7 +209,7 @@ const PanjikaCalendarView = () => {
                <select 
                  value={convertTo}
                  onChange={e => setConvertTo(e.target.value as any)}
-                 className="w-full bg-[#F0ECE1] dark:bg-[#1A1A1A] border border-[#D4CFC4] dark:border-[#333] text-[#0D0D0F] dark:text-white p-3 rounded-lg focus:outline-none focus:border-[#C9A050] transition-colors"
+                 className="w-full bg-[#F0ECE1]  border border-[#D4CFC4]  text-[#0D0D0F]  p-3 rounded-lg focus:outline-none focus:border-[#C9A050] transition-colors"
                >
                  <option value="english">Gregorian (English)</option>
                  <option value="bengali">Bangabda (Bengali)</option>
@@ -221,12 +221,12 @@ const PanjikaCalendarView = () => {
            {/* Output */}
            {conversionResult && !conversionResult.error && (
              <div className="mt-8 p-5 bg-[#C9A050]/10 border border-[#C9A050]/30 rounded-xl flex flex-col sm:flex-row items-center justify-between animate-fade-in relative overflow-hidden">
-                <div className="absolute top-0 right-0 w-32 h-32 bg-[#C9A050]/10 dark:bg-[#C9A050]/20 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2 pointer-events-none"></div>
+                <div className="absolute top-0 right-0 w-32 h-32 bg-[#C9A050]/10  rounded-full blur-2xl -translate-y-1/2 translate-x-1/2 pointer-events-none"></div>
                 <div className="text-xs text-[#C9A050] font-bold uppercase tracking-widest mb-1 sm:mb-0 relative z-10 flex items-center">
                    {conversionLoading && <RefreshCw className="w-3.5 h-3.5 mr-2 animate-spin" />} 
                    Result ({convertTo})
                 </div>
-                <div className="text-xl sm:text-2xl font-serif text-[#0D0D0F] dark:text-white relative z-10">
+                <div className="text-xl sm:text-2xl font-serif text-[#0D0D0F]  relative z-10">
                   {convertTo === 'english' && conversionResult.english}
                   {convertTo === 'bengali' && conversionResult.bengali}
                   {convertTo === 'hindi' && conversionResult.hindi}
@@ -234,7 +234,7 @@ const PanjikaCalendarView = () => {
              </div>
            )}
            {conversionResult?.error && (
-             <div className="mt-5 p-4 bg-red-500/10 border border-red-500/30 rounded-lg text-center text-sm text-red-600 dark:text-red-400">
+             <div className="mt-5 p-4 bg-red-500/10 border border-red-500/30 rounded-lg text-center text-sm text-red-600 ">
                 {conversionResult.error}
              </div>
            )}
@@ -244,38 +244,38 @@ const PanjikaCalendarView = () => {
           
           {/* Main Calendar Area */}
           <div className={`${selectedDay ? 'lg:col-span-2' : 'lg:col-span-1'} space-y-6 transition-all duration-300`}>
-            <div className="bg-[#F9F7F1] dark:bg-[#111111] border border-[#E5E1D8] dark:border-[#222] p-4 sm:p-6 rounded-xl relative overflow-hidden transition-colors">
-              <div className="absolute top-0 right-0 w-64 h-64 bg-[#C9A050]/10 dark:bg-[#C9A050]/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none"></div>
+            <div className="bg-[#F9F7F1]  border border-[#E5E1D8]  p-4 rounded-xl relative overflow-hidden transition-colors">
+              <div className="absolute top-0 right-0 w-64 h-64 bg-[#C9A050]/10  rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none"></div>
               
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4 relative z-10">
-                <div className="flex items-center space-x-1 bg-[#F0ECE1] dark:bg-[#1A1A1A] px-2 py-1.5 rounded-xl border border-[#D4CFC4] dark:border-[#333] shadow-inner focus-within:border-[#C9A050] transition-all duration-300">
+                <div className="flex items-center space-x-1 bg-[#F0ECE1]  px-2 py-1.5 rounded-xl border border-[#D4CFC4]  shadow-inner focus-within:border-[#C9A050] transition-all duration-300">
                   <div className="relative group">
                     <select 
                       value={currentDate.getMonth()} 
                       onChange={(e) => setCurrentDate(new Date(currentDate.getFullYear(), parseInt(e.target.value), 1))}
-                      className="appearance-none bg-transparent text-[#0D0D0F] dark:text-[#E5E1D8] py-2 pl-3 pr-8 rounded-lg outline-none font-serif text-lg cursor-pointer hover:text-[#C9A050] transition-colors"
+                      className="appearance-none bg-transparent text-[#0D0D0F]  py-2 pl-3 pr-8 rounded-lg outline-none font-serif text-lg cursor-pointer hover:text-[#C9A050] transition-colors"
                     >
-                      {monthNames.map((m, i) => <option key={m} value={i} className="bg-white dark:bg-[#1A1A1A] text-base font-sans">{m}</option>)}
+                      {monthNames.map((m, i) => <option key={m} value={i} className="bg-white  text-base font-sans">{m}</option>)}
                     </select>
                     <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none text-[#C9A050] opacity-70" />
                   </div>
-                  <div className="w-px h-6 bg-[#D4CFC4] dark:bg-[#333] mx-1"></div>
+                  <div className="w-px h-6 bg-[#D4CFC4]  mx-1"></div>
                   <div className="relative group">
                     <select
                       value={currentDate.getFullYear()}
                       onChange={(e) => setCurrentDate(new Date(parseInt(e.target.value), currentDate.getMonth(), 1))}
-                      className="appearance-none bg-transparent text-[#0D0D0F] dark:text-[#E5E1D8] py-2 pl-3 pr-8 rounded-lg outline-none font-serif text-lg cursor-pointer hover:text-[#C9A050] transition-colors"
+                      className="appearance-none bg-transparent text-[#0D0D0F]  py-2 pl-3 pr-8 rounded-lg outline-none font-serif text-lg cursor-pointer hover:text-[#C9A050] transition-colors"
                     >
-                      {Array.from({ length: 201 }, (_, i) => 1900 + i).map(year => <option key={year} value={year} className="bg-white dark:bg-[#1A1A1A] text-base font-sans">{year}</option>)}
+                      {Array.from({ length: 201 }, (_, i) => 1900 + i).map(year => <option key={year} value={year} className="bg-white  text-base font-sans">{year}</option>)}
                     </select>
                     <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none text-[#C9A050] opacity-70" />
                   </div>
                 </div>
                 <div className="flex space-x-2">
-                  <button onClick={prevMonth} className="p-2 bg-[#F0ECE1] dark:bg-[#1A1A1A] hover:bg-[#E5E1D8] dark:hover:bg-[#2A2A2A] border border-[#D4CFC4] dark:border-[#333] rounded-full transition-all text-gray-500 hover:text-[#C9A050]">
+                  <button onClick={prevMonth} className="p-2 bg-[#F0ECE1]  hover:bg-[#E5E1D8]  border border-[#D4CFC4]  rounded-full transition-all text-gray-500 hover:text-[#C9A050]">
                     <ChevronLeft className="w-5 h-5" />
                   </button>
-                  <button onClick={nextMonth} className="p-2 bg-[#F0ECE1] dark:bg-[#1A1A1A] hover:bg-[#E5E1D8] dark:hover:bg-[#2A2A2A] border border-[#D4CFC4] dark:border-[#333] rounded-full transition-all text-gray-500 hover:text-[#C9A050]">
+                  <button onClick={nextMonth} className="p-2 bg-[#F0ECE1]  hover:bg-[#E5E1D8]  border border-[#D4CFC4]  rounded-full transition-all text-gray-500 hover:text-[#C9A050]">
                     <ChevronRight className="w-5 h-5" />
                   </button>
                 </div>
@@ -303,19 +303,19 @@ const PanjikaCalendarView = () => {
                       onClick={() => openDayModal(dayData)}
                       className={`h-16 lg:h-20 p-1.5 sm:p-2 border rounded-lg transition-colors flex flex-col justify-between group/day cursor-pointer ${
                         selectedDay?.day === dayData.day 
-                          ? 'bg-[#E5E1D8] dark:bg-[#222222] border-[#C9A050] shadow-[0_0_15px_rgba(201,160,80,0.15)]' 
-                          : 'bg-[#F0ECE1] dark:bg-[#151515] border-[#E5E1D8] dark:border-[#222] hover:border-[#C9A050]/50 dark:hover:border-[#C9A050]/50'
+                          ? 'bg-[#E5E1D8]  border-[#C9A050] shadow-[0_0_15px_rgba(201,160,80,0.15)]' 
+                          : 'bg-[#F0ECE1]  border-[#E5E1D8]  hover:border-[#C9A050]/50 '
                       }`}
                     >
                       <div className="flex justify-between items-start">
-                        <span className={`text-sm sm:text-base font-medium transition-colors ${selectedDay?.day === dayData.day ? 'text-[#C9A050]' : 'text-gray-700 dark:text-gray-200 group-hover/day:text-[#C9A050]'}`}>{dayData.day}</span>
+                        <span className={`text-sm sm:text-base font-medium transition-colors ${selectedDay?.day === dayData.day ? 'text-[#C9A050]' : 'text-gray-700  group-hover/day:text-[#C9A050]'}`}>{dayData.day}</span>
                         <div className="flex flex-col items-end opacity-60 group-hover/day:opacity-100 transition-opacity">
-                           {dayData.paksha === 'Shukla' ? <Moon className={`w-2.5 h-2.5 sm:w-3 sm:h-3 ${selectedDay?.day === dayData.day ? 'text-[#0D0D0F] dark:text-white' : 'text-[#0D0D0F] dark:text-white'}`} /> : <Moon className={`w-2.5 h-2.5 sm:w-3 sm:h-3 ${selectedDay?.day === dayData.day ? 'text-[#0D0D0F] dark:text-white' : 'text-gray-400 dark:text-gray-600'}`} />}
+                           {dayData.paksha === 'Shukla' ? <Moon className={`w-2.5 h-2.5 sm:w-3 sm:h-3 ${selectedDay?.day === dayData.day ? 'text-[#0D0D0F] ' : 'text-[#0D0D0F] '}`} /> : <Moon className={`w-2.5 h-2.5 sm:w-3 sm:h-3 ${selectedDay?.day === dayData.day ? 'text-[#0D0D0F] ' : 'text-gray-400 '}`} />}
                         </div>
                       </div>
                       <div className="text-[8px] sm:text-[9px] space-y-0.5 leading-tight">
-                        <div className={`truncate ${selectedDay?.day === dayData.day ? 'text-[#C9A050]' : 'text-[#A6823C] dark:text-[#C9A050]/80'}`}>{dayData.bengali_date.split(' ').slice(0,2).join(' ')}</div>
-                        <div className={`truncate ${selectedDay?.day === dayData.day ? 'text-[#3B82F6]' : 'text-[#3B82F6] dark:text-blue-400/80'}`}>{dayData.hindi_date.split(', ')[0].split(' ')[0]}</div>
+                        <div className={`truncate ${selectedDay?.day === dayData.day ? 'text-[#C9A050]' : 'text-[#A6823C] '}`}>{dayData.bengali_date.split(' ').slice(0,2).join(' ')}</div>
+                        <div className={`truncate ${selectedDay?.day === dayData.day ? 'text-[#3B82F6]' : 'text-[#3B82F6] '}`}>{dayData.hindi_date.split(', ')[0].split(' ')[0]}</div>
                       </div>
                     </div>
                   ))}
@@ -326,13 +326,13 @@ const PanjikaCalendarView = () => {
 
           {/* Optional Sidebar (Only visible when a day is selected) */}
           {selectedDay && (
-            <div className="lg:col-span-1 bg-[#F9F7F1] dark:bg-[#111111] border border-[#E5E1D8] dark:border-[#222] p-6 rounded-xl relative overflow-hidden transition-colors h-fit animate-fade-in">
+            <div className="lg:col-span-1 bg-[#F9F7F1]  border border-[#E5E1D8]  p-6 rounded-xl relative overflow-hidden transition-colors h-fit animate-fade-in">
               <div className="flex justify-between items-center mb-6">
                 <div>
-                  <h3 className="text-xl font-serif text-[#0D0D0F] dark:text-white">Daily Panjika</h3>
+                  <h3 className="text-xl font-serif text-[#0D0D0F] ">Daily Panjika</h3>
                   <p className="text-[#C9A050] text-xs font-semibold mt-1 uppercase tracking-wider">{selectedDay.english_date}</p>
                 </div>
-                <button onClick={() => setSelectedDay(null)} className="p-2 bg-[#F0ECE1] dark:bg-[#1A1A1A] hover:bg-[#E5E1D8] dark:hover:bg-[#222] border border-[#D4CFC4] dark:border-[#333] rounded-full transition-colors text-gray-500 hover:text-[#C9A050]">
+                <button onClick={() => setSelectedDay(null)} className="p-2 bg-[#F0ECE1]  hover:bg-[#E5E1D8]  border border-[#D4CFC4]  rounded-full transition-colors text-gray-500 hover:text-[#C9A050]">
                   <X className="w-4 h-4" />
                 </button>
               </div>
@@ -346,13 +346,13 @@ const PanjikaCalendarView = () => {
                 <div className="space-y-6">
                   {/* Dates */}
                   <div className="grid grid-cols-2 gap-3">
-                    <div className="p-3 bg-[#F0ECE1] dark:bg-[#1A1A1A] border border-[#D4CFC4] dark:border-[#333] rounded-xl text-center">
+                    <div className="p-3 bg-[#F0ECE1]  border border-[#D4CFC4]  rounded-xl text-center">
                       <div className="text-[10px] text-gray-500 uppercase tracking-widest mb-1">Bengali</div>
-                      <div className="text-[#0D0D0F] dark:text-white font-serif text-sm">{selectedDay.bengali_date}</div>
+                      <div className="text-[#0D0D0F]  font-serif text-sm">{selectedDay.bengali_date}</div>
                     </div>
-                    <div className="p-3 bg-[#F0ECE1] dark:bg-[#1A1A1A] border border-[#D4CFC4] dark:border-[#333] rounded-xl text-center">
+                    <div className="p-3 bg-[#F0ECE1]  border border-[#D4CFC4]  rounded-xl text-center">
                       <div className="text-[10px] text-gray-500 uppercase tracking-widest mb-1">Hindi</div>
-                      <div className="text-[#0D0D0F] dark:text-white font-serif text-sm">{selectedDay.hindi_date}</div>
+                      <div className="text-[#0D0D0F]  font-serif text-sm">{selectedDay.hindi_date}</div>
                     </div>
                   </div>
 
@@ -361,7 +361,7 @@ const PanjikaCalendarView = () => {
                     <h3 className="text-xs font-semibold text-[#C9A050] uppercase tracking-wider mb-3 flex items-center">
                       <Moon className="w-3.5 h-3.5 mr-2" /> Panchang
                     </h3>
-                    <div className="bg-[#F0ECE1] dark:bg-[#1A1A1A] border border-[#D4CFC4] dark:border-[#333] rounded-xl divide-y divide-[#D4CFC4] dark:divide-[#333] text-sm">
+                    <div className="bg-[#F0ECE1]  border border-[#D4CFC4]  rounded-xl divide-y divide-[#D4CFC4]  text-sm">
                       {[
                         { label: "Tithi", value: `${fullPanjika.tithi} (${fullPanjika.paksha})` },
                         { label: "Nakshatra", value: fullPanjika.nakshatra },
@@ -370,8 +370,8 @@ const PanjikaCalendarView = () => {
                         { label: "Rashi", value: fullPanjika.rashi },
                       ].map((item, i) => (
                         <div key={i} className="flex justify-between items-center p-3">
-                          <span className="text-gray-600 dark:text-gray-400 text-xs">{item.label}</span>
-                          <span className="text-[#0D0D0F] dark:text-white font-medium text-right text-xs max-w-[60%] leading-tight">{item.value}</span>
+                          <span className="text-gray-600  text-xs">{item.label}</span>
+                          <span className="text-[#0D0D0F]  font-medium text-right text-xs max-w-[60%] leading-tight">{item.value}</span>
                         </div>
                       ))}
                     </div>
@@ -383,21 +383,21 @@ const PanjikaCalendarView = () => {
                       <Sun className="w-3.5 h-3.5 mr-2" /> Transit Times
                     </h3>
                     <div className="grid grid-cols-2 gap-3">
-                      <div className="bg-[#F0ECE1] dark:bg-[#1A1A1A] border border-[#D4CFC4] dark:border-[#333] rounded-xl p-3 flex justify-between items-center">
+                      <div className="bg-[#F0ECE1]  border border-[#D4CFC4]  rounded-xl p-3 flex justify-between items-center">
                         <span className="text-xs text-gray-500">Sunrise</span>
-                        <span className="font-mono text-[#0D0D0F] dark:text-white text-xs">{fullPanjika.sunrise}</span>
+                        <span className="font-mono text-[#0D0D0F]  text-xs">{fullPanjika.sunrise}</span>
                       </div>
-                      <div className="bg-[#F0ECE1] dark:bg-[#1A1A1A] border border-[#D4CFC4] dark:border-[#333] rounded-xl p-3 flex justify-between items-center">
+                      <div className="bg-[#F0ECE1]  border border-[#D4CFC4]  rounded-xl p-3 flex justify-between items-center">
                         <span className="text-xs text-gray-500">Sunset</span>
-                        <span className="font-mono text-[#0D0D0F] dark:text-white text-xs">{fullPanjika.sunset}</span>
+                        <span className="font-mono text-[#0D0D0F]  text-xs">{fullPanjika.sunset}</span>
                       </div>
-                      <div className="bg-[#F0ECE1] dark:bg-[#1A1A1A] border border-[#D4CFC4] dark:border-[#333] rounded-xl p-3 flex justify-between items-center">
+                      <div className="bg-[#F0ECE1]  border border-[#D4CFC4]  rounded-xl p-3 flex justify-between items-center">
                         <span className="text-xs text-gray-500">Moonrise</span>
-                        <span className="font-mono text-[#0D0D0F] dark:text-white text-xs">{fullPanjika.moonrise}</span>
+                        <span className="font-mono text-[#0D0D0F]  text-xs">{fullPanjika.moonrise}</span>
                       </div>
-                      <div className="bg-[#F0ECE1] dark:bg-[#1A1A1A] border border-[#D4CFC4] dark:border-[#333] rounded-xl p-3 flex justify-between items-center">
+                      <div className="bg-[#F0ECE1]  border border-[#D4CFC4]  rounded-xl p-3 flex justify-between items-center">
                         <span className="text-xs text-gray-500">Moonset</span>
-                        <span className="font-mono text-[#0D0D0F] dark:text-white text-xs">{fullPanjika.moonset}</span>
+                        <span className="font-mono text-[#0D0D0F]  text-xs">{fullPanjika.moonset}</span>
                       </div>
                     </div>
                   </div>
@@ -405,8 +405,8 @@ const PanjikaCalendarView = () => {
                   {/* Festivals */}
                   {fullPanjika.festivals && fullPanjika.festivals.length > 0 && (
                     <div className="p-4 bg-orange-500/10 border border-orange-500/30 rounded-xl">
-                      <h4 className="text-[10px] font-bold text-orange-600 dark:text-orange-400 uppercase tracking-widest mb-1.5">Auspicious & Festivals</h4>
-                      <ul className="list-disc list-inside text-xs text-[#0D0D0F] dark:text-white space-y-1">
+                      <h4 className="text-[10px] font-bold text-orange-600  uppercase tracking-widest mb-1.5">Auspicious & Festivals</h4>
+                      <ul className="list-disc list-inside text-xs text-[#0D0D0F]  space-y-1">
                         {fullPanjika.festivals.map((f: string, i: number) => <li key={i}>{f}</li>)}
                       </ul>
                     </div>
