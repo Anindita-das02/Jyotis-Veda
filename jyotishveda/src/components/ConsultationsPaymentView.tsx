@@ -147,7 +147,7 @@ export const ConsultationsPaymentView: React.FC<ConsultationsPaymentViewProps> =
           return (
             <div
               key={tier.id}
-              className={`bg-[#141418] border rounded-xl p-6 text-[#E5E1D8] flex flex-col justify-between transition-all duration-300 ease-out hover:-translate-y-1 hover:shadow-2xl hover:shadow-[#C9A050]/20 relative cursor-pointer ${
+              className={`bg-[#141418] border rounded-xl p-6 text-[#E5E1D8] shadow-xl flex flex-col justify-between transition relative ${
                 tier.isPopular
                   ? `border-[#C9A050] ring-1 ring-[#C9A050]/40 bg-gradient-to-b from-[#C9A050]/5 ${theme === 'dark' ? 'to-[#141418]' : 'to-white'}`
                   : 'border-[#2A2A2E] hover:border-[#C9A050]/50'

@@ -280,6 +280,7 @@ export function LandingPage({ onLoginClick, onRegisterClick, onOpenDisclaimer, t
             </div>
           </div>
         </div>
+        <Footer onOpenDisclaimer={onOpenDisclaimer} theme={theme} />
       </main>
 
       {/* Login Prompt Modal */}
@@ -327,9 +328,6 @@ export function LandingPage({ onLoginClick, onRegisterClick, onOpenDisclaimer, t
           </motion.div>
         )}
       </AnimatePresence>
-      
-      <Footer onOpenDisclaimer={onOpenDisclaimer} theme={theme} />
-      </main>
 
       {/* Mini Chat Pop-up */}
       <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end">
