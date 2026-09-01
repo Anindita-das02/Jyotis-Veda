@@ -1,11 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Sparkles, MessageSquareText, X, Send, Bot, Lock, Compass, Hash, Milestone, ShieldAlert, Sun, Moon, Home, Globe, Calendar, Play } from 'lucide-react';
 import { ZODIAC_SIGNS } from '../services/zodiacData';
 import { StarfieldBackground } from './StarfieldBackground';
 import { GlobalZodiacView } from './GlobalZodiacView';
 import PanjikaCalendarView from './PanjikaCalendarView';
-import { ZodiacCompatibilityMatrix } from './ZodiacCompatibilityMatrix';
 import { Footer } from './Footer';
 import { FeaturePreviewModal, PREMIUM_FEATURES_CATALOG, PremiumFeatureDetail } from './FeaturePreviewModal';
 
@@ -19,14 +18,23 @@ interface LandingPageProps {
 
 export function LandingPage({ onLoginClick, onRegisterClick, onOpenDisclaimer, theme, toggleTheme }: LandingPageProps) {
   const [isChatOpen, setIsChatOpen] = useState(false);
-  const [messages, setMessages] = useState<{ role: 'user' | 'assistant', content: string }[]>([
-    { role: 'assistant', content: 'Namaste. I am JyotishVeda AI. How may the stars guide you today?' }
+  const [messages, setMessages] = useState<{role: 'user' | 'assistant', content: string}[]>([
+    { role: 'assistant', content: 'Namaste. I am JyotishVeda. How may I guide your astrological journey today?' }
   ]);
   const [input, setInput] = useState('');
   const [msgCount, setMsgCount] = useState(0);
+  const [isAiThinking, setIsAiThinking] = useState(false);
+  const [savedDob, setSavedDob] = useState<any>(null);
   const [selectedFeatureForPreview, setSelectedFeatureForPreview] = useState<PremiumFeatureDetail | null>(null);
+  const chatEndRef = useRef<HTMLDivElement>(null);
 
   const [activeSection, setActiveSection] = useState<string>('hero-section');
+
+  useEffect(() => {
+    if (isChatOpen) {
+      chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [messages, isAiThinking, isChatOpen]);
 
   const scrollToSection = (id: string) => {
     setActiveSection(id);
@@ -43,258 +51,376 @@ export function LandingPage({ onLoginClick, onRegisterClick, onOpenDisclaimer, t
     }
   };
 
-  const handleSend = () => {
-    if (!input.trim() || msgCount >= 10) return;
+  const handleSend = async () => {
+    if (!input.trim()) return;
 
-    setMessages(prev => [...prev, { role: 'user', content: input }]);
-    setMsgCount(prev => prev + 1);
+    const userText = input.trim();
     setInput('');
 
-    // Simulate AI response
-    setTimeout(() => {
-      setMessages(prev => [...prev, { role: 'assistant', content: "Please login to unlock deep AI analysis and detailed celestial wisdom." }]);
-    }, 1000);
+    if (msgCount >= 3) {
+      setMessages(prev => [
+        ...prev,
+        { role: 'user', content: userText },
+        { role: 'assistant', content: "Please login to unlock deep analysis and detailed celestial wisdom." }
+      ]);
+      return;
+    }
+
+    const updatedMessages = [...messages, { role: 'user' as const, content: userText }];
+    setMessages(updatedMessages);
+    setMsgCount(prev => prev + 1);
+    setIsAiThinking(true);
+
+    try {
+      const resp = await fetch('http://localhost:5001/api/public-chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          messages: updatedMessages,
+          msgCount: msgCount,
+          dob: savedDob
+        })
+      });
+
+      if (resp.ok) {
+        const data = await resp.json();
+        if (data.dob) setSavedDob(data.dob);
+        setMessages(prev => [...prev, { role: 'assistant', content: data.reply }]);
+        if (data.msgCount) setMsgCount(data.msgCount);
+      } else {
+        throw new Error('API response not ok');
+      }
+    } catch (err) {
+      // Intelligent Client-side Astrological Engine Fallback (Concise, Topic-specific)
+      setTimeout(() => {
+        const lower = userText.toLowerCase();
+        let reply = "";
+        
+        if (msgCount >= 2) {
+          reply = "Please login to unlock deep analysis and detailed celestial wisdom.";
+          setMessages(prev => [...prev, { role: 'assistant', content: reply }]);
+          return;
+        }
+
+        // 1. Date Detection
+        const dateMatch = userText.match(/(\d{1,2})[-/.](\d{1,2})[-/.](\d{4})/);
+        if (dateMatch) {
+          const d = dateMatch[1];
+          const m = dateMatch[2];
+          const y = dateMatch[3];
+          const newDob = [parseInt(y), parseInt(m), parseInt(d)];
+          setSavedDob(newDob);
+          
+          const year = parseInt(y);
+          const month = parseInt(m);
+          const day = parseInt(d);
+          const digits = `${year}${month < 10 ? '0' + month : month}${day < 10 ? '0' + day : day}`.split('').map(Number);
+          let lp = digits.reduce((a, b) => a + b, 0);
+          while (lp > 9 && lp !== 11 && lp !== 22 && lp !== 33) {
+            lp = String(lp).split('').map(Number).reduce((a, b) => a + b, 0);
+          }
+          const signNames: [number, number, string][] = [
+            [1, 20, "Makara (Capricorn)"], [2, 19, "Kumbha (Aquarius)"],
+            [3, 20, "Meena (Pisces)"], [4, 20, "Mesha (Aries)"],
+            [5, 21, "Vrishabha (Taurus)"], [6, 21, "Mithuna (Gemini)"],
+            [7, 22, "Karka (Cancer)"], [8, 23, "Simha (Leo)"],
+            [9, 23, "Kanya (Virgo)"], [10, 23, "Tula (Libra)"],
+            [11, 22, "Vrishchika (Scorpio)"], [12, 21, "Dhanu (Sagittarius)"],
+            [12, 31, "Makara (Capricorn)"]
+          ];
+          let detectedSign = "Karka (Cancer)";
+          for (const [sm, sd, sname] of signNames) {
+            if (month < sm || (month === sm && day <= sd)) {
+              detectedSign = sname;
+              break;
+            }
+          }
+          const planetMap: Record<number, string> = {
+            1: "Surya Dev (Sun)",
+            2: "Chandra Dev (Moon)",
+            3: "Devaguru Brihaspati (Jupiter)",
+            4: "Rahu Dev",
+            5: "Budha Dev (Mercury)",
+            6: "Shukra Dev (Venus)",
+            7: "Ketu Dev",
+            8: "Shani Dev (Saturn)",
+            9: "Mangal Dev (Mars)",
+            11: "Master Number 11",
+            22: "Master Number 22",
+            33: "Master Number 33"
+          };
+          const rulingPlanet = planetMap[lp] || "Devaguru Brihaspati (Jupiter)";
+
+          reply = `🕉️ **Kalyan Ho! Detailed Janma Kundli Analysis (${d}-${m}-${y})**:\n\nYour chart aligns with **${detectedSign}**, governed by the planetary grace of **${rulingPlanet}** (Life Path **${lp}**).`;
+        } else if (!savedDob && (lower.includes('career') || lower.includes('job') || lower.includes('future') || lower.includes('details'))) {
+          reply = `Ayushman Bhava! To look into your Janma Kundli and reveal the precise planetary alignments for your query, please share your **Date of Birth (DD-MM-YYYY)** and **Birth Time**.`;
+        } else if (savedDob) {
+          // A. Career Fields / Business
+          if (lower.includes('field') || lower.includes('business') || lower.includes('favorable') || lower.includes('stream') || lower.includes('industry')) {
+            reply = `🎯 **Karma Bhava (10th House of Career) Analysis**:\n\n🌟 **Shubh Fields & Opportunities**:\n• Technology Leadership, Strategic Management, FinTech Architecture, and Executive Advisory.\n• Independent Enterprise and high-impact innovation.\n\n⚠️ **Fields to Avoid / Precaution**:\n• Low-autonomy repetitive clerical routines or high-risk unverified partnerships.`;
+          }
+          // B. Timing for Job Switch / Promotion
+          else if (lower.includes('time') || lower.includes('timing') || lower.includes('switch') || lower.includes('promotion') || lower.includes('when')) {
+            reply = `⏳ **Shubh Muhurta & Gochar (Transit) Windows**:\n\n🌟 **Favorable Window**:\n• The upcoming **6 to 9 months** bring auspicious Jupiter transit support for promotion and salary elevation.\n• Best execution period: During waxing lunar phase (Shukla Paksha).\n\n⚠️ **Inauspicious Period**:\n• Avoid sudden resignations or aggressive negotiations during Mercury retrograde cycles.`;
+          }
+          // C. Lucky Gemstones & Colors
+          else if (lower.includes('gemstone') || lower.includes('gem') || lower.includes('color') || lower.includes('colour') || lower.includes('lucky')) {
+            reply = `💎 **Shubh Ratna (Gemstone) & Harmonious Vibrations**:\n\n🌟 **Recommended Gems & Colors**:\n• **Primary Gemstone**: **Red Coral (Moonga) or Yellow Sapphire (Pukhraj)** (Energize on an auspicious morning and wear in Gold/Silver ring).\n• **Favorable Colors**: **Royal Saffron, Golden Amber & Crimson Red** (Amplifies focus and vitality).\n\n⚠️ **Colors to Avoid**:\n• Minimize dull charcoal black, murky brown, and faded grey during crucial milestones.`;
+          }
+          // D. Love & Marriage
+          else if (lower.includes('love') || lower.includes('marriage') || lower.includes('relationship') || lower.includes('partner')) {
+            reply = `💖 **Kalatra Bhava (7th House of Relationships)**:\n\n🌟 **Harmonious Aspects**:\n• Highest compatibility with loyal, intellectually grounded partners who value mutual spiritual growth.\n• Upcoming Venus transits favor emotional stability and long-term commitment.\n\n⚠️ **Vulnerability**:\n• Guard against impatience, high expectations, and miscommunication during high workload phases.`;
+          }
+          // E. Wealth & Finances
+          else if (lower.includes('wealth') || lower.includes('finance') || lower.includes('money') || lower.includes('earning') || lower.includes('invest')) {
+            reply = `💰 **Dhana Bhava & Labha Sthana (2nd & 11th Houses)**:\n\n🌟 **Prosperity Strengths**:\n• Compounding wealth accumulation through specialized mastery, digital assets, and strategic equities.\n\n⚠️ **Financial Precautions**:\n• Avoid speculative short-term trading and unwritten loan guarantees to acquaintances.`;
+          }
+          // F. Auspicious Days
+          else if (lower.includes('day') || lower.includes('days') || lower.includes('start') || lower.includes('auspicious')) {
+            reply = `📅 **Shubh Var & Beneficial Directions**:\n\n🌟 **Auspicious Timings**:\n• **Shubh Day**: **Mangalvar (Tuesday) & Guruvar (Thursday)** (Blessed for contracts, starting ventures, and major milestones).\n• **Shubh Direction**: **North-East (Ishanya Disha)** for study and workspace.\n• **Shubh Hours**: Morning 07:00 AM – 10:30 AM (Brahma & Abhijit Muhurta).`;
+          }
+          // G. Remedies & Mantras
+          else if (lower.includes('remedy') || lower.includes('remedies') || lower.includes('mantra') || lower.includes('peace') || lower.includes('prosperity')) {
+            reply = `🌿 **Sacred Vedic Remedies & Harmonizing Upay**:\n\n🌟 **Prescribed Practices**:\n• **Sacred Japa**: Chant \`Om Gurave Namah\` or \`Gayatri Mantra\` 108 times at sunrise on Tuesdays/Thursdays.\n• **Daana (Charity)**: Offering grains or assisting students and spiritual seekers.\n• **Surya Arghya**: Offer water in a copper vessel to the rising Sun for vitality and mental clarity.`;
+          }
+          // H. Summary & Destiny
+          else if (lower.includes('summar') || lower.includes('overall') || lower.includes('destiny') || lower.includes('thank')) {
+            reply = `🌟 **Overall Destiny Synthesis**:\n\nMy blessings upon you, dear soul. Your Janma Kundli reflects a noble karmic journey of intellectual leadership, impactful creation, and material fulfillment.\n\nBy maintaining moral discipline, steady patience, and avoiding impulsive reactions, the cosmic grahas fully support your glorious path.`;
+          }
+          // I. General Career
+          else {
+            reply = `🕉️ **Karma & Career Guidance**:\n\n🌟 **Core Strengths**: Strategic leadership, technical agility, and high problem-solving capacity.\n⚠️ **Precaution**: Avoid overcommitting to too many simultaneous projects without delegation.`;
+          }
+        } else {
+          reply = `Namaste! I am JyotishVeda, your Vedic Daivajna. Please share your **Date of Birth (DD-MM-YYYY)** and **Birth Time**.`;
+        }
+
+        setMessages(prev => [...prev, { role: 'assistant', content: reply }]);
+      }, 700);
+    } finally {
+      setIsAiThinking(false);
+    }
   };
 
   const handleAskAIForSign = (signName: string, promptText: string) => {
     setIsChatOpen(true);
-    if (msgCount >= 10) return;
-
-    setMessages(prev => [...prev, { role: 'user', content: promptText }]);
-    setMsgCount(prev => prev + 1);
-
-    setTimeout(() => {
-      setMessages(prev => [...prev, { role: 'assistant', content: "Please login to unlock deep AI analysis and detailed celestial wisdom." }]);
-    }, 1000);
+    setInput(promptText);
   };
 
   return (
     <div className={`min-h-screen relative font-sans flex flex-col ${theme === 'dark' ? 'bg-[#0D0D0F] text-[#E5E1D8]' : 'bg-[#F0ECE1] text-[#0D0D0F]'}`}>
       {theme === 'dark' && <StarfieldBackground />}
-
+      
       {/* Navigation Bar */}
-      <nav className={`sticky top-0 z-50 backdrop-blur-2xl transition-all duration-300 border-b ${theme === 'dark' ? 'bg-[#0D0D0F]/80 border-[#2A2A2E]/50' : 'bg-[#F9F7F1]/80 border-[#E5E1D8]/80'} shadow-sm`}>
-        <div className="w-full px-4 sm:px-6 lg:px-8 max-w-screen-2xl mx-auto">
+      <nav className={`sticky top-0 z-40 backdrop-blur-xl border-b transition-colors duration-300 shadow-md ${theme === 'dark' ? 'bg-[#0D0D0F]/80 border-[#2A2A2E]/80 text-[#E5E1D8]' : 'bg-[#F9F7F1]/85 border-[#E5E1D8] text-[#0D0D0F]'}`}>
+        <div className="w-full px-4 sm:px-6 lg:px-10">
           <div className="flex items-center justify-between h-20">
             {/* Logo */}
-            <div
+            <div 
               onClick={() => scrollToSection('hero-section')}
               className="flex items-center space-x-3 cursor-pointer group"
             >
-              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#C9A050]/20 to-transparent border border-[#C9A050]/50 flex items-center justify-center group-hover:scale-105 transition-transform duration-300">
+              <div className="w-10 h-10 rounded-full bg-[#C9A050]/15 border border-[#C9A050]/50 flex items-center justify-center group-hover:bg-[#C9A050]/20 transition-colors">
                 <Sparkles className="w-5 h-5 text-[#C9A050]" />
               </div>
               <div>
-                <h1 className="text-xl font-serif font-bold tracking-wider flex items-center">
-                  JYOTISH<span className="text-[#C9A050] font-sans ml-1 text-[22px] leading-none mb-0.5">वेद</span>
+                <h1 className="text-xl font-serif font-bold tracking-wider">
+                  JYOTISH<span className="text-[#C9A050]">VEDA</span>
                 </h1>
                 <p className={`text-[9px] font-bold tracking-widest uppercase mt-0.5 ${theme === 'dark' ? 'text-[#9E9A90]' : 'text-gray-500'}`}>
-                  Authentic Vedic Wisdom
+                  AI Astrological Wisdom
                 </p>
               </div>
             </div>
 
             {/* Center Links (Desktop only) */}
-            <div className={`hidden lg:flex items-center space-x-1 px-1.5 py-1.5 rounded-full border backdrop-blur-md shadow-inner ${theme === 'dark' ? 'bg-[#141418]/60 border-[#2A2A2E]' : 'bg-white/60 border-gray-200/50'}`}>
-              <button
-                onClick={() => scrollToSection('hero-section')}
-                className={`flex items-center space-x-1.5 px-4 py-2 rounded-full text-[13px] font-semibold transition-all cursor-pointer ${activeSection === 'hero-section'
-                    ? 'text-[#0D0D0F] bg-[#C9A050] shadow-md shadow-[#C9A050]/20'
-                    : theme === 'dark' ? 'text-[#9E9A90] hover:text-[#E5E1D8] hover:bg-white/5' : 'text-gray-600 hover:text-[#0D0D0F] hover:bg-black/5'
-                  }`}
+            <div className="hidden md:flex items-center space-x-2">
+              <button 
+                onClick={() => scrollToSection('hero-section')} 
+                className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold transition-all cursor-pointer ${
+                  activeSection === 'hero-section' 
+                    ? 'text-[#C9A050] bg-[#C9A050]/15 shadow-sm' 
+                    : theme === 'dark' ? 'text-[#9E9A90] hover:text-[#E5E1D8] hover:bg-[#1A1A1E]' : 'text-gray-600 hover:text-[#0D0D0F] hover:bg-black/5'
+                }`}
               >
-                <Home className="w-3.5 h-3.5" />
+                <Home className="w-4 h-4" />
                 <span>Home</span>
               </button>
-              <button
-                onClick={() => scrollToSection('panjika-section')}
-                className={`flex items-center space-x-1.5 px-4 py-2 rounded-full text-[13px] font-semibold transition-all cursor-pointer ${activeSection === 'panjika-section'
-                    ? 'text-[#0D0D0F] bg-[#C9A050] shadow-md shadow-[#C9A050]/20'
-                    : theme === 'dark' ? 'text-[#9E9A90] hover:text-[#E5E1D8] hover:bg-white/5' : 'text-gray-600 hover:text-[#0D0D0F] hover:bg-black/5'
-                  }`}
+              <button 
+                onClick={() => scrollToSection('panjika-section')} 
+                className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold transition-all cursor-pointer ${
+                  activeSection === 'panjika-section' 
+                    ? 'text-[#C9A050] bg-[#C9A050]/15 shadow-sm' 
+                    : theme === 'dark' ? 'text-[#9E9A90] hover:text-[#E5E1D8] hover:bg-[#1A1A1E]' : 'text-gray-600 hover:text-[#0D0D0F] hover:bg-black/5'
+                }`}
               >
-                <Calendar className="w-3.5 h-3.5" />
-                <span>Panjika</span>
+                <Calendar className="w-4 h-4" />
+                <span>Panjika & Calendar</span>
               </button>
-              <button
-                onClick={() => scrollToSection('zodiac-section')}
-                className={`flex items-center space-x-1.5 px-4 py-2 rounded-full text-[13px] font-semibold transition-all cursor-pointer ${activeSection === 'zodiac-section'
-                    ? 'text-[#0D0D0F] bg-[#C9A050] shadow-md shadow-[#C9A050]/20'
-                    : theme === 'dark' ? 'text-[#9E9A90] hover:text-[#E5E1D8] hover:bg-white/5' : 'text-gray-600 hover:text-[#0D0D0F] hover:bg-black/5'
-                  }`}
+              <button 
+                onClick={() => scrollToSection('zodiac-section')} 
+                className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold transition-all cursor-pointer ${
+                  activeSection === 'zodiac-section' 
+                    ? 'text-[#C9A050] bg-[#C9A050]/15 shadow-sm' 
+                    : theme === 'dark' ? 'text-[#9E9A90] hover:text-[#E5E1D8] hover:bg-[#1A1A1E]' : 'text-gray-600 hover:text-[#0D0D0F] hover:bg-black/5'
+                }`}
               >
-                <Globe className="w-3.5 h-3.5" />
+                <Globe className="w-4 h-4" />
                 <span>Global Zodiac</span>
               </button>
-              <button
-                onClick={() => scrollToSection('premium-section')}
-                className={`flex items-center space-x-1.5 px-4 py-2 rounded-full text-[13px] font-semibold transition-all cursor-pointer ${activeSection === 'premium-section'
-                    ? 'text-[#0D0D0F] bg-[#C9A050] shadow-md shadow-[#C9A050]/20'
-                    : theme === 'dark' ? 'text-[#9E9A90] hover:text-[#E5E1D8] hover:bg-white/5' : 'text-gray-600 hover:text-[#0D0D0F] hover:bg-black/5'
-                  }`}
+              <button 
+                onClick={() => scrollToSection('premium-section')} 
+                className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold transition-all cursor-pointer ${
+                  activeSection === 'premium-section' 
+                    ? 'text-[#C9A050] bg-[#C9A050]/15 shadow-sm' 
+                    : theme === 'dark' ? 'text-[#9E9A90] hover:text-[#E5E1D8] hover:bg-[#1A1A1E]' : 'text-gray-600 hover:text-[#0D0D0F] hover:bg-black/5'
+                }`}
               >
-                <Lock className="w-3.5 h-3.5" />
+                <Lock className="w-4 h-4" />
                 <span>Premium</span>
               </button>
             </div>
 
             {/* Right Controls */}
-            <div className="flex items-center space-x-3">
+            <div className="flex items-center space-x-2 sm:space-x-4">
               <button
                 onClick={toggleTheme}
-                className={`p-2.5 rounded-full transition-all border ${theme === 'dark'
+                className={`p-2 rounded-lg transition-colors border ${
+                  theme === 'dark'
                     ? 'bg-[#141418] border-[#2A2A2E] text-[#E5E1D8] hover:border-[#C9A050]/50'
-                    : 'bg-white border-gray-200 text-gray-700 hover:border-[#C9A050]/50 shadow-sm'
-                  }`}
+                    : 'bg-white border-[#E5E1D8] text-[#2A2A2E] hover:border-[#C9A050]/50 shadow-sm'
+                }`}
                 title="Toggle Theme"
               >
                 {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
               </button>
-
-              <div className="hidden sm:block w-px h-6 bg-gray-300 dark:bg-gray-700 mx-1"></div>
-
+              
+              <div className="hidden sm:block w-px h-6 bg-[#C9A050]/30 mx-2"></div>
+              
               <button
                 onClick={onLoginClick}
-                className={`hidden sm:block px-5 py-2.5 rounded-full font-bold text-[13px] transition-all cursor-pointer border shadow-sm ${theme === 'dark'
-                    ? 'bg-[#141418] border-[#2A2A2E] text-[#E5E1D8] hover:text-[#C9A050] hover:border-[#C9A050]/50'
-                    : 'bg-white border-gray-200 text-[#0D0D0F] hover:text-[#8C6B28] hover:border-[#C9A050]/50'
-                  }`}
+                className={`px-4 py-2 rounded-lg font-bold text-sm transition-all cursor-pointer border shadow-sm ${
+                  theme === 'dark'
+                    ? 'bg-[#141418] border-[#2A2A2E] text-[#E5E1D8] hover:text-[#C9A050] hover:border-[#C9A050] hover:bg-[#C9A050]/10 hover:shadow-md'
+                    : 'bg-white border-[#D4CFC4] text-[#0D0D0F] hover:text-[#8C6B28] hover:border-[#C9A050] hover:bg-[#C9A050]/15 hover:shadow-md'
+                }`}
               >
                 Log In
               </button>
-              <button
-                onClick={onRegisterClick}
-                className="px-6 py-2.5 rounded-full bg-gradient-to-r from-[#C9A050] to-[#8C6B28] text-white font-bold text-[13px] hover:from-[#D4AF37] hover:to-[#A37B2F] transition-all cursor-pointer shadow-[0_0_15px_rgba(201,160,80,0.3)] hover:shadow-[0_0_20px_rgba(201,160,80,0.5)] hover:-translate-y-0.5"
-              >
-                Get Started
-              </button>
+              <button onClick={onRegisterClick} className="px-4 py-2 rounded-lg bg-[#C9A050] text-[#0D0D0F] font-bold text-sm hover:bg-[#D4AF37] transition-all cursor-pointer shadow-lg shadow-[#C9A050]/20 hover:-translate-y-0.5">Get Started</button>
             </div>
           </div>
         </div>
       </nav>
 
-      {/* Main Content Area */}
-      <main className="flex-1 overflow-y-auto overflow-x-hidden relative z-10 scroll-smooth">
-
-        {/* Universal Astrologer Background (Fixed across all sections) */}
-        <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden">
-          <div
-            className="absolute inset-0 opacity-[0.08] dark:opacity-[0.18] bg-no-repeat bg-cover bg-center transition-opacity duration-700"
-            style={{
-              backgroundImage: 'url(/astrologer_bg.jpg)',
-              backgroundPosition: 'center center'
-            }}
-          ></div>
-          {/* Subtle gradient to fade the background slightly at the bottom of the screen */}
-          <div className={`absolute inset-0 bg-gradient-to-b from-transparent via-transparent ${theme === 'dark' ? 'to-[#0D0D0F]/90' : 'to-[#F0ECE1]/90'}`}></div>
-        </div>
-
-        <div className="max-w-7xl mx-auto px-6 relative z-10">
+      {/* Hero Section */}
+      <main className="flex-1 overflow-y-auto relative z-10 pb-20 scroll-smooth">
+        <div className="max-w-7xl mx-auto px-6">
           <div id="hero-section" className="min-h-[calc(100vh-5rem)] py-8 lg:py-16 grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+          
+          {/* Left Column: Greetings */}
+          <div className="flex flex-col items-center lg:items-start text-center lg:text-left order-2 lg:order-1">
+            <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-[#C9A050]/10 border border-[#C9A050]/20 text-[#C9A050] text-xs font-bold uppercase tracking-widest mb-6">
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>Ancient Wisdom Meets AI</span>
+            </div>
+            
+            <h2 className="text-4xl sm:text-5xl lg:text-6xl font-serif font-bold leading-tight mb-6">
+              Welcome to <br />
+              <span className="inline-flex">
+                {"JYOTISHVEDA".split("").map((char, index) => {
+                  if (index <= 6) { // JYOTISH
+                    return (
+                      <motion.span
+                        key={index}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.6, delay: index * 0.08, ease: "easeOut" }}
+                        className={`inline-block ${theme === 'dark' ? 'text-[#E5E1D8]' : 'text-[#0D0D0F]'}`}
+                      >
+                        {char}
+                      </motion.span>
+                    );
+                  }
 
-            {/* Left Column: Greetings */}
-            <div className="flex flex-col items-center lg:items-start text-center lg:text-left order-2 lg:order-1">
-              <div className="inline-flex items-center space-x-2 px-4 py-1.5 rounded-full bg-gradient-to-r from-[#C9A050]/20 to-transparent border border-[#C9A050]/30 text-[#C9A050] text-[10px] sm:text-xs font-bold uppercase tracking-widest mb-6 backdrop-blur-md shadow-[0_0_15px_rgba(201,160,80,0.15)]">
-                <Compass className="w-4 h-4" />
-                <span>Authentic Vedic Oracle</span>
-              </div>
-
-              <h2 className="text-4xl sm:text-5xl lg:text-6xl font-serif font-bold leading-tight mb-6">
-                <span className={`${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
-                  Decode Your Destiny with
-                </span>
-                <br />
-                <span className="inline-flex mt-2 items-center">
-                  {"JYOTISH".split("").map((char, index) => (
+                  // VEDA
+                  const vedaIndex = index - 7;
+                  return (
                     <motion.span
                       key={index}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.6, delay: index * 0.08, ease: "easeOut" }}
-                      className={`inline-block ${theme === 'dark' ? 'text-[#E5E1D8]' : 'text-[#0D0D0F]'}`}
+                      initial={{ opacity: 0, y: 15 }}
+                      animate={{ 
+                        opacity: [0, 1, 1, 0], 
+                        y: [15, 0, 0, 15],
+                        textShadow: [
+                          "0px 0px 0px rgba(201,160,80,0)",
+                          "0px 0px 10px rgba(201,160,80,0.5)",
+                          "0px 0px 10px rgba(201,160,80,0.5)",
+                          "0px 0px 0px rgba(201,160,80,0)"
+                        ]
+                      }}
+                      transition={{
+                        duration: 2.5,
+                        repeat: Infinity,
+                        repeatDelay: 2.5,
+                        delay: vedaIndex * 0.3,
+                        times: [0, 0.1, 0.8, 1],
+                        ease: "easeInOut"
+                      }}
+                      className="inline-block text-[#C9A050]"
                     >
                       {char}
                     </motion.span>
-                  ))}
-                  <motion.span
-                    initial={{ opacity: 0, y: 15 }}
-                    animate={{
-                      opacity: [0, 1, 1, 0],
-                      y: [15, 0, 0, 15],
-                      textShadow: [
-                        "0px 0px 0px rgba(201,160,80,0)",
-                        "0px 0px 15px rgba(201,160,80,0.6)",
-                        "0px 0px 15px rgba(201,160,80,0.6)",
-                        "0px 0px 0px rgba(201,160,80,0)"
-                      ]
-                    }}
-                    transition={{
-                      duration: 2.5,
-                      repeat: Infinity,
-                      repeatDelay: 2.5,
-                      times: [0, 0.1, 0.8, 1],
-                      ease: "easeInOut"
-                    }}
-                    className="inline-block text-[#C9A050] font-sans ml-3 text-[1.1em] leading-none -mt-1"
-                  >
-                    वेद
-                  </motion.span>
-                </span>
-              </h2>
-
-              <p className={`max-w-xl text-lg sm:text-xl mb-10 leading-relaxed font-light ${theme === 'dark' ? 'text-[#D0CBC0]' : 'text-gray-700'}`}>
-                Harness the profound wisdom of ancient <strong className="font-semibold text-[#C9A050]">Vedic astrology</strong>. Receive highly personalized cosmic insights and numerology readings mapped directly to your unique stellar blueprint.
-              </p>
-
-              <div className="flex flex-col sm:flex-row items-center w-full sm:w-auto space-y-4 sm:space-y-0 sm:space-x-4">
-                <button onClick={onRegisterClick} className="w-full sm:w-auto flex items-center justify-center space-x-2 px-8 py-4 rounded-xl bg-gradient-to-r from-[#C9A050] to-[#8C6B28] text-white font-bold text-base hover:from-[#D4AF37] hover:to-[#A37B2F] transition-all cursor-pointer shadow-[0_0_20px_rgba(201,160,80,0.4)] hover:shadow-[0_0_30px_rgba(201,160,80,0.6)] hover:-translate-y-1">
-                  <span>Unlock Your Future</span>
-                  <Sparkles className="w-4 h-4" />
-                </button>
-              </div>
+                  );
+                })}
+              </span>
+            </h2>
+            
+            <p className={`max-w-xl text-base sm:text-lg mb-8 leading-relaxed ${theme === 'dark' ? 'text-[#9E9A90]' : 'text-gray-600'}`}>
+              Experience the profound synergy of authentic Vedic Astrology, intricate Numerology, and cutting-edge Artificial Intelligence tailored just for you.
+            </p>
+            
+            <div className="flex flex-col sm:flex-row items-center w-full sm:w-auto space-y-4 sm:space-y-0 sm:space-x-4">
+              <button onClick={onRegisterClick} className="w-full sm:w-auto px-8 py-3.5 rounded-xl bg-[#C9A050] text-[#0D0D0F] font-bold text-base hover:bg-[#D4AF37] transition-all cursor-pointer shadow-lg shadow-[#C9A050]/20 hover:-translate-y-1">
+                Get Started
+              </button>
             </div>
-
-            {/* Right Column: Hero Spinning Zodiac Wheel */}
-            <div className="relative group flex justify-center lg:justify-end order-1 lg:order-2 overflow-visible">
-              <div className="absolute inset-0 bg-[#C9A050]/20 rounded-full blur-[60px] opacity-60 group-hover:opacity-100 transition-opacity duration-700 lg:translate-x-16"></div>
-
-              {/* The wheel container */}
-              <div className="relative w-72 h-72 sm:w-96 sm:h-96 lg:w-[500px] lg:h-[500px] flex items-center justify-center lg:translate-x-[15%]">
-                <img
-                  src="/white_zodiac_wheel.png"
-                  alt="JyotishVeda Zodiac Wheel"
-                  className="w-full h-full object-cover rounded-full shadow-[0_0_60px_rgba(201,160,80,0.4)] border border-[#C9A050]/40 relative z-10"
-                  style={{ animation: 'spin 60s linear infinite' }}
-                />
-
-                {/* JYOTISHVEDA Center Overlay to cover "A.I." */}
-                <div className="absolute z-20 flex flex-col items-center justify-center pointer-events-none">
-                  <div className="bg-[#0b0c10] border border-[#C9A050]/80 shadow-[0_0_30px_rgba(201,160,80,0.5)] rounded-full w-24 h-24 sm:w-32 sm:h-32 flex items-center justify-center backdrop-blur-md">
-                    <span className="text-[#C9A050] font-serif font-bold text-[10px] sm:text-xs tracking-[0.2em] text-center px-2 flex flex-col items-center">
-                      <span>JYOTISH</span>
-                      <span className="font-sans text-sm sm:text-base tracking-normal mt-0.5">वेद</span>
-                    </span>
-                  </div>
+          </div>
+          
+          {/* Right Column: Hero Spinning Zodiac AI Wheel */}
+          <div className="relative group flex justify-center order-1 lg:order-2">
+            <div className="absolute inset-0 bg-[#C9A050]/20 rounded-full blur-[60px] opacity-60 group-hover:opacity-100 transition-opacity duration-700"></div>
+            
+            <div className="relative w-72 h-72 sm:w-96 sm:h-96 lg:w-[450px] lg:h-[450px] flex items-center justify-center">
+              <img 
+                src="/golden_zodiac_wheel.jpg" 
+                alt="JyotishVeda AI Zodiac Wheel" 
+                className="w-full h-full object-cover rounded-full shadow-[0_0_60px_rgba(201,160,80,0.4)] border border-[#C9A050]/40 relative z-10"
+                style={{ animation: 'spin 60s linear infinite' }}
+              />
+              
+              {/* JYOTISHVEDA Center Overlay to cover "A.I." */}
+              <div className="absolute z-20 flex flex-col items-center justify-center pointer-events-none">
+                <div className="bg-[#0b0c10] border border-[#C9A050]/80 shadow-[0_0_30px_rgba(201,160,80,0.5)] rounded-full w-24 h-24 sm:w-32 sm:h-32 flex items-center justify-center backdrop-blur-md">
+                  <span className="text-[#C9A050] font-serif font-bold text-[10px] sm:text-xs tracking-[0.2em] text-center px-2">
+                    JYOTISH<br/>VEDA
+                  </span>
                 </div>
               </div>
             </div>
           </div>
+        </div>  
 
-          {/* Side-by-side Layout for Panjika and Zodiac on larger screens */}
-          <div className="flex flex-col lg:flex-row gap-6 lg:gap-8 pt-6 pb-12 items-start">
-            {/* Panjika & Calendar Section (Takes less width) */}
-            <div id="panjika-section" className="w-full lg:w-[40%] xl:w-[35%] text-left">
-              <PanjikaCalendarView theme={theme} />
-              <ZodiacCompatibilityMatrix theme={theme} />
-            </div>
-
-            {/* Full Global Zodiac Section (Takes more width to prevent squishing) */}
-            <div id="zodiac-section" className="w-full lg:w-[60%] xl:w-[65%] text-left">
-              <GlobalZodiacView
-                theme={theme}
-                onAskAIForSign={handleAskAIForSign}
-              />
-            </div>
+          {/* Panjika & Calendar Section */}
+          <div id="panjika-section" className="w-full text-left pt-6 pb-10">
+            <PanjikaCalendarView theme={theme} />
+          </div>
+          {/* Full Global Zodiac Section */}
+          <div id="zodiac-section" className="w-full text-left pt-6 pb-12">
+            <GlobalZodiacView 
+              theme={theme}
+              onAskAIForSign={handleAskAIForSign}
+            />
           </div>
 
           {/* Premium Features Teaser (Locked Cards) */}
@@ -308,18 +434,19 @@ export function LandingPage({ onLoginClick, onRegisterClick, onOpenDisclaimer, t
                 Log in to access your deeply personalized astrological and numerological journey.
               </p>
             </div>
-
+            
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
               {PREMIUM_FEATURES_CATALOG.map((feat) => {
                 const Icon = feat.icon;
                 return (
-                  <div
+                  <div 
                     key={feat.id}
                     onClick={() => setSelectedFeatureForPreview(feat)}
-                    className={`relative overflow-hidden rounded-2xl p-6 text-left cursor-pointer transition-all duration-300 hover:-translate-y-2 hover:shadow-xl hover:shadow-[#C9A050]/20 group ${theme === 'dark'
-                        ? 'bg-white/5 border border-white/10 backdrop-blur-md hover:border-[#C9A050]/50'
+                    className={`relative overflow-hidden rounded-2xl p-6 text-left cursor-pointer transition-all duration-300 hover:-translate-y-2 hover:shadow-xl hover:shadow-[#C9A050]/20 group ${
+                      theme === 'dark' 
+                        ? 'bg-white/5 border border-white/10 backdrop-blur-md hover:border-[#C9A050]/50' 
                         : 'bg-white/40 border border-white/60 backdrop-blur-md shadow-sm hover:border-[#C9A050]/50'
-                      }`}
+                    }`}
                   >
                     {/* Glassmorphism Video Demo Preview Overlay on Hover */}
                     <div className="absolute inset-0 z-20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-black/65 backdrop-blur-[3px] p-4 text-center">
@@ -377,7 +504,7 @@ export function LandingPage({ onLoginClick, onRegisterClick, onOpenDisclaimer, t
       <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end">
         <AnimatePresence>
           {isChatOpen && (
-            <motion.div
+            <motion.div 
               initial={{ opacity: 0, y: 20, scale: 0.95 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 20, scale: 0.95 }}
@@ -392,47 +519,72 @@ export function LandingPage({ onLoginClick, onRegisterClick, onOpenDisclaimer, t
                   <X className="w-4 h-4" />
                 </button>
               </div>
-
+              
               <div className={`h-[300px] p-3 overflow-y-auto flex flex-col space-y-3 text-xs ${theme === 'dark' ? 'bg-[#0D0D0F]' : 'bg-[#F0ECE1]/50'}`}>
-                {messages.map((m, i) => (
-                  <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                    <div className={`max-w-[85%] p-2.5 rounded-xl flex items-start space-x-2 shadow-sm ${m.role === 'user' ? 'bg-[#C9A050] text-[#0D0D0F] rounded-tr-sm' : (theme === 'dark' ? 'bg-[#1A1A1E] text-[#E5E1D8] border border-[#2A2A2E] rounded-tl-sm' : 'bg-[#FFFFFF] text-[#0D0D0F] border border-[#E5E1D8] rounded-tl-sm')}`}>
-                      {m.role === 'assistant' && <Bot className="w-3.5 h-3.5 mt-0.5 shrink-0 text-[#C9A050]" />}
-                      <span className="leading-relaxed">{m.content}</span>
+                {messages.map((m, i) => {
+                  const isLoginPrompt = m.content.includes("Please login to unlock");
+                  return (
+                    <div key={i} className={`flex flex-col ${m.role === 'user' ? 'items-end' : 'items-start'}`}>
+                      <div className={`max-w-[88%] p-2.5 rounded-xl flex items-start space-x-2 shadow-sm ${
+                        m.role === 'user'
+                          ? 'bg-[#C9A050] text-[#0D0D0F] rounded-tr-sm font-medium'
+                          : (theme === 'dark' ? 'bg-[#1A1A1E] text-[#E5E1D8] border border-[#2A2A2E] rounded-tl-sm' : 'bg-[#FFFFFF] text-[#0D0D0F] border border-[#E5E1D8] rounded-tl-sm')
+                      }`}>
+                        {m.role === 'assistant' && <Bot className="w-3.5 h-3.5 mt-0.5 shrink-0 text-[#C9A050]" />}
+                        <div className="flex flex-col space-y-1.5 leading-relaxed">
+                          <span className="whitespace-pre-line">{m.content}</span>
+                          {isLoginPrompt && (
+                            <button
+                              onClick={() => {
+                                setIsChatOpen(false);
+                                onLoginClick();
+                              }}
+                              className="mt-1 py-1.5 px-3 rounded-lg bg-[#C9A050] hover:bg-[#D4AF37] text-[#0D0D0F] font-bold text-xs transition shadow-sm cursor-pointer flex items-center justify-center space-x-1"
+                            >
+                              <span>Log In to Continue</span>
+                            </button>
+                          )}
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                ))}
-              </div>
+                  );
+                })}
 
+                {isAiThinking && (
+                  <div className="flex items-center space-x-1.5 p-2 rounded-xl bg-black/5 dark:bg-white/5 text-[11px] text-[#C9A050] w-fit">
+                    <Sparkles className="w-3.5 h-3.5 animate-spin" />
+                    <span>Consulting celestial transits...</span>
+                  </div>
+                )}
+                <div ref={chatEndRef} />
+              </div>
+              
               <div className={`p-3 border-t flex flex-col ${theme === 'dark' ? 'bg-[#141418] border-[#2A2A2E]' : 'bg-[#FFFFFF] border-[#E5E1D8]'}`}>
                 <div className="flex items-center space-x-2">
-                  <input
-                    type="text"
+                  <input 
+                    type="text" 
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-                    placeholder={msgCount >= 10 ? "Message limit reached." : "Ask a quick question..."}
-                    disabled={msgCount >= 10}
+                    placeholder={msgCount >= 3 ? "Message limit reached." : "Ask a quick question..."}
+                    disabled={msgCount >= 3}
                     className={`flex-1 px-3 py-1.5 text-xs rounded-lg border focus:outline-none focus:border-[#C9A050] disabled:opacity-50 ${theme === 'dark' ? 'bg-[#1A1A1E] border-[#2A2A2E] text-[#F0ECE1]' : 'bg-[#F0ECE1] border-[#E5E1D8] text-[#0D0D0F]'}`}
                   />
-                  <button
+                  <button 
                     onClick={handleSend}
-                    disabled={msgCount >= 10 || !input.trim()}
+                    disabled={msgCount >= 3 || !input.trim()}
                     className="p-1.5 rounded-lg bg-[#C9A050] text-[#0D0D0F] disabled:opacity-50 cursor-pointer hover:bg-[#D4AF37] transition"
                   >
                     <Send className="w-3.5 h-3.5" />
                   </button>
                 </div>
-                <div className={`text-[9px] mt-1.5 text-center ${theme === 'dark' ? 'text-[#9E9A90]' : 'text-[#9E9A90]'}`}>
-                  {msgCount}/10 free messages used
-                </div>
               </div>
             </motion.div>
           )}
         </AnimatePresence>
-
+        
         {!isChatOpen && (
-          <button
+          <button 
             onClick={() => setIsChatOpen(true)}
             className="w-12 h-12 rounded-full bg-[#C9A050] text-[#0D0D0F] flex items-center justify-center shadow-lg shadow-[#C9A050]/30 hover:scale-105 transition cursor-pointer"
           >
@@ -443,7 +595,3 @@ export function LandingPage({ onLoginClick, onRegisterClick, onOpenDisclaimer, t
     </div>
   );
 }
-
-
-
-

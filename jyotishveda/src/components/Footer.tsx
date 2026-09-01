@@ -1,5 +1,5 @@
 import React from 'react';
-import { ShieldCheck, Globe } from 'lucide-react';
+import { ShieldCheck } from 'lucide-react';
 import { AncientTraditionLogo } from './AncientTraditionLogo';
 import { getTranslation } from '../services/translations';
 
@@ -39,10 +39,6 @@ export const Footer: React.FC<FooterProps> = ({
               <>
                 <button onClick={() => setActiveTab('daily')} className="hover:text-[#C9A050] transition cursor-pointer">
                   {t('tab.daily')}
-                </button>
-                <button onClick={() => setActiveTab('zodiac')} className="hover:text-[#C9A050] transition cursor-pointer flex items-center space-x-1">
-                  <Globe className="w-3 h-3 text-[#C9A050]" />
-                  <span>{t('tab.zodiac')}</span>
                 </button>
                 <button onClick={() => setActiveTab('horoscope')} className="hover:text-[#C9A050] transition cursor-pointer">
                   {t('tab.horoscope')}
