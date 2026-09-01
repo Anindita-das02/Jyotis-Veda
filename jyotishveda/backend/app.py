@@ -13,11 +13,16 @@ from controllers import global_zodiac_controller
 from controllers import birth_chart_controller
 from controllers import roadmap_controller
 from controllers import calendar_controller
+from controllers import landing_chat_controller
 from utils.security import require_auth, decode_token
 import jwt as pyjwt
 
 app = Flask(__name__)
 CORS(app)
+
+@app.route("/api/public-chat", methods=["POST"])
+def public_chat():
+    return landing_chat_controller.public_chat()
 
 @app.route("/daily-insights/panchang", methods=["POST"])
 def calculate_ephemeris_panchang():
