@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, MessageSquareText, X, Send, Bot, Lock, Compass, Hash, Milestone, ShieldAlert, Sun, Moon, Home, Globe, Calendar } from 'lucide-react';
+import { Sparkles, MessageSquareText, X, Send, Bot, Lock, Compass, Hash, Milestone, ShieldAlert, Sun, Moon, Home, Globe, Calendar, Play } from 'lucide-react';
 import { ZODIAC_SIGNS } from '../services/zodiacData';
 import { StarfieldBackground } from './StarfieldBackground';
 import { GlobalZodiacView } from './GlobalZodiacView';
 import PanjikaCalendarView from './PanjikaCalendarView';
 import { Footer } from './Footer';
+import { FeaturePreviewModal, PREMIUM_FEATURES_CATALOG, PremiumFeatureDetail } from './FeaturePreviewModal';
 
 interface LandingPageProps {
   onLoginClick: () => void;
@@ -22,19 +23,22 @@ export function LandingPage({ onLoginClick, onRegisterClick, onOpenDisclaimer, t
   ]);
   const [input, setInput] = useState('');
   const [msgCount, setMsgCount] = useState(0);
-  const [isLoginPromptOpen, setIsLoginPromptOpen] = useState(false);
+  const [selectedFeatureForPreview, setSelectedFeatureForPreview] = useState<PremiumFeatureDetail | null>(null);
 
-  const premiumFeatures = [
-    { title: 'Deep Birth Chart', desc: 'Detailed Kundli and planetary positions based on precise birth time.', icon: Compass },
-    { title: 'Personalized Numerology', desc: 'Discover your life path, destiny, and soul urge numbers.', icon: Hash },
-    { title: 'Life Roadmap', desc: 'Navigate your upcoming dashas and major life milestones.', icon: Milestone },
-    { title: 'AI Astrologer Pro', desc: 'Unlimited deep astrological chat without the 10-message limit.', icon: Bot },
-  ];
+  const [activeSection, setActiveSection] = useState<string>('hero-section');
 
   const scrollToSection = (id: string) => {
+    setActiveSection(id);
     const element = document.getElementById(id);
     if (element) {
-      element.scrollIntoView({ behavior: 'smooth' });
+      const navHeight = 80;
+      const elementPosition = element.getBoundingClientRect().top;
+      const offsetPosition = elementPosition + window.pageYOffset - navHeight;
+
+      window.scrollTo({
+        top: offsetPosition,
+        behavior: 'smooth'
+      });
     }
   };
 
@@ -90,20 +94,48 @@ export function LandingPage({ onLoginClick, onRegisterClick, onOpenDisclaimer, t
             </div>
 
             {/* Center Links (Desktop only) */}
-            <div className="hidden md:flex items-center space-x-8">
-              <button onClick={() => scrollToSection('hero-section')} className={`flex items-center space-x-1.5 text-sm font-semibold transition-colors hover:text-[#C9A050] ${theme === 'dark' ? 'text-[#E5E1D8]' : 'text-[#2A2A2E]'}`}>
+            <div className="hidden md:flex items-center space-x-2">
+              <button 
+                onClick={() => scrollToSection('hero-section')} 
+                className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold transition-all cursor-pointer ${
+                  activeSection === 'hero-section' 
+                    ? 'text-[#C9A050] bg-[#C9A050]/15 shadow-sm' 
+                    : theme === 'dark' ? 'text-[#9E9A90] hover:text-[#E5E1D8] hover:bg-[#1A1A1E]' : 'text-gray-600 hover:text-[#0D0D0F] hover:bg-black/5'
+                }`}
+              >
                 <Home className="w-4 h-4" />
                 <span>Home</span>
               </button>
-              <button onClick={() => scrollToSection('panjika-section')} className={`flex items-center space-x-1.5 text-sm font-semibold transition-colors hover:text-[#C9A050] ${theme === 'dark' ? 'text-[#9E9A90]' : 'text-gray-600'}`}>
+              <button 
+                onClick={() => scrollToSection('panjika-section')} 
+                className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold transition-all cursor-pointer ${
+                  activeSection === 'panjika-section' 
+                    ? 'text-[#C9A050] bg-[#C9A050]/15 shadow-sm' 
+                    : theme === 'dark' ? 'text-[#9E9A90] hover:text-[#E5E1D8] hover:bg-[#1A1A1E]' : 'text-gray-600 hover:text-[#0D0D0F] hover:bg-black/5'
+                }`}
+              >
                 <Calendar className="w-4 h-4" />
                 <span>Panjika & Calendar</span>
               </button>
-              <button onClick={() => scrollToSection('zodiac-section')} className={`flex items-center space-x-1.5 text-sm font-semibold transition-colors hover:text-[#C9A050] ${theme === 'dark' ? 'text-[#9E9A90]' : 'text-gray-600'}`}>
+              <button 
+                onClick={() => scrollToSection('zodiac-section')} 
+                className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold transition-all cursor-pointer ${
+                  activeSection === 'zodiac-section' 
+                    ? 'text-[#C9A050] bg-[#C9A050]/15 shadow-sm' 
+                    : theme === 'dark' ? 'text-[#9E9A90] hover:text-[#E5E1D8] hover:bg-[#1A1A1E]' : 'text-gray-600 hover:text-[#0D0D0F] hover:bg-black/5'
+                }`}
+              >
                 <Globe className="w-4 h-4" />
                 <span>Global Zodiac</span>
               </button>
-              <button onClick={() => scrollToSection('premium-section')} className={`flex items-center space-x-1.5 text-sm font-semibold transition-colors hover:text-[#C9A050] ${theme === 'dark' ? 'text-[#9E9A90]' : 'text-gray-600'}`}>
+              <button 
+                onClick={() => scrollToSection('premium-section')} 
+                className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold transition-all cursor-pointer ${
+                  activeSection === 'premium-section' 
+                    ? 'text-[#C9A050] bg-[#C9A050]/15 shadow-sm' 
+                    : theme === 'dark' ? 'text-[#9E9A90] hover:text-[#E5E1D8] hover:bg-[#1A1A1E]' : 'text-gray-600 hover:text-[#0D0D0F] hover:bg-black/5'
+                }`}
+              >
                 <Lock className="w-4 h-4" />
                 <span>Premium</span>
               </button>
@@ -125,7 +157,16 @@ export function LandingPage({ onLoginClick, onRegisterClick, onOpenDisclaimer, t
               
               <div className="hidden sm:block w-px h-6 bg-[#C9A050]/30 mx-2"></div>
               
-              <button onClick={onLoginClick} className={`px-4 py-2 rounded-lg font-bold text-sm transition-colors cursor-pointer ${theme === 'dark' ? 'text-[#E5E1D8] hover:bg-[#1A1A1E]' : 'text-[#0D0D0F] hover:bg-black/5'}`}>Log In</button>
+              <button
+                onClick={onLoginClick}
+                className={`px-4 py-2 rounded-lg font-bold text-sm transition-all cursor-pointer border shadow-sm ${
+                  theme === 'dark'
+                    ? 'bg-[#141418] border-[#2A2A2E] text-[#E5E1D8] hover:text-[#C9A050] hover:border-[#C9A050] hover:bg-[#C9A050]/10 hover:shadow-md'
+                    : 'bg-white border-[#D4CFC4] text-[#0D0D0F] hover:text-[#8C6B28] hover:border-[#C9A050] hover:bg-[#C9A050]/15 hover:shadow-md'
+                }`}
+              >
+                Log In
+              </button>
               <button onClick={onRegisterClick} className="px-4 py-2 rounded-lg bg-[#C9A050] text-[#0D0D0F] font-bold text-sm hover:bg-[#D4AF37] transition-all cursor-pointer shadow-lg shadow-[#C9A050]/20 hover:-translate-y-0.5">Get Started</button>
             </div>
           </div>
@@ -135,7 +176,7 @@ export function LandingPage({ onLoginClick, onRegisterClick, onOpenDisclaimer, t
       {/* Hero Section */}
       <main className="flex-1 overflow-y-auto relative z-10 pb-20 scroll-smooth">
         <div className="max-w-7xl mx-auto px-6">
-          <div id="hero-section" className="py-12 lg:py-24 grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+          <div id="hero-section" className="min-h-[calc(100vh-5rem)] py-8 lg:py-16 grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
           
           {/* Left Column: Greetings */}
           <div className="flex flex-col items-center lg:items-start text-center lg:text-left order-2 lg:order-1">
@@ -146,16 +187,16 @@ export function LandingPage({ onLoginClick, onRegisterClick, onOpenDisclaimer, t
             
             <h2 className="text-4xl sm:text-5xl lg:text-6xl font-serif font-bold leading-tight mb-6">
               Welcome to <br />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#D97706] to-[#F59E0B] inline-flex">
+              <span className="inline-flex">
                 {"JYOTISHVEDA".split("").map((char, index) => {
                   if (index <= 6) { // JYOTISH
                     return (
                       <motion.span
                         key={index}
                         initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0, textShadow: "0px 0px 10px rgba(201,160,80,0.5)" }}
+                        animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.6, delay: index * 0.08, ease: "easeOut" }}
-                        className="inline-block"
+                        className={`inline-block ${theme === 'dark' ? 'text-[#E5E1D8]' : 'text-[#0D0D0F]'}`}
                       >
                         {char}
                       </motion.span>
@@ -186,7 +227,7 @@ export function LandingPage({ onLoginClick, onRegisterClick, onOpenDisclaimer, t
                         times: [0, 0.1, 0.8, 1],
                         ease: "easeInOut"
                       }}
-                      className="inline-block"
+                      className="inline-block text-[#C9A050]"
                     >
                       {char}
                     </motion.span>
@@ -231,11 +272,11 @@ export function LandingPage({ onLoginClick, onRegisterClick, onOpenDisclaimer, t
         </div>  
 
           {/* Panjika & Calendar Section */}
-          <div id="panjika-section" className="w-full text-left mt-8 scroll-mt-24">
-            <PanjikaCalendarView />
+          <div id="panjika-section" className="w-full text-left pt-6 pb-10">
+            <PanjikaCalendarView theme={theme} />
           </div>
           {/* Full Global Zodiac Section */}
-          <div id="zodiac-section" className="w-full text-left mt-8 scroll-mt-24">
+          <div id="zodiac-section" className="w-full text-left pt-6 pb-12">
             <GlobalZodiacView 
               theme={theme}
               onAskAIForSign={handleAskAIForSign}
@@ -243,7 +284,7 @@ export function LandingPage({ onLoginClick, onRegisterClick, onOpenDisclaimer, t
           </div>
 
           {/* Premium Features Teaser (Locked Cards) */}
-          <div id="premium-section" className="w-full mt-24 scroll-mt-24">
+          <div id="premium-section" className="w-full pt-8 pb-28 min-h-[calc(100vh-5rem)]">
             <div className="text-center mb-10">
               <h3 className="text-2xl md:text-3xl font-serif font-bold mb-3 flex items-center justify-center space-x-2">
                 <Lock className="w-6 h-6 text-[#C9A050]" />
@@ -255,34 +296,44 @@ export function LandingPage({ onLoginClick, onRegisterClick, onOpenDisclaimer, t
             </div>
             
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              {premiumFeatures.map((feat, idx) => {
+              {PREMIUM_FEATURES_CATALOG.map((feat) => {
                 const Icon = feat.icon;
                 return (
                   <div 
-                    key={idx}
-                    onClick={() => setIsLoginPromptOpen(true)}
+                    key={feat.id}
+                    onClick={() => setSelectedFeatureForPreview(feat)}
                     className={`relative overflow-hidden rounded-2xl p-6 text-left cursor-pointer transition-all duration-300 hover:-translate-y-2 hover:shadow-xl hover:shadow-[#C9A050]/20 group ${
                       theme === 'dark' 
-                        ? 'bg-white/5 border border-white/10 backdrop-blur-md' 
-                        : 'bg-white/40 border border-white/60 backdrop-blur-md shadow-sm'
+                        ? 'bg-white/5 border border-white/10 backdrop-blur-md hover:border-[#C9A050]/50' 
+                        : 'bg-white/40 border border-white/60 backdrop-blur-md shadow-sm hover:border-[#C9A050]/50'
                     }`}
                   >
-                    {/* Glassmorphism Lock Overlay */}
-                    <div className="absolute inset-0 z-20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-black/40 backdrop-blur-[2px]">
-                      <div className="flex flex-col items-center">
+                    {/* Glassmorphism Video Demo Preview Overlay on Hover */}
+                    <div className="absolute inset-0 z-20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-black/65 backdrop-blur-[3px] p-4 text-center">
+                      <div className="flex flex-col items-center transform group-hover:scale-105 transition-transform duration-300">
                         <div className="w-12 h-12 rounded-full bg-[#C9A050] text-[#0D0D0F] flex items-center justify-center shadow-lg shadow-[#C9A050]/50 mb-2">
-                          <Lock className="w-6 h-6" />
+                          <Play className="w-5 h-5 fill-current ml-0.5" />
                         </div>
-                        <span className="text-white font-bold text-sm tracking-wide">Click to Unlock</span>
+                        <span className="text-[#F0ECE1] font-serif font-bold text-xs tracking-wide">
+                          15s Demo Video
+                        </span>
+                        <span className="text-[10px] text-[#C9A050] font-mono mt-0.5">
+                          Click to Preview & Unlock
+                        </span>
                       </div>
                     </div>
 
-                    <div className="relative z-10 opacity-60 group-hover:opacity-40 transition-opacity duration-300">
-                      <div className="w-10 h-10 rounded-xl bg-[#C9A050]/20 flex items-center justify-center mb-4">
-                        <Icon className="w-5 h-5 text-[#C9A050]" />
+                    <div className="relative z-10 opacity-80 group-hover:opacity-30 transition-opacity duration-300">
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="w-10 h-10 rounded-xl bg-[#C9A050]/20 flex items-center justify-center">
+                          <Icon className="w-5 h-5 text-[#C9A050]" />
+                        </div>
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#C9A050]/15 text-[#8C6B28] dark:text-[#C9A050] border border-[#C9A050]/30">
+                          15s Video
+                        </span>
                       </div>
-                      <h4 className="font-bold text-base mb-2">{feat.title}</h4>
-                      <p className="text-xs leading-relaxed">{feat.desc}</p>
+                      <h4 className="font-bold text-base mb-1.5">{feat.title}</h4>
+                      <p className="text-xs leading-relaxed text-[#9E9A90]">{feat.desc}</p>
                     </div>
                   </div>
                 );
@@ -293,51 +344,21 @@ export function LandingPage({ onLoginClick, onRegisterClick, onOpenDisclaimer, t
         <Footer onOpenDisclaimer={onOpenDisclaimer} theme={theme} />
       </main>
 
-      {/* Login Prompt Modal */}
-      <AnimatePresence>
-        {isLoginPromptOpen && (
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm flex items-center justify-center px-4"
-            onClick={() => setIsLoginPromptOpen(false)}
-          >
-            <motion.div 
-              initial={{ scale: 0.9, y: 20 }}
-              animate={{ scale: 1, y: 0 }}
-              exit={{ scale: 0.9, y: 20 }}
-              onClick={(e) => e.stopPropagation()}
-              className={`w-full max-w-sm rounded-2xl p-6 text-center shadow-2xl border ${theme === 'dark' ? 'bg-[#141418] border-[#2A2A2E]' : 'bg-white border-[#E5E1D8]'}`}
-            >
-              <div className="w-16 h-16 mx-auto rounded-full bg-[#C9A050]/15 flex items-center justify-center mb-4 border border-[#C9A050]/30">
-                <ShieldAlert className="w-8 h-8 text-[#C9A050]" />
-              </div>
-              <h3 className="text-xl font-serif font-bold mb-2">Unlock Your Destiny</h3>
-              <p className={`text-sm mb-6 ${theme === 'dark' ? 'text-[#9E9A90]' : 'text-gray-600'}`}>
-                Please login to unlock your personalized astrological journey and explore these premium features.
-              </p>
-              <div className="flex flex-col space-y-3">
-                <button 
-                  onClick={() => {
-                    setIsLoginPromptOpen(false);
-                    onLoginClick();
-                  }}
-                  className="w-full py-2.5 rounded-lg bg-[#C9A050] text-[#0D0D0F] font-bold shadow-lg shadow-[#C9A050]/20 hover:bg-[#D4AF37] transition"
-                >
-                  Log In Now
-                </button>
-                <button 
-                  onClick={() => setIsLoginPromptOpen(false)}
-                  className={`w-full py-2.5 rounded-lg font-semibold transition ${theme === 'dark' ? 'text-[#9E9A90] hover:bg-[#1A1A1E]' : 'text-gray-500 hover:bg-gray-100'}`}
-                >
-                  Maybe Later
-                </button>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/* Feature 15-Second Video Preview & Details Modal */}
+      <FeaturePreviewModal
+        feature={selectedFeatureForPreview}
+        isOpen={!!selectedFeatureForPreview}
+        onClose={() => setSelectedFeatureForPreview(null)}
+        onLoginClick={() => {
+          setSelectedFeatureForPreview(null);
+          onLoginClick();
+        }}
+        onRegisterClick={() => {
+          setSelectedFeatureForPreview(null);
+          onRegisterClick();
+        }}
+        theme={theme}
+      />
 
       {/* Mini Chat Pop-up */}
       <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end">

@@ -4,7 +4,6 @@ import { AuthGate } from './components/AuthGate';
 import { LandingPage } from './components/LandingPage';
 import { DailyHoroscopeView } from './components/DailyHoroscopeView';
 import { HoroscopeTraditionsView } from './components/HoroscopeTraditionsView';
-import { GlobalZodiacView } from './components/GlobalZodiacView';
 import { MatchmakingView } from './components/MatchmakingView';
 import { NumerologyView } from './components/NumerologyView';
 import { AICounsellorChat } from './components/AICounsellorChat';
@@ -459,80 +458,6 @@ export function App() {
       });
   };
 
-  const handleAskAIForSign = (
-    signName: string,
-    promptText: string
-  ) => {
-    setActiveTab('counsellor');
-
-    const userMessage: ChatMessage = {
-      id: `msg-${Date.now()}`,
-      role: 'user',
-      content: promptText,
-      timestamp: new Date().toLocaleTimeString(
-        [],
-        {
-          hour: '2-digit',
-          minute: '2-digit',
-        }
-      ),
-    };
-
-    setMessages((prev) => [
-      ...prev,
-      userMessage,
-    ]);
-
-    // Send to backend
-    fetch(`${API_BASE_URL}${API_ENDPOINTS.COUNSELLOR.DEFAULT_MESSAGES}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        message: promptText,
-        history: messages.map((m) => ({
-          role: m.role,
-          content: m.content,
-        })),
-        profile: currentProfile,
-        tradition,
-        chartData,
-        numerology,
-        language,
-      }),
-    })
-      .then((res) => res.json())
-      .then((data) => {
-        const replyContent =
-          data.response ||
-          data.reply ||
-          data.interpretation ||
-          `Analysis complete for ${signName}.`;
-
-        const assistantMessage: ChatMessage = {
-          id: `msg-ai-${Date.now()}`,
-          role: 'assistant',
-          content: replyContent,
-          timestamp: new Date().toLocaleTimeString(
-            [],
-            {
-              hour: '2-digit',
-              minute: '2-digit',
-            }
-          ),
-        };
-
-        setMessages((prev) => [
-          ...prev,
-          assistantMessage,
-        ]);
-      })
-      .catch((err) => {
-        console.error(err);
-      });
-  };
-
   const isRtl = language === 'ur';
 
   if (!authChecked) {
@@ -641,17 +566,7 @@ export function App() {
             )}
 
             {activeTab === 'panjika' && (
-              <PanjikaCalendarView />
-            )}
-
-            {activeTab === 'zodiac' && (
-              <GlobalZodiacView
-                profile={currentProfile}
-                chartData={chartData}
-                language={language}
-                onAskAIForSign={handleAskAIForSign}
-                theme={theme}
-              />
+              <PanjikaCalendarView theme={theme} />
             )}
 
             {activeTab === 'horoscope' && (
