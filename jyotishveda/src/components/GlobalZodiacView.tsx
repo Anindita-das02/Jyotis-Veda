@@ -51,71 +51,7 @@ function getZodiacSignId(dateStr?: string): string {
   return 'aries';
 }
 
-const CustomZodiacSelect = ({ value, onChange, theme, label }: any) => {
-  const [isOpen, React_useState] = React.useState(false);
-  const selectedSign = ZODIAC_SIGNS.find(s => s.id === value) || ZODIAC_SIGNS[0];
-  const dropdownRef = React.useRef<HTMLDivElement>(null);
 
-  React.useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        React_useState(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  return (
-    <div className="relative" ref={dropdownRef}>
-      {label && <label className="text-[11px] text-[#9E9A90] block mb-1">{label}</label>}
-      <button
-        onClick={() => React_useState(!isOpen)}
-        className={`w-full flex items-center justify-between border px-3 py-1.5 rounded-lg text-xs font-semibold focus:outline-none transition-colors ${
-          theme === 'dark' 
-            ? 'bg-[#1C1C22] border-[#2A2A2E] text-[#F0ECE1] hover:border-[#C9A050]' 
-            : 'bg-[#FFFFFF] border-[#E5E1D8] text-[#2A2A2E] hover:border-[#C9A050]'
-        } ${isOpen ? 'border-[#C9A050] ring-1 ring-[#C9A050]/50' : ''}`}
-      >
-        <div className="flex items-center space-x-2">
-          <span className="text-lg text-[#C9A050]" style={{ fontFamily: '"Segoe UI Symbol", "Apple Symbols", sans-serif' }}>
-            {selectedSign.symbol}&#xFE0E;
-          </span>
-          <span>{selectedSign.name} ({selectedSign.sanskritName})</span>
-        </div>
-        <ChevronDown className="w-3.5 h-3.5 opacity-70" />
-      </button>
-
-      {isOpen && (
-        <div className={`absolute z-50 w-full mt-1 border rounded-lg shadow-xl max-h-60 overflow-y-auto scrollbar-thin ${
-          theme === 'dark'
-            ? 'bg-[#1C1C22] border-[#2A2A2E]'
-            : 'bg-[#FFFFFF] border-[#E5E1D8] shadow-black/5'
-        }`}>
-          {ZODIAC_SIGNS.map((s) => (
-            <div
-              key={s.id}
-              onClick={() => {
-                onChange(s.id);
-                React_useState(false);
-              }}
-              className={`flex items-center space-x-2 px-3 py-2 cursor-pointer transition-colors text-xs font-semibold ${
-                value === s.id 
-                  ? (theme === 'dark' ? 'bg-[#C9A050]/20 text-[#C9A050]' : 'bg-[#C9A050]/10 text-[#94691E]') 
-                  : (theme === 'dark' ? 'text-[#F0ECE1] hover:bg-[#2A2A2E]' : 'text-[#2A2A2E] hover:bg-[#FAF8F2]')
-              }`}
-            >
-              <span className={`text-lg ${value === s.id ? '' : 'text-[#C9A050]'}`} style={{ fontFamily: '"Segoe UI Symbol", "Apple Symbols", sans-serif' }}>
-                {s.symbol}&#xFE0E;
-              </span>
-              <span>{s.name} ({s.sanskritName})</span>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-};
 
 interface GlobalZodiacViewProps {
   profile?: UserProfile;
@@ -138,10 +74,7 @@ export const GlobalZodiacView: React.FC<GlobalZodiacViewProps> = ({
   const [selectedSignId, setSelectedSignId] = useState<string>('aries');
   const [hasSelectedSign, setHasSelectedSign] = useState(false);
   const [isScreenLoading, setIsScreenLoading] = useState(false);
-  const [hasAnalyzed, setHasAnalyzed] = useState(false);
-  const [isCompatLoading, setIsCompatLoading] = useState(false);
   const deepDiveRef = React.useRef<HTMLDivElement>(null);
-  const compatResultRef = React.useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     let signId = 'aries';
@@ -294,27 +227,27 @@ export const GlobalZodiacView: React.FC<GlobalZodiacViewProps> = ({
         </div>
       )}
       {/* Header Banner */}
-      <div className="bg-[#141418] border border-[#2A2A2E] rounded-2xl p-6 sm:p-8 shadow-2xl relative overflow-hidden">
+      <div className="bg-[#141418] border border-[#2A2A2E] rounded-2xl p-4 sm:p-5 shadow-xl relative overflow-hidden">
         <div className="absolute top-0 right-0 -mr-16 -mt-16 w-64 h-64 bg-[#C9A050]/10 rounded-full blur-3xl pointer-events-none" />
-        <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+        <div className="relative z-10 flex flex-col md:flex-row lg:flex-col xl:flex-row items-start md:items-center lg:items-start xl:items-center justify-between gap-4">
           <div>
-            <div className="flex items-center space-x-2.5 text-[#C9A050] text-xs font-semibold uppercase tracking-widest mb-2">
-              <Globe className="w-4 h-4 text-[#C9A050]" />
+            <div className="flex items-center space-x-2 text-[#C9A050] text-[10px] sm:text-xs font-semibold uppercase tracking-widest mb-1.5">
+              <Globe className="w-3.5 h-3.5 text-[#C9A050]" />
               <span>{t('zodiac.title')}</span>
             </div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-[#F0ECE1] tracking-tight">
+            <h1 className="text-xl sm:text-2xl font-bold text-[#F0ECE1] tracking-tight">
               {t('zodiac.title')}
             </h1>
-            <p className="text-sm text-[#9E9A90] mt-1.5 max-w-3xl leading-relaxed">
+            <p className="text-xs sm:text-sm text-[#9E9A90] mt-1 max-w-3xl leading-relaxed">
               {t('zodiac.subtitle')}
             </p>
           </div>
 
           {/* Tropical vs Sidereal Switcher */}
-          <div className="flex items-center bg-[#0D0D0F] p-1.5 rounded-xl border border-[#2A2A2E] text-xs self-stretch sm:self-auto justify-center">
+          <div className="flex items-center bg-[#0D0D0F] p-1 rounded-xl border border-[#2A2A2E] text-xs self-stretch sm:self-auto justify-center">
             <button
               onClick={() => setZodiacSystem('tropical')}
-              className={`px-3.5 py-2 rounded-lg font-medium transition cursor-pointer flex items-center space-x-1.5 ${
+              className={`px-3 py-1.5 rounded-lg font-medium transition cursor-pointer flex items-center space-x-1.5 ${
                 zodiacSystem === 'tropical'
                   ? 'bg-[#C9A050] text-[#0D0D0F] shadow font-bold'
                   : 'text-[#9E9A90] hover:text-[#E5E1D8]'
@@ -325,7 +258,7 @@ export const GlobalZodiacView: React.FC<GlobalZodiacViewProps> = ({
             </button>
             <button
               onClick={() => setZodiacSystem('sidereal')}
-              className={`px-3.5 py-2 rounded-lg font-medium transition cursor-pointer flex items-center space-x-1.5 ${
+              className={`px-3 py-1.5 rounded-lg font-medium transition cursor-pointer flex items-center space-x-1.5 ${
                 zodiacSystem === 'sidereal'
                   ? 'bg-[#C9A050] text-[#0D0D0F] shadow font-bold'
                   : 'text-[#9E9A90] hover:text-[#E5E1D8]'
@@ -338,14 +271,14 @@ export const GlobalZodiacView: React.FC<GlobalZodiacViewProps> = ({
         </div>
 
         {/* Ayanamsha Note */}
-        <div className="mt-4 pt-4 border-t border-[#2A2A2E]/60 flex items-center space-x-2 text-[12px] text-[#C9A050]/90">
-          <Sparkles className="w-3.5 h-3.5 flex-shrink-0 text-[#C9A050]" />
+        <div className="mt-3 pt-3 border-t border-[#2A2A2E]/60 flex items-center space-x-2 text-[10px] sm:text-xs text-[#C9A050]/90">
+          <Sparkles className="w-3 h-3 flex-shrink-0 text-[#C9A050]" />
           <span>{t('zodiac.ayanamsa_note')}</span>
         </div>
       </div>
 
       {/* Control Bar: Element Filter & Timeframe Selector */}
-      <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-4 bg-[#141418] border border-[#2A2A2E] p-4 rounded-xl shadow-lg">
+      <div className="flex flex-col lg:flex-col xl:flex-row items-stretch lg:items-stretch xl:items-center justify-between gap-4 bg-[#141418] border border-[#2A2A2E] p-4 rounded-xl shadow-lg">
         {/* Element Filter Pills */}
         <div className="flex flex-wrap items-center gap-2">
           {(['All', 'Fire', 'Earth', 'Air', 'Water'] as const).map((el) => (
@@ -405,7 +338,7 @@ export const GlobalZodiacView: React.FC<GlobalZodiacViewProps> = ({
       </div>
 
       {/* Zodiac Cards Grid */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3.5">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-3.5">
         {filteredSigns.map((sign) => {
           const isSelected = sign.id === selectedSignId;
           return (
@@ -662,120 +595,6 @@ export const GlobalZodiacView: React.FC<GlobalZodiacViewProps> = ({
       </div>
       </div>
       )}
-
-      {/* Compatibility Matrix Interactive Tool */}
-        <div className="bg-[#0D0D0F] p-6 rounded-xl border border-[#2A2A2E] space-y-6">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-4 border-b border-[#2A2A2E]">
-            <div>
-              <h3 className="text-base font-bold text-[#F0ECE1] flex items-center space-x-2">
-                <Heart className="w-4 h-4 text-[#C9A050]" />
-                <span>{t('zodiac.compat_title')}</span>
-              </h3>
-              <p className="text-xs text-[#9E9A90] mt-0.5">
-                {t('zodiac.compat_subtitle')}
-              </p>
-            </div>
-
-            <div className="flex items-start space-x-3 text-xs">
-              <div className="min-w-[170px]">
-                <CustomZodiacSelect
-                  value={compatSignA}
-                  onChange={(val: string) => {
-                    setCompatSignA(val);
-                    setHasAnalyzed(false);
-                  }}
-                  theme={theme}
-                  label={t('zodiac.sign_a')}
-                />
-              </div>
-
-              <div className="min-w-[170px]">
-                <CustomZodiacSelect
-                  value={compatSignB}
-                  onChange={(val: string) => {
-                    setCompatSignB(val);
-                    setHasAnalyzed(false);
-                  }}
-                  theme={theme}
-                  label={t('zodiac.sign_b')}
-                />
-              </div>
-              
-              <div className="flex flex-col">
-                <label className="text-[11px] block mb-1 opacity-0 select-none pointer-events-none">Analyze</label>
-                <button
-                  onClick={() => {
-                    setIsCompatLoading(true);
-                    setHasAnalyzed(false);
-                    setTimeout(() => {
-                      setIsCompatLoading(false);
-                      setHasAnalyzed(true);
-                      setTimeout(() => {
-                        if (compatResultRef.current) {
-                          const elementPosition = compatResultRef.current.getBoundingClientRect().top;
-                          const offsetPosition = elementPosition + window.pageYOffset - 90;
-                          window.scrollTo({
-                            top: offsetPosition,
-                            behavior: 'smooth'
-                          });
-                        }
-                      }, 100);
-                    }, 1200);
-                  }}
-                  className={`px-6 rounded-lg font-bold text-sm transition shadow-sm flex items-center justify-center h-[40px] ${theme === 'dark' ? 'bg-[#C9A050] text-[#141418] hover:bg-[#D4AF60]' : 'bg-[#C9A050] text-white hover:bg-[#B88E40]'}`}
-                >
-                  <span>Analyze</span>
-                </button>
-              </div>
-            </div>
-          </div>
-
-          {/* Compatibility Breakdown Card */}
-          {isCompatLoading && (
-            <div className="flex flex-col items-center justify-center p-12 bg-[#141418] rounded-xl border border-[#2A2A2E] text-center animate-pulse w-full">
-              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#C9A050] mb-4"></div>
-              <p className="text-sm font-semibold tracking-wider text-[#C9A050] animate-pulse font-serif">
-                {language === 'bn' ? 'গ্রহের সংযোগ এবং নক্ষত্রের সামঞ্জস্য গণনা করা হচ্ছে...' : 'Calculating Cosmic Harmony & Planetary Alignments...'}
-              </p>
-            </div>
-          )}
-
-          {hasAnalyzed && !isCompatLoading && (
-            <div ref={compatResultRef} className="grid grid-cols-1 lg:grid-cols-4 gap-6 items-center animate-in fade-in slide-in-from-bottom-4 duration-500">
-            {/* Score circle */}
-            <div className="lg:col-span-1 flex flex-col items-center justify-center p-6 bg-[#141418] rounded-xl border border-[#2A2A2E] text-center">
-              <div className="w-20 h-20 rounded-full border-4 border-[#C9A050] flex flex-col items-center justify-center text-[#F0ECE1] shadow-lg shadow-[#C9A050]/20">
-                <span className="text-xl font-bold">{compatResult.overallScore}%</span>
-                <span className="text-[9px] uppercase tracking-wider text-[#9E9A90]">Harmony</span>
-              </div>
-              <div className="mt-3 text-xs font-bold text-[#C9A050]">
-                {compatResult.signA.name} + {compatResult.signB.name}
-              </div>
-              <div className="text-[10px] text-[#9E9A90] mt-0.5">
-                {compatResult.signA.element} & {compatResult.signB.element} Elements
-              </div>
-            </div>
-
-            {/* Analysis details */}
-            <div className="lg:col-span-3 space-y-3 text-xs text-[#E5E1D8]">
-              <div className="bg-[#141418] p-3 rounded-lg border border-[#2A2A2E]/80">
-                <span className="font-semibold text-[#C9A050] block mb-0.5">{t('zodiac.element_synergy')}:</span>
-                <span className="text-[#9E9A90]">{compatResult.elementSynergy}</span>
-              </div>
-
-              <div className="bg-[#141418] p-3 rounded-lg border border-[#2A2A2E]/80">
-                <span className={`font-semibold block mb-0.5 ${theme === 'dark' ? 'text-rose-400' : 'text-[#C9A050]'}`}>Romantic & Soul Synergy:</span>
-                <span className="text-[#9E9A90]">{compatResult.romanceAnalysis}</span>
-              </div>
-
-              <div className="bg-[#141418] p-3 rounded-lg border border-[#2A2A2E]/80">
-                <span className={`font-semibold block mb-0.5 ${theme === 'dark' ? 'text-emerald-400' : 'text-[#C9A050]'}`}>Evolution & Remedial Guidance:</span>
-                <span className="text-[#9E9A90]">{compatResult.remedialAdvice}</span>
-              </div>
-            </div>
-          </div>
-          )}
-        </div>
     </div>
   );
 };

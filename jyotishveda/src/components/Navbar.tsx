@@ -20,6 +20,7 @@ import {
   HeartHandshake,
   LogOut,
   Calendar,
+  FileText,
 } from 'lucide-react';
 import { UserProfile, HoroscopeTradition } from '../types';
 import { AncientTraditionLogo } from './AncientTraditionLogo';
@@ -40,6 +41,7 @@ interface NavbarProps {
   language: string;
   setLanguage: (lang: string) => void;
   onLogout?: () => void;
+  isAdmin?: boolean;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -57,6 +59,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   language,
   setLanguage,
   onLogout,
+  isAdmin = false,
 }) => {
   const [isLangMenuOpen, setIsLangMenuOpen] = useState(false);
   const langMenuRef = useRef<HTMLDivElement>(null);
@@ -88,7 +91,10 @@ export const Navbar: React.FC<NavbarProps> = ({
     { id: 'numerology', label: t('tab.numerology'), icon: Hash },
     { id: 'roadmap', label: t('tab.roadmap'), icon: Milestone },
     { id: 'consultations', label: t('tab.consultations'), icon: CreditCard },
-    { id: 'admin', label: t('tab.admin'), icon: Network },
+    ...(isAdmin ? [
+      { id: 'blogs', label: 'Blogs', icon: FileText },
+      { id: 'admin', label: t('tab.admin'), icon: Network }
+    ] : []),
   ];
 
   return (

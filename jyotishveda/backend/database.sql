@@ -578,4 +578,178 @@ BEGIN
 END //
 DELIMITER ;
 
+-- ------------------------------------------------------------
+-- Phase 4 — Admin Blogs
+-- ------------------------------------------------------------
 
+CREATE TABLE IF NOT EXISTS blogs (
+  id            INT           NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  title         VARCHAR(255)  NOT NULL,
+  content       LONGTEXT      NOT NULL,
+  preview       VARCHAR(500)  NULL,
+  image_url     VARCHAR(500)  NULL,
+  category      VARCHAR(100)  NULL,
+  sub_category  VARCHAR(100)  NULL,
+  status        ENUM('Published', 'Draft') NOT NULL DEFAULT 'Draft',
+  tags          JSON          NULL,
+  meta_title    VARCHAR(255)  NULL,
+  meta_keywords JSON          NULL,
+  pinned        TINYINT(1)    NOT NULL DEFAULT 0,
+  created_at    TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at    TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP
+                              ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB;
+
+DROP PROCEDURE IF EXISTS sp_create_blog;
+DELIMITER //
+CREATE PROCEDURE sp_create_blog (
+  IN p_title VARCHAR(255),
+  IN p_content LONGTEXT,
+  IN p_preview VARCHAR(500),
+  IN p_image_url VARCHAR(500),
+  IN p_category VARCHAR(100),
+  IN p_sub_category VARCHAR(100),
+  IN p_status VARCHAR(20),
+  IN p_tags JSON,
+  IN p_pinned TINYINT(1)
+)
+BEGIN
+  INSERT INTO blogs (title, content, preview, image_url, category, sub_category, status, tags, pinned)
+  VALUES (p_title, p_content, p_preview, p_image_url, p_category, p_sub_category, p_status, p_tags, p_pinned);
+
+  SELECT * FROM blogs WHERE id = LAST_INSERT_ID();
+END //
+DELIMITER ;
+
+DROP PROCEDURE IF EXISTS sp_get_blogs;
+DELIMITER //
+CREATE PROCEDURE sp_get_blogs ()
+BEGIN
+  SELECT * FROM blogs ORDER BY pinned DESC, created_at DESC;
+END //
+DELIMITER ;
+
+DROP PROCEDURE IF EXISTS sp_get_blog;
+DELIMITER //
+CREATE PROCEDURE sp_get_blog (
+  IN p_id INT
+)
+BEGIN
+  SELECT * FROM blogs WHERE id = p_id;
+END //
+DELIMITER ;
+
+DROP PROCEDURE IF EXISTS sp_update_blog;
+DELIMITER //
+CREATE PROCEDURE sp_update_blog (
+  IN p_id INT,
+  IN p_title VARCHAR(255),
+  IN p_content LONGTEXT,
+  IN p_preview VARCHAR(500),
+  IN p_image_url VARCHAR(500),
+  IN p_category VARCHAR(100),
+  IN p_sub_category VARCHAR(100),
+  IN p_status VARCHAR(20),
+  IN p_tags JSON,
+  IN p_pinned TINYINT(1)
+)
+BEGIN
+  UPDATE blogs SET
+    title = p_title,
+    content = p_content,
+    preview = p_preview,
+    image_url = p_image_url,
+    category = p_category,
+    sub_category = p_sub_category,
+    status = p_status,
+    tags = p_tags,
+    pinned = p_pinned
+  WHERE id = p_id;
+
+  SELECT * FROM blogs WHERE id = p_id;
+END //
+DELIMITER ;
+
+DROP PROCEDURE IF EXISTS sp_delete_blog;
+DELIMITER //
+CREATE PROCEDURE sp_delete_blog (
+  IN p_id INT
+)
+BEGIN
+  DELETE FROM blogs WHERE id = p_id;
+END //
+DELIMITER ;
+
+-- ------------------------------------------------------------
+-- Phase 4.1 — Blog Categories & Subcategories
+-- ------------------------------------------------------------
+
+CREATE TABLE IF NOT EXISTS blog_categories (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  name VARCHAR(100) NOT NULL,
+  parent_id INT DEFAULT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (parent_id) REFERENCES blog_categories(id) ON DELETE CASCADE,
+  UNIQUE(parent_id, name)
+) ENGINE=InnoDB;
+
+DROP PROCEDURE IF EXISTS sp_create_category;
+DELIMITER //
+CREATE PROCEDURE sp_create_category (
+  IN p_name VARCHAR(100)
+)
+BEGIN
+  INSERT INTO blog_categories (name, parent_id) VALUES (p_name, NULL);
+  SELECT * FROM blog_categories WHERE id = LAST_INSERT_ID();
+END //
+DELIMITER ;
+
+DROP PROCEDURE IF EXISTS sp_get_categories;
+DELIMITER //
+CREATE PROCEDURE sp_get_categories ()
+BEGIN
+  SELECT * FROM blog_categories WHERE parent_id IS NULL ORDER BY name ASC;
+END //
+DELIMITER ;
+
+DROP PROCEDURE IF EXISTS sp_delete_category;
+DELIMITER //
+CREATE PROCEDURE sp_delete_category (
+  IN p_id INT
+)
+BEGIN
+  DELETE FROM blog_categories WHERE id = p_id;
+  SELECT ROW_COUNT() AS deleted_count;
+END //
+DELIMITER ;
+
+DROP PROCEDURE IF EXISTS sp_create_subcategory;
+DELIMITER //
+CREATE PROCEDURE sp_create_subcategory (
+  IN p_category_id INT,
+  IN p_name VARCHAR(100)
+)
+BEGIN
+  INSERT INTO blog_categories (parent_id, name) VALUES (p_category_id, p_name);
+  SELECT id, parent_id AS category_id, name, created_at FROM blog_categories WHERE id = LAST_INSERT_ID();
+END //
+DELIMITER ;
+
+DROP PROCEDURE IF EXISTS sp_get_subcategories;
+DELIMITER //
+CREATE PROCEDURE sp_get_subcategories ()
+BEGIN
+  SELECT id, parent_id AS category_id, name, created_at FROM blog_categories WHERE parent_id IS NOT NULL ORDER BY parent_id ASC, name ASC;
+END //
+DELIMITER ;
+
+DROP PROCEDURE IF EXISTS sp_delete_subcategory;
+DELIMITER //
+CREATE PROCEDURE sp_delete_subcategory (
+  IN p_id INT
+)
+BEGIN
+  DELETE FROM blog_categories WHERE id = p_id;
+  SELECT ROW_COUNT() AS deleted_count;
+END //
+DELIMITER ;

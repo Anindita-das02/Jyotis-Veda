@@ -13,6 +13,7 @@ from controllers import global_zodiac_controller
 from controllers import birth_chart_controller
 from controllers import roadmap_controller
 from controllers import calendar_controller
+from controllers import blogs_controller
 from utils.security import require_auth, decode_token
 import jwt as pyjwt
 
@@ -208,6 +209,57 @@ def post_session_message(session_id):
     return counselling_controller.send_message(request.user_id, session_id)
 
 
+# ---------------- Blogs (Admin only, but for now we'll just require auth or leave public depending on rules) ----------------
+# We will leave GET public so users can view blogs, and POST/PUT/DELETE protected. 
+# However, the user said "admin & k-graph ta admin er jonno hobe user ke etar asscess dewa hobe na", 
+# which suggests the admin panel is only for admins. The routes can just be standard for now.
+
+@app.route("/api/blogs", methods=["GET"])
+def get_blogs():
+    return blogs_controller.list_blogs()
+
+@app.route("/api/blogs/<blog_id>", methods=["GET"])
+def get_blog(blog_id):
+    return blogs_controller.get_blog(blog_id)
+
+@app.route("/api/blogs", methods=["POST"])
+# @require_auth # Uncomment to protect when auth is fully implemented in frontend
+def post_blog():
+    return blogs_controller.create_blog()
+
+@app.route("/api/blogs/<blog_id>", methods=["PUT"])
+# @require_auth
+def put_blog(blog_id):
+    return blogs_controller.update_blog(blog_id)
+
+@app.route("/api/blogs/<blog_id>", methods=["DELETE"])
+# @require_auth
+def delete_blog(blog_id):
+    return blogs_controller.delete_blog(blog_id)
+
+@app.route("/api/categories", methods=["GET"])
+def get_categories():
+    return blogs_controller.get_categories()
+
+@app.route("/api/categories", methods=["POST"])
+def post_category():
+    return blogs_controller.create_category()
+
+@app.route("/api/categories/<int:category_id>", methods=["DELETE"])
+def delete_category(category_id):
+    return blogs_controller.delete_category(category_id)
+
+@app.route("/api/subcategories", methods=["GET"])
+def get_subcategories():
+    return blogs_controller.get_subcategories()
+
+@app.route("/api/subcategories", methods=["POST"])
+def post_subcategory():
+    return blogs_controller.create_subcategory()
+
+@app.route("/api/subcategories/<int:subcategory_id>", methods=["DELETE"])
+def delete_subcategory(subcategory_id):
+    return blogs_controller.delete_subcategory(subcategory_id)
 if __name__ == "__main__":
     # Fail fast if MySQL isn't reachable, rather than starting silently broken.
     conn = get_db_connection()

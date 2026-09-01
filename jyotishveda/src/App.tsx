@@ -11,6 +11,7 @@ import { AICounsellorChat } from './components/AICounsellorChat';
 import { LifeRoadmapView } from './components/LifeRoadmapView';
 import { ConsultationsPaymentView } from './components/ConsultationsPaymentView';
 import { AdminKGraphView } from './components/AdminKGraphView';
+import { AdminBlogsView } from './components/AdminBlogsView';
 import PanjikaCalendarView from './components/PanjikaCalendarView';
 
 import { API_ENDPOINTS } from './config/api_config';
@@ -604,6 +605,7 @@ export function App() {
         language={language}
         setLanguage={setLanguage}
         onLogout={handleLogout}
+        isAdmin={authUser?.role === 'admin'}
       />
 
       {/* Main Container */}
@@ -725,7 +727,11 @@ export function App() {
               />
             )}
 
-            {activeTab === 'admin' && (
+            {activeTab === 'blogs' && authUser?.role === 'admin' && (
+              <AdminBlogsView theme={theme} />
+            )}
+
+            {activeTab === 'admin' && authUser?.role === 'admin' && (
               <AdminKGraphView
                 nodes={kGraphNodes}
                 setNodes={setKGraphNodes}
