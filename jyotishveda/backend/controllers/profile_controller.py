@@ -93,7 +93,7 @@ def _extract_and_validate(body):
 
 
 def list_profiles(user_id: str):
-    rows = call_procedure("sp_get_profiles", [user_id])
+    rows = call_procedure("sp_profile_ops", ['get_all', '', user_id, '', '', '2000-01-01', '00:00:00', '', 0, 0, 0, '[]', '', '', ''])
     return jsonify({"status": "success", "data": [_row_to_profile(r) for r in rows]})
 
 
@@ -104,12 +104,7 @@ def create_profile(user_id: str):
         return err
 
     profile_id = str(uuid.uuid4())
-    rows = call_procedure("sp_create_profile", [
-        profile_id, user_id, data["full_name"], data["gender"], data["birth_date"],
-        data["birth_time"], data["birth_place"], data["latitude"], data["longitude"],
-        data["timezone_offset"], data["focus_areas"], data["notes"],
-        data["horoscope_system"], data["relation_label"],
-    ])
+    rows = call_procedure("sp_profile_ops", ['create', profile_id, user_id, p_data["full_name"], p_data["gender"], p_data["birth_date"], p_data["birth_time"], p_data["birth_place"], p_data["latitude"], p_data["longitude"], p_data["timezone_offset"], p_data["focus_areas"], p_data.get("notes", ""), p_data.get("horoscope_system", "vedic"), p_data.get("relation_label", "Self")])
     if not rows:
         return _error("Could not create profile", "CREATE_FAILED", 500)
 
@@ -122,12 +117,7 @@ def update_profile(user_id: str, profile_id: str):
     if err:
         return err
 
-    rows = call_procedure("sp_update_profile", [
-        profile_id, user_id, data["full_name"], data["gender"], data["birth_date"],
-        data["birth_time"], data["birth_place"], data["latitude"], data["longitude"],
-        data["timezone_offset"], data["focus_areas"], data["notes"],
-        data["horoscope_system"], data["relation_label"],
-    ])
+    rows = call_procedure("sp_profile_ops", ['update', profile_id, user_id, p_data["full_name"], p_data["gender"], p_data["birth_date"], p_data["birth_time"], p_data["birth_place"], p_data["latitude"], p_data["longitude"], p_data["timezone_offset"], p_data["focus_areas"], p_data.get("notes", ""), p_data.get("horoscope_system", "vedic"), p_data.get("relation_label", "Self")])
     if not rows:
         return _error("Profile not found", "NOT_FOUND", 404)
 
@@ -135,7 +125,7 @@ def update_profile(user_id: str, profile_id: str):
 
 
 def delete_profile(user_id: str, profile_id: str):
-    rows = call_procedure("sp_delete_profile", [profile_id, user_id])
+    rows = call_procedure("sp_profile_ops", ['delete', profile_id, user_id, '', '', '2000-01-01', '00:00:00', '', 0, 0, 0, '[]', '', '', ''])
     deleted = rows[0]["deleted_count"] if rows else 0
     if not deleted:
         return _error("Profile not found", "NOT_FOUND", 404)

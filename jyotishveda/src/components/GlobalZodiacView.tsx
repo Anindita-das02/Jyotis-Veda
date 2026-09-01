@@ -21,7 +21,8 @@ import {
   RefreshCw,
   Zap,
 } from 'lucide-react';
-import { ZODIAC_SIGNS, ZodiacSign, calculateZodiacCompatibility, ZodiacCompatibilityResult } from '../services/zodiacData';
+import { ZodiacSign, calculateZodiacCompatibility, ZodiacCompatibilityResult } from '../services/zodiacData';
+import { useZodiacData } from '../hooks/useZodiacData';
 import { getTranslation } from '../services/translations';
 import { API_ENDPOINTS } from '../config/api_config';
 import { API_BASE_URL } from '../services/api';
@@ -68,6 +69,8 @@ export const GlobalZodiacView: React.FC<GlobalZodiacViewProps> = ({
   onAskAIForSign,
   theme = 'dark',
 }) => {
+  const { zodiacs, loading, error } = useZodiacData();
+
   const [selectedElement, setSelectedElement] = useState<'All' | 'Fire' | 'Earth' | 'Air' | 'Water'>('All');
   const [timeframe, setTimeframe] = useState<'today' | 'week' | 'month' | 'year'>('today');
   const [zodiacSystem, setZodiacSystem] = useState<'tropical' | 'sidereal'>('tropical');
@@ -75,6 +78,14 @@ export const GlobalZodiacView: React.FC<GlobalZodiacViewProps> = ({
   const [hasSelectedSign, setHasSelectedSign] = useState(false);
   const [isScreenLoading, setIsScreenLoading] = useState(false);
   const deepDiveRef = React.useRef<HTMLDivElement>(null);
+  
+  // Compatibility state
+  const [compatSignA, setCompatSignA] = useState<string>('aries');
+  const [compatSignB, setCompatSignB] = useState<string>('leo');
+
+  // Dynamic AI Forecast state
+  const [dynamicZodiacData, setDynamicZodiacData] = useState<Record<string, any>>({});
+  const [isFetchingForecast, setIsFetchingForecast] = useState(false);
 
   useEffect(() => {
     let signId = 'aries';
@@ -90,36 +101,24 @@ export const GlobalZodiacView: React.FC<GlobalZodiacViewProps> = ({
     // Find highest compatibility match
     let bestMatchId = signId === 'aries' ? 'leo' : 'aries';
     let maxScore = -1;
-    for (const sign of ZODIAC_SIGNS) {
-      if (sign.id === signId) continue;
-      const res = calculateZodiacCompatibility(signId, sign.id, zodiacSystem);
-      if (res.overallScore > maxScore) {
-        maxScore = res.overallScore;
-        bestMatchId = sign.id;
+    if (zodiacs && zodiacs.length > 0) {
+      for (const sign of zodiacs) {
+        if (sign.id === signId) continue;
+        const res = calculateZodiacCompatibility(signId, sign.id, zodiacSystem, zodiacs);
+        if (res.overallScore > maxScore) {
+          maxScore = res.overallScore;
+          bestMatchId = sign.id;
+        }
       }
     }
     setCompatSignB(bestMatchId);
-  }, [profile, chartData, zodiacSystem]);
+  }, [profile, chartData, zodiacSystem, zodiacs]);
 
-  // Compatibility state
-  const [compatSignA, setCompatSignA] = useState<string>('aries');
-  const [compatSignB, setCompatSignB] = useState<string>('leo');
-
-  // Dynamic AI Forecast state
-  const [dynamicZodiacData, setDynamicZodiacData] = useState<Record<string, any>>({});
-  const [isFetchingForecast, setIsFetchingForecast] = useState(false);
-
-  const filteredSigns = ZODIAC_SIGNS.filter(
-    (s) => selectedElement === 'All' || s.element === selectedElement
-  );
-
-  const activeSign = ZODIAC_SIGNS.find((s) => s.id === selectedSignId) || ZODIAC_SIGNS[0];
-  const compatResult: ZodiacCompatibilityResult = calculateZodiacCompatibility(compatSignA, compatSignB, zodiacSystem);
-
-  const t = (key: string) => getTranslation(key, language);
+  const activeSign = (zodiacs && zodiacs.length > 0) ? (zodiacs.find((s) => s.id === selectedSignId) || zodiacs[0]) : null;
 
   React.useEffect(() => {
     const fetchForecast = async () => {
+      if (!activeSign) return;
       const cacheKey = `${activeSign.id}-${timeframe}-${language}`;
       if (dynamicZodiacData[cacheKey]) return; // Already fetched
 
@@ -142,7 +141,32 @@ export const GlobalZodiacView: React.FC<GlobalZodiacViewProps> = ({
     };
 
     fetchForecast();
-  }, [activeSign.id, activeSign.name, timeframe, language]);
+  }, [activeSign?.id, activeSign?.name, timeframe, language]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center p-12 text-[#C9A050]">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#C9A050] mr-3"></div>
+        <span>Aligning Stars...</span>
+      </div>
+    );
+  }
+  
+  if (error) {
+    return <div className="text-red-500 p-4">Error loading zodiacs: {error}</div>;
+  }
+  
+  if (!zodiacs || !zodiacs.length || !activeSign) return null;
+
+  const filteredSigns = zodiacs.filter(
+    (s) => selectedElement === 'All' || s.element === selectedElement
+  );
+
+  const compatResult: ZodiacCompatibilityResult = calculateZodiacCompatibility(compatSignA, compatSignB, zodiacSystem, zodiacs);
+
+  const t = (key: string) => getTranslation(key, language);
+
+
 
   const currentDynamicData = dynamicZodiacData[`${activeSign.id}-${timeframe}-${language}`];
 

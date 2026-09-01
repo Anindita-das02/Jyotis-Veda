@@ -65,7 +65,7 @@ def save_numerology(user_id: str):
 
 
 def get_numerology(user_id: str, profile_id: str):
-    rows = call_procedure("sp_get_numerology", [profile_id, user_id])
+    rows = call_procedure("sp_numerology_ops", ['get', '', profile_id, user_id, 0, 0, 0, 0, '[]'])
     if not rows:
         return _error("No saved numerology report for this profile", "NOT_FOUND", 404)
 

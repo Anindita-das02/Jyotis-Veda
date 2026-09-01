@@ -1,11 +1,17 @@
 import React, { useState, useRef } from 'react';
 import { Heart, ChevronDown } from 'lucide-react';
 import { getTranslation } from '../services/translations';
-import { ZODIAC_SIGNS, calculateZodiacCompatibility, ZodiacCompatibilityResult } from '../services/zodiacData';
+import { calculateZodiacCompatibility, ZodiacCompatibilityResult } from '../services/zodiacData';
+import { useZodiacData } from '../hooks/useZodiacData';
 
-const CustomZodiacSelect = ({ value, onChange, theme, label }: any) => {
+const CustomZodiacSelect = ({ value, onChange, theme, label, zodiacs }: any) => {
   const [isOpen, setIsOpen] = useState(false);
-  const selectedSign = ZODIAC_SIGNS.find(s => s.id === value) || ZODIAC_SIGNS[0];
+  
+  if (!zodiacs || !zodiacs.length) {
+    return <div className="text-center p-4 text-[#C9A050]">Loading...</div>;
+  }
+  const selectedSign = zodiacs.find((s: any) => s.id === value) || zodiacs[0];
+    
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   React.useEffect(() => {
@@ -44,7 +50,7 @@ const CustomZodiacSelect = ({ value, onChange, theme, label }: any) => {
             ? 'bg-[#1C1C22] border-[#2A2A2E]'
             : 'bg-[#FFFFFF] border-[#E5E1D8] shadow-black/5'
         }`}>
-          {ZODIAC_SIGNS.map((s) => (
+          {zodiacs.map((s) => (
             <div
               key={s.id}
               onClick={() => {
@@ -88,8 +94,13 @@ export const ZodiacCompatibilityMatrix: React.FC<ZodiacCompatibilityMatrixProps>
   const [isCompatLoading, setIsCompatLoading] = useState(false);
   const [hasAnalyzed, setHasAnalyzed] = useState(false);
   const compatResultRef = useRef<HTMLDivElement>(null);
+  const { zodiacs, loading } = useZodiacData();
 
-  const compatResult: ZodiacCompatibilityResult = calculateZodiacCompatibility(compatSignA, compatSignB, zodiacSystem);
+  if (loading || !zodiacs || zodiacs.length === 0) {
+    return <div className="flex justify-center p-10"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#C9A050]"></div></div>;
+  }
+
+  const compatResult: ZodiacCompatibilityResult = calculateZodiacCompatibility(compatSignA, compatSignB, zodiacSystem, zodiacs);
 
   return (
     <div className={`mt-6 p-6 rounded-2xl border shadow-lg space-y-6 transition-all ${isDark ? 'bg-[#141418]/90 border-[#2A2A2E] shadow-black/40' : 'bg-[#FFFFFF]/90 border-[#E5E1D8] shadow-amber-900/5'}`}>
@@ -114,6 +125,7 @@ export const ZodiacCompatibilityMatrix: React.FC<ZodiacCompatibilityMatrixProps>
               }}
               theme={theme}
               label={t('zodiac.sign_a')}
+              zodiacs={zodiacs}
             />
           </div>
 
@@ -126,6 +138,7 @@ export const ZodiacCompatibilityMatrix: React.FC<ZodiacCompatibilityMatrixProps>
               }}
               theme={theme}
               label={t('zodiac.sign_b')}
+              zodiacs={zodiacs}
             />
           </div>
           

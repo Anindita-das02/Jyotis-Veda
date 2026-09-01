@@ -33,7 +33,7 @@ def _row_to_message(row: dict) -> dict:
 
 
 def list_sessions(user_id: str):
-    rows = call_procedure("sp_get_ai_sessions", [user_id])
+    rows = call_procedure("sp_ai_ops", ['get_sessions', '', user_id, '', '', '', '', ''])
     return jsonify({"status": "success", "data": [_row_to_session(r) for r in rows]})
 
 
@@ -51,7 +51,7 @@ def create_session(user_id: str):
         return _error("Profile not found", "NOT_FOUND", 404)
 
     session_id = str(uuid.uuid4())
-    rows = call_procedure("sp_create_ai_session", [session_id, user_id, profile_id, tradition, title])
+    rows = call_procedure("sp_ai_ops", ['create_session', session_id, user_id, profile_id, tradition, title, '', ''])
     if not rows:
         return _error("Could not create session", "CREATE_FAILED", 500)
 
@@ -64,7 +64,7 @@ def rename_session(user_id: str, session_id: str):
     if not title:
         return _error("title is required", "VALIDATION_ERROR")
 
-    rows = call_procedure("sp_rename_ai_session", [session_id, user_id, title])
+    rows = call_procedure("sp_ai_ops", ['rename_session', session_id, user_id, '', '', title, '', ''])
     if not rows:
         return _error("Session not found", "NOT_FOUND", 404)
 
@@ -72,7 +72,7 @@ def rename_session(user_id: str, session_id: str):
 
 
 def delete_session(user_id: str, session_id: str):
-    rows = call_procedure("sp_delete_ai_session", [session_id, user_id])
+    rows = call_procedure("sp_ai_ops", ['delete_session', session_id, user_id, '', '', '', '', ''])
     deleted = rows[0]["deleted_count"] if rows else 0
     if not deleted:
         return _error("Session not found", "NOT_FOUND", 404)
@@ -81,11 +81,11 @@ def delete_session(user_id: str, session_id: str):
 
 
 def get_messages(user_id: str, session_id: str):
-    session_rows = call_procedure("sp_get_ai_session", [session_id, user_id])
+    session_rows = call_procedure("sp_ai_ops", ['get_session', session_id, user_id, '', '', '', '', ''])
     if not session_rows:
         return _error("Session not found", "NOT_FOUND", 404)
 
-    rows = call_procedure("sp_get_ai_messages", [session_id])
+    rows = call_procedure("sp_ai_ops", ['get_messages', session_id, '', '', '', '', '', ''])
     return jsonify({"status": "success", "data": [_row_to_message(r) for r in rows]})
 
 
@@ -103,7 +103,7 @@ def send_message(user_id: str, session_id: str):
     if not text:
         return _error("message is required", "VALIDATION_ERROR")
 
-    session_rows = call_procedure("sp_get_ai_session", [session_id, user_id])
+    session_rows = call_procedure("sp_ai_ops", ['get_session', session_id, user_id, '', '', '', '', ''])
     if not session_rows:
         return _error("Session not found", "NOT_FOUND", 404)
     session = session_rows[0]
@@ -111,7 +111,7 @@ def send_message(user_id: str, session_id: str):
     # Persist the user's message first, regardless of what happens next.
     call_procedure("sp_create_ai_message", [str(uuid.uuid4()), session_id, "user", text])
 
-    history_rows = call_procedure("sp_get_ai_messages", [session_id])
+    history_rows = call_procedure("sp_ai_ops", ['get_messages', session_id, '', '', '', '', '', ''])
     history = [{"role": r["role"], "content": r["content"]} for r in history_rows]
 
     rag_hits = rag_service.retrieve(text)
@@ -129,7 +129,7 @@ def send_message(user_id: str, session_id: str):
         return _error(str(e), "LLM_UNAVAILABLE", 503)
 
     assistant_rows = call_procedure("sp_create_ai_message", [str(uuid.uuid4()), session_id, "assistant", reply_text])
-    call_procedure("sp_touch_ai_session", [session_id])
+    call_procedure("sp_ai_ops", ['touch_session', session_id, '', '', '', '', '', ''])
 
     return jsonify({
         "status": "success",

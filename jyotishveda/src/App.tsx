@@ -11,6 +11,10 @@ import { LifeRoadmapView } from './components/LifeRoadmapView';
 import { ConsultationsPaymentView } from './components/ConsultationsPaymentView';
 import { AdminKGraphView } from './components/AdminKGraphView';
 import { AdminBlogsView } from './components/AdminBlogsView';
+import { AdminDashboardView } from './components/AdminDashboardView';
+import { AdminUsersView } from './components/AdminUsersView';
+import { AdminLogsView } from './components/AdminLogsView';
+import { AdminRevenueView } from './components/AdminRevenueView';
 import PanjikaCalendarView from './components/PanjikaCalendarView';
 
 import { API_ENDPOINTS } from './config/api_config';
@@ -126,6 +130,13 @@ export function App() {
 
   const [activeTab, setActiveTab] = useState<string>('daily');
 
+  useEffect(() => {
+    if (authUser?.role === 'admin') {
+      setActiveTab('admin_dashboard');
+    } else {
+      setActiveTab('daily');
+    }
+  }, [authUser]);
   // Scroll to top when navigating between pages/tabs
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -569,6 +580,22 @@ export function App() {
 
             {activeTab === 'panjika' && (
               <PanjikaCalendarView theme={theme} />
+            )}
+
+            {activeTab === 'admin_dashboard' && (
+              <AdminDashboardView theme={theme} />
+            )}
+
+            {activeTab === 'admin_users' && (
+              <AdminUsersView theme={theme} />
+            )}
+
+            {activeTab === 'admin_logs' && (
+              <AdminLogsView theme={theme} />
+            )}
+
+            {activeTab === 'admin_revenue' && (
+              <AdminRevenueView theme={theme} />
             )}
 
             {activeTab === 'horoscope' && (

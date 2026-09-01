@@ -21,6 +21,9 @@ import {
   LogOut,
   Calendar,
   FileText,
+  Users,
+  Terminal,
+  Wallet,
 } from 'lucide-react';
 import { UserProfile, HoroscopeTradition } from '../types';
 import { AncientTraditionLogo } from './AncientTraditionLogo';
@@ -83,17 +86,20 @@ export const Navbar: React.FC<NavbarProps> = ({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const tabs = [
+  const tabs = isAdmin ? [
+    { id: 'admin_dashboard', label: 'Dashboard', icon: Network },
+    { id: 'admin_users', label: 'Users', icon: Users },
+    { id: 'admin_revenue', label: 'Revenue', icon: Wallet },
+    { id: 'admin_logs', label: 'Logs', icon: Terminal },
+    { id: 'blogs', label: 'Blogs', icon: FileText },
+    { id: 'admin', label: t('tab.admin'), icon: Network }
+  ] : [
     { id: 'daily', label: t('tab.daily'), icon: Sun },
     { id: 'horoscope', label: t('tab.horoscope'), icon: Compass },
     { id: 'matchmaking', label: t('tab.matchmaking'), icon: HeartHandshake },
     { id: 'numerology', label: t('tab.numerology'), icon: Hash },
     { id: 'roadmap', label: t('tab.roadmap'), icon: Milestone },
     { id: 'consultations', label: t('tab.consultations'), icon: CreditCard },
-    ...(isAdmin ? [
-      { id: 'blogs', label: 'Blogs', icon: FileText },
-      { id: 'admin', label: t('tab.admin'), icon: Network }
-    ] : []),
   ];
 
   return (

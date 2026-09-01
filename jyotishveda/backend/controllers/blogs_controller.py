@@ -9,7 +9,7 @@ def list_blogs():
     
     try:
         cursor = conn.cursor(dictionary=True)
-        cursor.callproc('sp_get_blogs')
+        cursor.callproc('sp_blog_ops', ('get_all', 0, '', '', '', '', '', '', '', '[]', 0))
         
         blogs = []
         for result in cursor.stored_results():
@@ -40,7 +40,7 @@ def get_blog(blog_id):
         
     try:
         cursor = conn.cursor(dictionary=True)
-        cursor.callproc('sp_get_blog', (blog_id,))
+        cursor.callproc('sp_blog_ops', ('get_one', blog_id, '', '', '', '', '', '', '', '[]', 0))
         
         blog = None
         for result in cursor.stored_results():
@@ -80,6 +80,8 @@ def create_blog():
         tags_json = json.dumps(data.get('tags', []))
         
         args = (
+            'create',
+            0,
             data.get('title'),
             data.get('content'),
             data.get('preview'),
@@ -91,7 +93,7 @@ def create_blog():
             1 if data.get('pinned') else 0
         )
         
-        cursor.callproc('sp_create_blog', args)
+        cursor.callproc('sp_blog_ops', args)
         conn.commit()
         
         new_blog = None
@@ -128,6 +130,7 @@ def update_blog(blog_id):
         tags_json = json.dumps(data.get('tags', []))
         
         args = (
+            'update',
             blog_id,
             data.get('title'),
             data.get('content'),
@@ -140,7 +143,7 @@ def update_blog(blog_id):
             1 if data.get('pinned') else 0
         )
         
-        cursor.callproc('sp_update_blog', args)
+        cursor.callproc('sp_blog_ops', args)
         conn.commit()
         
         updated_blog = None
@@ -172,7 +175,7 @@ def delete_blog(blog_id):
         
     try:
         cursor = conn.cursor(dictionary=True)
-        cursor.callproc('sp_delete_blog', (blog_id,))
+        cursor.callproc('sp_blog_ops', ('delete', blog_id, '', '', '', '', '', '', '', '[]', 0))
         conn.commit()
         
         deleted_count = 0
@@ -202,7 +205,7 @@ def get_categories():
     conn = get_db_connection()
     try:
         cursor = conn.cursor(dictionary=True)
-        cursor.callproc('sp_get_categories')
+        cursor.callproc('sp_category_ops', ('get_cats', 0, '', 0))
         categories = []
         for result in cursor.stored_results():
             categories = result.fetchall()
@@ -222,7 +225,7 @@ def create_category():
     conn = get_db_connection()
     try:
         cursor = conn.cursor(dictionary=True)
-        cursor.callproc('sp_create_category', (name,))
+        cursor.callproc('sp_category_ops', ('create_cat', 0, name, 0))
         conn.commit()
         new_category = None
         for result in cursor.stored_results():
@@ -239,7 +242,7 @@ def delete_category(category_id):
     conn = get_db_connection()
     try:
         cursor = conn.cursor(dictionary=True)
-        cursor.callproc('sp_delete_category', (category_id,))
+        cursor.callproc('sp_category_ops', ('delete', category_id, '', 0))
         conn.commit()
         return jsonify({"status": "success", "message": "Category deleted successfully"}), 200
     except Exception as e:
@@ -253,7 +256,7 @@ def get_subcategories():
     conn = get_db_connection()
     try:
         cursor = conn.cursor(dictionary=True)
-        cursor.callproc('sp_get_subcategories')
+        cursor.callproc('sp_category_ops', ('get_subcats', 0, '', 0))
         subcategories = []
         for result in cursor.stored_results():
             subcategories = result.fetchall()
@@ -274,7 +277,7 @@ def create_subcategory():
     conn = get_db_connection()
     try:
         cursor = conn.cursor(dictionary=True)
-        cursor.callproc('sp_create_subcategory', (category_id, name))
+        cursor.callproc('sp_category_ops', ('create_subcat', 0, name, category_id))
         conn.commit()
         new_sub = None
         for result in cursor.stored_results():
@@ -291,7 +294,7 @@ def delete_subcategory(subcategory_id):
     conn = get_db_connection()
     try:
         cursor = conn.cursor(dictionary=True)
-        cursor.callproc('sp_delete_subcategory', (subcategory_id,))
+        cursor.callproc('sp_category_ops', ('delete', subcategory_id, '', 0))
         conn.commit()
         return jsonify({"status": "success", "message": "Subcategory deleted successfully"}), 200
     except Exception as e:

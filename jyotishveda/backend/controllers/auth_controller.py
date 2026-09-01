@@ -30,7 +30,7 @@ def register():
     password_hash = hash_password(password)
 
     try:
-        rows = call_procedure("sp_create_user", [user_id, email, password_hash, full_name])
+        rows = call_procedure("sp_user_ops", ['create', user_id, email, password_hash, full_name])
     except IntegrityError:
         return _error("An account with this email already exists", "EMAIL_TAKEN", 409)
 
@@ -59,7 +59,7 @@ def login():
     email = (body.get("email") or "").strip().lower()
     password = body.get("password") or ""
 
-    rows = call_procedure("sp_get_user_by_email", [email])
+    rows = call_procedure("sp_user_ops", ['get_by_email', '', email, '', ''])
     if not rows:
         return _error("Invalid email or password", "INVALID_CREDENTIALS", 401)
 
@@ -86,7 +86,7 @@ def login():
 
 
 def me(user_id):
-    rows = call_procedure("sp_get_user", [user_id])
+    rows = call_procedure("sp_user_ops", ['get_by_id', user_id, '', '', ''])
     if not rows:
         return _error("User not found", "NOT_FOUND", 404)
 

@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Sparkles, MessageSquareText, X, Send, Bot, Lock, Compass, Hash, Milestone, ShieldAlert, Sun, Moon, Home, Globe, Calendar, Play, RotateCcw } from 'lucide-react';
-import { ZODIAC_SIGNS } from '../services/zodiacData';
+import { useZodiacData } from '../hooks/useZodiacData';
 import { StarfieldBackground } from './StarfieldBackground';
 import { GlobalZodiacView } from './GlobalZodiacView';
 import PanjikaCalendarView from './PanjikaCalendarView';

@@ -1154,7 +1154,7 @@ def create_match_report(user_id: str):
 def list_match_reports(user_id: str):
     """Lists saved matchmaking reports for the current user."""
     try:
-        rows = call_procedure("sp_get_match_reports", [user_id])
+        rows = call_procedure("sp_matchmaking_ops", ['get_all', '', user_id, '', '2000-01-01', '', '2000-01-01', 0, 0, '', '[]'])
         return jsonify({
             "status": "success",
             "data": [_row_to_summary(r) for r in rows]
@@ -1166,7 +1166,7 @@ def list_match_reports(user_id: str):
 def get_match_report(user_id: str, report_id: str):
     """Retrieves full matchmaking report details by ID."""
     try:
-        rows = call_procedure("sp_get_match_report", [report_id, user_id])
+        rows = call_procedure("sp_matchmaking_ops", ['get_one', report_id, user_id, '', '2000-01-01', '', '2000-01-01', 0, 0, '', '[]'])
         if not rows:
             return _error("Match report not found", "NOT_FOUND", 404)
 
@@ -1181,7 +1181,7 @@ def get_match_report(user_id: str, report_id: str):
 def download_match_report_pdf(user_id: str, report_id: str):
     """Generates and downloads PDF Kundli Milan match report."""
     try:
-        rows = call_procedure("sp_get_match_report", [report_id, user_id])
+        rows = call_procedure("sp_matchmaking_ops", ['get_one', report_id, user_id, '', '2000-01-01', '', '2000-01-01', 0, 0, '', '[]'])
         if not rows:
             return _error("Match report not found", "NOT_FOUND", 404)
 

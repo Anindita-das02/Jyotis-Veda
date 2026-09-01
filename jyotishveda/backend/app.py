@@ -2,7 +2,6 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 
 from database.db_connection import get_db_connection
-from controllers.sample import get_sample_data
 from controllers import auth_controller
 from controllers import profile_controller
 from controllers import numerology_controller
@@ -15,7 +14,9 @@ from controllers import roadmap_controller
 from controllers import calendar_controller
 from controllers import blogs_controller
 from controllers import landing_chat_controller
+from controllers import admin_controller
 from utils.security import require_auth, decode_token
+from controllers import knowledge_graph_controller
 import jwt as pyjwt
 
 app = Flask(__name__)
@@ -36,6 +37,10 @@ def daily_horoscope():
 @app.route("/zodiac/global-forecast", methods=["POST"])
 def zodiac_forecast():
     return global_zodiac_controller.zodiac_forecast()
+
+@app.route("/api/zodiac/all", methods=["GET"])
+def get_all_zodiacs():
+    return global_zodiac_controller.get_all_zodiacs()
 
 @app.route("/birth-chart/generate", methods=["POST"])
 def calculate_ephemeris_chart():
@@ -69,7 +74,12 @@ def home():
 
 @app.route("/health")
 def health():
-    return get_sample_data()
+    return jsonify({
+        "status": "success",
+        "data": {
+            "message": "JyotishVeda API is healthy",
+        },
+    })
 
 
 # ---------------- Auth ----------------
@@ -265,6 +275,76 @@ def post_subcategory():
 @app.route("/api/subcategories/<int:subcategory_id>", methods=["DELETE"])
 def delete_subcategory(subcategory_id):
     return blogs_controller.delete_subcategory(subcategory_id)
+
+@app.route("/api/admin/dashboard-stats", methods=["GET"])
+# @require_auth # Protect this when auth is ready
+def get_dashboard_stats():
+    return admin_controller.get_dashboard_stats()
+
+@app.route("/api/admin/users", methods=["GET"])
+# @require_auth
+def get_all_users():
+    return admin_controller.get_all_users()
+
+@app.route("/api/admin/users/<user_id>/role", methods=["PUT"])
+# @require_auth
+def update_user_role(user_id):
+    data = request.json
+    return admin_controller.update_user_role(user_id, data.get('role'))
+
+@app.route("/api/admin/users/<user_id>/status", methods=["PUT"])
+# @require_auth
+def update_user_status(user_id):
+    data = request.json
+    return admin_controller.update_user_status(user_id, data.get('is_active'))
+
+@app.route("/api/admin/users/<user_id>", methods=["DELETE"])
+# @require_auth
+def delete_user(user_id):
+    return admin_controller.delete_user(user_id)
+
+@app.route("/api/admin/logs/ai", methods=["GET"])
+# @require_auth
+def get_ai_logs():
+    return admin_controller.get_ai_logs()
+
+@app.route("/api/admin/logs/system", methods=["GET"])
+# @require_auth
+def get_system_logs():
+    return admin_controller.get_system_logs()
+
+@app.route("/api/admin/revenue/stats", methods=["GET"])
+# @require_auth
+def get_revenue_stats():
+    return admin_controller.get_revenue_stats()
+
+@app.route("/api/admin/revenue/transactions", methods=["GET"])
+# @require_auth
+def get_all_transactions():
+    return admin_controller.get_all_transactions()
+
+@app.errorhandler(Exception)
+def handle_exception(e):
+    """Global error handler to catch exceptions and log them."""
+    import traceback
+    error_msg = f"{str(e)}\n{traceback.format_exc()}"
+    admin_controller.log_system_error('error', error_msg, 'flask_app')
+    return jsonify({"error": "Internal Server Error"}), 500
+
+# ---------------- Knowledge Graph ----------------
+
+@app.route("/api/knowledge-graph/stats", methods=["GET"])
+def get_kg_stats():
+    return knowledge_graph_controller.get_stats()
+
+@app.route("/api/knowledge-graph/nodes", methods=["GET"])
+def get_kg_nodes():
+    return knowledge_graph_controller.get_nodes()
+
+@app.route("/api/knowledge-graph/nodes/<node_id>", methods=["GET"])
+def get_kg_node(node_id):
+    return knowledge_graph_controller.get_node(node_id)
+
 if __name__ == "__main__":
     # Fail fast if MySQL isn't reachable, rather than starting silently broken.
     conn = get_db_connection()
