@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, MessageSquareText, X, Send, Bot, Lock, Compass, Hash, Milestone, ShieldAlert, Sun, Moon, Home, Globe, Calendar, Play, RotateCcw } from 'lucide-react';
+import { Sparkles, MessageSquareText, X, Send, Bot, Lock, Compass, Hash, Milestone, ShieldAlert, Sun, Moon, Home, Globe, Calendar, Play, BookOpen, RotateCcw } from 'lucide-react';
 import { ZODIAC_SIGNS } from '../services/zodiacData';
 import { StarfieldBackground } from './StarfieldBackground';
 import { GlobalZodiacView } from './GlobalZodiacView';
@@ -8,6 +8,8 @@ import PanjikaCalendarView from './PanjikaCalendarView';
 import { ZodiacCompatibilityMatrix } from './ZodiacCompatibilityMatrix';
 import { Footer } from './Footer';
 import { FeaturePreviewModal, PREMIUM_FEATURES_CATALOG, PremiumFeatureDetail } from './FeaturePreviewModal';
+import { BlogCarousel } from './BlogCarousel';
+import { BlogPage } from './BlogPage';
 
 interface LandingPageProps {
   onLoginClick: () => void;
@@ -51,6 +53,7 @@ export function LandingPage({ onLoginClick, onRegisterClick, onOpenDisclaimer, t
   });
 
   const [selectedFeatureForPreview, setSelectedFeatureForPreview] = useState<PremiumFeatureDetail | null>(null);
+  const [currentView, setCurrentView] = useState<'landing' | 'blogs'>('landing');
   const chatEndRef = useRef<HTMLDivElement>(null);
 
   const [activeSection, setActiveSection] = useState<string>('hero-section');
@@ -68,6 +71,12 @@ export function LandingPage({ onLoginClick, onRegisterClick, onOpenDisclaimer, t
     } catch (e) {}
   }, [messages, msgCount, savedDob]);
 
+  useEffect(() => {
+    if (isChatOpen) {
+      chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [messages, isAiThinking, isChatOpen]);
+
   const handleResetChat = () => {
     try {
       localStorage.removeItem('jyotishveda_guest_chat_messages');
@@ -79,26 +88,46 @@ export function LandingPage({ onLoginClick, onRegisterClick, onOpenDisclaimer, t
     setSavedDob(null);
   };
 
-  useEffect(() => {
-    if (isChatOpen) {
-      chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }
-  }, [messages, isAiThinking, isChatOpen]);
-
   const scrollToSection = (id: string) => {
     setActiveSection(id);
+    if (currentView !== 'landing') {
+      setCurrentView('landing');
+      setTimeout(() => {
+        const element = document.getElementById(id);
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }, 50);
+      return;
+    }
+
     const element = document.getElementById(id);
     if (element) {
-      const navHeight = 80;
-      const elementPosition = element.getBoundingClientRect().top;
-      const offsetPosition = elementPosition + window.pageYOffset - navHeight;
-
-      window.scrollTo({
-        top: offsetPosition,
-        behavior: 'smooth'
-      });
+      element.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
   };
+
+  useEffect(() => {
+    if (currentView !== 'landing') return;
+
+    const handleScroll = () => {
+      const sections = ['hero-section', 'zodiac-section', 'panjika-section', 'blog-section', 'premium-section'];
+      const scrollPosition = window.scrollY + 120;
+
+      let currentSection = 'hero-section';
+      for (const section of sections) {
+        const element = document.getElementById(section);
+        if (element && element.offsetTop <= scrollPosition) {
+          currentSection = section;
+        }
+      }
+      setActiveSection(currentSection);
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    handleScroll();
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [currentView]);
 
   const handleSend = async () => {
     if (!input.trim()) return;
@@ -216,14 +245,42 @@ export function LandingPage({ onLoginClick, onRegisterClick, onOpenDisclaimer, t
 
   const handleAskAIForSign = (signName: string, promptText: string) => {
     setIsChatOpen(true);
-    if (msgCount >= 10) return;
+    if (msgCount >= 3) {
+      setMessages(prev => [
+        ...prev,
+        { role: 'user', content: promptText },
+        { role: 'assistant', content: "Please login to unlock deep analysis and detailed celestial wisdom." }
+      ]);
+      return;
+    }
 
-    setMessages(prev => [...prev, { role: 'user', content: promptText }]);
+    const updatedMessages = [...messages, { role: 'user' as const, content: promptText }];
+    setMessages(updatedMessages);
     setMsgCount(prev => prev + 1);
+    setIsAiThinking(true);
 
-    setTimeout(() => {
-      setMessages(prev => [...prev, { role: 'assistant', content: "Please login to unlock deep AI analysis and detailed celestial wisdom." }]);
-    }, 1000);
+    try {
+      fetch('http://localhost:5001/api/public-chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          messages: updatedMessages,
+          msgCount: msgCount,
+          dob: savedDob
+        })
+      })
+        .then(res => res.json())
+        .then(data => {
+          if (data.dob) setSavedDob(data.dob);
+          setMessages(prev => [...prev, { role: 'assistant', content: data.reply }]);
+        })
+        .catch(() => {
+          setMessages(prev => [...prev, { role: 'assistant', content: "Ayushman Bhava! To reveal the precise planetary alignments for your query, please share your **Date of Birth (DD-MM-YYYY)** and **Birth Time**." }]);
+        })
+        .finally(() => setIsAiThinking(false));
+    } catch {
+      setIsAiThinking(false);
+    }
   };
 
   return (
@@ -256,7 +313,7 @@ export function LandingPage({ onLoginClick, onRegisterClick, onOpenDisclaimer, t
             <div className={`hidden lg:flex items-center space-x-1 px-1.5 py-1.5 rounded-full border backdrop-blur-md shadow-inner ${theme === 'dark' ? 'bg-[#141418]/60 border-[#2A2A2E]' : 'bg-white/60 border-gray-200/50'}`}>
               <button
                 onClick={() => scrollToSection('hero-section')}
-                className={`flex items-center space-x-1.5 px-4 py-2 rounded-full text-[13px] font-semibold transition-all cursor-pointer ${activeSection === 'hero-section'
+                className={`flex items-center space-x-1.5 px-4 py-2 rounded-full text-[13px] font-semibold transition-all cursor-pointer ${currentView === 'landing' && activeSection === 'hero-section'
                     ? 'text-[#0D0D0F] bg-[#C9A050] shadow-md shadow-[#C9A050]/20'
                     : theme === 'dark' ? 'text-[#9E9A90] hover:text-[#E5E1D8] hover:bg-white/5' : 'text-gray-600 hover:text-[#0D0D0F] hover:bg-black/5'
                   }`}
@@ -265,18 +322,8 @@ export function LandingPage({ onLoginClick, onRegisterClick, onOpenDisclaimer, t
                 <span>Home</span>
               </button>
               <button
-                onClick={() => scrollToSection('panjika-section')}
-                className={`flex items-center space-x-1.5 px-4 py-2 rounded-full text-[13px] font-semibold transition-all cursor-pointer ${activeSection === 'panjika-section'
-                    ? 'text-[#0D0D0F] bg-[#C9A050] shadow-md shadow-[#C9A050]/20'
-                    : theme === 'dark' ? 'text-[#9E9A90] hover:text-[#E5E1D8] hover:bg-white/5' : 'text-gray-600 hover:text-[#0D0D0F] hover:bg-black/5'
-                  }`}
-              >
-                <Calendar className="w-3.5 h-3.5" />
-                <span>Panjika</span>
-              </button>
-              <button
                 onClick={() => scrollToSection('zodiac-section')}
-                className={`flex items-center space-x-1.5 px-4 py-2 rounded-full text-[13px] font-semibold transition-all cursor-pointer ${activeSection === 'zodiac-section'
+                className={`flex items-center space-x-1.5 px-4 py-2 rounded-full text-[13px] font-semibold transition-all cursor-pointer ${currentView === 'landing' && activeSection === 'zodiac-section'
                     ? 'text-[#0D0D0F] bg-[#C9A050] shadow-md shadow-[#C9A050]/20'
                     : theme === 'dark' ? 'text-[#9E9A90] hover:text-[#E5E1D8] hover:bg-white/5' : 'text-gray-600 hover:text-[#0D0D0F] hover:bg-black/5'
                   }`}
@@ -285,8 +332,28 @@ export function LandingPage({ onLoginClick, onRegisterClick, onOpenDisclaimer, t
                 <span>Global Zodiac</span>
               </button>
               <button
+                onClick={() => scrollToSection('panjika-section')}
+                className={`flex items-center space-x-1.5 px-4 py-2 rounded-full text-[13px] font-semibold transition-all cursor-pointer ${currentView === 'landing' && activeSection === 'panjika-section'
+                    ? 'text-[#0D0D0F] bg-[#C9A050] shadow-md shadow-[#C9A050]/20'
+                    : theme === 'dark' ? 'text-[#9E9A90] hover:text-[#E5E1D8] hover:bg-white/5' : 'text-gray-600 hover:text-[#0D0D0F] hover:bg-black/5'
+                  }`}
+              >
+                <Calendar className="w-3.5 h-3.5" />
+                <span>Panjika</span>
+              </button>
+              <button
+                onClick={() => scrollToSection('blog-section')}
+                className={`flex items-center space-x-1.5 px-4 py-2 rounded-full text-[13px] font-semibold transition-all cursor-pointer ${currentView === 'landing' && activeSection === 'blog-section'
+                    ? 'text-[#0D0D0F] bg-[#C9A050] shadow-md shadow-[#C9A050]/20'
+                    : theme === 'dark' ? 'text-[#9E9A90] hover:text-[#E5E1D8] hover:bg-white/5' : 'text-gray-600 hover:text-[#0D0D0F] hover:bg-black/5'
+                  }`}
+              >
+                <BookOpen className="w-3.5 h-3.5" />
+                <span>Blog</span>
+              </button>
+              <button
                 onClick={() => scrollToSection('premium-section')}
-                className={`flex items-center space-x-1.5 px-4 py-2 rounded-full text-[13px] font-semibold transition-all cursor-pointer ${activeSection === 'premium-section'
+                className={`flex items-center space-x-1.5 px-4 py-2 rounded-full text-[13px] font-semibold transition-all cursor-pointer ${currentView === 'landing' && activeSection === 'premium-section'
                     ? 'text-[#0D0D0F] bg-[#C9A050] shadow-md shadow-[#C9A050]/20'
                     : theme === 'dark' ? 'text-[#9E9A90] hover:text-[#E5E1D8] hover:bg-white/5' : 'text-gray-600 hover:text-[#0D0D0F] hover:bg-black/5'
                   }`}
@@ -312,6 +379,17 @@ export function LandingPage({ onLoginClick, onRegisterClick, onOpenDisclaimer, t
               <div className="hidden sm:block w-px h-6 bg-gray-300 dark:bg-gray-700 mx-1"></div>
 
               <button
+                onClick={() => setCurrentView('blogs')}
+                className={`hidden sm:block px-4 py-2 rounded-full font-bold text-[13px] transition-all cursor-pointer ${
+                  currentView === 'blogs' 
+                    ? (theme === 'dark' ? 'text-[#C9A050] bg-white/5' : 'text-[#8C6B28] bg-black/5') 
+                    : (theme === 'dark' ? 'text-[#9E9A90] hover:text-[#E5E1D8]' : 'text-gray-600 hover:text-[#0D0D0F]')
+                }`}
+              >
+                Blogs
+              </button>
+
+              <button
                 onClick={onLoginClick}
                 className={`hidden sm:block px-5 py-2.5 rounded-full font-bold text-[13px] transition-all cursor-pointer border shadow-sm ${theme === 'dark'
                     ? 'bg-[#141418] border-[#2A2A2E] text-[#E5E1D8] hover:text-[#C9A050] hover:border-[#C9A050]/50'
@@ -332,23 +410,25 @@ export function LandingPage({ onLoginClick, onRegisterClick, onOpenDisclaimer, t
       </nav>
 
       {/* Main Content Area */}
-      <main className="flex-1 overflow-y-auto overflow-x-hidden relative z-10 scroll-smooth">
-
+      <main className="flex-1 relative z-10 scroll-smooth">
+        
         {/* Universal Astrologer Background (Fixed across all sections) */}
         <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden">
           <div
-            className="absolute inset-0 opacity-[0.08] dark:opacity-[0.18] bg-no-repeat bg-cover bg-center transition-opacity duration-700"
+            className={`absolute inset-0 bg-no-repeat bg-cover bg-center transition-opacity duration-700 ${theme === 'dark' ? 'opacity-[0.35]' : 'opacity-[0.20]'}`}
             style={{
               backgroundImage: 'url(/astrologer_bg.jpg)',
               backgroundPosition: 'center center'
             }}
           ></div>
-          {/* Subtle gradient to fade the background slightly at the bottom of the screen */}
           <div className={`absolute inset-0 bg-gradient-to-b from-transparent via-transparent ${theme === 'dark' ? 'to-[#0D0D0F]/90' : 'to-[#F0ECE1]/90'}`}></div>
         </div>
 
-        <div className="max-w-7xl mx-auto px-6 relative z-10">
-          <div id="hero-section" className="min-h-[calc(100vh-5rem)] py-8 lg:py-16 grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+        {currentView === 'blogs' ? (
+          <BlogPage theme={theme} onBack={() => setCurrentView('landing')} />
+        ) : (
+          <div className="max-w-7xl mx-auto px-6 relative z-10">
+            <div id="hero-section" className="scroll-mt-24 min-h-[calc(100vh-5rem)] py-8 lg:py-16 grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
 
             {/* Left Column: Greetings */}
             <div className="flex flex-col items-center lg:items-start text-center lg:text-left order-2 lg:order-1">
@@ -425,12 +505,29 @@ export function LandingPage({ onLoginClick, onRegisterClick, onOpenDisclaimer, t
                   style={{ animation: 'spin 60s linear infinite' }}
                 />
 
-                {/* JYOTISHVEDA Center Overlay to cover "A.I." */}
+                {/* JYOTISHVEDA Premium Center Core */}
                 <div className="absolute z-20 flex flex-col items-center justify-center pointer-events-none">
-                  <div className="bg-[#0b0c10] border border-[#C9A050]/80 shadow-[0_0_30px_rgba(201,160,80,0.5)] rounded-full w-24 h-24 sm:w-32 sm:h-32 flex items-center justify-center backdrop-blur-md">
-                    <span className="text-[#C9A050] font-serif font-bold text-[10px] sm:text-xs tracking-[0.2em] text-center px-2 flex flex-col items-center">
+                  {/* Outer glowing aura */}
+                  <div className="absolute inset-0 rounded-full bg-[#C9A050]/20 blur-2xl animate-pulse"></div>
+                  
+                  {/* Rotating decorative dashed ring */}
+                  <div className="absolute w-28 h-28 sm:w-[150px] sm:h-[150px] rounded-full border-[1.5px] border-dashed border-[#C9A050]/50 animate-[spin_40s_linear_infinite_reverse]"></div>
+                  
+                  {/* Core Container */}
+                  <div className="relative bg-gradient-to-br from-[#1C1A14] to-[#0A0907] border-[2px] border-[#C9A050]/80 shadow-[0_0_40px_rgba(201,160,80,0.6),inset_0_0_15px_rgba(201,160,80,0.2)] rounded-full w-24 h-24 sm:w-32 sm:h-32 flex flex-col items-center justify-center overflow-hidden">
+                    
+                    {/* Inner gold reflection / glass highlight */}
+                    <div className="absolute inset-0 bg-gradient-to-b from-white/10 via-transparent to-transparent rounded-full pointer-events-none"></div>
+
+                    {/* Central Om Symbol with Glow */}
+                    <span className="text-[#D4AF37] text-2xl sm:text-3xl leading-none drop-shadow-[0_0_12px_rgba(201,160,80,0.9)] mb-1">
+                      ॐ
+                    </span>
+                    
+                    {/* Typography */}
+                    <span className="text-[#E5C170] font-serif font-bold text-[8px] sm:text-[10px] tracking-[0.25em] text-center flex flex-col items-center drop-shadow-md">
                       <span>JYOTISH</span>
-                      <span className="font-sans text-sm sm:text-base tracking-normal mt-0.5">वेद</span>
+                      <span className="font-sans text-[9px] sm:text-[11px] tracking-normal mt-0.5 text-[#C9A050]">वेद</span>
                     </span>
                   </div>
                 </div>
@@ -438,25 +535,46 @@ export function LandingPage({ onLoginClick, onRegisterClick, onOpenDisclaimer, t
             </div>
           </div>
 
-          {/* Side-by-side Layout for Panjika and Zodiac on larger screens */}
-          <div className="flex flex-col lg:flex-row gap-6 lg:gap-8 pt-6 pb-12 items-start">
-            {/* Panjika & Calendar Section (Takes less width) */}
-            <div id="panjika-section" className="w-full lg:w-[40%] xl:w-[35%] text-left">
-              <PanjikaCalendarView theme={theme} />
-              <ZodiacCompatibilityMatrix theme={theme} />
-            </div>
-
-            {/* Full Global Zodiac Section (Takes more width to prevent squishing) */}
-            <div id="zodiac-section" className="w-full lg:w-[60%] xl:w-[65%] text-left">
+          {/* Stacked Layout for Zodiac and Panjika */}
+          <div className="flex flex-col gap-8 pt-6 pb-12 w-full">
+            {/* Full Global Zodiac Section */}
+            <div id="zodiac-section" className="scroll-mt-24 w-full text-left">
               <GlobalZodiacView
                 theme={theme}
                 onAskAIForSign={handleAskAIForSign}
               />
             </div>
+
+            {/* Panjika & Calendar Section Below */}
+            <div id="panjika-section" className="scroll-mt-24 w-full text-left flex flex-col gap-8">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:items-center">
+                <div className="w-full">
+                  <PanjikaCalendarView theme={theme} />
+                </div>
+                <div className="w-full hidden lg:flex items-center justify-center p-4">
+                  <div className="relative w-full max-w-[340px] xl:max-w-[380px] aspect-square rounded-full overflow-hidden shadow-[0_0_50px_rgba(201,160,80,0.2)] border-2 border-[#C9A050]/20 group">
+                    <img 
+                      src="/vedic_calendar_alt.jpg" 
+                      alt="Vedic Calendar" 
+                      className="w-full h-full object-cover scale-[1.02]"
+                      style={{ animation: 'spin 120s linear infinite' }}
+                    />
+                    <div className="absolute inset-0 rounded-full shadow-[inset_0_0_40px_rgba(0,0,0,0.9)] pointer-events-none"></div>
+                    <div className="absolute inset-0 rounded-full bg-gradient-to-tr from-[#C9A050]/10 to-transparent mix-blend-overlay pointer-events-none"></div>
+                  </div>
+                </div>
+              </div>
+              
+              <ZodiacCompatibilityMatrix theme={theme} />
+            </div>
+          </div>
+
+          <div id="blog-section" className="scroll-mt-24 w-full">
+            <BlogCarousel theme={theme} />
           </div>
 
           {/* Premium Features Teaser (Locked Cards) */}
-          <div id="premium-section" className="w-full pt-8 pb-28 min-h-[calc(100vh-5rem)]">
+          <div id="premium-section" className="scroll-mt-24 w-full pt-8 pb-16">
             <div className="text-center mb-10">
               <h3 className="text-2xl md:text-3xl font-serif font-bold mb-3 flex items-center justify-center space-x-2">
                 <Lock className="w-6 h-6 text-[#C9A050]" />
@@ -474,44 +592,51 @@ export function LandingPage({ onLoginClick, onRegisterClick, onOpenDisclaimer, t
                   <div
                     key={feat.id}
                     onClick={() => setSelectedFeatureForPreview(feat)}
-                    className={`relative overflow-hidden rounded-2xl p-6 text-left cursor-pointer transition-all duration-300 hover:-translate-y-2 hover:shadow-xl hover:shadow-[#C9A050]/20 group ${theme === 'dark'
-                        ? 'bg-white/5 border border-white/10 backdrop-blur-md hover:border-[#C9A050]/50'
-                        : 'bg-white/40 border border-white/60 backdrop-blur-md shadow-sm hover:border-[#C9A050]/50'
+                    className={`relative overflow-hidden rounded-3xl p-6 md:p-8 text-left cursor-pointer transition-all duration-500 hover:-translate-y-2 hover:shadow-2xl hover:shadow-[#C9A050]/20 group flex flex-col justify-between min-h-[220px] ${theme === 'dark'
+                        ? 'bg-gradient-to-br from-[#1C1C22]/90 to-[#0D0D0F]/90 border border-[#2A2A2E]/80 hover:border-[#C9A050]/50'
+                        : 'bg-gradient-to-br from-white/90 to-[#F9F7F1]/80 border border-[#E5E1D8]/80 hover:border-[#C9A050]/50 shadow-sm'
                       }`}
                   >
+                    {/* Background Watermark Icon */}
+                    <div className="absolute -bottom-6 -right-6 opacity-[0.03] group-hover:opacity-[0.08] transition-opacity duration-500 pointer-events-none transform group-hover:scale-110 group-hover:-rotate-6">
+                      <Icon className="w-40 h-40" />
+                    </div>
+
                     {/* Glassmorphism Video Demo Preview Overlay on Hover */}
-                    <div className="absolute inset-0 z-20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-black/65 backdrop-blur-[3px] p-4 text-center">
+                    <div className="absolute inset-0 z-20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-[#0D0D0F]/80 backdrop-blur-sm p-4 text-center">
                       <div className="flex flex-col items-center transform group-hover:scale-105 transition-transform duration-300">
-                        <div className="w-12 h-12 rounded-full bg-[#C9A050] text-[#0D0D0F] flex items-center justify-center shadow-lg shadow-[#C9A050]/50 mb-2">
-                          <Play className="w-5 h-5 fill-current ml-0.5" />
+                        <div className="w-14 h-14 rounded-full bg-gradient-to-br from-[#C9A050] to-[#8C6B28] text-white flex items-center justify-center shadow-[0_0_20px_rgba(201,160,80,0.5)] mb-3 relative overflow-hidden">
+                          <div className="absolute inset-0 bg-white/20 animate-pulse"></div>
+                          <Play className="w-6 h-6 fill-current ml-1 relative z-10" />
                         </div>
-                        <span className="text-[#F0ECE1] font-serif font-bold text-xs tracking-wide">
-                          15s Demo Video
+                        <span className="text-[#F0ECE1] font-serif font-bold text-sm tracking-wide mb-1">
+                          Play 15s Demo
                         </span>
-                        <span className="text-[10px] text-[#C9A050] font-mono mt-0.5">
-                          Click to Preview & Unlock
+                        <span className="text-[10px] text-[#C9A050] font-mono tracking-widest uppercase">
+                          Preview & Unlock
                         </span>
                       </div>
                     </div>
 
-                    <div className="relative z-10 opacity-80 group-hover:opacity-30 transition-opacity duration-300">
-                      <div className="flex items-center justify-between mb-4">
-                        <div className="w-10 h-10 rounded-xl bg-[#C9A050]/20 flex items-center justify-center">
-                          <Icon className="w-5 h-5 text-[#C9A050]" />
+                    <div className="relative z-10 opacity-90 group-hover:opacity-10 transition-opacity duration-300 flex-1 flex flex-col">
+                      <div className="flex items-center justify-between mb-6">
+                        <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shadow-inner ${theme === 'dark' ? 'bg-[#141418] border border-[#2A2A2E]' : 'bg-white border border-[#E5E1D8]'}`}>
+                          <Icon className="w-6 h-6 text-[#C9A050]" />
                         </div>
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#C9A050]/15 text-[#8C6B28] dark:text-[#C9A050] border border-[#C9A050]/30">
-                          15s Video
+                        <span className={`text-[9px] font-bold px-3 py-1 rounded-full uppercase tracking-wider border ${theme === 'dark' ? 'bg-[#141418] text-[#C9A050] border-[#2A2A2E]' : 'bg-white text-amber-700 border-[#E5E1D8]'}`}>
+                          Premium
                         </span>
                       </div>
-                      <h4 className="font-bold text-base mb-1.5">{feat.title}</h4>
-                      <p className="text-xs leading-relaxed text-[#9E9A90]">{feat.desc}</p>
+                      <h4 className={`font-serif text-xl font-bold mb-2 leading-snug ${theme === 'dark' ? 'text-[#F0ECE1]' : 'text-[#0D0D0F]'}`}>{feat.title}</h4>
+                      <p className={`text-sm leading-relaxed mt-auto ${theme === 'dark' ? 'text-[#9E9A90]' : 'text-gray-600'}`}>{feat.desc}</p>
                     </div>
                   </div>
                 );
               })}
             </div>
           </div>
-        </div>
+          </div>
+        )}
         <Footer onOpenDisclaimer={onOpenDisclaimer} theme={theme} />
       </main>
 
@@ -635,7 +760,3 @@ export function LandingPage({ onLoginClick, onRegisterClick, onOpenDisclaimer, t
     </div>
   );
 }
-
-
-
-
