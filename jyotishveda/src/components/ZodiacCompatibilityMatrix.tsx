@@ -103,8 +103,21 @@ export const ZodiacCompatibilityMatrix: React.FC<ZodiacCompatibilityMatrixProps>
   const compatResult: ZodiacCompatibilityResult = calculateZodiacCompatibility(compatSignA, compatSignB, zodiacSystem, zodiacs);
 
   return (
-    <div className={`mt-6 p-6 rounded-2xl border shadow-lg space-y-6 transition-all ${isDark ? 'bg-[#141418]/90 border-[#2A2A2E] shadow-black/40' : 'bg-[#FFFFFF]/90 border-[#E5E1D8] shadow-amber-900/5'}`}>
-      <div className={`flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-4 border-b ${isDark ? 'border-[#2A2A2E]' : 'border-[#E5E1D8]'}`}>
+    <div className={`mt-6 rounded-[2rem] overflow-hidden border shadow-xl flex flex-col lg:flex-row transition-all min-h-[420px] lg:min-h-[460px] ${isDark ? 'bg-[#141418]/95 border-[#2A2A2E] shadow-black/40' : 'bg-[#FFFFFF]/95 border-[#E5E1D8] shadow-amber-900/5'}`}>
+      
+      {/* Artwork Side */}
+      <div className="w-full lg:w-[35%] xl:w-[40%] relative min-h-[250px] lg:min-h-full flex-shrink-0 border-b lg:border-b-0 lg:border-r border-[#E5E1D8] dark:border-[#2A2A2E]">
+        <img 
+          src="/zodiac_compatibility_art.jpg" 
+          alt="Zodiac Compatibility" 
+          className="absolute inset-0 w-full h-full object-cover transition-transform duration-1000 hover:scale-105"
+        />
+        <div className="absolute inset-0 shadow-[inset_0_0_80px_rgba(0,0,0,0.6)] pointer-events-none"></div>
+      </div>
+
+      {/* Content Side */}
+      <div className="w-full lg:w-[65%] xl:w-[60%] p-6 lg:p-8 flex flex-col justify-center space-y-6">
+        <div className={`flex flex-col xl:flex-row xl:items-center justify-between gap-4 pb-4 border-b ${isDark ? 'border-[#2A2A2E]' : 'border-[#E5E1D8]'}`}>
         <div>
           <h3 className={`text-base font-bold flex items-center space-x-2 ${isDark ? 'text-[#F0ECE1]' : 'text-[#0D0D0F]'}`}>
             <Heart className="w-4 h-4 text-[#C9A050]" />
@@ -115,8 +128,8 @@ export const ZodiacCompatibilityMatrix: React.FC<ZodiacCompatibilityMatrixProps>
           </p>
         </div>
 
-        <div className="flex flex-wrap lg:flex-nowrap items-start space-x-2 sm:space-x-3 text-xs mt-3 sm:mt-0">
-          <div className="min-w-[150px] sm:min-w-[170px] mb-2 sm:mb-0">
+        <div className="flex flex-wrap items-end gap-3 text-xs mt-2 xl:mt-0">
+          <div className="flex-1 min-w-[140px]">
             <CustomZodiacSelect
               value={compatSignA}
               onChange={(val: string) => {
@@ -129,7 +142,7 @@ export const ZodiacCompatibilityMatrix: React.FC<ZodiacCompatibilityMatrixProps>
             />
           </div>
 
-          <div className="min-w-[150px] sm:min-w-[170px] mb-2 sm:mb-0">
+          <div className="flex-1 min-w-[140px]">
             <CustomZodiacSelect
               value={compatSignB}
               onChange={(val: string) => {
@@ -142,8 +155,7 @@ export const ZodiacCompatibilityMatrix: React.FC<ZodiacCompatibilityMatrixProps>
             />
           </div>
           
-          <div className="flex flex-col">
-            <label className="text-[11px] block mb-1 opacity-0 select-none pointer-events-none">Analyze</label>
+          <div className="flex-none w-full sm:w-auto mt-2 sm:mt-0">
             <button
               onClick={() => {
                 setIsCompatLoading(true);
@@ -151,19 +163,9 @@ export const ZodiacCompatibilityMatrix: React.FC<ZodiacCompatibilityMatrixProps>
                 setTimeout(() => {
                   setIsCompatLoading(false);
                   setHasAnalyzed(true);
-                  setTimeout(() => {
-                    if (compatResultRef.current) {
-                      const elementPosition = compatResultRef.current.getBoundingClientRect().top;
-                      const offsetPosition = elementPosition + window.pageYOffset - 90;
-                      window.scrollTo({
-                        top: offsetPosition,
-                        behavior: 'smooth'
-                      });
-                    }
-                  }, 100);
-                }, 1200);
+                }, 800);
               }}
-              className={`px-4 sm:px-6 rounded-lg font-bold text-sm transition shadow-sm flex items-center justify-center h-[34px] sm:h-[40px] ${isDark ? 'bg-[#C9A050] text-[#141418] hover:bg-[#D4AF60]' : 'bg-[#C9A050] text-white hover:bg-[#B88E40]'}`}
+              className={`px-4 sm:px-6 rounded-lg font-bold text-sm transition shadow-sm flex items-center justify-center h-[34px] sm:h-[40px] cursor-pointer ${isDark ? 'bg-[#C9A050] text-[#141418] hover:bg-[#D4AF60]' : 'bg-[#C9A050] text-white hover:bg-[#B88E40]'}`}
             >
               <span>Analyze</span>
             </button>
@@ -182,23 +184,23 @@ export const ZodiacCompatibilityMatrix: React.FC<ZodiacCompatibilityMatrixProps>
       )}
 
       {hasAnalyzed && !isCompatLoading && (
-        <div ref={compatResultRef} className="flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+        <div ref={compatResultRef} className="grid grid-cols-1 sm:grid-cols-[180px_1fr] gap-4 sm:gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500 items-stretch">
         {/* Score circle */}
-        <div className={`flex flex-col items-center justify-center p-6 rounded-xl border text-center ${isDark ? 'bg-[#1C1C22] border-[#2A2A2E]' : 'bg-[#FFFFFF] border-[#E5E1D8]'}`}>
-          <div className="w-20 h-20 rounded-full border-4 border-[#C9A050] flex flex-col items-center justify-center shadow-lg shadow-[#C9A050]/20">
+        <div className={`flex flex-col items-center justify-center p-4 sm:p-6 rounded-xl border text-center h-full ${isDark ? 'bg-[#1C1C22] border-[#2A2A2E]' : 'bg-[#FFFFFF] border-[#E5E1D8]'}`}>
+          <div className="w-20 h-20 rounded-full border-4 border-[#C9A050] flex flex-col items-center justify-center shadow-lg shadow-[#C9A050]/20 mb-3">
             <span className={`text-xl font-bold ${isDark ? 'text-[#F0ECE1]' : 'text-[#0D0D0F]'}`}>{compatResult.overallScore}%</span>
             <span className={`text-[9px] uppercase tracking-wider ${isDark ? 'text-[#9E9A90]' : 'text-gray-500'}`}>Harmony</span>
           </div>
-          <div className="mt-3 text-xs font-bold text-[#C9A050]">
+          <div className="text-xs font-bold text-[#C9A050]">
             {compatResult.signA.name} + {compatResult.signB.name}
           </div>
           <div className={`text-[10px] mt-0.5 ${isDark ? 'text-[#9E9A90]' : 'text-gray-500'}`}>
-            {compatResult.signA.element} & {compatResult.signB.element} Elements
+            {compatResult.signA.element} & {compatResult.signB.element}
           </div>
         </div>
 
         {/* Analysis details */}
-        <div className={`space-y-3 text-xs ${isDark ? 'text-[#E5E1D8]' : 'text-gray-700'}`}>
+        <div className={`flex flex-col justify-center space-y-2 sm:space-y-3 text-xs ${isDark ? 'text-[#E5E1D8]' : 'text-gray-700'}`}>
           <div className={`p-3 rounded-lg border ${isDark ? 'bg-[#1C1C22] border-[#2A2A2E]/80' : 'bg-[#FFFFFF] border-[#E5E1D8]'}`}>
             <span className="font-semibold text-[#C9A050] block mb-0.5">{t('zodiac.element_synergy')}:</span>
             <span className={`${isDark ? 'text-[#9E9A90]' : 'text-gray-600'}`}>{compatResult.elementSynergy}</span>
@@ -216,6 +218,7 @@ export const ZodiacCompatibilityMatrix: React.FC<ZodiacCompatibilityMatrixProps>
         </div>
       </div>
       )}
+      </div>
     </div>
   );
 };
