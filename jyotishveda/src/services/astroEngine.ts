@@ -135,8 +135,8 @@ export function calculateVedicChart(profile: UserProfile, ephemerisData?: any): 
 } {
   const isWestern = profile.horoscopeSystem === 'western';
   const ayanamshaShift = isWestern ? 23.86 : 0; // Sayana (Tropical) vs Nirayana (Lahiri Sidereal)
-
-  const bDate = new Date(`${profile.birthDate}T${profile.birthTime}:00`);
+  const timeString = profile.birthTime && profile.birthTime.trim() ? profile.birthTime.trim() : '12:00';
+  const bDate = new Date(`${profile.birthDate}T${timeString.length === 5 ? timeString : '12:00'}:00`);
   const dayOfYear = Math.floor((bDate.getTime() - new Date(bDate.getFullYear(), 0, 0).getTime()) / 86400000);
   const birthHours = bDate.getHours() + bDate.getMinutes() / 60;
   

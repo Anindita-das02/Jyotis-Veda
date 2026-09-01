@@ -101,3 +101,79 @@ def me(user_id):
             "createdAt": user["created_at"].isoformat() if user.get("created_at") else None,
         },
     })
+
+
+def google_auth():
+    body = request.get_json(silent=True) or {}
+    email = (body.get("email") or "").strip().lower()
+    full_name = (body.get("fullName") or "").strip() or "Google User"
+
+    if not email or not EMAIL_RE.match(email):
+        return _error("A valid Google email is required", "INVALID_EMAIL")
+
+    # Check if user already exists
+    rows = call_procedure("sp_get_user_by_email", [email])
+    if rows:
+        user = rows[0]
+        if not user["is_active"]:
+            return _error("This account has been deactivated", "ACCOUNT_DISABLED", 403)
+        token = issue_token(user["id"], user["role"])
+        return jsonify({
+            "status": "success",
+            "data": {
+                "token": token,
+                "user": {
+                    "id": user["id"],
+                    "email": user["email"],
+                    "fullName": user["full_name"],
+                    "role": user["role"],
+                },
+            },
+        })
+
+    # If user doesn't exist, create a new user account with a secure generated password hash
+    user_id = str(uuid.uuid4())
+    random_pw = uuid.uuid4().hex + "G00gle!"
+    password_hash = hash_password(random_pw)
+
+    try:
+        new_rows = call_procedure("sp_create_user", [user_id, email, password_hash, full_name])
+    except IntegrityError:
+        # Fallback if race condition occurred
+        existing = call_procedure("sp_get_user_by_email", [email])
+        if existing:
+            user = existing[0]
+            token = issue_token(user["id"], user["role"])
+            return jsonify({
+                "status": "success",
+                "data": {
+                    "token": token,
+                    "user": {
+                        "id": user["id"],
+                        "email": user["email"],
+                        "fullName": user["full_name"],
+                        "role": user["role"],
+                    },
+                },
+            })
+        return _error("An account with this email already exists", "EMAIL_TAKEN", 409)
+
+    if not new_rows:
+        return _error("Could not create account via Google", "REGISTER_FAILED", 500)
+
+    user = new_rows[0]
+    token = issue_token(user["id"], user["role"])
+
+    return jsonify({
+        "status": "success",
+        "data": {
+            "token": token,
+            "user": {
+                "id": user["id"],
+                "email": email,
+                "fullName": user["full_name"],
+                "role": user["role"],
+            },
+        },
+    }), 201
+

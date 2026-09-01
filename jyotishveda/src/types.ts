@@ -6,7 +6,7 @@ export interface UserProfile {
   fullName: string;
   gender: 'male' | 'female' | 'other';
   birthDate: string; // YYYY-MM-DD
-  birthTime: string; // HH:mm
+  birthTime?: string; // HH:mm (Optional)
   birthPlace: string;
   latitude: number;
   longitude: number;

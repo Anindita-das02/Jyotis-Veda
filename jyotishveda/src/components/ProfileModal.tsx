@@ -51,7 +51,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
   const [fullName, setFullName] = useState(initialProfile?.fullName || '');
   const [gender, setGender] = useState<'male' | 'female' | 'other'>(initialProfile?.gender || 'male');
   const [birthDate, setBirthDate] = useState(initialProfile?.birthDate || '1995-06-15');
-  const [birthTime, setBirthTime] = useState(initialProfile?.birthTime || '07:30');
+  const [birthTime, setBirthTime] = useState(initialProfile?.birthTime || '');
   const [birthPlace, setBirthPlace] = useState(initialProfile?.birthPlace || 'New Delhi, India');
   const [latitude, setLatitude] = useState(initialProfile?.latitude || 28.6139);
   const [longitude, setLongitude] = useState(initialProfile?.longitude || 77.2090);
@@ -294,13 +294,15 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-[#C9A050] mb-1 flex items-center space-x-1">
-                <Clock className="w-3.5 h-3.5 text-[#C9A050]" />
-                <span>Exact Time of Birth (24hr format)</span>
+              <label className="block text-xs font-semibold text-[#C9A050] mb-1 flex items-center justify-between">
+                <span className="flex items-center space-x-1">
+                  <Clock className="w-3.5 h-3.5 text-[#C9A050]" />
+                  <span>Exact Time of Birth (24hr format)</span>
+                </span>
+                <span className="text-[10px] text-gray-400 font-normal">(Optional)</span>
               </label>
               <input
                 type="time"
-                required
                 value={birthTime}
                 onChange={(e) => setBirthTime(e.target.value)}
                 className="w-full px-3 py-2 bg-[#1A1A1E] border border-[#2A2A2E] rounded-lg text-sm text-[#F0ECE1] focus:outline-none focus:border-[#C9A050] cursor-pointer"

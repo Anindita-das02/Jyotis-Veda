@@ -23,12 +23,26 @@ export async function register(
     password,
     fullName,
   });
-  setToken(data.token);
+  // Token is only set upon explicit login
   return data.user;
 }
 
 export async function login(email: string, password: string): Promise<AuthUser> {
   const data = await api.post<AuthResponse>(API_ENDPOINTS.AUTH.LOGIN, { email, password });
+  setToken(data.token);
+  return data.user;
+}
+
+export async function loginWithGoogle(
+  email: string,
+  fullName: string,
+  googleId?: string
+): Promise<AuthUser> {
+  const data = await api.post<AuthResponse>(API_ENDPOINTS.AUTH.GOOGLE, {
+    email,
+    fullName,
+    googleId,
+  });
   setToken(data.token);
   return data.user;
 }

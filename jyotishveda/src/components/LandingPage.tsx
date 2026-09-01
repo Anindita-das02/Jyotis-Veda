@@ -10,6 +10,7 @@ import { Footer } from './Footer';
 import { FeaturePreviewModal, PREMIUM_FEATURES_CATALOG, PremiumFeatureDetail } from './FeaturePreviewModal';
 import { BlogCarousel } from './BlogCarousel';
 import { BlogPage } from './BlogPage';
+import { AncientTraditionLogo } from './AncientTraditionLogo';
 
 interface LandingPageProps {
   onLoginClick: () => void;
@@ -294,14 +295,12 @@ export function LandingPage({ onLoginClick, onRegisterClick, onOpenDisclaimer, t
             {/* Logo */}
             <div
               onClick={() => scrollToSection('hero-section')}
-              className="flex items-center space-x-3 cursor-pointer group"
+              className="flex items-center space-x-3 cursor-pointer group select-none"
             >
-              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#C9A050]/20 to-transparent border border-[#C9A050]/50 flex items-center justify-center group-hover:scale-105 transition-transform duration-300">
-                <Sparkles className="w-5 h-5 text-[#C9A050]" />
-              </div>
+              <AncientTraditionLogo size="md" isLight={theme === 'light'} />
               <div>
                 <h1 className="text-xl font-serif font-bold tracking-wider flex items-center">
-                  JYOTISH<span className="text-[#C9A050] font-sans ml-1 text-[22px] leading-none mb-0.5">वेद</span>
+                  JYOTISH<span className="text-[#C9A050]">VEDA</span>
                 </h1>
                 <p className={`text-[9px] font-bold tracking-widest uppercase mt-0.5 ${theme === 'dark' ? 'text-[#9E9A90]' : 'text-gray-500'}`}>
                   Authentic Vedic Wisdom
@@ -442,7 +441,7 @@ export function LandingPage({ onLoginClick, onRegisterClick, onOpenDisclaimer, t
                   Decode Your Destiny with
                 </span>
                 <br />
-                <span className="inline-flex mt-2 items-center">
+                <span className="inline-flex mt-2 items-center flex-wrap justify-center lg:justify-start">
                   {"JYOTISH".split("").map((char, index) => (
                     <motion.span
                       key={index}
@@ -454,29 +453,17 @@ export function LandingPage({ onLoginClick, onRegisterClick, onOpenDisclaimer, t
                       {char}
                     </motion.span>
                   ))}
-                  <motion.span
-                    initial={{ opacity: 0, y: 15 }}
-                    animate={{
-                      opacity: [0, 1, 1, 0],
-                      y: [15, 0, 0, 15],
-                      textShadow: [
-                        "0px 0px 0px rgba(201,160,80,0)",
-                        "0px 0px 15px rgba(201,160,80,0.6)",
-                        "0px 0px 15px rgba(201,160,80,0.6)",
-                        "0px 0px 0px rgba(201,160,80,0)"
-                      ]
-                    }}
-                    transition={{
-                      duration: 2.5,
-                      repeat: Infinity,
-                      repeatDelay: 2.5,
-                      times: [0, 0.1, 0.8, 1],
-                      ease: "easeInOut"
-                    }}
-                    className="inline-block text-[#C9A050] font-sans ml-3 text-[1.1em] leading-none -mt-1"
-                  >
-                    वेद
-                  </motion.span>
+                  {"VEDA".split("").map((char, index) => (
+                    <motion.span
+                      key={`v-${index}`}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.6, delay: (index + 7) * 0.08, ease: "easeOut" }}
+                      className="inline-block text-[#C9A050]"
+                    >
+                      {char}
+                    </motion.span>
+                  ))}
                 </span>
               </h2>
 
@@ -527,7 +514,7 @@ export function LandingPage({ onLoginClick, onRegisterClick, onOpenDisclaimer, t
                     {/* Typography */}
                     <span className="text-[#E5C170] font-serif font-bold text-[8px] sm:text-[10px] tracking-[0.25em] text-center flex flex-col items-center drop-shadow-md">
                       <span>JYOTISH</span>
-                      <span className="font-sans text-[9px] sm:text-[11px] tracking-normal mt-0.5 text-[#C9A050]">वेद</span>
+                      <span className="font-sans text-[9px] sm:text-[11px] tracking-normal mt-0.5 text-[#C9A050]">VEDA</span>
                     </span>
                   </div>
                 </div>

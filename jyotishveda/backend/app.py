@@ -85,16 +85,25 @@ def health():
 # ---------------- Auth ----------------
 
 @app.route("/auth/register", methods=["POST"])
+@app.route("/api/auth/register", methods=["POST"])
 def register():
     return auth_controller.register()
 
 
 @app.route("/auth/login", methods=["POST"])
+@app.route("/api/auth/login", methods=["POST"])
 def login():
     return auth_controller.login()
 
 
+@app.route("/auth/google", methods=["POST"])
+@app.route("/api/auth/google", methods=["POST"])
+def google_auth():
+    return auth_controller.google_auth()
+
+
 @app.route("/auth/current-user", methods=["GET"])
+@app.route("/api/auth/current-user", methods=["GET"])
 @require_auth
 def me():
     return auth_controller.me(request.user_id)

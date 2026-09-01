@@ -480,32 +480,57 @@ export function App() {
     );
   }
 
-  if (!authUser) {
-    if (showAuthGate) {
-      return (
-        <div className="relative">
-          <AuthGate
-            onAuthenticated={setAuthUser}
-            initialMode={authMode}
-          />
-          <button
-            onClick={() => setShowAuthGate(false)}
-            className="absolute top-6 left-6 text-sm text-[#9E9A90] hover:text-[#C9A050] transition cursor-pointer"
-          >
-            ← Back to Home
-          </button>
-        </div>
-      );
+  const handleAuthenticated = (user: AuthUser, registrationDetails?: { gender?: string; birthDate?: string; birthPlace?: string; birthTime?: string }) => {
+    setAuthUser(user);
+    setShowAuthGate(false);
+    if (registrationDetails) {
+      const newProfile: UserProfile = {
+        ...DEFAULT_PROFILES[0],
+        id: `profile-${Date.now()}`,
+        fullName: user.fullName,
+        gender: (registrationDetails.gender as any) || 'male',
+        birthDate: registrationDetails.birthDate || '2000-06-15',
+        birthTime: registrationDetails.birthTime || '',
+        birthPlace: registrationDetails.birthPlace || 'Kolkata, West Bengal, India',
+        createdAt: new Date().toISOString(),
+      };
+      setProfiles([newProfile]);
+      setCurrentProfile(newProfile);
+      profileApi.createProfile({
+        fullName: newProfile.fullName,
+        gender: newProfile.gender,
+        birthDate: newProfile.birthDate,
+        birthTime: newProfile.birthTime,
+        birthPlace: newProfile.birthPlace,
+        latitude: newProfile.latitude,
+        longitude: newProfile.longitude,
+        timezone: newProfile.timezone,
+        focusAreas: newProfile.focusAreas,
+        notes: newProfile.notes,
+        isPremium: newProfile.isPremium,
+        horoscopeSystem: newProfile.horoscopeSystem,
+      }).catch(() => {});
     }
-    
+  };
+
+  if (!authUser) {
     return (
-      <LandingPage
-        onLoginClick={() => { setAuthMode('login'); setShowAuthGate(true); }}
-        onRegisterClick={() => { setAuthMode('register'); setShowAuthGate(true); }}
-        onOpenDisclaimer={() => setIsDisclaimerModalOpen(true)}
-        theme={theme}
-        toggleTheme={toggleTheme}
-      />
+      <>
+        <LandingPage
+          onLoginClick={() => { setAuthMode('login'); setShowAuthGate(true); }}
+          onRegisterClick={() => { setAuthMode('register'); setShowAuthGate(true); }}
+          onOpenDisclaimer={() => setIsDisclaimerModalOpen(true)}
+          theme={theme}
+          toggleTheme={toggleTheme}
+        />
+        <AuthGate
+          isOpen={showAuthGate}
+          onClose={() => setShowAuthGate(false)}
+          onAuthenticated={handleAuthenticated}
+          initialMode={authMode}
+          theme={theme}
+        />
+      </>
     );
   }
 
