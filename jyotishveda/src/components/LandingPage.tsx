@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, MessageSquareText, X, Send, Bot, Lock, Compass, Hash, Milestone, ShieldAlert, Sun, Moon, Home, Globe, Calendar, Play } from 'lucide-react';
+import { Sparkles, MessageSquareText, X, Send, Bot, Lock, Compass, Hash, Milestone, ShieldAlert, Sun, Moon, Home, Globe, Calendar, Play, RotateCcw } from 'lucide-react';
 import { ZODIAC_SIGNS } from '../services/zodiacData';
 import { StarfieldBackground } from './StarfieldBackground';
 import { GlobalZodiacView } from './GlobalZodiacView';
@@ -19,14 +19,71 @@ interface LandingPageProps {
 
 export function LandingPage({ onLoginClick, onRegisterClick, onOpenDisclaimer, theme, toggleTheme }: LandingPageProps) {
   const [isChatOpen, setIsChatOpen] = useState(false);
-  const [messages, setMessages] = useState<{ role: 'user' | 'assistant', content: string }[]>([
-    { role: 'assistant', content: 'Namaste. I am JyotishVeda AI. How may the stars guide you today?' }
-  ]);
+  const [messages, setMessages] = useState<{ role: 'user' | 'assistant', content: string }[]>(() => {
+    try {
+      const saved = localStorage.getItem('jyotishveda_guest_chat_messages');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch (e) {}
+    return [{ role: 'assistant', content: 'Namaste. I am JyotishVeda. How may I guide your astrological journey today?' }];
+  });
+
   const [input, setInput] = useState('');
-  const [msgCount, setMsgCount] = useState(0);
+  
+  const [msgCount, setMsgCount] = useState<number>(() => {
+    try {
+      const saved = localStorage.getItem('jyotishveda_guest_chat_count');
+      if (saved) return parseInt(saved, 10) || 0;
+    } catch (e) {}
+    return 0;
+  });
+
+  const [isAiThinking, setIsAiThinking] = useState(false);
+  
+  const [savedDob, setSavedDob] = useState<any>(() => {
+    try {
+      const saved = localStorage.getItem('jyotishveda_guest_chat_dob');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {}
+    return null;
+  });
+
   const [selectedFeatureForPreview, setSelectedFeatureForPreview] = useState<PremiumFeatureDetail | null>(null);
+  const chatEndRef = useRef<HTMLDivElement>(null);
 
   const [activeSection, setActiveSection] = useState<string>('hero-section');
+
+  // Sync to LocalStorage
+  useEffect(() => {
+    try {
+      localStorage.setItem('jyotishveda_guest_chat_messages', JSON.stringify(messages));
+      localStorage.setItem('jyotishveda_guest_chat_count', String(msgCount));
+      if (savedDob) {
+        localStorage.setItem('jyotishveda_guest_chat_dob', JSON.stringify(savedDob));
+      } else {
+        localStorage.removeItem('jyotishveda_guest_chat_dob');
+      }
+    } catch (e) {}
+  }, [messages, msgCount, savedDob]);
+
+  const handleResetChat = () => {
+    try {
+      localStorage.removeItem('jyotishveda_guest_chat_messages');
+      localStorage.removeItem('jyotishveda_guest_chat_count');
+      localStorage.removeItem('jyotishveda_guest_chat_dob');
+    } catch (e) {}
+    setMessages([{ role: 'assistant', content: 'Namaste. I am JyotishVeda. How may I guide your astrological journey today?' }]);
+    setMsgCount(0);
+    setSavedDob(null);
+  };
+
+  useEffect(() => {
+    if (isChatOpen) {
+      chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [messages, isAiThinking, isChatOpen]);
 
   const scrollToSection = (id: string) => {
     setActiveSection(id);
@@ -43,17 +100,118 @@ export function LandingPage({ onLoginClick, onRegisterClick, onOpenDisclaimer, t
     }
   };
 
-  const handleSend = () => {
-    if (!input.trim() || msgCount >= 10) return;
+  const handleSend = async () => {
+    if (!input.trim()) return;
 
-    setMessages(prev => [...prev, { role: 'user', content: input }]);
-    setMsgCount(prev => prev + 1);
+    const userText = input.trim();
     setInput('');
 
-    // Simulate AI response
-    setTimeout(() => {
-      setMessages(prev => [...prev, { role: 'assistant', content: "Please login to unlock deep AI analysis and detailed celestial wisdom." }]);
-    }, 1000);
+    if (msgCount >= 3) {
+      setMessages(prev => [
+        ...prev,
+        { role: 'user', content: userText },
+        { role: 'assistant', content: "Please login to unlock deep analysis and detailed celestial wisdom." }
+      ]);
+      return;
+    }
+
+    const updatedMessages = [...messages, { role: 'user' as const, content: userText }];
+    setMessages(updatedMessages);
+    setMsgCount(prev => prev + 1);
+    setIsAiThinking(true);
+
+    try {
+      const resp = await fetch('http://localhost:5001/api/public-chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          messages: updatedMessages,
+          msgCount: msgCount,
+          dob: savedDob
+        })
+      });
+
+      if (resp.ok) {
+        const data = await resp.json();
+        if (data.dob) setSavedDob(data.dob);
+        setMessages(prev => [...prev, { role: 'assistant', content: data.reply }]);
+        if (data.msgCount) setMsgCount(data.msgCount);
+      } else {
+        throw new Error('API response not ok');
+      }
+    } catch (err) {
+      // Client-side Fallback
+      setTimeout(() => {
+        const lower = userText.toLowerCase();
+        let reply = "";
+        
+        if (msgCount >= 2) {
+          reply = "Please login to unlock deep analysis and detailed celestial wisdom.";
+          setMessages(prev => [...prev, { role: 'assistant', content: reply }]);
+          return;
+        }
+
+        // 1. Date Detection
+        const dateMatch = userText.match(/(\d{1,2})[-/.](\d{1,2})[-/.](\d{4})/);
+        if (dateMatch) {
+          const d = dateMatch[1];
+          const m = dateMatch[2];
+          const y = dateMatch[3];
+          const newDob = [parseInt(y), parseInt(m), parseInt(d)];
+          setSavedDob(newDob);
+          
+          const year = parseInt(y);
+          const month = parseInt(m);
+          const day = parseInt(d);
+          const digits = `${year}${month < 10 ? '0' + month : month}${day < 10 ? '0' + day : day}`.split('').map(Number);
+          let lp = digits.reduce((a, b) => a + b, 0);
+          while (lp > 9 && lp !== 11 && lp !== 22 && lp !== 33) {
+            lp = String(lp).split('').map(Number).reduce((a, b) => a + b, 0);
+          }
+          const signNames: [number, number, string][] = [
+            [1, 20, "Makara (Capricorn)"], [2, 19, "Kumbha (Aquarius)"],
+            [3, 20, "Meena (Pisces)"], [4, 20, "Mesha (Aries)"],
+            [5, 21, "Vrishabha (Taurus)"], [6, 21, "Mithuna (Gemini)"],
+            [7, 22, "Karka (Cancer)"], [8, 23, "Simha (Leo)"],
+            [9, 23, "Kanya (Virgo)"], [10, 23, "Tula (Libra)"],
+            [11, 22, "Vrishchika (Scorpio)"], [12, 21, "Dhanu (Sagittarius)"],
+            [12, 31, "Makara (Capricorn)"]
+          ];
+          let detectedSign = "Karka (Cancer)";
+          for (const [sm, sd, sname] of signNames) {
+            if (month < sm || (month === sm && day <= sd)) {
+              detectedSign = sname;
+              break;
+            }
+          }
+          const planetMap: Record<number, string> = {
+            1: "Surya Dev (Sun)",
+            2: "Chandra Dev (Moon)",
+            3: "Devaguru Brihaspati (Jupiter)",
+            4: "Rahu Dev",
+            5: "Budha Dev (Mercury)",
+            6: "Shukra Dev (Venus)",
+            7: "Ketu Dev",
+            8: "Shani Dev (Saturn)",
+            9: "Mangal Dev (Mars)",
+            11: "Master Number 11",
+            22: "Master Number 22",
+            33: "Master Number 33"
+          };
+          const rulingPlanet = planetMap[lp] || "Devaguru Brihaspati (Jupiter)";
+
+          reply = `🕉️ **Kalyan Ho! Detailed Janma Kundli Analysis (${d}-${m}-${y})**:\n\nYour chart aligns with **${detectedSign}**, governed by the planetary grace of **${rulingPlanet}** (Life Path **${lp}**).`;
+        } else if (!savedDob && (lower.includes('career') || lower.includes('job') || lower.includes('future') || lower.includes('details'))) {
+          reply = `Ayushman Bhava! To look into your Janma Kundli and reveal the precise planetary alignments for your query, please share your **Date of Birth (DD-MM-YYYY)** and **Birth Time**.`;
+        } else {
+          reply = `Namaste! I am JyotishVeda, your Vedic Daivajna. Please share your **Date of Birth (DD-MM-YYYY)** and **Birth Time**.`;
+        }
+
+        setMessages(prev => [...prev, { role: 'assistant', content: reply }]);
+      }, 700);
+    } finally {
+      setIsAiThinking(false);
+    }
   };
 
   const handleAskAIForSign = (signName: string, promptText: string) => {
@@ -388,20 +546,57 @@ export function LandingPage({ onLoginClick, onRegisterClick, onOpenDisclaimer, t
                   <Sparkles className="w-4 h-4" />
                   <span className="font-bold text-sm">JyotishVeda AI</span>
                 </div>
-                <button onClick={() => setIsChatOpen(false)} className="hover:bg-black/10 p-1 rounded-md transition cursor-pointer">
-                  <X className="w-4 h-4" />
-                </button>
+                <div className="flex items-center space-x-1">
+                  <button 
+                    onClick={handleResetChat} 
+                    title="Restart Chat"
+                    className="hover:bg-black/10 p-1 rounded-md transition cursor-pointer"
+                  >
+                    <RotateCcw className="w-3.5 h-3.5" />
+                  </button>
+                  <button onClick={() => setIsChatOpen(false)} className="hover:bg-black/10 p-1 rounded-md transition cursor-pointer">
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
 
               <div className={`h-[300px] p-3 overflow-y-auto flex flex-col space-y-3 text-xs ${theme === 'dark' ? 'bg-[#0D0D0F]' : 'bg-[#F0ECE1]/50'}`}>
-                {messages.map((m, i) => (
-                  <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                    <div className={`max-w-[85%] p-2.5 rounded-xl flex items-start space-x-2 shadow-sm ${m.role === 'user' ? 'bg-[#C9A050] text-[#0D0D0F] rounded-tr-sm' : (theme === 'dark' ? 'bg-[#1A1A1E] text-[#E5E1D8] border border-[#2A2A2E] rounded-tl-sm' : 'bg-[#FFFFFF] text-[#0D0D0F] border border-[#E5E1D8] rounded-tl-sm')}`}>
-                      {m.role === 'assistant' && <Bot className="w-3.5 h-3.5 mt-0.5 shrink-0 text-[#C9A050]" />}
-                      <span className="leading-relaxed">{m.content}</span>
+                {messages.map((m, i) => {
+                  const isLoginPrompt = m.content.includes("Please login to unlock");
+                  return (
+                    <div key={i} className={`flex flex-col ${m.role === 'user' ? 'items-end' : 'items-start'}`}>
+                      <div className={`max-w-[88%] p-2.5 rounded-xl flex items-start space-x-2 shadow-sm ${
+                        m.role === 'user'
+                          ? 'bg-[#C9A050] text-[#0D0D0F] rounded-tr-sm font-medium'
+                          : (theme === 'dark' ? 'bg-[#1A1A1E] text-[#E5E1D8] border border-[#2A2A2E] rounded-tl-sm' : 'bg-[#FFFFFF] text-[#0D0D0F] border border-[#E5E1D8] rounded-tl-sm')
+                      }`}>
+                        {m.role === 'assistant' && <Bot className="w-3.5 h-3.5 mt-0.5 shrink-0 text-[#C9A050]" />}
+                        <div className="flex flex-col space-y-1.5 leading-relaxed">
+                          <span className="whitespace-pre-line">{m.content}</span>
+                          {isLoginPrompt && (
+                            <button
+                              onClick={() => {
+                                setIsChatOpen(false);
+                                onLoginClick();
+                              }}
+                              className="mt-1 py-1.5 px-3 rounded-lg bg-[#C9A050] hover:bg-[#D4AF37] text-[#0D0D0F] font-bold text-xs transition shadow-sm cursor-pointer flex items-center justify-center space-x-1"
+                            >
+                              <span>Log In to Continue</span>
+                            </button>
+                          )}
+                        </div>
+                      </div>
                     </div>
+                  );
+                })}
+
+                {isAiThinking && (
+                  <div className="flex items-center space-x-1.5 p-2 rounded-xl bg-black/5 dark:bg-white/5 text-[11px] text-[#C9A050] w-fit">
+                    <Sparkles className="w-3.5 h-3.5 animate-spin" />
+                    <span>Consulting celestial transits...</span>
                   </div>
-                ))}
+                )}
+                <div ref={chatEndRef} />
               </div>
 
               <div className={`p-3 border-t flex flex-col ${theme === 'dark' ? 'bg-[#141418] border-[#2A2A2E]' : 'bg-[#FFFFFF] border-[#E5E1D8]'}`}>
@@ -411,20 +606,17 @@ export function LandingPage({ onLoginClick, onRegisterClick, onOpenDisclaimer, t
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-                    placeholder={msgCount >= 10 ? "Message limit reached." : "Ask a quick question..."}
-                    disabled={msgCount >= 10}
+                    placeholder={msgCount >= 3 ? "Message limit reached." : "Ask a quick question..."}
+                    disabled={msgCount >= 3}
                     className={`flex-1 px-3 py-1.5 text-xs rounded-lg border focus:outline-none focus:border-[#C9A050] disabled:opacity-50 ${theme === 'dark' ? 'bg-[#1A1A1E] border-[#2A2A2E] text-[#F0ECE1]' : 'bg-[#F0ECE1] border-[#E5E1D8] text-[#0D0D0F]'}`}
                   />
                   <button
                     onClick={handleSend}
-                    disabled={msgCount >= 10 || !input.trim()}
+                    disabled={msgCount >= 3 || !input.trim()}
                     className="p-1.5 rounded-lg bg-[#C9A050] text-[#0D0D0F] disabled:opacity-50 cursor-pointer hover:bg-[#D4AF37] transition"
                   >
                     <Send className="w-3.5 h-3.5" />
                   </button>
-                </div>
-                <div className={`text-[9px] mt-1.5 text-center ${theme === 'dark' ? 'text-[#9E9A90]' : 'text-[#9E9A90]'}`}>
-                  {msgCount}/10 free messages used
                 </div>
               </div>
             </motion.div>
