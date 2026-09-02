@@ -891,12 +891,10 @@ export const HoroscopeTraditionsView: React.FC<
         </div>
       </div>
 
-      {/* MAIN GRID */}
-
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* LEFT */}
-
-        <div className="lg:col-span-5 space-y-4">
+      {/* MAIN GRID (2 COLUMNS ON TABLETS & DESKTOPS) */}
+      <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
+        {/* LEFT COLUMN */}
+        <div className="md:col-span-5 space-y-6">
           <div className="bg-[#141418] border border-[#2A2A2E] rounded-xl p-5 text-[#E5E1D8] shadow-xl flex flex-col items-center">
             <div className="w-full flex items-center justify-between pb-3 mb-3 border-b border-[#2A2A2E] text-xs">
               <span className="font-serif font-semibold text-[#C9A050] flex items-center space-x-1.5">
@@ -1029,11 +1027,87 @@ export const HoroscopeTraditionsView: React.FC<
               </div>
             </div>
           )}
+
+          {/* YOGAS & DOSHAS (Moved to Left Column for perfect balanced layout) */}
+          <div className="grid grid-cols-1 gap-4">
+            {/* YOGAS */}
+            <div className="bg-[#141418] border border-[#2A2A2E] rounded-xl p-5 text-[#E5E1D8] shadow-xl space-y-3">
+              <div className="flex items-center space-x-2 text-[#C9A050] font-serif font-bold text-xs pb-2 border-b border-[#2A2A2E]">
+                <Sparkles className="w-4 h-4" />
+                <span>
+                  Detected Auspicious Yogas ({chartData.yogas.length})
+                </span>
+              </div>
+
+              <div className="space-y-2">
+                {chartData.yogas.map((y) => (
+                  <div
+                    key={y.id}
+                    className="p-3 bg-[#1A1A1E] rounded-xl border border-[#2A2A2E]"
+                  >
+                    <div className="flex justify-between items-center">
+                      <h4 className="text-xs font-serif font-bold text-[#C9A050]">
+                        {y.name}
+                      </h4>
+
+                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-[#C9A050]/15 text-[#C9A050] font-sans">
+                        {y.type}
+                      </span>
+                    </div>
+
+                    <p className="text-[11px] text-[#9E9A90] mt-1 leading-relaxed font-sans">
+                      {y.effect}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* DOSHAS */}
+            <div className="bg-[#141418] border border-[#2A2A2E] rounded-xl p-5 text-[#E5E1D8] shadow-xl space-y-3">
+              <div className="flex items-center space-x-2 text-[#C9A050] font-serif font-bold text-xs pb-2 border-b border-[#2A2A2E]">
+                <Flame className="w-4 h-4" />
+                <span>
+                  Karmic Doshas & Planetary Afflictions
+                </span>
+              </div>
+
+              <div className="space-y-2">
+                {chartData.doshas.map((d) => (
+                  <div
+                    key={d.id}
+                    className="p-3 bg-[#1A1A1E] rounded-xl border border-[#2A2A2E]"
+                  >
+                    <div className="flex justify-between items-center">
+                      <h4 className="text-xs font-serif font-bold text-[#F0ECE1]">
+                        {d.name}
+                      </h4>
+
+                      <span
+                        className={`text-[10px] px-1.5 py-0.5 rounded font-bold font-sans ${
+                          d.isPresent
+                            ? 'dignity-badge-severe'
+                            : 'dignity-badge-neutral'
+                        }`}
+                      >
+                        {d.isPresent
+                          ? d.severity
+                          : 'Neutral'}
+                      </span>
+                    </div>
+
+                    <p className="text-[11px] text-[#9E9A90] mt-1 leading-relaxed font-sans">
+                      {d.description}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
         </div>
 
-        {/* RIGHT */}
-
-        <div className="lg:col-span-7 space-y-6">
+        {/* RIGHT COLUMN */}
+        <div className="md:col-span-7 space-y-6">
           {/* PLANETARY TABLE */}
 
           <div className="bg-[#141418] border border-[#2A2A2E] rounded-xl p-6 text-[#E5E1D8] shadow-xl overflow-x-auto">
@@ -1058,68 +1132,56 @@ export const HoroscopeTraditionsView: React.FC<
             <table className="w-full text-left text-xs border-collapse font-sans">
               <thead>
                 <tr className="border-b border-[#2A2A2E] text-[#9E9A90] font-semibold">
-                  <th className="pb-2">Planet</th>
-                  <th className="pb-2">Sign (Rashi)</th>
-                  <th className="pb-2">Degree</th>
-                  <th className="pb-2">
-                    Nakshatra & Pada
-                  </th>
-                  <th className="pb-2">Dignity</th>
-
+                  <th className="pb-2.5 pl-3 pr-2">Planet</th>
+                  <th className="pb-2.5 px-2">Sign (Rashi)</th>
+                  <th className="pb-2.5 px-2">Degree</th>
+                  <th className="pb-2.5 px-2">Nakshatra & Pada</th>
+                  <th className="pb-2.5 px-2">Dignity</th>
                   {tradition === 'jaimini' && (
-                    <th className="pb-2">
-                      Chara Karaka
-                    </th>
+                    <th className="pb-2.5 px-2">Chara Karaka</th>
                   )}
-
-                  <th className="pb-2">Gemstone</th>
+                  <th className="pb-2.5 pr-3 pl-2">Gemstone</th>
                 </tr>
               </thead>
 
               <tbody className="divide-y divide-[#2A2A2E]/60">
                 {chartData.planets.map((p) => {
-                  const isSelected =
-                    selectedPlanet?.id === p.id;
-
+                  const isSelected = selectedPlanet?.id === p.id;
                   return (
                     <tr
                       key={p.id}
-                      onClick={() =>
-                        setSelectedPlanet(p)
-                      }
+                      onClick={() => setSelectedPlanet(p)}
                       className={`hover:bg-[#1A1A1E] transition cursor-pointer ${
                         isSelected
-                          ? 'bg-[#C9A050]/10 font-semibold text-[#C9A050]'
+                          ? 'bg-[#C9A050]/15 font-semibold text-[#C9A050]'
                           : 'text-[#E5E1D8]'
                       }`}
                     >
-                      <td className="py-2.5 flex items-center space-x-1.5 font-medium text-[#F0ECE1]">
-                        <span className="text-[#C9A050]">
+                      <td className="py-2.5 pl-3 pr-2 flex items-center space-x-2 font-medium text-[#F0ECE1]">
+                        <span className="text-sm sm:text-base text-[#C9A050] w-4 text-center shrink-0 inline-block">
                           {p.symbol}
                         </span>
-
-                        <span>{p.name}</span>
-
+                        <span className="whitespace-nowrap">{p.name}</span>
                         {p.isRetrograde && (
-                          <span className="text-[10px] text-[#C9A050] font-bold">
+                          <span className="text-[10px] text-[#C9A050] font-bold shrink-0">
                             (R)
                           </span>
                         )}
                       </td>
 
-                      <td className="py-2.5">
+                      <td className="py-2.5 px-2 whitespace-nowrap">
                         {p.signName}
                       </td>
 
-                      <td className="py-2.5 font-mono">
+                      <td className="py-2.5 px-2 font-mono whitespace-nowrap">
                         {p.degree}°
                       </td>
 
-                      <td className="py-2.5 text-[#9E9A90]">
+                      <td className="py-2.5 px-2 text-[#9E9A90] whitespace-nowrap">
                         {p.nakshatra} (P{p.pada})
                       </td>
 
-                      <td className="py-2.5">
+                      <td className="py-2.5 px-2 whitespace-nowrap">
                         <span
                           className={`px-1.5 py-0.5 rounded text-[10px] font-semibold ${
                             p.dignity === 'Exalted'
@@ -1136,12 +1198,12 @@ export const HoroscopeTraditionsView: React.FC<
                       </td>
 
                       {tradition === 'jaimini' && (
-                        <td className="py-2.5 text-[#C9A050] font-medium font-serif">
+                        <td className="py-2.5 px-2 text-[#C9A050] font-medium font-serif whitespace-nowrap">
                           {p.karaka || '-'}
                         </td>
                       )}
 
-                      <td className="py-2.5 text-[11px] text-[#9E9A90]">
+                      <td className="py-2.5 pr-3 pl-2 text-[11px] text-[#9E9A90] whitespace-nowrap">
                         {t(p.gemstone).split('(')[0]}
                       </td>
                     </tr>
@@ -1237,192 +1299,81 @@ export const HoroscopeTraditionsView: React.FC<
               ))}
             </div>
           </div>
+        </div>
+      </div>
 
-          {/* YOGAS & DOSHAS */}
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {/* YOGAS */}
-
-            <div className="bg-[#141418] border border-[#2A2A2E] rounded-xl p-5 text-[#E5E1D8] shadow-xl space-y-3">
-              <div className="flex items-center space-x-2 text-[#C9A050] font-serif font-bold text-xs pb-2 border-b border-[#2A2A2E]">
-                <Sparkles className="w-4 h-4" />
-
-                <span>
-                  Detected Auspicious Yogas (
-                  {chartData.yogas.length})
-                </span>
-              </div>
-
-              <div className="space-y-2">
-                {chartData.yogas.map((y) => (
-                  <div
-                    key={y.id}
-                    className="p-3 bg-[#1A1A1E] rounded-xl border border-[#2A2A2E]"
-                  >
-                    <div className="flex justify-between items-center">
-                      <h4 className="text-xs font-serif font-bold text-[#C9A050]">
-                        {y.name}
-                      </h4>
-
-                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-[#C9A050]/15 text-[#C9A050] font-sans">
-                        {y.type}
-                      </span>
-                    </div>
-
-                    <p className="text-[11px] text-[#9E9A90] mt-1 leading-relaxed font-sans">
-                      {y.effect}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* DOSHAS */}
-
-            <div className="bg-[#141418] border border-[#2A2A2E] rounded-xl p-5 text-[#E5E1D8] shadow-xl space-y-3">
-              <div className="flex items-center space-x-2 text-[#C9A050] font-serif font-bold text-xs pb-2 border-b border-[#2A2A2E]">
-                <Flame className="w-4 h-4" />
-
-                <span>
-                  Karmic Doshas & Planetary Afflictions
-                </span>
-              </div>
-
-              <div className="space-y-2">
-                {chartData.doshas.map((d) => (
-                  <div
-                    key={d.id}
-                    className="p-3 bg-[#1A1A1E] rounded-xl border border-[#2A2A2E]"
-                  >
-                    <div className="flex justify-between items-center">
-                      <h4 className="text-xs font-serif font-bold text-[#F0ECE1]">
-                        {d.name}
-                      </h4>
-
-                      <span
-                        className={`text-[10px] px-1.5 py-0.5 rounded font-bold font-sans ${
-                          d.isPresent
-                            ? 'dignity-badge-severe'
-                            : 'dignity-badge-neutral'
-                        }`}
-                      >
-                        {d.isPresent
-                          ? d.severity
-                          : 'Neutral'}
-                      </span>
-                    </div>
-
-                    <p className="text-[11px] text-[#9E9A90] mt-1 leading-relaxed font-sans">
-                      {d.description}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            </div>
+      {/* AI COMPREHENSIVE SYNTHESIS (FULL WIDTH ACROSS ENTIRE PAGE) */}
+      <div className="w-full bg-[#141418] border border-[#2A2A2E] rounded-xl p-6 text-[#E5E1D8] shadow-xl space-y-4">
+        <div className="flex items-center justify-between pb-3 border-b border-[#2A2A2E] flex-wrap gap-3">
+          <div>
+            <h3 className="text-base font-serif font-bold text-[#F0ECE1] flex items-center space-x-2">
+              <Sparkles className="w-4 h-4 text-[#C9A050]" />
+              <span>
+                AI Comprehensive Synthesis ({tradition.toUpperCase()})
+              </span>
+            </h3>
+            <p className="text-xs text-[#9E9A90]">
+              Deep AI analysis integrating chart positions, dashas & ancient rules
+            </p>
           </div>
 
-          {/* AI INTERPRETATION */}
-
-          <div className="bg-[#141418] border border-[#2A2A2E] rounded-xl p-6 text-[#E5E1D8] shadow-xl space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-[#2A2A2E]">
-              <div>
-                <h3 className="text-base font-serif font-bold text-[#F0ECE1] flex items-center space-x-2">
-                  <Sparkles className="w-4 h-4 text-[#C9A050]" />
-
-                  <span>
-                    AI Comprehensive Synthesis (
-                    {tradition.toUpperCase()})
-                  </span>
-                </h3>
-
-                <p className="text-xs text-[#9E9A90]">
-                  Deep AI analysis integrating chart
-                  positions, dashas & ancient rules
-                </p>
-              </div>
-
-              <div className="flex items-center space-x-2">
-                {aiInterpretation && (
-                  <button
-                    onClick={() =>
-                      handleSpeech(aiInterpretation)
-                    }
-                    className="p-2 rounded-lg bg-[#1A1A1E] border border-[#2A2A2E] text-[#E5E1D8] hover:text-white transition cursor-pointer text-xs flex items-center space-x-1"
-                  >
-                    <Volume2 className="w-4 h-4" />
-
-                    <span>
-                      {isPlayingAudio
-                        ? 'Stop'
-                        : 'Listen'}
-                    </span>
-                  </button>
-                )}
-
-                <button
-                  onClick={
-                    handleGenerateAIInterpretation
-                  }
-                  disabled={isLoadingAi}
-                  className="px-3.5 py-2 rounded-lg bg-[#C9A050]/15 hover:bg-[#C9A050]/25 border border-[#C9A050]/40 text-[#C9A050] font-bold text-xs shadow-sm transition cursor-pointer flex items-center space-x-1.5 disabled:opacity-50"
-                >
-                  <Sparkles
-                    className={`w-3.5 h-3.5 ${
-                      isLoadingAi
-                        ? 'animate-spin'
-                        : ''
-                    }`}
-                  />
-
-                  <span>
-                    {isLoadingAi
-                      ? 'Synthesizing...'
-                      : aiInterpretation
-                      ? 'Regenerate Analysis'
-                      : 'Run Full AI Analysis'}
-                  </span>
-                </button>
-              </div>
-            </div>
-
-            {isLoadingAi ? (
-              <div className="py-12 flex flex-col items-center justify-center space-y-3 text-center">
-                <div className="w-9 h-9 border-2 border-[#C9A050] border-t-transparent rounded-full animate-spin" />
-
-                <p className="text-xs text-[#C9A050] font-serif font-semibold">
-                  JyotishVeda AI synthesizing
-                  multi-tradition Vedic sutras...
-                </p>
-              </div>
-            ) : aiInterpretation ? (
-              <div className="prose prose-invert max-w-none text-[#E5E1D8] text-xs sm:text-sm leading-relaxed space-y-3 whitespace-pre-line bg-[#08080A] p-5 rounded-xl border border-[#2A2A2E] font-serif">
-                {aiInterpretation}
-              </div>
-            ) : (
-              <div className="text-center py-6 bg-[#1A1A1E]/40 rounded-xl border border-[#2A2A2E]">
-                <p className="text-xs text-[#9E9A90] font-sans">
-                  Ready to generate a comprehensive
-                  synthesis combining{' '}
-                  <strong className="text-[#C9A050]">
-                    {tradition}
-                  </strong>{' '}
-                  rules with your active Dasha
-                  timeline and yogas.
-                </p>
-
-                <button
-                  onClick={
-                    handleGenerateAIInterpretation
-                  }
-                  className="mt-3 px-4 py-2 rounded-lg bg-[#C9A050]/15 hover:bg-[#C9A050]/25 border border-[#C9A050]/40 text-[#C9A050] text-xs font-semibold cursor-pointer transition"
-                >
-                  Click to Generate Deep AI
-                  Interpretation
-                </button>
-              </div>
+          <div className="flex items-center space-x-2">
+            {aiInterpretation && (
+              <button
+                onClick={() => handleSpeech(aiInterpretation)}
+                className="p-2 rounded-lg bg-[#1A1A1E] border border-[#2A2A2E] text-[#E5E1D8] hover:text-white transition cursor-pointer text-xs flex items-center space-x-1"
+              >
+                <Volume2 className="w-4 h-4" />
+                <span>{isPlayingAudio ? 'Stop' : 'Listen'}</span>
+              </button>
             )}
+
+            <button
+              onClick={handleGenerateAIInterpretation}
+              disabled={isLoadingAi}
+              className="px-3.5 py-2 rounded-lg bg-[#C9A050]/15 hover:bg-[#C9A050]/25 border border-[#C9A050]/40 text-[#C9A050] font-bold text-xs shadow-sm transition cursor-pointer flex items-center space-x-1.5 disabled:opacity-50"
+            >
+              <Sparkles
+                className={`w-3.5 h-3.5 ${
+                  isLoadingAi ? 'animate-spin' : ''
+                }`}
+              />
+              <span>
+                {isLoadingAi
+                  ? 'Synthesizing...'
+                  : aiInterpretation
+                  ? 'Regenerate Analysis'
+                  : 'Run Full AI Analysis'}
+              </span>
+            </button>
           </div>
         </div>
+
+        {isLoadingAi ? (
+          <div className="py-12 flex flex-col items-center justify-center space-y-3 text-center">
+            <div className="w-9 h-9 border-2 border-[#C9A050] border-t-transparent rounded-full animate-spin" />
+            <p className="text-xs text-[#C9A050] font-serif font-semibold">
+              JyotishVeda AI synthesizing multi-tradition Vedic sutras...
+            </p>
+          </div>
+        ) : aiInterpretation ? (
+          <div className="prose prose-invert max-w-none text-[#E5E1D8] text-xs sm:text-sm leading-relaxed space-y-3 whitespace-pre-line bg-[#08080A] p-5 rounded-xl border border-[#2A2A2E] font-serif">
+            {aiInterpretation}
+          </div>
+        ) : (
+          <div className="text-center py-6 bg-[#1A1A1E]/40 rounded-xl border border-[#2A2A2E]">
+            <p className="text-xs text-[#9E9A90] font-sans">
+              Ready to generate a comprehensive synthesis combining{' '}
+              <strong className="text-[#C9A050]">{tradition}</strong> rules with your active Dasha timeline and yogas.
+            </p>
+            <button
+              onClick={handleGenerateAIInterpretation}
+              className="mt-3 px-4 py-2 rounded-lg bg-[#C9A050]/15 hover:bg-[#C9A050]/25 border border-[#C9A050]/40 text-[#C9A050] text-xs font-semibold cursor-pointer transition"
+            >
+              Click to Generate Deep AI Interpretation
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
