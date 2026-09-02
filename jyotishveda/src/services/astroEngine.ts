@@ -122,7 +122,7 @@ export function reduceToSingleDigit(num: number, keepMasters: boolean = false): 
 }
 
 // Calculate Sidereal or Tropical Planetary & Chart data from birth date, time, and coords
-export function calculateVedicChart(profile: UserProfile, ephemerisData?: any): {
+export function calculateVedicChart(profile?: UserProfile, ephemerisData?: any): {
   system: 'vedic' | 'western';
   systemTitle: string;
   ayanamshaShift: number;
@@ -133,20 +133,35 @@ export function calculateVedicChart(profile: UserProfile, ephemerisData?: any): 
   yogas: VedicYoga[];
   doshas: VedicDosha[];
 } {
-  const isWestern = profile.horoscopeSystem === 'western';
+  const p: UserProfile = (profile && profile.birthDate) ? profile : {
+    id: 'default-profile',
+    fullName: 'Divine Seeker',
+    gender: 'male',
+    birthDate: '2000-01-01',
+    birthTime: '12:00',
+    birthPlace: 'Kolkata, India',
+    latitude: 22.5726,
+    longitude: 88.3639,
+    timezone: 5.5,
+    focusAreas: ['spiritual', 'career'],
+    isPremium: false,
+    horoscopeSystem: 'vedic',
+  };
+
+  const isWestern = p.horoscopeSystem === 'western';
   const ayanamshaShift = isWestern ? 23.86 : 0; // Sayana (Tropical) vs Nirayana (Lahiri Sidereal)
-  const timeString = profile.birthTime && profile.birthTime.trim() ? profile.birthTime.trim() : '12:00';
-  const bDate = new Date(`${profile.birthDate}T${timeString.length === 5 ? timeString : '12:00'}:00`);
+  const timeString = p.birthTime && p.birthTime.trim() ? p.birthTime.trim() : '12:00';
+  const bDate = new Date(`${p.birthDate}T${timeString.length === 5 ? timeString : '12:00'}:00`);
   const dayOfYear = Math.floor((bDate.getTime() - new Date(bDate.getFullYear(), 0, 0).getTime()) / 86400000);
   const birthHours = bDate.getHours() + bDate.getMinutes() / 60;
   
   // Seed hash for consistent deterministic astronomical approximations (fallback)
-  const seed = (bDate.getFullYear() * 365 + dayOfYear) * 24 + birthHours + profile.latitude * 0.5 + profile.longitude * 0.2;
+  const seed = (bDate.getFullYear() * 365 + dayOfYear) * 24 + birthHours + (p.latitude || 22.57) * 0.5 + (p.longitude || 88.36) * 0.2;
   
   // Ascendant Calculation
   let totalLagnaDeg = ephemerisData 
     ? ephemerisData.ascendant + ayanamshaShift
-    : (Math.floor(seed * 1.618 + (profile.longitude / 15) * 30 + birthHours * 15 + ayanamshaShift)) % 360;
+    : (Math.floor(seed * 1.618 + ((p.longitude || 88.36) / 15) * 30 + birthHours * 15 + ayanamshaShift)) % 360;
     
   if (totalLagnaDeg >= 360) totalLagnaDeg -= 360;
   if (totalLagnaDeg < 0) totalLagnaDeg += 360;
@@ -535,16 +550,19 @@ export function calculateVedicChart(profile: UserProfile, ephemerisData?: any): 
 }
 
 // Calculate Indian & Vedic Numerology Report
-export function calculateNumerology(profileOrName: UserProfile | string, birthDateStr?: string): NumerologyReport {
+export function calculateNumerology(profileOrName?: UserProfile | string, birthDateStr?: string): NumerologyReport {
   let fullName = '';
   let birthDate = '';
 
   if (typeof profileOrName === 'string') {
-    fullName = profileOrName;
+    fullName = profileOrName || 'Divine Seeker';
     birthDate = birthDateStr || '1995-06-15';
-  } else {
-    fullName = profileOrName.fullName;
+  } else if (profileOrName && profileOrName.birthDate) {
+    fullName = profileOrName.fullName || 'Divine Seeker';
     birthDate = profileOrName.birthDate;
+  } else {
+    fullName = 'Divine Seeker';
+    birthDate = '1995-06-15';
   }
 
   const parts = birthDate.split('-');
