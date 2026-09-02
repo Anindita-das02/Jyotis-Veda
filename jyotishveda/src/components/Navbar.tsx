@@ -135,6 +135,8 @@ export const Navbar: React.FC<NavbarProps> = ({
         { id: 'counsellor', label: 'AI Daivajna', icon: Sparkles },
       ];
 
+  const isViewingAdmin = isAdmin || activeTab?.startsWith('admin_') || activeTab === 'admin';
+
   return (
     <>
       {/* Top Primary Header Bar */}
@@ -143,37 +145,39 @@ export const Navbar: React.FC<NavbarProps> = ({
           theme === 'dark' ? 'bg-[#0D0D0F]/90 text-[#E5E1D8]' : 'bg-[#F9F7F1]/95 text-[#0D0D0F]'
         }`}
       >
-        {/* Top Auspicious & Astronomical Banner */}
-        <div
-          className={`px-3 sm:px-4 py-1 text-xs border-b flex items-center justify-between text-[#C9A050]/90 overflow-x-auto no-scrollbar ${
-            theme === 'dark' ? 'bg-[#08080A] border-[#2A2A2E]/60' : 'bg-[#F0ECE1] border-[#E5E1D8]'
-          }`}
-        >
-          <div className="flex items-center space-x-2 shrink-0">
-            <span className="font-semibold tracking-wide text-[#C9A050] text-[11px] sm:text-[12px]">
-              {t('header.ephemeris')}
-            </span>
-            <span className="text-[#2A2A2E] hidden xs:inline">|</span>
-            <span className="hidden sm:inline text-[#9E9A90] text-[11px] uppercase tracking-wider">
-              {t('header.traditions')}
-            </span>
-          </div>
-          <div className="flex items-center space-x-3 sm:space-x-4 shrink-0 text-[11px]">
-            <div className="flex items-center space-x-1.5 text-[#E5E1D8]">
-              <Clock className="w-3.5 h-3.5 text-[#C9A050]" />
-              <span className="text-[#9E9A90] truncate max-w-[150px] sm:max-w-none">
-                {t('header.active_dasha')}: <span className="font-semibold text-[#C9A050]">Jupiter-Venus</span>
+        {/* Top Auspicious & Astronomical Banner (Hidden in Admin Console) */}
+        {!isViewingAdmin && (
+          <div
+            className={`px-3 sm:px-4 py-1 text-xs border-b flex items-center justify-between text-[#C9A050]/90 overflow-x-auto no-scrollbar ${
+              theme === 'dark' ? 'bg-[#08080A] border-[#2A2A2E]/60' : 'bg-[#F0ECE1] border-[#E5E1D8]'
+            }`}
+          >
+            <div className="flex items-center space-x-2 shrink-0">
+              <span className="font-semibold tracking-wide text-[#C9A050] text-[11px] sm:text-[12px]">
+                {t('header.ephemeris')}
+              </span>
+              <span className="text-[#2A2A2E] hidden xs:inline">|</span>
+              <span className="hidden sm:inline text-[#9E9A90] text-[11px] uppercase tracking-wider">
+                {t('header.traditions')}
               </span>
             </div>
-            <button
-              onClick={onOpenDisclaimer}
-              className="text-[#C9A050] hover:text-[#E8D5B5] flex items-center space-x-1 cursor-pointer transition-colors"
-            >
-              <ShieldCheck className="w-3.5 h-3.5" />
-              <span className="hidden xs:inline">{t('header.disclaimer')}</span>
-            </button>
+            <div className="flex items-center space-x-3 sm:space-x-4 shrink-0 text-[11px]">
+              <div className="flex items-center space-x-1.5 text-[#E5E1D8]">
+                <Clock className="w-3.5 h-3.5 text-[#C9A050]" />
+                <span className="text-[#9E9A90] truncate max-w-[150px] sm:max-w-none">
+                  {t('header.active_dasha')}: <span className="font-semibold text-[#C9A050]">Jupiter-Venus</span>
+                </span>
+              </div>
+              <button
+                onClick={onOpenDisclaimer}
+                className="text-[#C9A050] hover:text-[#E8D5B5] flex items-center space-x-1 cursor-pointer transition-colors"
+              >
+                <ShieldCheck className="w-3.5 h-3.5" />
+                <span className="hidden xs:inline">{t('header.disclaimer')}</span>
+              </button>
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Main Header Row */}
         <div className="w-full px-3 sm:px-6 lg:px-8 py-2">

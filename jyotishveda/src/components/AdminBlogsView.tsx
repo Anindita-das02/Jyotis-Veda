@@ -312,10 +312,10 @@ export const AdminBlogsView: React.FC<AdminBlogsViewProps> = ({ theme = 'dark' }
         }
       `}</style>
       
-      <div className="mb-6 flex flex-col justify-between gap-4 border-b border-[#2A2A2E]/50 pb-6">
+      <div className="mb-3 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-[#2A2A2E]/40 pb-3">
         <div>
-          <h2 className="text-2xl font-bold font-serif mb-2 text-[#C9A050]">Manage Blogs</h2>
-          <p className={`text-sm ${theme === 'dark' ? 'text-[#9E9A90]' : 'text-[#6C6960]'}`}>
+          <h2 className="text-xl font-bold font-serif text-[#C9A050]">Manage Blogs</h2>
+          <p className={`text-xs mt-0.5 ${theme === 'dark' ? 'text-[#9E9A90]' : 'text-[#6C6960]'}`}>
             {viewMode === 'create' 
               ? (editingId ? 'Edit your blog post.' : 'Write and format new articles using the rich text editor.') 
               : viewMode === 'categories'
@@ -324,119 +324,108 @@ export const AdminBlogsView: React.FC<AdminBlogsViewProps> = ({ theme = 'dark' }
           </p>
         </div>
         
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-1.5">
           <button
             onClick={() => setViewMode('list')}
-            className={`flex items-center space-x-2 px-4 py-2 rounded-lg text-sm transition-all duration-300 ${
+            className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs transition-all duration-300 ${
               viewMode === 'list'
-                ? 'bg-[#C9A050] text-[#0D0D0F] font-semibold shadow-md'
+                ? 'bg-[#C9A050] text-[#0D0D0F] font-bold shadow-xs'
                 : theme === 'dark' 
                 ? 'bg-transparent text-[#9E9A90] border border-[#2A2A2E] hover:border-[#C9A050]/50 hover:text-[#E5E1D8]' 
                 : 'bg-transparent text-[#6C6960] border border-[#D5D1C8] hover:border-[#C9A050]/50 hover:text-[#0D0D0F]'
             }`}
           >
-            <List className="w-4 h-4" />
+            <List className="w-3.5 h-3.5" />
             <span>Blogs</span>
           </button>
           <button
             onClick={handleCreateNew}
-            className={`flex items-center space-x-2 px-4 py-2 rounded-lg text-sm transition-all duration-300 ${
+            className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs transition-all duration-300 ${
               viewMode === 'create'
-                ? 'bg-[#C9A050] text-[#0D0D0F] font-semibold shadow-md'
+                ? 'bg-[#C9A050] text-[#0D0D0F] font-bold shadow-xs'
                 : theme === 'dark' 
                 ? 'bg-transparent text-[#9E9A90] border border-[#2A2A2E] hover:border-[#C9A050]/50 hover:text-[#E5E1D8]' 
                 : 'bg-transparent text-[#6C6960] border border-[#D5D1C8] hover:border-[#C9A050]/50 hover:text-[#0D0D0F]'
             }`}
           >
-            <Plus className="w-4 h-4" />
+            <Plus className="w-3.5 h-3.5" />
             <span>{editingId ? 'Edit Post' : 'Create New'}</span>
           </button>
           <button
             onClick={() => setViewMode('categories')}
-            className={`flex items-center space-x-2 px-4 py-2 rounded-lg text-sm transition-all duration-300 ${
+            className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs transition-all duration-300 ${
               viewMode === 'categories'
-                ? 'bg-[#C9A050] text-[#0D0D0F] font-semibold shadow-md'
+                ? 'bg-[#C9A050] text-[#0D0D0F] font-bold shadow-xs'
                 : theme === 'dark' 
                 ? 'bg-transparent text-[#9E9A90] border border-[#2A2A2E] hover:border-[#C9A050]/50 hover:text-[#E5E1D8]' 
                 : 'bg-transparent text-[#6C6960] border border-[#D5D1C8] hover:border-[#C9A050]/50 hover:text-[#0D0D0F]'
             }`}
           >
-            <LayoutGrid className="w-4 h-4" />
+            <LayoutGrid className="w-3.5 h-3.5" />
             <span>Categories</span>
           </button>
         </div>
       </div>
       
       {viewMode === 'list' ? (
-        <div className="flex flex-col gap-6 animate-in fade-in duration-300">
+        <div className="flex flex-col gap-3.5 animate-in fade-in duration-300">
           
-          {/* Search Bar */}
-          <div className="relative max-w-md">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#9E9A90]" />
-            <input 
-              type="text" 
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search posts by title, category, or content..." 
-              className={`w-full pl-10 pr-4 py-2.5 rounded-lg border focus:outline-none focus:ring-1 focus:ring-[#C9A050] focus:border-[#C9A050] transition-colors ${
-                theme === 'dark' 
-                  ? 'bg-[#08080A]/50 border-[#2A2A2E] text-[#E5E1D8] placeholder-[#6C6960]' 
-                  : 'bg-[#F9F7F1]/50 border-[#D5D1C8] text-[#0D0D0F] placeholder-[#9E9A90]'
-              }`}
-            />
-          </div>
-
-          {/* Stats Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className={`p-4 rounded-xl border flex items-center justify-between ${theme === 'dark' ? 'bg-[#1A1A1E] border-[#2A2A2E]' : 'bg-[#FFFFFF] border-[#E5E1D8]'}`}>
-              <div>
-                <p className={`text-xs uppercase tracking-wider mb-1 ${theme === 'dark' ? 'text-[#9E9A90]' : 'text-[#6C6960]'}`}>Total Posts</p>
-                <h3 className="text-2xl font-bold font-serif text-[#C9A050]">{blogs.length}</h3>
-              </div>
-              <div className="w-10 h-10 rounded-full bg-[#C9A050]/10 flex items-center justify-center">
-                <BookOpen className="w-5 h-5 text-[#C9A050]" />
-              </div>
-            </div>
-            
-            <div className={`p-4 rounded-xl border flex items-center justify-between ${theme === 'dark' ? 'bg-[#1A1A1E] border-[#2A2A2E]' : 'bg-[#FFFFFF] border-[#E5E1D8]'}`}>
-              <div>
-                <p className={`text-xs uppercase tracking-wider mb-1 ${theme === 'dark' ? 'text-[#9E9A90]' : 'text-[#6C6960]'}`}>Published</p>
-                <h3 className="text-2xl font-bold font-serif text-green-500">{publishedCount}</h3>
-              </div>
-              <div className="w-10 h-10 rounded-full bg-green-500/10 flex items-center justify-center">
-                <CheckCircle className="w-5 h-5 text-green-500" />
-              </div>
+          {/* Search Bar & Stats in single responsive flow */}
+          <div className="flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between">
+            {/* Search Bar */}
+            <div className="relative flex-1 max-w-md">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#9E9A90]" />
+              <input 
+                type="text" 
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search posts by title, category, or content..." 
+                className={`w-full pl-9 pr-3.5 py-1.5 rounded-lg border text-xs focus:outline-none focus:ring-1 focus:ring-[#C9A050] focus:border-[#C9A050] transition-colors ${
+                  theme === 'dark' 
+                    ? 'bg-[#08080A]/50 border-[#2A2A2E] text-[#E5E1D8] placeholder-[#6C6960]' 
+                    : 'bg-[#F9F7F1]/50 border-[#D5D1C8] text-[#0D0D0F] placeholder-[#9E9A90]'
+                }`}
+              />
             </div>
 
-            <div className={`p-4 rounded-xl border flex items-center justify-between ${theme === 'dark' ? 'bg-[#1A1A1E] border-[#2A2A2E]' : 'bg-[#FFFFFF] border-[#E5E1D8]'}`}>
-              <div>
-                <p className={`text-xs uppercase tracking-wider mb-1 ${theme === 'dark' ? 'text-[#9E9A90]' : 'text-[#6C6960]'}`}>Drafts</p>
-                <h3 className={`text-2xl font-bold font-serif ${theme === 'dark' ? 'text-[#E5E1D8]' : 'text-[#0D0D0F]'}`}>{draftCount}</h3>
+            {/* Compact Stats Badges */}
+            <div className="flex items-center gap-2">
+              <div className={`px-3 py-1.5 rounded-lg border flex items-center gap-2 ${theme === 'dark' ? 'bg-[#1A1A1E] border-[#2A2A2E]' : 'bg-[#FFFFFF] border-[#E5E1D8]'}`}>
+                <BookOpen className="w-3.5 h-3.5 text-[#C9A050]" />
+                <span className={`text-xs ${theme === 'dark' ? 'text-[#9E9A90]' : 'text-[#6C6960]'}`}>Total:</span>
+                <span className="text-xs font-bold text-[#C9A050]">{blogs.length}</span>
               </div>
-              <div className={`w-10 h-10 rounded-full flex items-center justify-center ${theme === 'dark' ? 'bg-[#2A2A2E]' : 'bg-[#E5E1D8]'}`}>
-                <Clock className={`w-5 h-5 ${theme === 'dark' ? 'text-[#9E9A90]' : 'text-[#6C6960]'}`} />
+              <div className={`px-3 py-1.5 rounded-lg border flex items-center gap-2 ${theme === 'dark' ? 'bg-[#1A1A1E] border-[#2A2A2E]' : 'bg-[#FFFFFF] border-[#E5E1D8]'}`}>
+                <CheckCircle className="w-3.5 h-3.5 text-green-500" />
+                <span className={`text-xs ${theme === 'dark' ? 'text-[#9E9A90]' : 'text-[#6C6960]'}`}>Published:</span>
+                <span className="text-xs font-bold text-green-500">{publishedCount}</span>
+              </div>
+              <div className={`px-3 py-1.5 rounded-lg border flex items-center gap-2 ${theme === 'dark' ? 'bg-[#1A1A1E] border-[#2A2A2E]' : 'bg-[#FFFFFF] border-[#E5E1D8]'}`}>
+                <Clock className="w-3.5 h-3.5 text-amber-500" />
+                <span className={`text-xs ${theme === 'dark' ? 'text-[#9E9A90]' : 'text-[#6C6960]'}`}>Drafts:</span>
+                <span className={`text-xs font-bold ${theme === 'dark' ? 'text-[#E5E1D8]' : 'text-[#0D0D0F]'}`}>{draftCount}</span>
               </div>
             </div>
           </div>
 
-          {/* Data Table */}
-          <div className={`rounded-xl border overflow-hidden ${theme === 'dark' ? 'bg-[#1A1A1E]/50 border-[#2A2A2E]' : 'bg-[#FFFFFF] border-[#E5E1D8]'}`}>
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-sm whitespace-nowrap">
-                <thead className={`text-xs uppercase ${theme === 'dark' ? 'bg-[#08080A] text-[#9E9A90] border-b border-[#2A2A2E]' : 'bg-[#F9F7F1] text-[#6C6960] border-b border-[#E5E1D8]'}`}>
+          {/* Data Table with Internal Scroll */}
+          <div className={`rounded-xl border overflow-hidden shadow-sm ${theme === 'dark' ? 'bg-[#1A1A1E]/50 border-[#2A2A2E]' : 'bg-[#FFFFFF] border-[#E5E1D8]'}`}>
+            <div className="overflow-x-auto overflow-y-auto max-h-[380px] md:max-h-[calc(100vh-320px)] min-h-[160px] custom-scrollbar">
+              <table className="w-full text-left text-xs whitespace-nowrap border-collapse">
+                <thead className={`sticky top-0 z-10 text-[11px] font-bold uppercase tracking-wider ${theme === 'dark' ? 'bg-[#0D0D0F] text-[#9E9A90] border-b border-[#2A2A2E]' : 'bg-[#F9F7F1] text-[#6C6960] border-b border-[#E5E1D8]'}`}>
                   <tr>
-                    <th className="px-4 py-3 font-medium">ID</th>
-                    <th className="px-4 py-3 font-medium">Title</th>
-                    <th className="px-4 py-3 font-medium">Preview</th>
-                    <th className="px-4 py-3 font-medium">Image</th>
-                    <th className="px-4 py-3 font-medium">Category</th>
-                    <th className="px-4 py-3 font-medium">Tags</th>
-                    <th className="px-4 py-3 font-medium">Status</th>
-                    <th className="px-4 py-3 font-medium">Date</th>
-                    <th className="px-4 py-3 font-medium text-center">Action</th>
+                    <th className="px-3.5 py-2.5">ID</th>
+                    <th className="px-3.5 py-2.5">Title</th>
+                    <th className="px-3.5 py-2.5">Preview</th>
+                    <th className="px-3.5 py-2.5">Image</th>
+                    <th className="px-3.5 py-2.5">Category</th>
+                    <th className="px-3.5 py-2.5">Tags</th>
+                    <th className="px-3.5 py-2.5">Status</th>
+                    <th className="px-3.5 py-2.5">Date</th>
+                    <th className="px-3.5 py-2.5 text-center">Action</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[#2A2A2E]/50">
+                <tbody className="divide-y divide-[#2A2A2E]/40">
                   {loading && blogs.length === 0 ? (
                     <tr>
                       <td colSpan={9} className="px-4 py-8 text-center text-[#9E9A90]">Loading blogs...</td>
@@ -447,46 +436,46 @@ export const AdminBlogsView: React.FC<AdminBlogsViewProps> = ({ theme = 'dark' }
                     </tr>
                   ) : filteredBlogs.map((blog) => (
                     <tr key={blog.id} className={`transition-colors ${theme === 'dark' ? 'hover:bg-[#2A2A2E]/30' : 'hover:bg-[#F9F7F1]'}`}>
-                      <td className="px-4 py-4">{blog.id}</td>
-                      <td className="px-4 py-4">
+                      <td className="px-3.5 py-2.5">{blog.id}</td>
+                      <td className="px-3.5 py-2.5">
                         <div className="font-semibold max-w-[200px] truncate" title={blog.title}>{blog.title}</div>
-                        {blog.pinned === 1 && <span className="text-[10px] uppercase px-1.5 py-0.5 rounded bg-[#C9A050]/20 text-[#C9A050] mt-1 inline-block">Pinned</span>}
+                        {blog.pinned === 1 && <span className="text-[9px] uppercase px-1.5 py-0.5 rounded bg-[#C9A050]/20 text-[#C9A050] mt-0.5 inline-block font-bold">Pinned</span>}
                       </td>
-                      <td className={`px-4 py-4 ${theme === 'dark' ? 'text-[#9E9A90]' : 'text-[#6C6960]'}`}>
-                        <div className="max-w-[200px] truncate" title={blog.preview}>{blog.preview}</div>
+                      <td className={`px-3.5 py-2.5 ${theme === 'dark' ? 'text-[#9E9A90]' : 'text-[#6C6960]'}`}>
+                        <div className="max-w-[200px] truncate text-[11px]" title={blog.preview}>{blog.preview}</div>
                       </td>
-                      <td className="px-4 py-4">
+                      <td className="px-3.5 py-2.5">
                         {blog.image_url ? (
-                           <img src={blog.image_url} alt="Thumb" className="w-8 h-8 rounded object-cover" />
+                           <img src={blog.image_url} alt="Thumb" className="w-7 h-7 rounded object-cover" />
                         ) : (
-                           <div className={`w-8 h-8 rounded flex items-center justify-center ${theme === 'dark' ? 'bg-[#2A2A2E]' : 'bg-[#E5E1D8]'}`}>
-                             <ImageIcon className="w-4 h-4 text-[#9E9A90]" />
+                           <div className={`w-7 h-7 rounded flex items-center justify-center ${theme === 'dark' ? 'bg-[#2A2A2E]' : 'bg-[#E5E1D8]'}`}>
+                             <ImageIcon className="w-3.5 h-3.5 text-[#9E9A90]" />
                            </div>
                         )}
                       </td>
-                      <td className="px-4 py-4 text-[#4A90E2]">{blog.category}</td>
-                      <td className="px-4 py-4">
+                      <td className="px-3.5 py-2.5 text-[#4A90E2] font-semibold">{blog.category}</td>
+                      <td className="px-3.5 py-2.5">
                         <div className="flex gap-1 flex-wrap max-w-[150px]">
                           {blog.tags && blog.tags.map((tag: string) => (
-                            <span key={tag} className={`text-[10px] px-2 py-0.5 rounded-full ${theme === 'dark' ? 'bg-[#2A2A2E] text-[#E5E1D8]' : 'bg-[#E5E1D8] text-[#0D0D0F]'}`}>
+                            <span key={tag} className={`text-[9px] px-1.5 py-0.5 rounded-full font-medium ${theme === 'dark' ? 'bg-[#2A2A2E] text-[#E5E1D8]' : 'bg-[#E5E1D8] text-[#0D0D0F]'}`}>
                               {tag}
                             </span>
                           ))}
                         </div>
                       </td>
-                      <td className="px-4 py-4">
-                        <span className={`text-xs font-medium ${blog.status === 'Published' ? 'text-green-500' : 'text-gray-500'}`}>{blog.status}</span>
+                      <td className="px-3.5 py-2.5">
+                        <span className={`text-[11px] font-bold ${blog.status === 'Published' ? 'text-green-500' : 'text-gray-500'}`}>{blog.status}</span>
                       </td>
-                      <td className={`px-4 py-4 text-xs ${theme === 'dark' ? 'text-[#9E9A90]' : 'text-[#6C6960]'}`}>
+                      <td className={`px-3.5 py-2.5 text-[11px] ${theme === 'dark' ? 'text-[#9E9A90]' : 'text-[#6C6960]'}`}>
                         {new Date(blog.created_at).toLocaleDateString()}
                       </td>
-                      <td className="px-4 py-4 text-center">
-                        <div className="flex items-center justify-center gap-2">
-                          <button onClick={() => handleEdit(blog)} className="p-1.5 rounded-md hover:bg-[#C9A050]/20 text-[#C9A050] transition-colors" title="Edit">
-                            <Edit className="w-4 h-4" />
+                      <td className="px-3.5 py-2.5 text-center">
+                        <div className="flex items-center justify-center gap-1.5">
+                          <button onClick={() => handleEdit(blog)} className="p-1 rounded-md hover:bg-[#C9A050]/20 text-[#C9A050] transition-colors" title="Edit">
+                            <Edit className="w-3.5 h-3.5" />
                           </button>
-                          <button onClick={() => handleDelete(blog.id)} className="p-1.5 rounded-md hover:bg-red-500/20 text-red-500 transition-colors" title="Delete">
-                            <Trash2 className="w-4 h-4" />
+                          <button onClick={() => handleDelete(blog.id)} className="p-1 rounded-md hover:bg-red-500/20 text-red-500 transition-colors" title="Delete">
+                            <Trash2 className="w-3.5 h-3.5" />
                           </button>
                         </div>
                       </td>

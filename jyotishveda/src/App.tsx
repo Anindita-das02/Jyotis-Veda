@@ -616,7 +616,7 @@ export function App() {
             )}
 
             {activeTab === 'admin_dashboard' && (
-              <AdminDashboardView theme={theme} />
+              <AdminDashboardView theme={theme} setActiveTab={setActiveTab} />
             )}
 
             {activeTab === 'admin_users' && (
