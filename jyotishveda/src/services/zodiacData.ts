@@ -81,12 +81,14 @@ export function calculateZodiacCompatibility(
   if (system === 'sidereal') {
     const asuraGroup = ['Mercury', 'Venus', 'Saturn'];
     const devaGroup = ['Sun', 'Moon', 'Mars', 'Jupiter'];
+    const rulerA = signA.ruling_planet || '';
+    const rulerB = signB.ruling_planet || '';
     
-    if (signA.ruler === signB.ruler) {
+    if (rulerA === rulerB) {
       baseScore += 4;
-    } else if (asuraGroup.includes(signA.ruler) && asuraGroup.includes(signB.ruler)) {
+    } else if (asuraGroup.includes(rulerA) && asuraGroup.includes(rulerB)) {
       baseScore += 3;
-    } else if (devaGroup.includes(signA.ruler) && devaGroup.includes(signB.ruler)) {
+    } else if (devaGroup.includes(rulerA) && devaGroup.includes(rulerB)) {
       baseScore += 3;
     } else {
       baseScore -= 6;

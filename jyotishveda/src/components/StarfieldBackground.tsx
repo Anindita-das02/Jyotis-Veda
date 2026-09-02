@@ -16,6 +16,8 @@ export const StarfieldBackground: React.FC = () => {
     let targetMouseX = 0;
     let targetMouseY = 0;
 
+    const isMobileDevice = window.innerWidth < 768;
+
     const resize = () => {
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
@@ -24,12 +26,14 @@ export const StarfieldBackground: React.FC = () => {
 
     const initStars = () => {
       stars = [];
-      const numStars = Math.floor((canvas.width * canvas.height) / 3500); // Responsive star count
+      const density = window.innerWidth < 768 ? 6000 : 3500;
+      const maxLimit = window.innerWidth < 768 ? 70 : 250;
+      const numStars = Math.min(Math.floor((canvas.width * canvas.height) / density), maxLimit);
       for (let i = 0; i < numStars; i++) {
         stars.push({
           x: Math.random() * canvas.width,
           y: Math.random() * canvas.height,
-          radius: Math.random() * 1.2 + 0.3,
+          radius: Math.random() * (window.innerWidth < 768 ? 1.0 : 1.2) + 0.3,
           speed: Math.random() * 0.15 + 0.05,
           opacity: Math.random(),
           twinkleSpeed: (Math.random() - 0.5) * 0.03,

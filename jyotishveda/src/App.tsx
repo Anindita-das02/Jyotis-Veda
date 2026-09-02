@@ -570,7 +570,7 @@ export function App() {
       />
 
       {/* Main Container */}
-      <main className="flex-1 w-full px-4 sm:px-6 lg:px-8 py-6 sm:py-8 overflow-x-hidden">
+      <main className="flex-1 w-full px-3 sm:px-6 lg:px-8 py-5 sm:py-8 pb-24 md:pb-8 overflow-x-hidden">
         <AnimatePresence mode="wait">
           <motion.div
             key={activeTab}
@@ -728,6 +728,7 @@ export function App() {
         onClose={() =>
           setIsDisclaimerModalOpen(false)
         }
+        theme={theme}
       />
 
       {/* Footer */}

@@ -1063,7 +1063,7 @@ export const PanjikaCalendarView: React.FC<PanjikaCalendarViewProps> = ({ theme 
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 bg-black/75 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto"
+            className="fixed inset-0 z-50 bg-black/75 backdrop-blur-md flex items-end sm:items-center justify-center p-0 sm:p-4 overflow-y-auto"
             onClick={() => setSelectedDay(null)}
           >
             <motion.div
@@ -1071,7 +1071,7 @@ export const PanjikaCalendarView: React.FC<PanjikaCalendarViewProps> = ({ theme 
               animate={{ scale: 1, y: 0 }}
               exit={{ scale: 0.92, y: 20 }}
               onClick={(e) => e.stopPropagation()}
-              className={`w-full max-w-2xl rounded-2xl border shadow-2xl overflow-hidden transition-all my-8 ${
+              className={`w-full max-w-2xl rounded-t-2xl sm:rounded-2xl border shadow-2xl overflow-hidden transition-all my-0 sm:my-8 max-h-[92vh] sm:max-h-[85vh] overflow-y-auto ${
                 isDark ? 'bg-[#141418] border-[#C9A050]/40 text-[#E5E1D8]' : 'bg-white border-[#C9A050]/40 text-[#0D0D0F]'
               }`}
             >

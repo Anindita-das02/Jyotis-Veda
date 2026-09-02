@@ -127,9 +127,9 @@ export function AuthGate({
 
   // Registration Fields: Gender, Place, Date of Birth, Time of Birth
   const [gender, setGender] = useState<'male' | 'female' | 'others'>('male');
-  const [birthPlace, setBirthPlace] = useState('Kolkata, West Bengal, India');
-  const [birthDay, setBirthDay] = useState('15');
-  const [birthMonth, setBirthMonth] = useState('06');
+  const [birthPlace, setBirthPlace] = useState('');
+  const [birthDay, setBirthDay] = useState('01');
+  const [birthMonth, setBirthMonth] = useState('01');
   const [birthYear, setBirthYear] = useState('2000');
   const [birthTime, setBirthTime] = useState('');
 
@@ -151,7 +151,7 @@ export function AuthGate({
   const [userCaptchaInput, setUserCaptchaInput] = useState('');
 
   const refreshCaptcha = () => {
-    const chars = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
+    const chars = '23456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz';
     let code = '';
     for (let i = 0; i < 5; i++) {
       code += chars.charAt(Math.floor(Math.random() * chars.length));
@@ -229,7 +229,7 @@ export function AuthGate({
     setError(null);
     setGoogleAuthError(null);
 
-    const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+    const googleClientId = (import.meta as any).env?.VITE_GOOGLE_CLIENT_ID;
     const google = (window as any).google;
 
     if (googleClientId && google?.accounts?.oauth2) {
@@ -341,7 +341,7 @@ export function AuthGate({
     <AnimatePresence>
       <div 
         onClick={onClose}
-        className="fixed inset-0 z-[100] bg-black/35 flex items-center justify-center p-3 sm:p-4 overflow-y-auto transition-opacity"
+        className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4 overflow-y-auto transition-opacity"
       >
         <motion.div
           initial={{ opacity: 0, scale: 0.95, y: 15 }}
@@ -349,7 +349,7 @@ export function AuthGate({
           exit={{ opacity: 0, scale: 0.95, y: 15 }}
           transition={{ duration: 0.2 }}
           onClick={(e) => e.stopPropagation()}
-          className={`w-full ${mode === 'register' ? 'max-w-lg sm:max-w-2xl' : 'max-w-md'} rounded-2xl border shadow-2xl relative my-auto transition-all duration-300 ${
+          className={`w-full ${mode === 'register' ? 'max-w-lg sm:max-w-2xl' : 'max-w-md'} rounded-t-2xl sm:rounded-2xl border shadow-2xl relative max-h-[92vh] sm:max-h-[90vh] overflow-y-auto my-0 sm:my-auto transition-all duration-300 ${
             isDark
               ? 'bg-[#141418] border-[#C9A050]/40 text-[#E5E1D8]'
               : 'bg-[#FFFFFF] border-[#C9A050]/40 text-[#0D0D0F]'
@@ -535,6 +535,7 @@ export function AuthGate({
                       <input
                         type="email"
                         required
+                        autoComplete="off"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
                         className={`w-full pl-8 pr-2.5 py-1.5 border rounded-xl text-xs font-medium focus:outline-none focus:border-[#C9A050] ${
@@ -606,6 +607,7 @@ export function AuthGate({
                         type="password"
                         required
                         minLength={8}
+                        autoComplete="new-password"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         className={`w-full pl-8 pr-2.5 py-1.5 border rounded-xl text-xs font-medium focus:outline-none focus:border-[#C9A050] ${
@@ -618,25 +620,27 @@ export function AuthGate({
                     </div>
                   </div>
 
-                  {/* Birth Place Dropdown */}
+                  {/* Birth Place Manual Input */}
                   <div>
                     <label className={`block text-[10px] font-bold mb-0.5 flex items-center space-x-1 ${isDark ? 'text-[#C9A050]' : 'text-[#8C6B28]'}`}>
                       <MapPin className="w-3 h-3" />
                       <span>Birth Place</span>
                     </label>
-                    <select
-                      value={birthPlace}
-                      onChange={(e) => setBirthPlace(e.target.value)}
-                      className={`w-full px-2.5 py-1.5 border rounded-xl text-xs font-semibold focus:outline-none focus:border-[#C9A050] cursor-pointer ${
-                        isDark
-                          ? 'bg-[#1A1A1E] border-[#2A2A2E] text-white'
-                          : 'bg-[#F9F7F1] border-[#E5E1D8] text-black'
-                      }`}
-                    >
-                      {CITIES_LIST.map((city) => (
-                        <option key={city} value={city}>{city}</option>
-                      ))}
-                    </select>
+                    <div className="relative">
+                      <MapPin className="absolute left-2.5 top-2 w-3.5 h-3.5 text-gray-400" />
+                      <input
+                        type="text"
+                        required
+                        value={birthPlace}
+                        onChange={(e) => setBirthPlace(e.target.value)}
+                        placeholder="e.g. Kolkata, West Bengal, India"
+                        className={`w-full pl-8 pr-2.5 py-1.5 border rounded-xl text-xs font-medium focus:outline-none focus:border-[#C9A050] ${
+                          isDark
+                            ? 'bg-[#1A1A1E] border-[#2A2A2E] text-white placeholder-gray-500'
+                            : 'bg-[#F9F7F1] border-[#E5E1D8] text-black placeholder-gray-400'
+                        }`}
+                      />
+                    </div>
                   </div>
 
                   {/* Time of Birth (Optional) */}
@@ -651,15 +655,15 @@ export function AuthGate({
                     <div className="relative">
                       <Clock className="absolute left-2.5 top-2 w-3.5 h-3.5 text-gray-400" />
                       <input
-                        type="time"
+                        type="text"
                         value={birthTime}
                         onChange={(e) => setBirthTime(e.target.value)}
-                        className={`w-full pl-8 pr-2.5 py-1.5 border rounded-xl text-xs font-medium focus:outline-none focus:border-[#C9A050] cursor-pointer ${
+                        className={`w-full pl-8 pr-2.5 py-1.5 border rounded-xl text-xs font-medium focus:outline-none focus:border-[#C9A050] ${
                           isDark
-                            ? 'bg-[#1A1A1E] border-[#2A2A2E] text-white'
-                            : 'bg-[#F9F7F1] border-[#E5E1D8] text-black'
+                            ? 'bg-[#1A1A1E] border-[#2A2A2E] text-white placeholder-gray-500'
+                            : 'bg-[#F9F7F1] border-[#E5E1D8] text-black placeholder-gray-400'
                         }`}
-                        placeholder="HH:MM"
+                        placeholder="e.g. 14:30 or 02:30 PM"
                       />
                     </div>
                   </div>
@@ -698,7 +702,7 @@ export function AuthGate({
                           maxLength={6}
                           value={userCaptchaInput}
                           onChange={(e) => setUserCaptchaInput(e.target.value)}
-                          className={`w-full pl-8 pr-2.5 py-1.5 border rounded-xl text-xs font-bold uppercase tracking-wider focus:outline-none focus:border-[#C9A050] ${
+                          className={`w-full pl-8 pr-2.5 py-1.5 border rounded-xl text-xs font-semibold tracking-wider focus:outline-none focus:border-[#C9A050] ${
                             isDark
                               ? 'bg-[#1A1A1E] border-[#2A2A2E] text-white placeholder-gray-500'
                               : 'bg-[#F9F7F1] border-[#E5E1D8] text-black placeholder-gray-400'
@@ -790,7 +794,7 @@ export function AuthGate({
                           maxLength={6}
                           value={userCaptchaInput}
                           onChange={(e) => setUserCaptchaInput(e.target.value)}
-                          className={`w-full pl-8 pr-2.5 py-2 border rounded-xl text-xs font-bold uppercase tracking-wider focus:outline-none focus:border-[#C9A050] ${
+                          className={`w-full pl-8 pr-2.5 py-2 border rounded-xl text-xs font-semibold tracking-wider focus:outline-none focus:border-[#C9A050] ${
                             isDark
                               ? 'bg-[#1A1A1E] border-[#2A2A2E] text-white placeholder-gray-500'
                               : 'bg-[#F9F7F1] border-[#E5E1D8] text-black placeholder-gray-400'

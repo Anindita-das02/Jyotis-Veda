@@ -138,24 +138,34 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="bg-[#141418]/85 backdrop-blur-2xl border border-[#2A2A2E]/80 rounded-xl max-w-2xl w-full p-6 text-[#E5E1D8] shadow-[0_8px_32px_rgba(0,0,0,0.5)] relative max-h-[90vh] overflow-y-auto font-sans">
+    <div className="fixed inset-0 z-50 overflow-y-auto bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4">
+      <div
+        className={`backdrop-blur-2xl border rounded-t-2xl sm:rounded-2xl max-w-2xl w-full p-4 sm:p-6 shadow-2xl relative max-h-[92vh] sm:max-h-[90vh] overflow-y-auto font-sans transition-colors ${
+          theme === 'light'
+            ? 'bg-[#FAF7F0] border-[#E2DBD0] text-[#1A1816]'
+            : 'bg-[#141418]/95 border-[#2A2A2E]/80 text-[#E5E1D8] shadow-[0_8px_32px_rgba(0,0,0,0.5)]'
+        }`}
+      >
         {/* Close Button */}
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 text-[#9E9A90] hover:text-[#F0ECE1] p-1.5 rounded-lg bg-[#1A1A1E] border border-[#2A2A2E] hover:bg-[#2A2A2E] transition cursor-pointer"
+          className={`absolute top-4 right-4 p-1.5 rounded-lg border transition cursor-pointer ${
+            theme === 'light'
+              ? 'bg-[#EFE9DC] border-[#DDD5C7] text-[#5C574F] hover:bg-[#E5DDCD] hover:text-[#1A1816]'
+              : 'bg-[#1A1A1E] border-[#2A2A2E] text-[#9E9A90] hover:text-[#F0ECE1] hover:bg-[#2A2A2E]'
+          }`}
         >
           <X className="w-5 h-5" />
         </button>
 
         {/* Header */}
-        <div className="flex items-center space-x-3 mb-6 pb-4 border-b border-[#2A2A2E]">
+        <div className={`flex items-center space-x-3 mb-6 pb-4 border-b ${theme === 'light' ? 'border-[#E2DBD0]' : 'border-[#2A2A2E]'}`}>
           <AncientTraditionLogo size="md" isLight={theme === 'light'} />
           <div>
-            <h2 className="text-xl font-serif font-bold text-[#F0ECE1]">
+            <h2 className={`text-xl font-serif font-bold ${theme === 'light' ? 'text-[#1A1816]' : 'text-[#F0ECE1]'}`}>
               {initialProfile ? 'Edit Astrological Profile' : 'New Astrological & Numerology Profile'}
             </h2>
-            <p className="text-xs text-[#9E9A90] mt-0.5">
+            <p className={`text-xs mt-0.5 ${theme === 'light' ? 'text-[#6E685E]' : 'text-[#9E9A90]'}`}>
               Accurate birth date, time, coordinates, and calculation system ensure mathematically exact Ascendant, houses, and forecasts.
             </p>
           </div>
@@ -164,13 +174,17 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
         {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Horoscope Generation System Selection */}
-          <div className="bg-[#08080A] p-3.5 rounded-xl border border-[#2A2A2E] space-y-2.5">
+          <div className={`p-3.5 rounded-xl border space-y-2.5 ${theme === 'light' ? 'bg-[#F2ECE0] border-[#E2DBD0]' : 'bg-[#08080A] border-[#2A2A2E]'}`}>
             <div className="flex items-center justify-between">
-              <label className="text-xs font-semibold text-[#C9A050] flex items-center space-x-1.5">
-                <Compass className="w-3.5 h-3.5 text-[#C9A050]" />
+              <label className={`text-xs font-semibold flex items-center space-x-1.5 ${theme === 'light' ? 'text-[#8C6218]' : 'text-[#C9A050]'}`}>
+                <Compass className="w-3.5 h-3.5" />
                 <span>Type of Horoscope Generation</span>
               </label>
-              <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#1A1A1E] text-[#9E9A90] border border-[#2A2A2E]">
+              <span className={`text-[10px] px-2 py-0.5 rounded-full border ${
+                theme === 'light'
+                  ? 'bg-[#EAE3D2] text-[#6E685E] border-[#DDD5C7]'
+                  : 'bg-[#1A1A1E] text-[#9E9A90] border-[#2A2A2E]'
+              }`}>
                 {horoscopeSystem === 'vedic' ? 'Sidereal Nirayana (~24° Lahiri)' : 'Tropical Sayana (Seasonal Equinox)'}
               </span>
             </div>
@@ -181,7 +195,11 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                 onClick={() => setHoroscopeSystem('vedic')}
                 className={`p-3 rounded-lg border text-left transition cursor-pointer flex flex-col justify-between ${
                   horoscopeSystem === 'vedic'
-                    ? 'bg-[#C9A050]/15 border-[#C9A050] shadow-sm shadow-[#C9A050]/10'
+                    ? theme === 'light'
+                      ? 'bg-[#FFFFFF] border-2 border-[#C9A050] shadow-md shadow-[#C9A050]/15'
+                      : 'bg-[#C9A050]/15 border-2 border-[#C9A050] shadow-sm shadow-[#C9A050]/10'
+                    : theme === 'light'
+                    ? 'bg-[#FAF7F0] border border-[#DDD5C7] hover:border-[#C9A050]/60'
                     : 'bg-[#1A1A1E] border-[#2A2A2E] hover:border-[#9E9A90]'
                 }`}
               >
@@ -191,20 +209,20 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                       <Star className="w-3.5 h-3.5" />
                     </div>
                     <div>
-                      <div className="text-xs font-bold text-[#F0ECE1] flex items-center space-x-1">
+                      <div className={`text-xs font-bold flex items-center space-x-1 ${theme === 'light' ? 'text-[#1A1816]' : 'text-[#F0ECE1]'}`}>
                         <span>Vedic Horoscope</span>
                         <span className="text-[10px] font-normal text-[#C9A050]">(Sidereal)</span>
                       </div>
-                      <div className="text-[10px] text-[#9E9A90]">Nirayana • 27 Nakshatras</div>
+                      <div className={`text-[10px] ${theme === 'light' ? 'text-[#6E685E]' : 'text-[#9E9A90]'}`}>Nirayana • 27 Nakshatras</div>
                     </div>
                   </div>
                   <div className={`w-4 h-4 rounded-full border flex items-center justify-center ${
-                    horoscopeSystem === 'vedic' ? 'border-[#C9A050] bg-[#C9A050]' : 'border-[#9E9A90]'
+                    horoscopeSystem === 'vedic' ? 'border-[#C9A050] bg-[#C9A050]' : theme === 'light' ? 'border-[#DDD5C7]' : 'border-[#9E9A90]'
                   }`}>
                     {horoscopeSystem === 'vedic' && <Check className="w-2.5 h-2.5 text-[#0D0D0F]" />}
                   </div>
                 </div>
-                <p className="text-[11px] text-[#9E9A90] mt-2 leading-relaxed">
+                <p className={`text-[11px] mt-2 leading-relaxed ${theme === 'light' ? 'text-[#6E685E]' : 'text-[#9E9A90]'}`}>
                   Constellation-grounded coordinates using Lahiri Ayanamsha (~24°). Includes Vimshottari Dashas, Nakshatra padas, and Divisional (Varga) charts.
                 </p>
               </div>
@@ -214,30 +232,34 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                 onClick={() => setHoroscopeSystem('western')}
                 className={`p-3 rounded-lg border text-left transition cursor-pointer flex flex-col justify-between ${
                   horoscopeSystem === 'western'
-                    ? 'bg-[#C9A050]/15 border-[#C9A050] shadow-sm shadow-[#C9A050]/10'
+                    ? theme === 'light'
+                      ? 'bg-[#FFFFFF] border-2 border-[#C9A050] shadow-md shadow-[#C9A050]/15'
+                      : 'bg-[#C9A050]/15 border-2 border-[#C9A050] shadow-sm shadow-[#C9A050]/10'
+                    : theme === 'light'
+                    ? 'bg-[#FAF7F0] border border-[#DDD5C7] hover:border-[#C9A050]/60'
                     : 'bg-[#1A1A1E] border-[#2A2A2E] hover:border-[#9E9A90]'
                 }`}
               >
                 <div className="flex items-start justify-between">
                   <div className="flex items-center space-x-2">
-                    <div className={`w-7 h-7 rounded-lg flex items-center justify-center ${theme === 'dark' ? 'bg-[#4A7C59]/20 text-[#7EBC89]' : 'bg-[#E5E1D8] text-[#9E9A90]'}`}>
+                    <div className="w-7 h-7 rounded-lg bg-[#C9A050]/20 flex items-center justify-center text-[#C9A050]">
                       <Globe className="w-3.5 h-3.5" />
                     </div>
                     <div>
-                      <div className="text-xs font-bold text-[#F0ECE1] flex items-center space-x-1">
+                      <div className={`text-xs font-bold flex items-center space-x-1 ${theme === 'light' ? 'text-[#1A1816]' : 'text-[#F0ECE1]'}`}>
                         <span>Western Horoscope</span>
-                        <span className={`text-[10px] font-normal ${theme === 'dark' ? 'text-[#7EBC89]' : 'text-[#9E9A90]'}`}>(Tropical)</span>
+                        <span className="text-[10px] font-normal text-[#C9A050]">(Tropical)</span>
                       </div>
-                      <div className="text-[10px] text-[#9E9A90]">Sayana &middot; Equinox Based</div>
+                      <div className={`text-[10px] ${theme === 'light' ? 'text-[#6E685E]' : 'text-[#9E9A90]'}`}>Sayana &middot; Equinox Based</div>
                     </div>
                   </div>
                   <div className={`w-4 h-4 rounded-full border flex items-center justify-center ${
-                    horoscopeSystem === 'western' ? 'border-[#C9A050] bg-[#C9A050]' : 'border-[#9E9A90]'
+                    horoscopeSystem === 'western' ? 'border-[#C9A050] bg-[#C9A050]' : theme === 'light' ? 'border-[#DDD5C7]' : 'border-[#9E9A90]'
                   }`}>
                     {horoscopeSystem === 'western' && <Check className="w-2.5 h-2.5 text-[#0D0D0F]" />}
                   </div>
                 </div>
-                <p className="text-[11px] text-[#9E9A90] mt-2 leading-relaxed">
+                <p className={`text-[11px] mt-2 leading-relaxed ${theme === 'light' ? 'text-[#6E685E]' : 'text-[#9E9A90]'}`}>
                   Seasonal equinox-aligned zodiac coordinates (0° Aries at Vernal Equinox). Focuses on geometric planetary aspects (trines, squares) & psychological houses.
                 </p>
               </div>
@@ -247,7 +269,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
           {/* Full Name & Gender */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div className="sm:col-span-2">
-              <label className="block text-xs font-semibold text-[#C9A050] mb-1">
+              <label className={`block text-xs font-semibold mb-1 ${theme === 'light' ? 'text-[#8C6218]' : 'text-[#C9A050]'}`}>
                 Full Name (for Chaldean & Vedic Name Vibrations)
               </label>
               <div className="relative">
@@ -258,17 +280,25 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
                   placeholder="e.g. Aarav Sharma"
-                  className="w-full pl-9 pr-3 py-2 bg-[#1A1A1E] border border-[#2A2A2E] rounded-lg text-sm text-[#F0ECE1] placeholder-[#9E9A90]/60 focus:outline-none focus:border-[#C9A050]"
+                  className={`w-full pl-9 pr-3 py-2 rounded-lg text-sm focus:outline-none focus:border-[#C9A050] ${
+                    theme === 'light'
+                      ? 'bg-[#FFFFFF] border border-[#DDD5C7] text-[#1A1816] placeholder-[#9E9A90]'
+                      : 'bg-[#1A1A1E] border border-[#2A2A2E] text-[#F0ECE1] placeholder-[#9E9A90]/60'
+                  }`}
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-[#C9A050] mb-1">Gender</label>
+              <label className={`block text-xs font-semibold mb-1 ${theme === 'light' ? 'text-[#8C6218]' : 'text-[#C9A050]'}`}>Gender</label>
               <select
                 value={gender}
                 onChange={(e: any) => setGender(e.target.value)}
-                className="w-full px-3 py-2 bg-[#1A1A1E] border border-[#2A2A2E] rounded-lg text-sm text-[#F0ECE1] focus:outline-none focus:border-[#C9A050] cursor-pointer"
+                className={`w-full px-3 py-2 rounded-lg text-sm focus:outline-none focus:border-[#C9A050] cursor-pointer ${
+                  theme === 'light'
+                    ? 'bg-[#FFFFFF] border border-[#DDD5C7] text-[#1A1816]'
+                    : 'bg-[#1A1A1E] border border-[#2A2A2E] text-[#F0ECE1]'
+                }`}
               >
                 <option value="male">Male</option>
                 <option value="female">Female</option>
@@ -280,7 +310,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
           {/* Birth Date & Time */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-semibold text-[#C9A050] mb-1 flex items-center space-x-1">
+              <label className={`block text-xs font-semibold mb-1 flex items-center space-x-1 ${theme === 'light' ? 'text-[#8C6218]' : 'text-[#C9A050]'}`}>
                 <Calendar className="w-3.5 h-3.5 text-[#C9A050]" />
                 <span>Date of Birth</span>
               </label>
@@ -289,30 +319,38 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                 required
                 value={birthDate}
                 onChange={(e) => setBirthDate(e.target.value)}
-                className="w-full px-3 py-2 bg-[#1A1A1E] border border-[#2A2A2E] rounded-lg text-sm text-[#F0ECE1] focus:outline-none focus:border-[#C9A050] cursor-pointer"
+                className={`w-full px-3 py-2 rounded-lg text-sm focus:outline-none focus:border-[#C9A050] cursor-pointer ${
+                  theme === 'light'
+                    ? 'bg-[#FFFFFF] border border-[#DDD5C7] text-[#1A1816]'
+                    : 'bg-[#1A1A1E] border border-[#2A2A2E] text-[#F0ECE1]'
+                }`}
               />
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-[#C9A050] mb-1 flex items-center justify-between">
+              <label className={`block text-xs font-semibold mb-1 flex items-center justify-between ${theme === 'light' ? 'text-[#8C6218]' : 'text-[#C9A050]'}`}>
                 <span className="flex items-center space-x-1">
                   <Clock className="w-3.5 h-3.5 text-[#C9A050]" />
                   <span>Exact Time of Birth (24hr format)</span>
                 </span>
-                <span className="text-[10px] text-gray-400 font-normal">(Optional)</span>
+                <span className={`text-[10px] font-normal ${theme === 'light' ? 'text-[#6E685E]' : 'text-gray-400'}`}>(Optional)</span>
               </label>
               <input
                 type="time"
                 value={birthTime}
                 onChange={(e) => setBirthTime(e.target.value)}
-                className="w-full px-3 py-2 bg-[#1A1A1E] border border-[#2A2A2E] rounded-lg text-sm text-[#F0ECE1] focus:outline-none focus:border-[#C9A050] cursor-pointer"
+                className={`w-full px-3 py-2 rounded-lg text-sm focus:outline-none focus:border-[#C9A050] cursor-pointer ${
+                  theme === 'light'
+                    ? 'bg-[#FFFFFF] border border-[#DDD5C7] text-[#1A1816]'
+                    : 'bg-[#1A1A1E] border border-[#2A2A2E] text-[#F0ECE1]'
+                }`}
               />
             </div>
           </div>
 
           {/* Birth Place */}
           <div>
-            <label className="block text-xs font-semibold text-[#C9A050] mb-1 flex items-center space-x-1">
+            <label className={`block text-xs font-semibold mb-1 flex items-center space-x-1 ${theme === 'light' ? 'text-[#8C6218]' : 'text-[#C9A050]'}`}>
               <MapPin className="w-3.5 h-3.5 text-[#C9A050]" />
               <span>Place of Birth (City, Country)</span>
             </label>
@@ -323,13 +361,21 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                 value={birthPlace}
                 onChange={(e) => setBirthPlace(e.target.value)}
                 placeholder="e.g. New Delhi, India"
-                className="flex-1 px-3 py-2 bg-[#1A1A1E] border border-[#2A2A2E] rounded-lg text-sm text-[#F0ECE1] placeholder-[#9E9A90]/60 focus:outline-none focus:border-[#C9A050]"
+                className={`flex-1 px-3 py-2 rounded-lg text-sm focus:outline-none focus:border-[#C9A050] ${
+                  theme === 'light'
+                    ? 'bg-[#FFFFFF] border border-[#DDD5C7] text-[#1A1816] placeholder-[#9E9A90]'
+                    : 'bg-[#1A1A1E] border border-[#2A2A2E] text-[#F0ECE1] placeholder-[#9E9A90]/60'
+                }`}
               />
               <button
                 type="button"
                 onClick={() => handleLocationSearch(birthPlace)}
                 disabled={isSearchingLocation || !birthPlace.trim()}
-                className="px-3 py-2 bg-[#2A2A2E] hover:bg-[#C9A050] text-[#9E9A90] hover:text-[#0D0D0F] border border-[#3A3A3E] rounded-lg text-xs font-medium transition disabled:opacity-50"
+                className={`px-3 py-2 rounded-lg text-xs font-semibold transition disabled:opacity-50 cursor-pointer ${
+                  theme === 'light'
+                    ? 'bg-[#EAE3D2] hover:bg-[#C9A050] text-[#5C574F] hover:text-[#0D0D0F] border border-[#DDD5C7]'
+                    : 'bg-[#2A2A2E] hover:bg-[#C9A050] text-[#9E9A90] hover:text-[#0D0D0F] border border-[#3A3A3E]'
+                }`}
               >
                 {isSearchingLocation ? 'Detecting...' : 'Auto Detect'}
               </button>
@@ -337,7 +383,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
 
             {/* Quick preset city chips */}
             <div className="flex flex-wrap gap-1.5 pt-2">
-              <span className="text-[11px] text-[#9E9A90] self-center mr-1">Quick Select:</span>
+              <span className={`text-[11px] self-center mr-1 ${theme === 'light' ? 'text-[#6E685E]' : 'text-[#9E9A90]'}`}>Quick Select:</span>
               {PRESET_CITIES.slice(0, 8).map((city) => (
                 <button
                   type="button"
@@ -345,7 +391,11 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                   onClick={() => handleCitySelect(city)}
                   className={`text-[11px] px-2.5 py-0.5 rounded-full border transition cursor-pointer ${
                     birthPlace === city.name
-                      ? 'bg-[#C9A050]/20 text-[#C9A050] border-[#C9A050]/40'
+                      ? theme === 'light'
+                        ? 'bg-[#F4EBD9] text-[#7A5210] border-[#C9A050] font-bold'
+                        : 'bg-[#C9A050]/20 text-[#C9A050] border-[#C9A050]/40 font-bold'
+                      : theme === 'light'
+                      ? 'bg-[#FFFFFF] text-[#5C574F] border-[#DDD5C7] hover:border-[#C9A050]'
                       : 'bg-[#1A1A1E] text-[#9E9A90] border-[#2A2A2E] hover:border-[#9E9A90]'
                   }`}
                 >
@@ -356,32 +406,40 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
           </div>
 
           {/* Coordinates (Auto-calculated / Advanced) */}
-          <div className="grid grid-cols-2 gap-4 bg-[#08080A] p-3 rounded-lg border border-[#2A2A2E]">
+          <div className={`grid grid-cols-2 gap-4 p-3 rounded-lg border ${theme === 'light' ? 'bg-[#F2ECE0] border-[#E2DBD0]' : 'bg-[#08080A] border-[#2A2A2E]'}`}>
             <div>
-              <label className="block text-[11px] text-[#9E9A90] mb-1">Latitude (°N/S)</label>
+              <label className={`block text-[11px] mb-1 ${theme === 'light' ? 'text-[#6E685E]' : 'text-[#9E9A90]'}`}>Latitude (°N/S)</label>
               <input
                 type="number"
                 step="0.0001"
                 value={latitude}
                 onChange={(e) => setLatitude(parseFloat(e.target.value))}
-                className="w-full px-2.5 py-1.5 bg-[#1A1A1E] border border-[#2A2A2E] rounded text-xs text-[#F0ECE1] focus:outline-none focus:border-[#C9A050]"
+                className={`w-full px-2.5 py-1.5 rounded text-xs focus:outline-none focus:border-[#C9A050] ${
+                  theme === 'light'
+                    ? 'bg-[#FFFFFF] border border-[#DDD5C7] text-[#1A1816]'
+                    : 'bg-[#1A1A1E] border border-[#2A2A2E] text-[#F0ECE1]'
+                }`}
               />
             </div>
             <div>
-              <label className="block text-[11px] text-[#9E9A90] mb-1">Longitude (°E/W)</label>
+              <label className={`block text-[11px] mb-1 ${theme === 'light' ? 'text-[#6E685E]' : 'text-[#9E9A90]'}`}>Longitude (°E/W)</label>
               <input
                 type="number"
                 step="0.0001"
                 value={longitude}
                 onChange={(e) => setLongitude(parseFloat(e.target.value))}
-                className="w-full px-2.5 py-1.5 bg-[#1A1A1E] border border-[#2A2A2E] rounded text-xs text-[#F0ECE1] focus:outline-none focus:border-[#C9A050]"
+                className={`w-full px-2.5 py-1.5 rounded text-xs focus:outline-none focus:border-[#C9A050] ${
+                  theme === 'light'
+                    ? 'bg-[#FFFFFF] border border-[#DDD5C7] text-[#1A1816]'
+                    : 'bg-[#1A1A1E] border border-[#2A2A2E] text-[#F0ECE1]'
+                }`}
               />
             </div>
           </div>
 
           {/* Focus Areas */}
           <div>
-            <label className="block text-xs font-semibold text-[#C9A050] mb-2 flex items-center space-x-1">
+            <label className={`block text-xs font-semibold mb-2 flex items-center space-x-1 ${theme === 'light' ? 'text-[#8C6218]' : 'text-[#C9A050]'}`}>
               <Target className="w-3.5 h-3.5 text-[#C9A050]" />
               <span>Primary Consultation Focus Areas</span>
             </label>
@@ -395,7 +453,11 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                     onClick={() => toggleFocusArea(area)}
                     className={`p-2 rounded-lg border text-left text-xs transition cursor-pointer flex items-center justify-between ${
                       isSelected
-                        ? 'bg-[#C9A050]/20 border-[#C9A050]/60 text-[#C9A050]'
+                        ? theme === 'light'
+                          ? 'bg-[#FFFFFF] border-2 border-[#C9A050] text-[#7A5210] font-bold shadow-sm'
+                          : 'bg-[#C9A050]/20 border border-[#C9A050]/60 text-[#C9A050]'
+                        : theme === 'light'
+                        ? 'bg-[#FFFFFF] border border-[#DDD5C7] text-[#5C574F] hover:border-[#C9A050]'
                         : 'bg-[#1A1A1E] border-[#2A2A2E] text-[#9E9A90] hover:border-[#9E9A90]'
                     }`}
                   >
@@ -409,7 +471,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
 
           {/* Additional Notes */}
           <div>
-            <label className="block text-xs font-semibold text-[#9E9A90] mb-1">
+            <label className={`block text-xs font-semibold mb-1 ${theme === 'light' ? 'text-[#6E685E]' : 'text-[#9E9A90]'}`}>
               Specific Questions or Life Context (Optional)
             </label>
             <textarea
@@ -417,7 +479,11 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               placeholder="e.g. Planning a business launch in 2027, looking for auspicious timing and partner compatibility..."
-              className="w-full px-3 py-2 bg-[#1A1A1E] border border-[#2A2A2E] rounded-lg text-xs text-[#F0ECE1] placeholder-[#9E9A90]/60 focus:outline-none focus:border-[#C9A050]"
+              className={`w-full px-3 py-2 rounded-lg text-xs focus:outline-none focus:border-[#C9A050] ${
+                theme === 'light'
+                  ? 'bg-[#FFFFFF] border border-[#DDD5C7] text-[#1A1816] placeholder-[#9E9A90]'
+                  : 'bg-[#1A1A1E] border border-[#2A2A2E] text-[#F0ECE1] placeholder-[#9E9A90]/60'
+              }`}
             />
           </div>
 
@@ -426,7 +492,11 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 rounded-lg border border-[#2A2A2E] text-[#9E9A90] hover:bg-[#1A1A1E] hover:text-[#F0ECE1] text-xs font-medium cursor-pointer"
+              className={`px-4 py-2 rounded-lg border text-xs font-medium cursor-pointer transition ${
+                theme === 'light'
+                  ? 'border-[#DDD5C7] text-[#5C574F] hover:bg-[#EFE9DC] hover:text-[#1A1816]'
+                  : 'border-[#2A2A2E] text-[#9E9A90] hover:bg-[#1A1A1E] hover:text-[#F0ECE1]'
+              }`}
             >
               Cancel
             </button>

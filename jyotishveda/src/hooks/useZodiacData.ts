@@ -32,11 +32,13 @@ const SANSKRIT_RULERS: Record<string, string> = {
   Sun: 'Surya', Jupiter: 'Guru', Saturn: 'Shani'
 };
 
-function generateDailyVitality(signId: string): number {
+function generateDailyVitality(signId: any): number {
   // Generate a pseudo-random but stable daily vitality based on sign + date
+  const str = String(signId || 'aries');
   const today = new Date();
-  const seed = signId.length + today.getDate() + today.getMonth() + today.getFullYear();
-  return 60 + (seed * 7 + signId.charCodeAt(0) * 3) % 35;
+  const seed = str.length + today.getDate() + today.getMonth() + today.getFullYear();
+  const charCode = str.length > 0 ? str.charCodeAt(0) : 65;
+  return 60 + (seed * 7 + charCode * 3) % 35;
 }
 
 const LUCKY_GEMSTONES: Record<string, string> = {
@@ -96,55 +98,64 @@ export function useZodiacData() {
           throw new Error('Failed to fetch zodiacs');
         }
         const data = await response.json();
-        if (data.status === 'success') {
+        if (data.status === 'success' && Array.isArray(data.data)) {
           // Map DB fields to frontend-expected fields
-          const mapped = data.data.map((z: any) => ({
-            ...z,
-            // Core fields from DB (snake_case -> camelCase aliases)
-            tropicalDates: z.tropical_dates,
-            siderealDates: z.sidereal_dates,
-            rulingPlanet: z.ruling_planet,
-            chineseArchetype: z.chinese_archetype || z.chinese_archetype,
-            
-            // Derived display fields the UI expects
-            sanskritName: SANSKRIT_NAMES[z.id] || z.sanskrit?.split('(')[0]?.trim() || z.name,
-            sanskritScript: SANSKRIT_SCRIPTS[z.id] || z.sanskrit?.match(/\(([^)]+)\)/)?.[1] || '',
-            glyph: GLYPHS[z.id] || z.symbol,
-            polarity: POLARITIES[z.id] || 'Yang (+)',
-            ruler: z.ruling_planet,
-            sanskritRuler: SANSKRIT_RULERS[z.ruling_planet] || z.ruling_planet,
-            
-            // Daily vitality (pseudo-random, stable per day)
-            vitalityToday: z.vitalityToday || generateDailyVitality(z.id),
-            loveRating: z.loveRating || generateDailyVitality(z.id + '_love') % 30 + 65,
-            careerRating: z.careerRating || generateDailyVitality(z.id + '_career') % 25 + 70,
-            wealthRating: z.wealthRating || generateDailyVitality(z.id + '_wealth') % 28 + 68,
-            
-            // Fields the detail section needs (AI will override these dynamically)
-            powerNumbers: z.powerNumbers || [generateDailyVitality(z.id) % 9 + 1, generateDailyVitality(z.id + 'p') % 9 + 1, generateDailyVitality(z.id + 'q') % 9 + 1],
-            luckyGemstone: z.luckyGemstone || LUCKY_GEMSTONES[z.id] || 'Ruby',
-            luckyColor: z.luckyColor || LUCKY_COLORS[z.id] || 'Gold',
-            luckyDay: z.luckyDay || LUCKY_DAYS[z.id] || 'Sunday',
-            affirmation: z.affirmation || AFFIRMATIONS[z.id] || 'I align with the cosmic flow.',
-            resonantChakra: z.resonantChakra || CHAKRAS[z.id] || 'Solar Plexus',
-            
-            // Forecast placeholders (AI generates these)
-            todayForecast: z.todayForecast || 'Click refresh to consult AI Daivajna for today\'s personalized cosmic reading.',
-            weeklyForecast: z.weeklyForecast || 'Click refresh to consult AI Daivajna for this week\'s transit overview.',
-            monthlyForecast: z.monthlyForecast || 'Click refresh to consult AI Daivajna for monthly planetary ingress analysis.',
-            yearly2026Forecast: z.yearly2026Forecast || 'Click refresh to consult AI Daivajna for your 2026/2027 long-range panorama.',
-            
-            // Match arrays
-            bestRomanceMatches: z.bestRomanceMatches || [],
-            bestCareerMatches: z.bestCareerMatches || [],
-            growthMatches: z.growthMatches || [],
-          }));
+          const mapped = data.data.map((z: any) => {
+            const canonicalId = String(
+              z.slug || z.sign_id || (typeof z.id === 'string' && isNaN(Number(z.id)) ? z.id : '') || z.name || 'aries'
+            ).toLowerCase().trim();
+
+            return {
+              ...z,
+              id: canonicalId,
+              // Core fields from DB (snake_case -> camelCase aliases)
+              tropicalDates: z.tropical_dates || z.tropicalDates || '',
+              siderealDates: z.sidereal_dates || z.siderealDates || '',
+              rulingPlanet: z.ruling_planet || z.rulingPlanet || '',
+              chineseArchetype: z.chinese_archetype || z.chineseArchetype || '',
+              
+              // Derived display fields the UI expects
+              sanskritName: SANSKRIT_NAMES[canonicalId] || z.sanskrit?.split('(')[0]?.trim() || z.name,
+              sanskritScript: SANSKRIT_SCRIPTS[canonicalId] || z.sanskrit?.match(/\(([^)]+)\)/)?.[1] || '',
+              glyph: GLYPHS[canonicalId] || z.symbol || '♈︎',
+              polarity: POLARITIES[canonicalId] || 'Yang (+)',
+              ruler: z.ruling_planet || z.rulingPlanet || 'Mars',
+              sanskritRuler: SANSKRIT_RULERS[z.ruling_planet || z.rulingPlanet] || z.ruling_planet || 'Mangal',
+              
+              // Daily vitality (pseudo-random, stable per day)
+              vitalityToday: z.vitalityToday || generateDailyVitality(canonicalId),
+              loveRating: z.loveRating || (generateDailyVitality(canonicalId + '_love') % 30 + 65),
+              careerRating: z.careerRating || (generateDailyVitality(canonicalId + '_career') % 25 + 70),
+              wealthRating: z.wealthRating || (generateDailyVitality(canonicalId + '_wealth') % 28 + 68),
+              
+              // Fields the detail section needs (AI will override these dynamically)
+              powerNumbers: z.powerNumbers || [generateDailyVitality(canonicalId) % 9 + 1, generateDailyVitality(canonicalId + 'p') % 9 + 1, generateDailyVitality(canonicalId + 'q') % 9 + 1],
+              luckyGemstone: z.luckyGemstone || LUCKY_GEMSTONES[canonicalId] || 'Ruby',
+              luckyColor: z.luckyColor || LUCKY_COLORS[canonicalId] || 'Gold',
+              luckyDay: z.luckyDay || LUCKY_DAYS[canonicalId] || 'Sunday',
+              affirmation: z.affirmation || AFFIRMATIONS[canonicalId] || 'I align with the cosmic flow.',
+              resonantChakra: z.resonantChakra || CHAKRAS[canonicalId] || 'Solar Plexus',
+              
+              // Forecast placeholders (AI generates these)
+              todayForecast: z.todayForecast || 'Click refresh to consult AI Daivajna for today\'s personalized cosmic reading.',
+              weeklyForecast: z.weeklyForecast || 'Click refresh to consult AI Daivajna for this week\'s transit overview.',
+              monthlyForecast: z.monthlyForecast || 'Click refresh to consult AI Daivajna for monthly planetary ingress analysis.',
+              yearly2026Forecast: z.yearly2026Forecast || 'Click refresh to consult AI Daivajna for your 2026/2027 long-range panorama.',
+              
+              // Match arrays
+              bestRomanceMatches: z.bestRomanceMatches || [],
+              bestCareerMatches: z.bestCareerMatches || [],
+              growthMatches: z.growthMatches || [],
+            };
+          });
           setZodiacs(mapped);
+          setError(null);
         } else {
           throw new Error(data.message || 'Error fetching data');
         }
       } catch (err: any) {
-        setError(err.message);
+        console.error('Error fetching zodiacs:', err);
+        setError(err.message || 'Failed to load zodiac data');
       } finally {
         setLoading(false);
       }

@@ -644,14 +644,14 @@ export function LandingPage({ onLoginClick, onRegisterClick, onOpenDisclaimer, t
       />
 
       {/* Mini Chat Pop-up */}
-      <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end">
+      <div className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-50 flex flex-col items-end">
         <AnimatePresence>
           {isChatOpen && (
             <motion.div
               initial={{ opacity: 0, y: 20, scale: 0.95 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 20, scale: 0.95 }}
-              className={`mb-4 w-[320px] rounded-2xl shadow-2xl border flex flex-col overflow-hidden ${theme === 'dark' ? 'bg-[#141418] border-[#C9A050]/40' : 'bg-[#FFFFFF] border-[#C9A050]/40 shadow-[#C9A050]/10'}`}
+              className={`mb-3 sm:mb-4 w-[calc(100vw-2rem)] sm:w-[340px] max-w-[340px] rounded-2xl shadow-2xl border flex flex-col overflow-hidden ${theme === 'dark' ? 'bg-[#141418] border-[#C9A050]/40' : 'bg-[#FFFFFF] border-[#C9A050]/40 shadow-[#C9A050]/10'}`}
             >
               <div className="bg-[#C9A050] p-3 text-[#0D0D0F] flex justify-between items-center">
                 <div className="flex items-center space-x-2">

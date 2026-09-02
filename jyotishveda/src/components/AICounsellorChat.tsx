@@ -510,7 +510,7 @@ export const AICounsellorChat: React.FC<AICounsellorChatProps> = ({
       </div>
 
       {/* Preset Question Pills */}
-      <div className="flex items-center space-x-2 overflow-x-auto pb-1 text-xs">
+      <div className="flex items-center space-x-2 overflow-x-auto no-scrollbar pb-1 text-xs">
         <span className="text-[11px] text-[#C9A050] font-semibold shrink-0 flex items-center space-x-1">
           <Sparkles className="w-3.5 h-3.5" />
           <span>{t('counsellor.suggested')}</span>
@@ -530,7 +530,7 @@ export const AICounsellorChat: React.FC<AICounsellorChatProps> = ({
       {/* Chat Messages Container */}
       <div 
         ref={chatContainerRef}
-        className="bg-[#141418] border border-[#2A2A2E] rounded-xl p-4 sm:p-6 text-[#E5E1D8] shadow-xl min-h-[480px] max-h-[600px] overflow-y-auto flex flex-col space-y-4"
+        className="bg-[#141418] border border-[#2A2A2E] rounded-xl p-3.5 sm:p-6 text-[#E5E1D8] shadow-xl min-h-[380px] sm:min-h-[480px] max-h-[65vh] sm:max-h-[600px] overflow-y-auto flex flex-col space-y-3.5 sm:space-y-4 touch-pan-y"
       >
         {messages.length === 0 ? (
           <div className="my-auto flex flex-col items-center justify-center text-center p-6 space-y-3">
