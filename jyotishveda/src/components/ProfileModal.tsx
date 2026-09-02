@@ -11,7 +11,7 @@ interface ProfileModalProps {
   theme?: 'dark' | 'light';
 }
 
-const PRESET_CITIES = [
+export const PRESET_CITIES = [
   { name: 'New Delhi, India', lat: 28.6139, lng: 77.2090, tz: 5.5 },
   { name: 'Mumbai, India', lat: 19.0760, lng: 72.8777, tz: 5.5 },
   { name: 'Bengaluru, India', lat: 12.9716, lng: 77.5946, tz: 5.5 },

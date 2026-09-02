@@ -22,9 +22,47 @@ import jwt as pyjwt
 app = Flask(__name__)
 CORS(app)
 
+# ==========================================
+# 🌍 LANDING PAGE APIs (Publicly Accessible)
+# ==========================================
+
+# 1. Ask Jyotish AI Chatbot (Landing Page)
 @app.route("/api/public-chat", methods=["POST"])
 def public_chat():
     return landing_chat_controller.public_chat()
+
+# 2. Global Zodiac Forecasts (Landing Page)
+@app.route("/zodiac/global-forecast", methods=["POST"])
+def zodiac_forecast():
+    return global_zodiac_controller.zodiac_forecast()
+
+@app.route("/api/zodiac/all", methods=["GET"])
+def get_all_zodiacs():
+    return global_zodiac_controller.get_all_zodiacs()
+
+@app.route("/zodiac/compatibility", methods=["POST"])
+def zodiac_compatibility():
+    return global_zodiac_controller.zodiac_compatibility()
+
+# 3. Panjika Calendar APIs (Landing Page)
+@app.route("/calendar/convert", methods=["POST"])
+def convert_calendar():
+    return calendar_controller.convert_date()
+
+@app.route("/calendar/month", methods=["POST"])
+def get_calendar_month():
+    return calendar_controller.get_panjika_month()
+
+@app.route("/calendar/full-panjika", methods=["POST"])
+def get_full_panjika():
+    return calendar_controller.get_full_panjika()
+
+
+# ==========================================
+# DAILY HOROSCOPE & PANCHANG
+# ==========================================
+
+
 
 @app.route("/daily-insights/panchang", methods=["POST"])
 def calculate_ephemeris_panchang():
@@ -34,13 +72,6 @@ def calculate_ephemeris_panchang():
 def daily_horoscope():
     return daily_insights_controller.daily_horoscope()
 
-@app.route("/zodiac/global-forecast", methods=["POST"])
-def zodiac_forecast():
-    return global_zodiac_controller.zodiac_forecast()
-
-@app.route("/api/zodiac/all", methods=["GET"])
-def get_all_zodiacs():
-    return global_zodiac_controller.get_all_zodiacs()
 
 @app.route("/birth-chart/generate", methods=["POST"])
 def calculate_ephemeris_chart():
@@ -54,17 +85,6 @@ def post_interpret():
 def generate_roadmap():
     return roadmap_controller.post_roadmap_insights()
 
-@app.route("/calendar/convert", methods=["POST"])
-def convert_calendar():
-    return calendar_controller.convert_date()
-
-@app.route("/calendar/month", methods=["POST"])
-def get_calendar_month():
-    return calendar_controller.get_panjika_month()
-
-@app.route("/calendar/full-panjika", methods=["POST"])
-def get_full_panjika():
-    return calendar_controller.get_full_panjika()
 
 
 @app.route("/")

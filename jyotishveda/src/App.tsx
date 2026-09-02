@@ -19,7 +19,7 @@ import PanjikaCalendarView from './components/PanjikaCalendarView';
 
 import { API_ENDPOINTS } from './config/api_config';
 import { API_BASE_URL } from './services/api';
-import { ProfileModal } from './components/ProfileModal';
+import { ProfileModal, PRESET_CITIES } from './components/ProfileModal';
 import { DisclaimerModal } from './components/DisclaimerModal';
 import { Footer } from './components/Footer';
 import { StarfieldBackground } from './components/StarfieldBackground';
@@ -118,7 +118,18 @@ export function App() {
     }
 
     getCurrentUser()
-      .then((user) => setAuthUser(user))
+      .then(async (user) => {
+        setAuthUser(user);
+        try {
+          const remoteProfiles = await profileApi.fetchProfiles();
+          if (remoteProfiles.length > 0) {
+            setProfiles(remoteProfiles);
+            setCurrentProfile(remoteProfiles[0]);
+          }
+        } catch (err) {
+          console.warn('Could not load profiles from server:', err);
+        }
+      })
       .catch(() => clearToken())
       .finally(() => setAuthChecked(true));
   }, []);
@@ -213,36 +224,7 @@ export function App() {
     );
   }, [profiles]);
 
-  // Once logged in, load the user's real saved profiles from the backend.
-  useEffect(() => {
-    if (!authUser) return;
 
-    profileApi
-      .fetchProfiles()
-      .then((remoteProfiles) => {
-        if (remoteProfiles.length > 0) {
-          setProfiles(remoteProfiles);
-          setCurrentProfile(remoteProfiles[0]);
-        } else {
-          // If no profiles exist, use a default but with the user's actual name
-          const newProfile = {
-            ...DEFAULT_PROFILES[0],
-            fullName: authUser.fullName,
-            id: 'profile-new',
-          };
-
-          setProfiles([newProfile]);
-          setCurrentProfile(newProfile);
-        }
-      })
-      .catch((err) => {
-        // Backend unreachable or empty — keep local cache so the demo still works.
-        console.warn(
-          'Could not load profiles from server:',
-          err
-        );
-      });
-  }, [authUser]);
 
   // Derived Astrological & Numerological Data
   const [chartData, setChartData] = useState(() =>
@@ -342,6 +324,9 @@ export function App() {
               date: dateStr,
               time: timeStr,
               timezone: tzOffset,
+              lat: currentProfile.latitude,
+              lon: currentProfile.longitude,
+              mulank: calculateNumerology(currentProfile.fullName, currentProfile.birthDate).mulank,
             }),
           }
         );
@@ -480,10 +465,12 @@ export function App() {
     );
   }
 
-  const handleAuthenticated = (user: AuthUser, registrationDetails?: { gender?: string; birthDate?: string; birthPlace?: string; birthTime?: string }) => {
-    setAuthUser(user);
+  const handleAuthenticated = async (user: AuthUser, registrationDetails?: { gender?: string; birthDate?: string; birthPlace?: string; birthTime?: string }) => {
     setShowAuthGate(false);
     if (registrationDetails) {
+      const selectedCityName = registrationDetails.birthPlace?.split(',')[0].trim() || '';
+      const cityMatch = PRESET_CITIES.find(c => c.name.split(',')[0].trim() === selectedCityName);
+      
       const newProfile: UserProfile = {
         ...DEFAULT_PROFILES[0],
         id: `profile-${Date.now()}`,
@@ -492,25 +479,46 @@ export function App() {
         birthDate: registrationDetails.birthDate || '2000-06-15',
         birthTime: registrationDetails.birthTime || '',
         birthPlace: registrationDetails.birthPlace || 'Kolkata, West Bengal, India',
+        latitude: cityMatch?.lat || DEFAULT_PROFILES[0].latitude,
+        longitude: cityMatch?.lng || DEFAULT_PROFILES[0].longitude,
+        timezone: cityMatch?.tz || DEFAULT_PROFILES[0].timezone,
         createdAt: new Date().toISOString(),
       };
+      
+      try {
+        await profileApi.createProfile({
+          fullName: newProfile.fullName,
+          gender: newProfile.gender,
+          birthDate: newProfile.birthDate,
+          birthTime: newProfile.birthTime,
+          birthPlace: newProfile.birthPlace,
+          latitude: newProfile.latitude,
+          longitude: newProfile.longitude,
+          timezone: newProfile.timezone,
+          focusAreas: newProfile.focusAreas,
+          notes: newProfile.notes,
+          isPremium: newProfile.isPremium,
+          horoscopeSystem: newProfile.horoscopeSystem,
+        });
+      } catch (e) {
+        console.error('Failed to save profile during registration:', e);
+      }
+      
       setProfiles([newProfile]);
       setCurrentProfile(newProfile);
-      profileApi.createProfile({
-        fullName: newProfile.fullName,
-        gender: newProfile.gender,
-        birthDate: newProfile.birthDate,
-        birthTime: newProfile.birthTime,
-        birthPlace: newProfile.birthPlace,
-        latitude: newProfile.latitude,
-        longitude: newProfile.longitude,
-        timezone: newProfile.timezone,
-        focusAreas: newProfile.focusAreas,
-        notes: newProfile.notes,
-        isPremium: newProfile.isPremium,
-        horoscopeSystem: newProfile.horoscopeSystem,
-      }).catch(() => {});
+    } else {
+      try {
+        const remoteProfiles = await profileApi.fetchProfiles();
+        if (remoteProfiles.length > 0) {
+          setProfiles(remoteProfiles);
+          setCurrentProfile(remoteProfiles[0]);
+        }
+      } catch (err) {
+        console.warn('Could not load profiles from server:', err);
+      }
     }
+    
+    setAuthUser(user);
   };
 
   if (!authUser) {

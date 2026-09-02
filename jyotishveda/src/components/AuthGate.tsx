@@ -136,6 +136,7 @@ export function AuthGate({
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [justRegistered, setJustRegistered] = useState(false);
   
   // Google Account Chooser State
   const [isGoogleModalOpen, setIsGoogleModalOpen] = useState(false);
@@ -305,6 +306,7 @@ export function AuthGate({
         // 1. Only create/register the account in DB
         await register(email, password, fullName);
         setSuccessMessage('Account created successfully! Please enter your password to log in.');
+        setJustRegistered(true);
         setMode('login');
         setPassword('');
         setUserCaptchaInput('');
@@ -316,12 +318,12 @@ export function AuthGate({
       const user = await login(email, password);
       const formattedDob = `${birthYear}-${birthMonth}-${birthDay}`;
       
-      onAuthenticated(user, {
+      onAuthenticated(user, justRegistered ? {
         gender,
         birthDate: formattedDob,
         birthPlace,
         birthTime: birthTime.trim() || undefined,
-      });
+      } : undefined);
 
       if (onClose) onClose();
     } catch (err) {

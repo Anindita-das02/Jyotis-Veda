@@ -106,6 +106,23 @@ export interface PanchangInfo {
   abhijitMuhurta: string;
   brahmaMuhurta: string;
   auspiciousScore: number;
+  timings?: {
+    sunrise: string;
+    sunset: string;
+    rahuKaal: string;
+    abhijitMuhurta: string;
+    brahmaMuhurta: string;
+  };
+  rituals?: {
+    morningTitle: string;
+    morningDesc: string;
+    eveningTitle: string;
+    eveningDesc: string;
+  };
+  luckyData?: {
+    luckyNumber: number;
+    luckyColor: string;
+  };
 }
 
 export interface NumerologyReport {

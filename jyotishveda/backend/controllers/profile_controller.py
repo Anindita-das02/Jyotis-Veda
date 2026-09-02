@@ -104,7 +104,7 @@ def create_profile(user_id: str):
         return err
 
     profile_id = str(uuid.uuid4())
-    rows = call_procedure("sp_profile_ops", ['create', profile_id, user_id, p_data["full_name"], p_data["gender"], p_data["birth_date"], p_data["birth_time"], p_data["birth_place"], p_data["latitude"], p_data["longitude"], p_data["timezone_offset"], p_data["focus_areas"], p_data.get("notes", ""), p_data.get("horoscope_system", "vedic"), p_data.get("relation_label", "Self")])
+    rows = call_procedure("sp_profile_ops", ['create', profile_id, user_id, data["full_name"], data["gender"], data["birth_date"], data["birth_time"], data["birth_place"], data["latitude"], data["longitude"], data["timezone_offset"], data["focus_areas"], data.get("notes", ""), data.get("horoscope_system", "vedic"), data.get("relation_label", "Self")])
     if not rows:
         return _error("Could not create profile", "CREATE_FAILED", 500)
 
@@ -117,7 +117,7 @@ def update_profile(user_id: str, profile_id: str):
     if err:
         return err
 
-    rows = call_procedure("sp_profile_ops", ['update', profile_id, user_id, p_data["full_name"], p_data["gender"], p_data["birth_date"], p_data["birth_time"], p_data["birth_place"], p_data["latitude"], p_data["longitude"], p_data["timezone_offset"], p_data["focus_areas"], p_data.get("notes", ""), p_data.get("horoscope_system", "vedic"), p_data.get("relation_label", "Self")])
+    rows = call_procedure("sp_profile_ops", ['update', profile_id, user_id, data["full_name"], data["gender"], data["birth_date"], data["birth_time"], data["birth_place"], data["latitude"], data["longitude"], data["timezone_offset"], data["focus_areas"], data.get("notes", ""), data.get("horoscope_system", "vedic"), data.get("relation_label", "Self")])
     if not rows:
         return _error("Profile not found", "NOT_FOUND", 404)
 

@@ -11,12 +11,15 @@ def calculate_ephemeris_panchang():
     date_str = data.get("date")
     time_str = data.get("time")
     tz_offset = data.get("timezone", 5.5)
+    lat = data.get("lat")
+    lon = data.get("lon")
+    mulank = data.get("mulank")
 
-    if not all([date_str, time_str]):
-        return jsonify({"status": "error", "message": "Missing required fields"}), 400
+    if not all([date_str, time_str, lat is not None, lon is not None, mulank is not None]):
+        return jsonify({"status": "error", "message": "Missing required fields: date, time, lat, lon, mulank are mandatory."}), 400
 
     try:
-        result = calculate_panchang_data(date_str, time_str, float(tz_offset))
+        result = calculate_panchang_data(date_str, time_str, float(tz_offset), float(lat), float(lon), int(mulank))
         return jsonify({"status": "success", "data": result})
     except Exception as e:
         print(f"Error in calculate_ephemeris_panchang: {e}")

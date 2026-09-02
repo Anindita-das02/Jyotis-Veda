@@ -14,6 +14,7 @@ export const API_ENDPOINTS = {
   },
   ZODIAC: {
     GLOBAL_FORECAST: '/zodiac/global-forecast',
+    COMPATIBILITY: '/zodiac/compatibility',
   },
   BIRTH_CHART: {
     GENERATE: '/birth-chart/generate',

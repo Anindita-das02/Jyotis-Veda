@@ -820,90 +820,38 @@ export function getDailyPanchang(dateOrLat?: Date | number, lng?: number, apiDat
 
   const dayOfWeek = date.getDay(); // 0 = Sunday, 1 = Monday, etc.
   
-  // Real Astronomical Sunrise & Sunset Calculation (NOAA algorithm)
-  const N = dayOfYear;
-  const lngHour = longitude / 15;
-  const tSunrise = N + ((6 - lngHour) / 24);
-  const tSunset = N + ((18 - lngHour) / 24);
+  const yoga = apiData && apiData.yogaName ? apiData.yogaName : yogas[yogaIdx];
+  const tithi = apiData && apiData.tithiName ? apiData.tithiName : tithis[tithiIdx];
+  const nakshatra = apiData && apiData.nakshatraName ? apiData.nakshatraName : NAKSHATRAS[nakIdx].name + ' (Lord: ' + NAKSHATRAS[nakIdx].lord + ')';
+  const karana = apiData && apiData.karanaName ? apiData.karanaName : karanas[karanaIdx];
 
-  const M_sunrise = (0.9856 * tSunrise) - 3.289;
-  const M_sunset = (0.9856 * tSunset) - 3.289;
+  const totalSunriseMins = 0; // Default fallback if no apiData
+  const formatTime = (m: number) => "00:00 AM";
 
-  let L_sunrise = (M_sunrise + (1.916 * Math.sin(M_sunrise * Math.PI / 180)) + (0.020 * Math.sin(2 * M_sunrise * Math.PI / 180)) + 282.634 + 360) % 360;
-  let L_sunset = (M_sunset + (1.916 * Math.sin(M_sunset * Math.PI / 180)) + (0.020 * Math.sin(2 * M_sunset * Math.PI / 180)) + 282.634 + 360) % 360;
-
-  let RA_sunrise = (Math.atan(0.91764 * Math.tan(L_sunrise * Math.PI / 180)) * 180 / Math.PI + 360) % 360;
-  let RA_sunset = (Math.atan(0.91764 * Math.tan(L_sunset * Math.PI / 180)) * 180 / Math.PI + 360) % 360;
-
-  RA_sunrise = (RA_sunrise + (Math.floor(L_sunrise / 90) * 90 - Math.floor(RA_sunrise / 90) * 90)) / 15;
-  RA_sunset = (RA_sunset + (Math.floor(L_sunset / 90) * 90 - Math.floor(RA_sunset / 90) * 90)) / 15;
-
-  const sinDec_sunrise = 0.39782 * Math.sin(L_sunrise * Math.PI / 180);
-  const cosDec_sunrise = Math.cos(Math.asin(sinDec_sunrise));
-  const sinDec_sunset = 0.39782 * Math.sin(L_sunset * Math.PI / 180);
-  const cosDec_sunset = Math.cos(Math.asin(sinDec_sunset));
-
-  const cosH_sunrise = (Math.cos(90.833 * Math.PI / 180) - (sinDec_sunrise * Math.sin(lat * Math.PI / 180))) / (cosDec_sunrise * Math.cos(lat * Math.PI / 180));
-  const cosH_sunset = (Math.cos(90.833 * Math.PI / 180) - (sinDec_sunset * Math.sin(lat * Math.PI / 180))) / (cosDec_sunset * Math.cos(lat * Math.PI / 180));
-
-  const H_sunrise = (360 - (Math.acos(Math.max(-1, Math.min(1, cosH_sunrise))) * 180 / Math.PI)) / 15;
-  const H_sunset = (Math.acos(Math.max(-1, Math.min(1, cosH_sunset))) * 180 / Math.PI) / 15;
-
-  let UT_sunrise = (H_sunrise + RA_sunrise - (0.06571 * tSunrise) - 6.622 - lngHour + 24) % 24;
-  let UT_sunset = (H_sunset + RA_sunset - (0.06571 * tSunset) - 6.622 - lngHour + 24) % 24;
-
-  const tzOffset = 5.5; // Fixed to IST for now as per app defaults
-  const totalSunriseMins = ((UT_sunrise + tzOffset + 24) % 24) * 60;
-  const totalSunsetMins = ((UT_sunset + tzOffset + 24) % 24) * 60;
-  
-  // Total daylight in minutes
-  const totalDaylightMins = totalSunsetMins - totalSunriseMins;
-  const partMins = totalDaylightMins / 8;
-  
-  // Rahu Kaal parts (1-indexed): Sun=8, Mon=2, Tue=7, Wed=5, Thu=6, Fri=4, Sat=3
-  const rahuParts = [8, 2, 7, 5, 6, 4, 3];
-  const rahuPart = rahuParts[dayOfWeek];
-  
-  const rahuStartMins = totalSunriseMins + partMins * (rahuPart - 1);
-  const rahuEndMins = rahuStartMins + partMins;
-  
-  const formatTime = (totalMins: number) => {
-    const h = Math.floor(totalMins / 60);
-    const m = Math.floor(totalMins % 60);
-    const ampm = h >= 12 ? 'PM' : 'AM';
-    const displayH = h % 12 === 0 ? 12 : h % 12;
-    return `${displayH.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')} ${ampm}`;
-  };
-  
-  // Abhijit is the middle (8th muhurta out of 15 daylight muhurtas), roughly part 4 out of 8
-  const abhijitStartMins = totalSunriseMins + (totalDaylightMins / 2) - 24;
-  const abhijitEndMins = abhijitStartMins + 48;
-  
-  const rahuKaalStr = `${formatTime(rahuStartMins)} - ${formatTime(rahuEndMins)} (Avoid new tasks, sign agreements)`;
-  const abhijitMuhurtaStr = `${formatTime(abhijitStartMins)} - ${formatTime(abhijitEndMins)} (Highly auspicious for success)`;
-
-  // Pseudo-dynamic end times for Tithi and Nakshatra based on the day
-  const tithiEndMins = (14 * 60) + (Math.abs(Math.sin(dayOfYear * 12.34)) * 8 * 60);
-  const nakshatraEndMins = (12 * 60) + (Math.abs(Math.cos(dayOfYear * 5.67)) * 12 * 60);
-  const tithiEndStr = `${formatTime(tithiEndMins)} (IST)`;
-  const nakshatraEndStr = `${formatTime(nakshatraEndMins)} (IST)`;
+  // Use backend API data if available
+  const sunriseStr = apiData?.timings?.sunrise || formatTime(totalSunriseMins);
+  const sunsetStr = apiData?.timings?.sunset || formatTime(totalSunriseMins);
+  const rahuKaalStr = apiData?.timings?.rahuKaal || 'Calculate from Backend';
+  const abhijitMuhurtaStr = apiData?.timings?.abhijitMuhurta || 'Calculate from Backend';
+  const brahmaMuhurtaStr = apiData?.timings?.brahmaMuhurta || '04:32 AM - 05:20 AM (Ideal for Meditation & Sadhana)';
+  const auspiciousScoreVal = apiData?.auspiciousScore || (50 + ((tithiIdx * 3 + nakIdx * 2 + dayOfYear) % 50));
 
   return {
     date: date.toISOString().split('T')[0],
-    tithi: tithis[tithiIdx],
-    tithiEnd: tithiEndStr,
-    nakshatra: NAKSHATRAS[nakIdx].name + ' (Lord: ' + NAKSHATRAS[nakIdx].lord + ')',
-    nakshatraEnd: nakshatraEndStr,
-    yoga: yogas[yogaIdx],
-    karana: karanas[karanaIdx],
+    tithi: tithi,
+    tithiEnd: 'Backend IST',
+    nakshatra: nakshatra,
+    nakshatraEnd: 'Backend IST',
+    yoga: yoga,
+    karana: karana,
     solarSign: ZODIAC_SIGNS[(Math.floor(dayOfYear / 30.5) + 4) % 12].sanskrit,
     lunarSign: ZODIAC_SIGNS[(Math.floor(dayOfYear / 2.3) + 1) % 12].sanskrit,
-    sunrise: formatTime(totalSunriseMins),
-    sunset: formatTime(totalSunsetMins),
+    sunrise: sunriseStr,
+    sunset: sunsetStr,
     rahuKaal: rahuKaalStr,
     abhijitMuhurta: abhijitMuhurtaStr,
-    brahmaMuhurta: '04:32 AM - 05:20 AM (Ideal for Meditation & Sadhana)',
-    auspiciousScore: 50 + ((tithiIdx * 3 + nakIdx * 2 + dayOfYear) % 50),
+    brahmaMuhurta: brahmaMuhurtaStr,
+    auspiciousScore: auspiciousScoreVal,
   };
 }
 

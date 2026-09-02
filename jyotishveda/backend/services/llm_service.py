@@ -189,8 +189,10 @@ You MUST respond with ONLY a valid JSON object matching exactly this structure, 
 Here is the user's data:
 Profile Name: {profile.get("fullName")}
 System: {profile.get("horoscopeSystem")}
+Lagna/Ascendant: {chart_data.get("ascendant", {}).get("signName", "Unknown")}
 Panchang: Tithi {panchang.get("tithi")}, Nakshatra {panchang.get("nakshatra")}, Auspicious Score {panchang.get("auspiciousScore")}
-Numerology: Mulank {numerology.get("mulank")}, Lucky Colors {", ".join(numerology.get("luckyColors", []))}
+Important Timings: Abhijit Muhurta {panchang.get("abhijitMuhurta")}, Rahu Kaal {panchang.get("rahuKaal")}
+Numerology: Mulank {numerology.get("mulank")}, Lucky Number {numerology.get("luckyNumbers", [numerology.get("mulank")])[0]}, Lucky Colors {", ".join(numerology.get("luckyColors", []))}
 """
     history = [{"role": "user", "content": "Generate today's daily insights as JSON."}]
 
@@ -280,10 +282,64 @@ MUST respond ONLY with valid JSON, text in {language} (if 'bn' use Bengali), rat
         if not combined_data.get("forecast"):
             combined_data["forecast"] = "Forecast unavailable at the moment."
             combined_data["vitalityToday"] = 50
-            
         return json.dumps(combined_data)
     except Exception as e:
         raise LLMError(f"Failed to generate zodiac forecast: {str(e)}")
+
+
+def get_zodiac_compatibility_response(
+    sign_a: str,
+    sign_b: str,
+    system: str = "tropical",
+    language: str = "en"
+) -> str:
+    active_llm = os.getenv("ACTIVE_LLM", "mistral_local")
+    
+    system_prompt = f"""You are an expert Vedic and Western Astrologer. Calculate the unique compatibility between {sign_a.capitalize()} and {sign_b.capitalize()} using the {system} system.
+Calculate a highly accurate overall compatibility score (0-100) based on elements, modalities, and planetary rulers.
+MUST respond ONLY with valid JSON, in language {language} (if 'bn' use Bengali). Do not include any comments or markdown inside the JSON object:
+{{
+  "overallScore": 68,
+  "elementSynergy": "Short description of elemental synergy",
+  "romanceAnalysis": "2-3 sentences about their romantic and soul synergy.",
+  "intellectualAnalysis": "2-3 sentences about how their minds and communication match.",
+  "growthPotential": "2-3 sentences about how they help each other evolve.",
+  "remedialAdvice": "1 sentence of practical spiritual/astrological advice for this pairing."
+}}
+IMPORTANT: Replace 68 with the ACTUAL calculated compatibility score between these two signs (e.g. Leo and Aries might be 90, while Aries and Cancer might be 45). Make sure the score varies based on true astrological principles.
+"""
+    
+    history = [{"role": "user", "content": f"Calculate compatibility between {sign_a} and {sign_b}."}]
+    try:
+        if active_llm == "mistral_local":
+            res = _call_mistral_local(system_prompt, history)
+        elif active_llm == "mistral_cloud":
+            res = _call_mistral_cloud(system_prompt, history)
+        elif active_llm == "gemini":
+            res = _call_gemini(system_prompt, history)
+        else:
+            raise LLMError(f"Unknown ACTIVE_LLM value: '{active_llm}'.")
+            
+        res = res.strip()
+        start = res.find("{")
+        end = res.rfind("}")
+        if start != -1 and end != -1 and end > start:
+            res = res[start:end+1]
+            
+        # Validate that it is JSON
+        json.loads(res)
+        return res
+    except Exception as e:
+        print(f"Error in get_zodiac_compatibility_response: {e}")
+        # Fallback static response if LLM fails
+        return json.dumps({
+            "overallScore": 70,
+            "elementSynergy": f"Synergy between {sign_a} and {sign_b}.",
+            "romanceAnalysis": "They share a unique bond shaped by their planetary rulers.",
+            "intellectualAnalysis": "Communication requires mutual understanding and patience.",
+            "growthPotential": "They can learn a lot from each other's differences.",
+            "remedialAdvice": "Focus on open communication and respect for boundaries."
+        })
 
 
 def get_numerology_insights_response(

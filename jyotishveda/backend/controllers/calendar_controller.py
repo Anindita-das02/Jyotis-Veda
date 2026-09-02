@@ -2,8 +2,19 @@ from flask import request, jsonify
 from services.calendar_service import convert_calendar_date, generate_month_calendar, calculate_panjika_details, reverse_convert_bengali, reverse_convert_hindi
 
 def parse_location(data):
-    lat = float(data.get("lat", 22.5726))
-    lon = float(data.get("lon", 88.3639))
+    # Check if a language or calendar type is provided
+    cal_type = data.get("from_type") or data.get("language") or data.get("calendar_type", "english")
+    cal_type = cal_type.lower()
+    
+    if cal_type == "bengali":
+        default_lat, default_lon = 22.5726, 88.3639 # Kolkata, West Bengal
+    elif cal_type == "hindi":
+        default_lat, default_lon = 25.3176, 82.9739 # Varanasi, UP (Standard for Hindi Panchang)
+    else:
+        default_lat, default_lon = 28.6139, 77.209 # New Delhi (Standard for Generic English)
+
+    lat = float(data.get("lat", default_lat))
+    lon = float(data.get("lon", default_lon))
     return lat, lon
 
 def convert_date():
@@ -11,20 +22,23 @@ def convert_date():
     if not data:
         return jsonify({"status": "error", "message": "Payload is required"}), 400
     
-    from_type = data.get("from_type", "english")
-    lat, lon = parse_location(data)
-    
-    if from_type == "english":
-        if "date" not in data: return jsonify({"status": "error", "message": "Date is required (YYYY-MM-DD)"}), 400
-        result = convert_calendar_date(data["date"], lat, lon)
-    elif from_type == "bengali":
-        if not all(k in data for k in ["day", "month", "year"]): return jsonify({"status": "error", "message": "Day, month, and year are required for Bengali conversion"}), 400
-        result = reverse_convert_bengali(data["day"], data["month"], data["year"], lat, lon)
-    elif from_type == "hindi":
-        if not all(k in data for k in ["tithi", "paksha", "month", "year"]): return jsonify({"status": "error", "message": "Tithi, paksha, month, and year are required for Hindi conversion"}), 400
-        result = reverse_convert_hindi(data["tithi"], data["paksha"], data["month"], data["year"], lat, lon)
-    else:
-        return jsonify({"status": "error", "message": "Invalid from_type"}), 400
+    try:
+        from_type = data.get("from_type", "english")
+        lat, lon = parse_location(data)
+        
+        if from_type == "english":
+            if "date" not in data: return jsonify({"status": "error", "message": "Date is required (YYYY-MM-DD)"}), 400
+            result = convert_calendar_date(data["date"], lat, lon)
+        elif from_type == "bengali":
+            if not all(k in data for k in ["day", "month", "year"]): return jsonify({"status": "error", "message": "Day, month, and year are required for Bengali conversion"}), 400
+            result = reverse_convert_bengali(data["day"], data["month"], data["year"], lat, lon)
+        elif from_type == "hindi":
+            if not all(k in data for k in ["tithi", "paksha", "month", "year"]): return jsonify({"status": "error", "message": "Tithi, paksha, month, and year are required for Hindi conversion"}), 400
+            result = reverse_convert_hindi(data["tithi"], data["paksha"], data["month"], data["year"], lat, lon)
+        else:
+            return jsonify({"status": "error", "message": "Invalid from_type"}), 400
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 400
         
     if "error" in result:
         return jsonify({"status": "error", "message": result["error"]}), 400

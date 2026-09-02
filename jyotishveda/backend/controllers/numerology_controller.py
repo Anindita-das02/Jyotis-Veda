@@ -45,15 +45,33 @@ def save_numerology(user_id: str):
     if missing:
         return _error(f"report is missing field(s): {', '.join(missing)}", "VALIDATION_ERROR")
 
-    # Confirm the profile actually belongs to this user before attaching
-    # a report to it (defense in depth beyond the FK constraint).
-    owned = call_procedure("sp_get_profile", [profile_id, user_id])
+    # Check if the profile exists in the DB for this user.
+    owned = call_procedure("sp_profile_ops", [
+        'get_one', profile_id, user_id, '', '', '2000-01-01', '00:00:00', '', 0, 0, 0, '[]', '', '', ''
+    ])
     if not owned:
-        return _error("Profile not found", "NOT_FOUND", 404)
+        # Profile is a local/default frontend profile — auto-create a
+        # minimal stub so the FK constraint on numerology_reports is satisfied.
+        profile_data = body.get("profile", {})
+        call_procedure("sp_profile_ops", [
+            'create', profile_id, user_id,
+            profile_data.get("fullName", "User"),
+            profile_data.get("gender", "other"),
+            profile_data.get("birthDate", "2000-01-01"),
+            profile_data.get("birthTime", "00:00:00"),
+            profile_data.get("birthPlace", "Unknown"),
+            profile_data.get("latitude", 0),
+            profile_data.get("longitude", 0),
+            profile_data.get("timezone", 0),
+            json.dumps(profile_data.get("focusAreas", [])),
+            profile_data.get("notes", ""),
+            profile_data.get("horoscopeSystem", "vedic"),
+            profile_data.get("relationLabel", "Self"),
+        ])
 
     report_id = str(uuid.uuid4())
-    rows = call_procedure("sp_save_numerology", [
-        report_id, profile_id, user_id,
+    rows = call_procedure("sp_numerology_ops", [
+        'save', report_id, profile_id, user_id,
         int(report["mulank"]), int(report["bhagyank"]),
         int(report["namankChaldean"]), int(report["namankPythagorean"]),
         json.dumps(report),

@@ -23,7 +23,7 @@ def get_julian_day_ut(date_str, time_str, timezone_offset):
     except Exception as e:
         raise ValueError(f"Invalid date/time format: {e}")
 
-def calculate_panchang_data(date_str, time_str, timezone_offset):
+def calculate_panchang_data(date_str, time_str, timezone_offset, lat=28.6139, lon=77.209, mulank=1):
     jd_ut = get_julian_day_ut(date_str, time_str, timezone_offset)
     
     swe.set_sid_mode(swe.SIDM_LAHIRI)
@@ -37,19 +37,32 @@ def calculate_panchang_data(date_str, time_str, timezone_offset):
     moon_lon = moon_res[0]
     
     # Panchang Calculations
-    # 1. Tithi: Angle between Moon and Sun (12 degrees per Tithi)
     diff = (moon_lon - sun_lon) % 360
     tithi_idx = int(diff / 12)
-    
-    # 2. Karana: Half of Tithi (6 degrees per Karana)
     karana_idx = int(diff / 6)
     
-    # 3. Yoga: Sum of longitudes of Sun and Moon (13°20' or 13.3333 degrees per Yoga)
     sum_lon = (sun_lon + moon_lon) % 360
     yoga_idx = int(sum_lon / (40.0 / 3.0))
-    
-    # 4. Nakshatra: Moon's longitude (13°20' per Nakshatra)
     nak_idx = int(moon_lon / (40.0 / 3.0))
+    
+    # Parse date
+    dt = datetime.strptime(date_str, "%Y-%m-%d")
+    year, month, day = dt.year, dt.month, dt.day
+    day_of_year = (dt - datetime(year, 1, 1)).days
+    
+    # Calculate Auspicious Score
+    auspicious_score = 50 + ((tithi_idx * 3 + nak_idx * 2 + day_of_year) % 50)
+    
+    from services.astro_utils import calculate_sun_times_and_muhurtas, get_daily_rituals, get_numerology_daily
+    
+    # Get Timings
+    timings = calculate_sun_times_and_muhurtas(year, month, day, lat, lon, timezone_offset)
+    
+    # Get Rituals (Dynamic based on Nakshatra Lord)
+    rituals = get_daily_rituals(nak_idx)
+    
+    # Get Numerology (Dynamic based on Personal Day Number)
+    lucky_num, lucky_col = get_numerology_daily(mulank, year, month, day)
     
     return {
         "sunLongitude": sun_lon,
@@ -57,7 +70,14 @@ def calculate_panchang_data(date_str, time_str, timezone_offset):
         "tithiIndex": tithi_idx,
         "karanaIndex": karana_idx,
         "yogaIndex": yoga_idx,
-        "nakshatraIndex": nak_idx
+        "nakshatraIndex": nak_idx,
+        "auspiciousScore": auspicious_score,
+        "timings": timings,
+        "rituals": rituals,
+        "luckyData": {
+            "luckyNumber": lucky_num,
+            "luckyColor": lucky_col
+        }
     }
 
 def calculate_chart_data(date_str, time_str, lat, lon, timezone_offset):

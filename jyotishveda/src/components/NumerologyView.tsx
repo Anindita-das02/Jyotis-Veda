@@ -70,7 +70,7 @@ export const NumerologyView: React.FC<NumerologyViewProps> = ({
     setSaveState('saving');
     setSaveError(null);
     try {
-      await saveNumerologyReport(profile.id, numerology);
+      await saveNumerologyReport(profile.id, numerology, profile);
       setSaveState('saved');
       setTimeout(() => setSaveState('idle'), 2500);
     } catch (err) {

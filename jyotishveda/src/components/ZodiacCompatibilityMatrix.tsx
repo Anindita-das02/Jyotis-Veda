@@ -1,8 +1,10 @@
 import React, { useState, useRef } from 'react';
 import { Heart, ChevronDown } from 'lucide-react';
 import { getTranslation } from '../services/translations';
-import { calculateZodiacCompatibility, ZodiacCompatibilityResult } from '../services/zodiacData';
+import { ZodiacCompatibilityResult } from '../services/zodiacData';
 import { useZodiacData } from '../hooks/useZodiacData';
+import { api } from '../services/api';
+import { API_ENDPOINTS } from '../config/api_config';
 
 const CustomZodiacSelect = ({ value, onChange, theme, label, zodiacs }: any) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -93,6 +95,7 @@ export const ZodiacCompatibilityMatrix: React.FC<ZodiacCompatibilityMatrixProps>
   const [compatSignB, setCompatSignB] = useState('gemini');
   const [isCompatLoading, setIsCompatLoading] = useState(false);
   const [hasAnalyzed, setHasAnalyzed] = useState(false);
+  const [compatResult, setCompatResult] = useState<ZodiacCompatibilityResult | null>(null);
   const compatResultRef = useRef<HTMLDivElement>(null);
   const { zodiacs, loading } = useZodiacData();
 
@@ -100,7 +103,33 @@ export const ZodiacCompatibilityMatrix: React.FC<ZodiacCompatibilityMatrixProps>
     return <div className="flex justify-center p-10"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#C9A050]"></div></div>;
   }
 
-  const compatResult: ZodiacCompatibilityResult = calculateZodiacCompatibility(compatSignA, compatSignB, zodiacSystem, zodiacs);
+  const handleAnalyze = async () => {
+    setIsCompatLoading(true);
+    setHasAnalyzed(false);
+    
+    try {
+      const response = await api.post<any>(API_ENDPOINTS.ZODIAC.COMPATIBILITY, {
+        signA: compatSignA,
+        signB: compatSignB,
+        system: zodiacSystem,
+        language: language
+      });
+
+      const signAObj = zodiacs.find((s: any) => s.id === compatSignA) || zodiacs[0];
+      const signBObj = zodiacs.find((s: any) => s.id === compatSignB) || zodiacs[0];
+
+      setCompatResult({
+        ...response,
+        signA: signAObj,
+        signB: signBObj
+      });
+      setHasAnalyzed(true);
+    } catch (error) {
+      console.error("Compatibility analysis failed", error);
+    } finally {
+      setIsCompatLoading(false);
+    }
+  };
 
   return (
     <div className={`mt-6 rounded-[2rem] overflow-hidden border shadow-xl flex flex-col lg:flex-row transition-all min-h-[420px] lg:min-h-[460px] ${isDark ? 'bg-[#141418]/95 border-[#2A2A2E] shadow-black/40' : 'bg-[#FFFFFF]/95 border-[#E5E1D8] shadow-amber-900/5'}`}>
@@ -157,14 +186,7 @@ export const ZodiacCompatibilityMatrix: React.FC<ZodiacCompatibilityMatrixProps>
           
           <div className="flex-none w-full sm:w-auto mt-2 sm:mt-0">
             <button
-              onClick={() => {
-                setIsCompatLoading(true);
-                setHasAnalyzed(false);
-                setTimeout(() => {
-                  setIsCompatLoading(false);
-                  setHasAnalyzed(true);
-                }, 800);
-              }}
+              onClick={handleAnalyze}
               className={`px-4 sm:px-6 rounded-lg font-bold text-sm transition shadow-sm flex items-center justify-center h-[34px] sm:h-[40px] cursor-pointer ${isDark ? 'bg-[#C9A050] text-[#141418] hover:bg-[#D4AF60]' : 'bg-[#C9A050] text-white hover:bg-[#B88E40]'}`}
             >
               <span>Analyze</span>
@@ -183,7 +205,7 @@ export const ZodiacCompatibilityMatrix: React.FC<ZodiacCompatibilityMatrixProps>
         </div>
       )}
 
-      {hasAnalyzed && !isCompatLoading && (
+      {hasAnalyzed && !isCompatLoading && compatResult && (
         <div ref={compatResultRef} className="grid grid-cols-1 sm:grid-cols-[180px_1fr] gap-4 sm:gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500 items-stretch">
         {/* Score circle */}
         <div className={`flex flex-col items-center justify-center p-4 sm:p-6 rounded-xl border text-center h-full ${isDark ? 'bg-[#1C1C22] border-[#2A2A2E]' : 'bg-[#FFFFFF] border-[#E5E1D8]'}`}>

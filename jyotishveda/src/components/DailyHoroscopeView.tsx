@@ -119,52 +119,17 @@ export const DailyHoroscopeView: React.FC<DailyHoroscopeViewProps> = ({
     return 'Amplifies cosmic harmony';
   };
 
-  const getDailyRituals = (day: number, sunrise: string) => {
-    const rituals = [
-      { // Sunday (Sun)
-        morningTitle: 'Surya Arghya & Gayatri Recitation',
-        morningDesc: `Offer pure water in a copper vessel facing East between ${sunrise} and 08:30 AM with a pinch of red kumkum. Recite the Gayatri Mantra 11 or 21 times for mental clarity and life vitality.`,
-        eveningTitle: 'Aditya Hrudayam Path',
-        eveningDesc: 'Light a ghee diya at dusk. Listen to or recite the Aditya Hrudayam Stotram for health and overcoming obstacles.'
-      },
-      { // Monday (Moon)
-        morningTitle: 'Shiva Lingam Jalabhishekam',
-        morningDesc: `Offer water or raw milk with black sesame seeds to a Shiva Lingam in the morning. Chant "Om Namah Shivaya" 108 times for emotional peace.`,
-        eveningTitle: 'Chandra Beej Mantra',
-        eveningDesc: 'Light a sesame oil diya after sunset. Recite the Chandra Beej Mantra ("Om Shram Shreem Shraum Sah Chandramase Namah") for mental tranquility.'
-      },
-      { // Tuesday (Mars)
-        morningTitle: 'Hanuman Chalisa Recitation',
-        morningDesc: `Offer red flowers to Lord Hanuman in the morning. Recite the Hanuman Chalisa to invoke courage, strength, and protection against negative energies.`,
-        eveningTitle: 'Rinmochan Mangal Stotram',
-        eveningDesc: 'Light a jasmine oil or ghee diya at dusk. Recite the Mangal Stotram to clear debts and calm aggressive Martian energies.'
-      },
-      { // Wednesday (Mercury)
-        morningTitle: 'Ganesha Atharvashirsha',
-        morningDesc: `Offer durva grass to Lord Ganesha in the morning. Recite the Ganesha Atharvashirsha for sharp intellect and smooth execution of business plans.`,
-        eveningTitle: 'Vishnu Sahasranama',
-        eveningDesc: 'Light a ghee diya in the evening. Listen to the Vishnu Sahasranama for financial stability and calm nervous tension.'
-      },
-      { // Thursday (Jupiter)
-        morningTitle: 'Guru Mantra & Yellow Offerings',
-        morningDesc: `Wear yellow or apply a turmeric/sandalwood tilak on your forehead. Chant "Om Brihaspataye Namah" 108 times for wisdom and expansion.`,
-        eveningTitle: 'Dakshinamurthy Stotram',
-        eveningDesc: 'Light a ghee diya at dusk. Meditate upon Lord Dakshinamurthy (the ultimate Guru) for profound spiritual insight and clarity.'
-      },
-      { // Friday (Venus)
-        morningTitle: 'Sri Suktam Path',
-        morningDesc: `Offer white flowers or fragrant perfumes to Goddess Lakshmi. Recite the Sri Suktam for luxury, abundance, and harmonious relationships.`,
-        eveningTitle: 'Shukra Beej Mantra',
-        eveningDesc: 'Light a ghee diya at dusk. Recite the Shukra Beej Mantra ("Om Dram Dreem Draum Sah Shukraya Namah") to enhance magnetism and aesthetic joy.'
-      },
-      { // Saturday (Saturn)
-        morningTitle: 'Shani Mantra & Charity',
-        morningDesc: `Offer black sesame seeds and mustard oil to Lord Shani. Feed crows or street dogs to appease karmic blockages.`,
-        eveningTitle: 'Maha Mrityunjaya & Shiva Japa',
-        eveningDesc: 'Light a mustard oil diya under a Peepal tree or at home at dusk. Recite "Om Tryambakam Yajamahe..." for protection and neutralizing unfavorable transits.'
-      }
-    ];
-    return rituals[day] || rituals[0];
+  const getDailyRituals = () => {
+    if (panchang.rituals) {
+      return panchang.rituals;
+    }
+    // Very basic fallback if backend fails
+    return {
+      morningTitle: 'Morning Vedic Ritual',
+      morningDesc: 'Start your day with meditation and Surya Arghya.',
+      eveningTitle: 'Evening Vedic Ritual',
+      eveningDesc: 'Light a diya and practice gratitude.'
+    };
   };
 
   const getGreeting = () => {
@@ -204,7 +169,7 @@ export const DailyHoroscopeView: React.FC<DailyHoroscopeViewProps> = ({
             <p className="text-sm font-sans text-[#9E9A90] mt-2 max-w-2xl leading-relaxed">
               Your natal {profile.horoscopeSystem === 'western' ? 'Ascendant' : 'Lagna'} is <span className={`font-semibold ${theme === 'dark' ? 'text-[#E5E1D8]' : 'text-[#2A2A2E]'}`}>{chartData?.ascendant?.signName}</span> ({profile.horoscopeSystem === 'western' ? 'Tropical Sayana' : 'Sidereal Nirayana'}) with{' '}
               <span className="font-semibold text-[#C9A050]">Mulank {numerology.mulank}</span> ({numerology.mulankPlanet.split('(')[0]}). 
-              {getIntroText(panchang.auspiciousScore)}
+              {aiInsights?.summary || getIntroText(panchang.auspiciousScore)}
             </p>
           </div>
 
@@ -229,15 +194,15 @@ export const DailyHoroscopeView: React.FC<DailyHoroscopeViewProps> = ({
         <div className={`grid grid-cols-2 sm:grid-cols-4 gap-3 mt-6 pt-6 border-t ${theme === 'dark' ? 'border-[#2A2A2E]' : 'border-[#E5E1D8]'}`}>
           <div className={`p-3.5 rounded-lg border ${theme === 'dark' ? 'bg-[#1A1A1E]/80 border-[#2A2A2E]' : 'bg-[#F9F7F1]/80 border-[#E5E1D8]'}`}>
             <div className="text-[9px] text-[#9E9A90] uppercase font-sans font-bold tracking-wider">Lucky Number Today</div>
-            <div className="text-xl font-serif font-bold text-[#C9A050] mt-0.5">{numerology.luckyNumbers[0] || numerology.mulank}</div>
+            <div className="text-xl font-serif font-bold text-[#C9A050] mt-0.5">{panchang.luckyData?.luckyNumber || numerology.luckyNumbers[0] || numerology.mulank}</div>
             <div className="text-[11px] text-[#9E9A90]">Ruled by {numerology.mulankPlanet.split('(')[0]}</div>
           </div>
 
           <div className={`p-3.5 rounded-lg border ${theme === 'dark' ? 'bg-[#1A1A1E]/80 border-[#2A2A2E]' : 'bg-[#F9F7F1]/80 border-[#E5E1D8]'}`}>
             <div className="text-[9px] text-[#9E9A90] uppercase font-sans font-bold tracking-wider">Lucky Color & Tone</div>
-            <div className="text-xl font-serif font-bold text-[#C9A050] mt-0.5">{numerology.luckyColors[0] || 'Golden Saffron'}</div>
-            <div className="text-[11px] text-[#9E9A90] line-clamp-1" title={aiInsights?.lucky_color_desc || getLuckyColorDesc(numerology.luckyColors[0])}>
-              {aiInsights?.lucky_color_desc || getLuckyColorDesc(numerology.luckyColors[0])}
+            <div className="text-xl font-serif font-bold text-[#C9A050] mt-0.5">{panchang.luckyData?.luckyColor || numerology.luckyColors[0] || 'Golden Saffron'}</div>
+            <div className="text-[11px] text-[#9E9A90] line-clamp-1" title={aiInsights?.lucky_color_desc || getLuckyColorDesc(panchang.luckyData?.luckyColor || numerology.luckyColors[0])}>
+              {aiInsights?.lucky_color_desc || getLuckyColorDesc(panchang.luckyData?.luckyColor || numerology.luckyColors[0])}
             </div>
           </div>
 
@@ -412,20 +377,20 @@ export const DailyHoroscopeView: React.FC<DailyHoroscopeViewProps> = ({
               <div className={`p-4 rounded-xl border ${theme === 'dark' ? 'bg-[#1A1A1E]/80 border-[#2A2A2E]' : 'bg-[#F9F7F1]/80 border-[#E5E1D8]'}`}>
                 <span className="text-[9px] uppercase font-sans font-bold text-[#C9A050] tracking-widest">Morning Sadhana</span>
                 <h4 className={`text-sm font-serif font-bold mt-1 ${theme === 'dark' ? 'text-[#F0ECE1]' : 'text-[#0D0D0F]'}`}>
-                  {aiInsights?.morning_ritual_title || getDailyRituals(new Date().getDay(), panchang.sunrise).morningTitle}
+                  {aiInsights?.morning_ritual_title || getDailyRituals().morningTitle}
                 </h4>
                 <p className="text-xs font-sans text-[#9E9A90] mt-1 leading-relaxed">
-                  {aiInsights?.morning_ritual_desc || getDailyRituals(new Date().getDay(), panchang.sunrise).morningDesc}
+                  {aiInsights?.morning_ritual_desc || getDailyRituals().morningDesc}
                 </p>
               </div>
 
               <div className={`p-4 rounded-xl border ${theme === 'dark' ? 'bg-[#1A1A1E]/80 border-[#2A2A2E]' : 'bg-[#F9F7F1]/80 border-[#E5E1D8]'}`}>
                 <span className="text-[9px] uppercase font-sans font-bold text-[#C9A050] tracking-widest">Evening Sadhana</span>
                 <h4 className={`text-sm font-serif font-bold mt-1 ${theme === 'dark' ? 'text-[#F0ECE1]' : 'text-[#0D0D0F]'}`}>
-                  {aiInsights?.evening_ritual_title || getDailyRituals(new Date().getDay(), panchang.sunrise).eveningTitle}
+                  {aiInsights?.evening_ritual_title || getDailyRituals().eveningTitle}
                 </h4>
                 <p className="text-xs font-sans text-[#9E9A90] mt-1 leading-relaxed">
-                  {aiInsights?.evening_ritual_desc || getDailyRituals(new Date().getDay(), panchang.sunrise).eveningDesc}
+                  {aiInsights?.evening_ritual_desc || getDailyRituals().eveningDesc}
                 </p>
               </div>
             </div>

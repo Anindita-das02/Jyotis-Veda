@@ -34,3 +34,26 @@ def zodiac_forecast():
     except Exception as e:
         print(f"Error in zodiac_forecast: {e}")
         return jsonify({"status": "error", "message": str(e)}), 500
+
+def zodiac_compatibility():
+    data = request.json
+    if not data:
+        return jsonify({"status": "error", "message": "No data provided"}), 400
+
+    sign_a = data.get("signA", "")
+    sign_b = data.get("signB", "")
+    system = data.get("system", "tropical")
+    language = data.get("language", "en")
+
+    if not sign_a or not sign_b:
+        return jsonify({"status": "error", "message": "Both signA and signB are required"}), 400
+
+    try:
+        from services.llm_service import get_zodiac_compatibility_response
+        compat_json_str = get_zodiac_compatibility_response(sign_a, sign_b, system, language)
+        compat_data = json.loads(compat_json_str)
+        return jsonify({"data": compat_data})
+    except Exception as e:
+        print(f"Error in zodiac_compatibility: {e}")
+        return jsonify({"status": "error", "message": str(e)}), 500
+

@@ -46,7 +46,9 @@ def create_session(user_id: str):
     if not profile_id:
         return _error("profileId is required", "VALIDATION_ERROR")
 
-    owned = call_procedure("sp_get_profile", [profile_id, user_id])
+    owned = call_procedure("sp_profile_ops", [
+        'get_one', profile_id, user_id, '', '', '2000-01-01', '00:00:00', '', 0, 0, 0, '[]', '', '', ''
+    ])
     if not owned:
         return _error("Profile not found", "NOT_FOUND", 404)
 

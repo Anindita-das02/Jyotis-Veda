@@ -1,6 +1,6 @@
 import { api } from './api';
 import { API_ENDPOINTS } from '../config/api_config';
-import { NumerologyReport } from '../types';
+import { NumerologyReport, UserProfile } from '../types';
 
 export interface SavedNumerologyReport {
   id: string;
@@ -16,8 +16,9 @@ export interface SavedNumerologyReport {
 export async function saveNumerologyReport(
   profileId: string,
   report: NumerologyReport,
+  profile?: UserProfile,
 ): Promise<SavedNumerologyReport> {
-  return api.post<SavedNumerologyReport>(API_ENDPOINTS.NUMEROLOGY.REPORTS, { profileId, report });
+  return api.post<SavedNumerologyReport>(API_ENDPOINTS.NUMEROLOGY.REPORTS, { profileId, report, profile });
 }
 
 export async function fetchNumerologyReport(profileId: string): Promise<SavedNumerologyReport> {
