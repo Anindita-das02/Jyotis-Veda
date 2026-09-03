@@ -1,3 +1,4 @@
+# JyotishVeda Backend API Server
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 
@@ -357,8 +358,12 @@ def handle_exception(e):
     """Global error handler to catch exceptions and log them."""
     import traceback
     error_msg = f"{str(e)}\n{traceback.format_exc()}"
-    admin_controller.log_system_error('error', error_msg, 'flask_app')
-    return jsonify({"error": "Internal Server Error"}), 500
+    print(f"[ERROR] Global Exception: {error_msg}")
+    try:
+        admin_controller.log_system_error('error', error_msg, 'flask_app')
+    except Exception as log_err:
+        print(f"Failed to log system error: {log_err}")
+    return jsonify({"error": "Internal Server Error", "details": str(e)}), 500
 
 # ---------------- Knowledge Graph ----------------
 

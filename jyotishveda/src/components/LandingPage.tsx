@@ -557,7 +557,11 @@ export function LandingPage({ onLoginClick, onRegisterClick, onOpenDisclaimer, t
           </div>
 
           <div id="blog-section" className="scroll-mt-24 w-full">
-            <BlogCarousel theme={theme} />
+            <BlogCarousel 
+              theme={theme} 
+              onSelectBlog={() => setCurrentView('blogs')}
+              onViewAll={() => setCurrentView('blogs')}
+            />
           </div>
 
           {/* Premium Features Teaser (Locked Cards) */}

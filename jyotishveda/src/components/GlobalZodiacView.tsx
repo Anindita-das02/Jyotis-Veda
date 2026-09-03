@@ -576,7 +576,7 @@ export const GlobalZodiacView: React.FC<GlobalZodiacViewProps> = ({
               <span>Vedic Nakshatra Constellations</span>
             </div>
             <div className="flex flex-wrap gap-1.5">
-              {activeSign.nakshatras.map((nak, idx) => (
+              {(Array.isArray(activeSign.nakshatras) ? activeSign.nakshatras : []).map((nak, idx) => (
                 <span
                   key={idx}
                   className="px-2.5 py-1 rounded-md text-[11px] font-semibold bg-[#1C1C22] text-[#E5E1D8] border border-[#2A2A2E]"
@@ -611,7 +611,9 @@ export const GlobalZodiacView: React.FC<GlobalZodiacViewProps> = ({
             <div className="flex justify-between text-[#9E9A90]">
               <span>{t('zodiac.power_numbers')}:</span>
               <span className="text-[#F0ECE1] font-semibold">
-                {currentDynamicData?.powerNumbers ? currentDynamicData.powerNumbers.join(', ') : activeSign.powerNumbers.join(', ')}
+                {currentDynamicData?.powerNumbers 
+                  ? (Array.isArray(currentDynamicData.powerNumbers) ? currentDynamicData.powerNumbers.join(', ') : String(currentDynamicData.powerNumbers))
+                  : (Array.isArray(activeSign.powerNumbers) ? activeSign.powerNumbers.join(', ') : '3, 7, 9')}
               </span>
             </div>
           </div>
