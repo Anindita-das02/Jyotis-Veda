@@ -18,6 +18,7 @@ from controllers import landing_chat_controller
 from controllers import admin_controller
 from utils.security import require_auth, decode_token
 from controllers import knowledge_graph_controller
+from controllers import llm_generation_controller
 import jwt as pyjwt
 
 app = Flask(__name__)
@@ -382,8 +383,16 @@ def get_kg_nodes():
 def get_kg_node(node_id):
     return knowledge_graph_controller.get_node(node_id)
 
+@app.route("/api/knowledge/generate-from-llm", methods=["POST"])
+def generate_pure_llm_facts():
+    """
+    Endpoint to directly generate knowledge from LLM without PDFs.
+    """
+    return llm_generation_controller.start_llm_generation()    
+
 if __name__ == "__main__":
     # Fail fast if MySQL isn't reachable, rather than starting silently broken.
     conn = get_db_connection()
     conn.close()
     app.run(host="0.0.0.0", port=5001, debug=True)
+
