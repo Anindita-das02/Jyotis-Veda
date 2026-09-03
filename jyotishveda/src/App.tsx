@@ -120,11 +120,22 @@ export function App() {
     getCurrentUser()
       .then(async (user) => {
         setAuthUser(user);
+        if (user.role === 'admin') {
+          setActiveTab('admin_dashboard');
+        }
         try {
           const remoteProfiles = await profileApi.fetchProfiles();
-          if (remoteProfiles.length > 0) {
+          if (remoteProfiles && remoteProfiles.length > 0) {
             setProfiles(remoteProfiles);
             setCurrentProfile(remoteProfiles[0]);
+          } else {
+            const userDefaultProfile: UserProfile = {
+              ...DEFAULT_PROFILES[0],
+              id: `profile-${user.id || Date.now()}`,
+              fullName: user.fullName || 'Seeker',
+            };
+            setProfiles([userDefaultProfile]);
+            setCurrentProfile(userDefaultProfile);
           }
         } catch (err) {
           console.warn('Could not load profiles from server:', err);
@@ -509,15 +520,28 @@ export function App() {
     } else {
       try {
         const remoteProfiles = await profileApi.fetchProfiles();
-        if (remoteProfiles.length > 0) {
+        if (remoteProfiles && remoteProfiles.length > 0) {
           setProfiles(remoteProfiles);
           setCurrentProfile(remoteProfiles[0]);
+        } else {
+          const userDefaultProfile: UserProfile = {
+            ...DEFAULT_PROFILES[0],
+            id: `profile-${user.id || Date.now()}`,
+            fullName: user.fullName || 'Seeker',
+          };
+          setProfiles([userDefaultProfile]);
+          setCurrentProfile(userDefaultProfile);
         }
       } catch (err) {
         console.warn('Could not load profiles from server:', err);
       }
     }
     
+    if (user.role === 'admin') {
+      setActiveTab('admin_dashboard');
+    } else {
+      setActiveTab('daily');
+    }
     setAuthUser(user);
   };
 

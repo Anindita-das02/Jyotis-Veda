@@ -69,6 +69,7 @@ export const GlobalZodiacView: React.FC<GlobalZodiacViewProps> = ({
   onAskAIForSign,
   theme = 'dark',
 }) => {
+  const isDark = theme === 'dark';
   const { zodiacs, loading, error } = useZodiacData();
 
   const [selectedElement, setSelectedElement] = useState<'All' | 'Fire' | 'Earth' | 'Air' | 'Water'>('All');
@@ -398,7 +399,7 @@ export const GlobalZodiacView: React.FC<GlobalZodiacViewProps> = ({
                 <div className="flex items-center justify-between mb-2">
                   <span 
                     className="text-2xl font-serif text-[#C9A050] group-hover:scale-110 transition duration-200"
-                    style={{ fontVariantEmoji: 'text', fontFamily: '"Segoe UI Symbol", "Apple Symbols", sans-serif' }}
+                    style={{ fontVariantEmoji: 'text' }}
                   >
                     {sign.symbol}&#xFE0E;
                   </span>
@@ -427,27 +428,35 @@ export const GlobalZodiacView: React.FC<GlobalZodiacViewProps> = ({
       {/* Selected Sign Detailed Deep-Dive Container */}
       {hasSelectedSign && (
         <div ref={deepDiveRef} className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 w-full">
-          <div className="bg-[#141418] border border-[#2A2A2E] rounded-2xl p-6 sm:p-8 shadow-2xl space-y-8">
+          <div className={`rounded-2xl p-6 sm:p-8 shadow-2xl space-y-8 border ${
+            isDark 
+              ? 'bg-[#141418] border-[#2A2A2E]' 
+              : 'bg-white border-[#E5E1D8] shadow-amber-900/5'
+          }`}>
         {/* Top Highlight Info */}
-        <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6 pb-6 border-b border-[#2A2A2E]">
+        <div className={`flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6 pb-6 border-b ${
+          isDark ? 'border-[#2A2A2E]' : 'border-[#E5E1D8]'
+        }`}>
           <div className="flex items-center space-x-4">
-            <div className="w-16 h-16 rounded-2xl bg-[#C9A050]/15 border border-[#C9A050]/30 flex items-center justify-center text-[#C9A050] font-serif text-3xl font-bold shadow-sm" style={{ fontVariantEmoji: 'text', fontFamily: '"Segoe UI Symbol", "Apple Symbols", sans-serif' }}>
+            <div className="w-16 h-16 rounded-2xl bg-[#C9A050]/15 border border-[#C9A050]/30 flex items-center justify-center text-[#C9A050] font-serif text-3xl font-bold shadow-sm" style={{ fontVariantEmoji: 'text' }}>
               {activeSign.symbol}&#xFE0E;
             </div>
             <div>
               <div className="flex flex-wrap items-center gap-2 mb-1">
-                <h2 className="text-2xl font-bold text-[#F0ECE1]">
+                <h2 className={`text-2xl font-bold ${isDark ? 'text-[#F0ECE1]' : 'text-[#0D0D0F]'}`}>
                   {activeSign.name} • {activeSign.sanskritName} ({activeSign.sanskritScript})
                 </h2>
                 {getElementBadge(activeSign.element)}
-                <span className="px-2 py-0.5 rounded-full text-[11px] bg-[#2A2A2E] text-[#E5E1D8] font-medium">
+                <span className={`px-2 py-0.5 rounded-full text-[11px] font-medium ${
+                  isDark ? 'bg-[#2A2A2E] text-[#E5E1D8]' : 'bg-gray-100 text-gray-700'
+                }`}>
                   {activeSign.modality} Modality
                 </span>
-                <span className="px-2 py-0.5 rounded-full text-[11px] bg-[#2A2A2E] text-[#C9A050] font-medium">
+                <span className="px-2 py-0.5 rounded-full text-[11px] bg-[#C9A050]/15 text-[#C9A050] font-medium border border-[#C9A050]/30">
                   {activeSign.polarity}
                 </span>
               </div>
-              <p className="text-xs text-[#9E9A90] font-medium">
+              <p className={`text-xs font-medium ${isDark ? 'text-[#9E9A90]' : 'text-gray-600'}`}>
                 {activeSign.glyph} • {activeSign.motto} • Ruled by{' '}
                 <span className="text-[#C9A050] font-semibold">{activeSign.ruler} ({activeSign.sanskritRuler})</span>
               </p>
@@ -456,8 +465,6 @@ export const GlobalZodiacView: React.FC<GlobalZodiacViewProps> = ({
               </div>
             </div>
           </div>
-
-
         </div>
 
         {/* 4 Dimension Energy Meter */}
@@ -466,49 +473,60 @@ export const GlobalZodiacView: React.FC<GlobalZodiacViewProps> = ({
             {
               key: 'love',
               label: t('zodiac.love_rating'),
-              value: (currentDynamicData?.loveRating || activeSign.loveRating) + (zodiacSystem === 'sidereal' ? 2 : 0),
+              value: Math.min(100, Math.max(0, (currentDynamicData?.loveRating || activeSign.loveRating) + (zodiacSystem === 'sidereal' ? 2 : 0))),
               Icon: Heart,
-              color: theme === 'dark' ? 'text-rose-400' : 'text-[#C9A050]',
-              bg: theme === 'dark' ? 'bg-rose-500' : 'bg-[#C9A050]',
             },
             {
               key: 'career',
               label: t('zodiac.career_rating'),
-              value: (currentDynamicData?.careerRating || activeSign.careerRating) + (zodiacSystem === 'sidereal' ? -1 : 0),
+              value: Math.min(100, Math.max(0, (currentDynamicData?.careerRating || activeSign.careerRating) + (zodiacSystem === 'sidereal' ? -1 : 0))),
               Icon: Briefcase,
-              color: theme === 'dark' ? 'text-sky-400' : 'text-[#C9A050]',
-              bg: theme === 'dark' ? 'bg-sky-500' : 'bg-[#C9A050]',
             },
             {
               key: 'wealth',
               label: t('zodiac.wealth_rating'),
-              value: (currentDynamicData?.wealthRating || activeSign.wealthRating) + (zodiacSystem === 'sidereal' ? 3 : 0),
+              value: Math.min(100, Math.max(0, (currentDynamicData?.wealthRating || activeSign.wealthRating) + (zodiacSystem === 'sidereal' ? 3 : 0))),
               Icon: Coins,
-              color: theme === 'dark' ? 'text-amber-400' : 'text-[#C9A050]',
-              bg: theme === 'dark' ? 'bg-amber-500' : 'bg-[#C9A050]',
             },
             {
               key: 'vitality',
               label: t('zodiac.vitality_meter'),
-              value: (currentDynamicData?.vitalityToday || activeSign.vitalityToday) + (zodiacSystem === 'sidereal' ? -3 : 0),
+              value: Math.min(100, Math.max(0, (currentDynamicData?.vitalityToday || activeSign.vitalityToday) + (zodiacSystem === 'sidereal' ? -3 : 0))),
               Icon: Zap,
-              color: theme === 'dark' ? 'text-emerald-400' : 'text-[#C9A050]',
-              bg: theme === 'dark' ? 'bg-emerald-500' : 'bg-[#C9A050]',
             }
           ]
             .sort((a, b) => b.value - a.value)
             .map((metric) => (
-              <div key={metric.key} className="bg-[#0D0D0F] p-4 rounded-xl border border-[#2A2A2E]">
-                <div className="flex items-center justify-between text-xs text-[#9E9A90] mb-2">
-                  <span className="flex items-center space-x-1.5">
-                    <metric.Icon className={`w-3.5 h-3.5 ${metric.color}`} />
+              <div 
+                key={metric.key} 
+                className={`p-4 rounded-xl border transition-all ${
+                  isDark 
+                    ? 'bg-[#0D0D0F] border-[#2A2A2E]' 
+                    : 'bg-[#FAF7F2] border-[#E8E1D5] shadow-xs'
+                }`}
+              >
+                <div className="flex items-center justify-between text-xs mb-3">
+                  <span className={`flex items-center space-x-1.5 font-medium ${isDark ? 'text-[#C5C0B6]' : 'text-gray-700'}`}>
+                    <metric.Icon className={`w-3.5 h-3.5 ${isDark ? 'text-[#C9A050]' : 'text-[#8D6723]'}`} />
                     <span>{metric.label}</span>
                   </span>
-                  <span className={`font-bold ${metric.color}`}>{metric.value}%</span>
+                  <span className={`font-bold font-mono text-xs ${isDark ? 'text-[#C9A050]' : 'text-[#8D6723]'}`}>
+                    {metric.value}%
+                  </span>
                 </div>
-                <div className="w-full bg-[#1C1C22] h-2 rounded-full overflow-hidden">
+                
+                {/* Full Progress Bar Container with Clear Visible Track & Fill */}
+                <div 
+                  className={`w-full h-2.5 rounded-full overflow-hidden ${
+                    isDark 
+                      ? 'bg-[#222228] border border-[#33333E]' 
+                      : 'bg-[#E5DFD3] border border-[#D5CDC0]'
+                  }`}
+                >
                   <div
-                    className={`${metric.bg} h-full rounded-full transition-all duration-500`}
+                    className={`h-full rounded-full transition-all duration-700 ${
+                      isDark ? 'bg-[#C9A050]' : 'bg-[#8D6723]'
+                    }`}
                     style={{ width: `${metric.value}%` }}
                   />
                 </div>
@@ -517,20 +535,26 @@ export const GlobalZodiacView: React.FC<GlobalZodiacViewProps> = ({
         </div>
 
         {/* Selected Timeframe Forecast Content */}
-        <div className="bg-[#0D0D0F] p-6 rounded-xl border border-[#2A2A2E] space-y-4">
-          <div className="flex items-center justify-between border-b border-[#2A2A2E]/60 pb-3">
+        <div className={`p-6 rounded-xl border space-y-4 ${
+          isDark 
+            ? 'bg-[#0D0D0F] border-[#2A2A2E]' 
+            : 'bg-[#FAF7F2] border-[#E8E1D5] shadow-xs'
+        }`}>
+          <div className={`flex items-center justify-between border-b pb-3 ${
+            isDark ? 'border-[#2A2A2E]/60' : 'border-[#E8E1D5]'
+          }`}>
             <h3 className="text-sm font-bold text-[#C9A050] flex items-center space-x-2">
               <Calendar className="w-4 h-4" />
               <span>
                 {activeSign.name} Horizon: {timeframe === 'today' ? "Today's Cosmic Pulse" : timeframe === 'week' ? 'Weekly Outlook' : timeframe === 'month' ? 'Monthly Transits' : '2026/2027 Long-Range Panorama'}
               </span>
             </h3>
-            <span className="text-[11px] text-[#9E9A90]">
+            <span className={`text-[11px] ${isDark ? 'text-[#9E9A90]' : 'text-gray-500'}`}>
               Ephemeris Real-Time Calculation
             </span>
           </div>
 
-          <div className="text-sm text-[#E5E1D8] leading-relaxed min-h-[60px]">
+          <div className={`text-sm leading-relaxed min-h-[60px] ${isDark ? 'text-[#E5E1D8]' : 'text-gray-800'}`}>
             {isFetchingForecast && !dynamicZodiacData[`${activeSign.id}-${timeframe}-${language}`] ? (
               <div className="animate-pulse flex space-x-2 items-center text-[#C9A050]">
                 <Sparkles className="w-4 h-4 animate-spin-slow" />
@@ -541,10 +565,12 @@ export const GlobalZodiacView: React.FC<GlobalZodiacViewProps> = ({
             )}
           </div>
 
-          <div className="pt-3 border-t border-[#2A2A2E]/40 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-[#9E9A90]">
+          <div className={`pt-3 border-t flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs ${
+            isDark ? 'border-[#2A2A2E]/40 text-[#9E9A90]' : 'border-[#E8E1D5] text-gray-600'
+          }`}>
             <div className="flex items-center space-x-2">
               <span className="text-[#C9A050] font-semibold">Celestial Affirmation:</span>
-              <span className="italic text-[#E5E1D8]">&ldquo;{currentDynamicData?.affirmation || t(activeSign.affirmation)}&rdquo;</span>
+              <span className={`italic ${isDark ? 'text-[#E5E1D8]' : 'text-gray-800'}`}>&ldquo;{currentDynamicData?.affirmation || t(activeSign.affirmation)}&rdquo;</span>
             </div>
             <div>
               <span className="text-[#C9A050] font-semibold">Resonant Chakra:</span> {currentDynamicData?.resonantChakra || activeSign.resonantChakra}
@@ -555,63 +581,81 @@ export const GlobalZodiacView: React.FC<GlobalZodiacViewProps> = ({
         {/* Diaspora Concordance: Chinese Archetype, Nakshatras & Lucky Resonances */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {/* Box 1: Chinese Lunar & Diaspora Correlation */}
-          <div className="bg-[#0D0D0F] p-5 rounded-xl border border-[#2A2A2E] space-y-3">
+          <div className={`p-5 rounded-xl border space-y-3 ${
+            isDark 
+              ? 'bg-[#0D0D0F] border-[#2A2A2E]' 
+              : 'bg-[#FAF7F2] border-[#E8E1D5] shadow-xs'
+          }`}>
             <div className="flex items-center space-x-2 text-xs font-bold text-[#C9A050]">
               <Globe className="w-4 h-4" />
               <span>Global Diaspora Archetype</span>
             </div>
-            <p className="text-xs text-[#E5E1D8] leading-relaxed">
-              <span className="font-semibold text-[#F0ECE1]">Chinese Lunar Zodiac Concordance:</span><br />
+            <p className={`text-xs leading-relaxed ${isDark ? 'text-[#E5E1D8]' : 'text-gray-800'}`}>
+              <span className={`font-semibold ${isDark ? 'text-[#F0ECE1]' : 'text-gray-900'}`}>Chinese Lunar Zodiac Concordance:</span><br />
               {activeSign.chineseArchetype}
             </p>
-            <div className="pt-2 border-t border-[#2A2A2E]/60 text-[11px] text-[#9E9A90]">
+            <div className={`pt-2 border-t text-[11px] ${isDark ? 'border-[#2A2A2E]/60 text-[#9E9A90]' : 'border-[#E8E1D5] text-gray-500'}`}>
               Bridging East-West astrological archetypes for universal consciousness.
             </div>
           </div>
 
           {/* Box 2: Vedic Nakshatras & Sub-Padas */}
-          <div className="bg-[#0D0D0F] p-5 rounded-xl border border-[#2A2A2E] space-y-3">
+          <div className={`p-5 rounded-xl border space-y-3 ${
+            isDark 
+              ? 'bg-[#0D0D0F] border-[#2A2A2E]' 
+              : 'bg-[#FAF7F2] border-[#E8E1D5] shadow-xs'
+          }`}>
             <div className="flex items-center space-x-2 text-xs font-bold text-[#C9A050]">
               <Compass className="w-4 h-4" />
               <span>Vedic Nakshatra Constellations</span>
             </div>
             <div className="flex flex-wrap gap-1.5">
-              {activeSign.nakshatras.map((nak, idx) => (
+              {(Array.isArray(activeSign.nakshatras) ? activeSign.nakshatras : []).map((nak, idx) => (
                 <span
                   key={idx}
-                  className="px-2.5 py-1 rounded-md text-[11px] font-semibold bg-[#1C1C22] text-[#E5E1D8] border border-[#2A2A2E]"
+                  className={`px-2.5 py-1 rounded-md text-[11px] font-semibold border ${
+                    isDark 
+                      ? 'bg-[#1C1C22] text-[#E5E1D8] border-[#2A2A2E]' 
+                      : 'bg-white text-gray-800 border-[#DDD5C7] shadow-xs'
+                  }`}
                 >
                   ✦ {nak}
                 </span>
               ))}
             </div>
-            <div className="pt-2 border-t border-[#2A2A2E]/60 text-[11px] text-[#9E9A90]">
+            <div className={`pt-2 border-t text-[11px] ${isDark ? 'border-[#2A2A2E]/60 text-[#9E9A90]' : 'border-[#E8E1D5] text-gray-500'}`}>
               Governs 2.25 lunar mansions (9 quarters/padas) in the sidereal band.
             </div>
           </div>
 
           {/* Box 3: Auspicious Attributes */}
-          <div className="bg-[#0D0D0F] p-5 rounded-xl border border-[#2A2A2E] space-y-2.5 text-xs">
+          <div className={`p-5 rounded-xl border space-y-2.5 text-xs ${
+            isDark 
+              ? 'bg-[#0D0D0F] border-[#2A2A2E]' 
+              : 'bg-[#FAF7F2] border-[#E8E1D5] shadow-xs'
+          }`}>
             <div className="flex items-center space-x-2 text-xs font-bold text-[#C9A050]">
               <Sparkles className="w-4 h-4" />
               <span>Auspicious Resonances</span>
             </div>
-            <div className="flex justify-between text-[#9E9A90]">
+            <div className={`flex justify-between ${isDark ? 'text-[#9E9A90]' : 'text-gray-600'}`}>
               <span>{t('zodiac.lucky_gem')}:</span>
-              <span className="text-[#F0ECE1] font-semibold">{currentDynamicData?.luckyGemstone || t(activeSign.luckyGemstone)}</span>
+              <span className={`font-semibold ${isDark ? 'text-[#F0ECE1]' : 'text-gray-900'}`}>{currentDynamicData?.luckyGemstone || t(activeSign.luckyGemstone)}</span>
             </div>
-            <div className="flex justify-between text-[#9E9A90]">
+            <div className={`flex justify-between ${isDark ? 'text-[#9E9A90]' : 'text-gray-600'}`}>
               <span>{t('zodiac.lucky_color')}:</span>
-              <span className="text-[#F0ECE1] font-semibold">{currentDynamicData?.luckyColor || t(activeSign.luckyColor)}</span>
+              <span className={`font-semibold ${isDark ? 'text-[#F0ECE1]' : 'text-gray-900'}`}>{currentDynamicData?.luckyColor || t(activeSign.luckyColor)}</span>
             </div>
-            <div className="flex justify-between text-[#9E9A90]">
+            <div className={`flex justify-between ${isDark ? 'text-[#9E9A90]' : 'text-gray-600'}`}>
               <span>{t('zodiac.lucky_day')}:</span>
-              <span className="text-[#F0ECE1] font-semibold">{currentDynamicData?.luckyDay || t(activeSign.luckyDay)}</span>
+              <span className={`font-semibold ${isDark ? 'text-[#F0ECE1]' : 'text-gray-900'}`}>{currentDynamicData?.luckyDay || t(activeSign.luckyDay)}</span>
             </div>
-            <div className="flex justify-between text-[#9E9A90]">
+            <div className={`flex justify-between ${isDark ? 'text-[#9E9A90]' : 'text-gray-600'}`}>
               <span>{t('zodiac.power_numbers')}:</span>
-              <span className="text-[#F0ECE1] font-semibold">
-                {currentDynamicData?.powerNumbers ? currentDynamicData.powerNumbers.join(', ') : activeSign.powerNumbers.join(', ')}
+              <span className={`font-semibold ${isDark ? 'text-[#F0ECE1]' : 'text-gray-900'}`}>
+                {currentDynamicData?.powerNumbers 
+                  ? (Array.isArray(currentDynamicData.powerNumbers) ? currentDynamicData.powerNumbers.join(', ') : String(currentDynamicData.powerNumbers))
+                  : (Array.isArray(activeSign.powerNumbers) ? activeSign.powerNumbers.join(', ') : '3, 7, 9')}
               </span>
             </div>
           </div>

@@ -84,6 +84,21 @@ const CHAKRAS: Record<string, string> = {
   capricorn: 'Root (Muladhara)', aquarius: 'Third Eye (Ajna)', pisces: 'Crown (Sahasrara)'
 };
 
+const DEFAULT_NAKSHATRAS: Record<string, string[]> = {
+  aries: ['Ashwini', 'Bharani', 'Krittika (1/4)'],
+  taurus: ['Krittika (3/4)', 'Rohini', 'Mrigashira (1/2)'],
+  gemini: ['Mrigashira (1/2)', 'Ardra', 'Punarvasu (3/4)'],
+  cancer: ['Punarvasu (1/4)', 'Pushya', 'Ashlesha'],
+  leo: ['Magha', 'Purva Phalguni', 'Uttara Phalguni (1/4)'],
+  virgo: ['Uttara Phalguni (3/4)', 'Hasta', 'Chitra (1/2)'],
+  libra: ['Chitra (1/2)', 'Swati', 'Vishakha (3/4)'],
+  scorpio: ['Vishakha (1/4)', 'Anuradha', 'Jyeshtha'],
+  sagittarius: ['Mula', 'Purva Ashadha', 'Uttara Ashadha (1/4)'],
+  capricorn: ['Uttara Ashadha (3/4)', 'Shravana', 'Dhanishta (1/2)'],
+  aquarius: ['Dhanishta (1/2)', 'Shatabhisha', 'Purva Bhadrapada (3/4)'],
+  pisces: ['Purva Bhadrapada (1/4)', 'Uttara Bhadrapada', 'Revati']
+};
+
 export function useZodiacData() {
   const [zodiacs, setZodiacs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -105,9 +120,16 @@ export function useZodiacData() {
               z.slug || z.sign_id || (typeof z.id === 'string' && isNaN(Number(z.id)) ? z.id : '') || z.name || 'aries'
             ).toLowerCase().trim();
 
+            const nakshatrasList = Array.isArray(z.nakshatras) && z.nakshatras.length > 0
+              ? z.nakshatras
+              : (typeof z.nakshatras === 'string' && z.nakshatras.trim()
+                  ? z.nakshatras.split(',').map((s: string) => s.trim())
+                  : DEFAULT_NAKSHATRAS[canonicalId] || ['Ashwini', 'Bharani']);
+
             return {
               ...z,
               id: canonicalId,
+              nakshatras: nakshatrasList,
               // Core fields from DB (snake_case -> camelCase aliases)
               tropicalDates: z.tropical_dates || z.tropicalDates || '',
               siderealDates: z.sidereal_dates || z.siderealDates || '',
@@ -129,7 +151,9 @@ export function useZodiacData() {
               wealthRating: z.wealthRating || (generateDailyVitality(canonicalId + '_wealth') % 28 + 68),
               
               // Fields the detail section needs (AI will override these dynamically)
-              powerNumbers: z.powerNumbers || [generateDailyVitality(canonicalId) % 9 + 1, generateDailyVitality(canonicalId + 'p') % 9 + 1, generateDailyVitality(canonicalId + 'q') % 9 + 1],
+              powerNumbers: Array.isArray(z.powerNumbers) && z.powerNumbers.length > 0
+                ? z.powerNumbers
+                : [generateDailyVitality(canonicalId) % 9 + 1, generateDailyVitality(canonicalId + 'p') % 9 + 1, generateDailyVitality(canonicalId + 'q') % 9 + 1],
               luckyGemstone: z.luckyGemstone || LUCKY_GEMSTONES[canonicalId] || 'Ruby',
               luckyColor: z.luckyColor || LUCKY_COLORS[canonicalId] || 'Gold',
               luckyDay: z.luckyDay || LUCKY_DAYS[canonicalId] || 'Sunday',
@@ -143,9 +167,9 @@ export function useZodiacData() {
               yearly2026Forecast: z.yearly2026Forecast || 'Click refresh to consult AI Daivajna for your 2026/2027 long-range panorama.',
               
               // Match arrays
-              bestRomanceMatches: z.bestRomanceMatches || [],
-              bestCareerMatches: z.bestCareerMatches || [],
-              growthMatches: z.growthMatches || [],
+              bestRomanceMatches: Array.isArray(z.bestRomanceMatches) ? z.bestRomanceMatches : [],
+              bestCareerMatches: Array.isArray(z.bestCareerMatches) ? z.bestCareerMatches : [],
+              growthMatches: Array.isArray(z.growthMatches) ? z.growthMatches : [],
             };
           });
           setZodiacs(mapped);
