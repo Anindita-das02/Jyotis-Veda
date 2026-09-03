@@ -178,6 +178,10 @@ def get_numerology(profile_id):
 def post_numerology_insights():
     return numerology_controller.get_dynamic_insights()
 
+@app.route("/numerology/calculate", methods=["POST"])
+def calculate_numerology_route():
+    return numerology_controller.calculate_numerology_endpoint()
+
 
 
 # ---------------- Matchmaking / Kundli Milan reports (require login) ----------------

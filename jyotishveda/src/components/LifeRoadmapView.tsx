@@ -26,6 +26,7 @@ interface LifeRoadmapViewProps {
   numerology: NumerologyReport;
   roadmap: LifeMilestone[];
   setRoadmap: React.Dispatch<React.SetStateAction<LifeMilestone[]>>;
+  onNavigateToConsultations?: () => void;
 }
 
 export const LifeRoadmapView: React.FC<LifeRoadmapViewProps> = ({
@@ -35,6 +36,7 @@ export const LifeRoadmapView: React.FC<LifeRoadmapViewProps> = ({
   numerology,
   roadmap,
   setRoadmap,
+  onNavigateToConsultations,
 }) => {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedHorizon, setSelectedHorizon] = useState<string>('all');
@@ -49,7 +51,7 @@ export const LifeRoadmapView: React.FC<LifeRoadmapViewProps> = ({
     { id: 'Spirituality', label: 'Spiritual Dharma', icon: Flame },
   ];
 
-  const horizons = ['all', '0-12 Months', '1-3 Years', '3-5 Years', '5-10 Years'];
+  const horizons = ['all', '0-5 Years', '5-10 Years', '10-15 Years', '15-20 Years', '20-25 Years'];
 
   const toggleMilestoneCompleted = (id: string) => {
     setRoadmap((prev) =>
@@ -84,9 +86,25 @@ export const LifeRoadmapView: React.FC<LifeRoadmapViewProps> = ({
     }
   };
 
-  const filteredRoadmap = roadmap.filter((m) => {
+  const normalizedRoadmap = roadmap.map(m => {
+    let t = m.timeframe;
+    if (t === '0-12 Months' || t === '1-3 Years') t = '0-5 Years';
+    else if (t === '3-5 Years') t = '5-10 Years';
+    return { ...m, timeframe: t };
+  });
+
+  const sortedRoadmap = [...normalizedRoadmap].sort((a, b) => {
+    const isALocked = a.category === 'Relationships' || a.category === 'Wealth';
+    const isBLocked = b.category === 'Relationships' || b.category === 'Wealth';
+    if (isALocked && !isBLocked) return 1;
+    if (!isALocked && isBLocked) return -1;
+    return 0;
+  });
+
+  const filteredRoadmap = sortedRoadmap.filter((m) => {
+    const isLockedCategory = m.category === 'Relationships' || m.category === 'Wealth';
     const matchCat = selectedCategory === 'all' || m.category === selectedCategory;
-    const matchHor = selectedHorizon === 'all' || m.timeframe === selectedHorizon;
+    const matchHor = selectedHorizon === 'all' || m.timeframe === selectedHorizon || isLockedCategory;
     return matchCat && matchHor;
   });
 
@@ -114,10 +132,10 @@ export const LifeRoadmapView: React.FC<LifeRoadmapViewProps> = ({
           <div>
             <div className="flex items-center space-x-2 text-xs font-sans font-semibold tracking-widest text-[#C9A050] uppercase mb-1">
               <Milestone className="w-4 h-4" />
-              <span>10-Year Astrological Life Blueprint</span>
+              <span>25-Year Astrological Life Blueprint</span>
             </div>
             <h1 className="text-2xl sm:text-3xl font-serif font-bold text-[#F0ECE1]">
-              Vedic Destiny Roadmap ({new Date().getFullYear()} – {new Date().getFullYear() + 10})
+              Vedic Destiny Roadmap ({new Date().getFullYear()} – {new Date().getFullYear() + 25})
             </h1>
             <p className="text-xs font-sans text-[#9E9A90] mt-1 leading-relaxed">
               Synthesized through your active Vimshottari Mahadasha/Antardasha cycles, major Saturn (Shani) and Jupiter (Guru) transits.
@@ -179,7 +197,7 @@ export const LifeRoadmapView: React.FC<LifeRoadmapViewProps> = ({
                   : 'bg-[#1A1A1E]/60 text-[#9E9A90] hover:text-[#F0ECE1]'
               }`}
             >
-              {hor === 'all' ? 'Full 10 Years' : hor}
+              {hor === 'all' ? 'Full 25 Years' : hor}
             </button>
           ))}
         </div>
@@ -187,14 +205,36 @@ export const LifeRoadmapView: React.FC<LifeRoadmapViewProps> = ({
 
       {/* Roadmap Milestone Cards */}
       <div className="space-y-4">
-        {filteredRoadmap.map((item, idx) => {
+        {selectedHorizon === '15-20 Years' || selectedHorizon === '20-25 Years' ? (
+          <div className="relative bg-[#141418] border border-[#C9A050]/40 rounded-xl p-8 sm:p-12 text-center shadow-xl space-y-5 flex flex-col items-center justify-center min-h-[300px]">
+            <div className="w-16 h-16 rounded-full bg-black/60 border border-[#C9A050]/40 flex items-center justify-center mb-2">
+              <span className="text-[#C9A050] text-2xl font-bold">🔒</span>
+            </div>
+            <h3 className="text-xl sm:text-2xl font-serif font-bold text-[#F0ECE1]">
+              Unlock the {selectedHorizon} Roadmap
+            </h3>
+            <p className="text-[#9E9A90] text-sm max-w-lg mx-auto pb-4">
+              Accessing your long-term Vedic Destiny beyond 15 years requires a deeper astrological synthesis. Please visit the Consultations & Gateway section to unlock this premium analysis.
+            </p>
+            <button 
+              onClick={() => onNavigateToConsultations && onNavigateToConsultations()} 
+              className="px-6 py-3 bg-[#C9A050] text-[#0D0D0F] font-bold text-sm rounded-lg shadow-md cursor-pointer transition hover:bg-[#D4AF37]"
+            >
+              Consultations & Gateway
+            </button>
+          </div>
+        ) : (
+          <>
+            {filteredRoadmap.map((item, idx) => {
           const isCompleted = item.status === 'Completed';
           const isInProgress = item.status === 'In-Progress';
+          const isLockedCategory = item.category === 'Relationships' || item.category === 'Wealth';
 
           return (
             <div
               key={item.id}
-              className={`bg-[#141418] border rounded-xl p-5 sm:p-6 text-[#E5E1D8] shadow-xl transition space-y-4 ${
+              className={`relative bg-[#141418] border rounded-xl shadow-xl transition overflow-hidden group ${
+                isLockedCategory ? 'border-[#C9A050]/40' :
                 isCompleted
                   ? 'border-emerald-500/40 bg-emerald-950/10'
                   : isInProgress
@@ -202,11 +242,33 @@ export const LifeRoadmapView: React.FC<LifeRoadmapViewProps> = ({
                   : 'border-[#2A2A2E]'
               }`}
             >
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-[#2A2A2E]">
-                <div className="flex items-center space-x-3.5">
-                  <div className="w-8 h-8 rounded-xl bg-[#C9A050]/20 text-[#C9A050] font-serif font-bold text-xs flex items-center justify-center shrink-0 border border-[#C9A050]/30">
-                    {idx + 1}
+              {isLockedCategory && (
+                <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-black/40 backdrop-blur-[2px] transition duration-300">
+                  <div className="opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center p-6 bg-black/80 w-full h-full transition duration-300">
+                    <h3 className="text-lg sm:text-xl font-serif font-bold text-[#F0ECE1] mb-3 text-center">
+                      Unlock {item.category === 'Relationships' ? 'Love & Family' : 'Wealth & Real Estate'} Roadmap
+                    </h3>
+                    <button 
+                      onClick={() => onNavigateToConsultations && onNavigateToConsultations()} 
+                      className="px-5 py-2.5 bg-[#C9A050] text-[#0D0D0F] font-bold text-xs sm:text-sm rounded-lg shadow-md cursor-pointer transition hover:bg-[#D4AF37]"
+                    >
+                      Consultations & Gateway
+                    </button>
                   </div>
+                  <div className="absolute opacity-100 group-hover:opacity-0 transition duration-300">
+                    <div className="w-12 h-12 rounded-full bg-black/60 border border-[#C9A050]/40 flex items-center justify-center">
+                      <span className="text-[#C9A050] text-lg font-bold">🔒</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <div className={`p-5 sm:p-6 space-y-4 ${isLockedCategory ? 'opacity-30 blur-[3px] pointer-events-none' : ''}`}>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-[#2A2A2E]">
+                  <div className="flex items-center space-x-3.5">
+                    <div className="w-8 h-8 rounded-xl bg-[#C9A050]/20 text-[#C9A050] font-serif font-bold text-xs flex items-center justify-center shrink-0 border border-[#C9A050]/30">
+                      {idx + 1}
+                    </div>
                   <div>
                     <div className="flex items-center space-x-2 font-sans">
                       <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-[#1A1A1E] text-[#C9A050] border border-[#2A2A2E]">
@@ -256,11 +318,21 @@ export const LifeRoadmapView: React.FC<LifeRoadmapViewProps> = ({
                       <span className="text-[11px] text-[#E5E1D8]">{item.remedialAction}</span>
                     </div>
                   </div>
+                  </div>
                 </div>
               </div>
             </div>
           );
         })}
+            
+            {selectedHorizon === 'all' && (
+              <div className="bg-[#1A1A1E] border border-[#2A2A2E] rounded-xl p-6 text-center space-y-3 mt-6">
+                <h4 className="font-serif font-bold text-[#C9A050]">Want to see beyond 15 years?</h4>
+                <p className="text-[#9E9A90] text-xs">Unlock the 15-20 and 20-25 year horizons through our premium Consultations.</p>
+              </div>
+            )}
+          </>
+        )}
       </div>
     </div>
   );

@@ -506,8 +506,8 @@ def get_roadmap_insights_response(
     mulank = numerology.get("mulank", "Unknown")
     bhagyank = numerology.get("bhagyank", "Unknown")
 
-    system_prompt = f"""You are JyotishVeda AI, an expert 10-Year Vedic Astrological Forecaster.
-Generate a 10-Year Astrological Destiny Roadmap for the user based on their specific Lagna, Moon Sign, and Current Dasha.
+    system_prompt = f"""You are JyotishVeda AI, an expert 15-Year Vedic Astrological Forecaster.
+Generate a 15-Year Astrological Destiny Roadmap for the user based on their specific Lagna, Moon Sign, and Current Dasha.
 
 User Details:
 Name: {profile_name}
@@ -523,26 +523,26 @@ You MUST return a JSON object with EXACTLY this structure:
   "milestones": [
     {{
       "id": "string (e.g. ms-1)",
-      "timeframe": "string (Must be one of: '0-12 Months', '1-3 Years', '3-5 Years', '5-10 Years')",
+      "timeframe": "string (Must be one of: '0-5 Years', '5-10 Years', '10-15 Years')",
       "category": "string (Must be one of: 'Career', 'Wealth', 'Relationships', 'Health', 'Spirituality')",
       "title": "Short strategic title",
       "guidance": "Detailed 2-3 sentence prediction based on their dasha and transits.",
       "favorableTransits": "Short transit explanation (e.g., 'Jupiter transit over {lagna_rashi}')",
       "remedialAction": "1 specific Vedic/Vastu remedy",
-      "status": "string (Must be 'In-Progress' for 0-12 months, and 'Pending' for others)"
+      "status": "string (Must be 'In-Progress' for 0-5 Years, and 'Pending' for others)"
     }}
   ]
 }}
 
 Requirements:
 - Generate EXACTLY 5 milestones, one for each category (Career, Wealth, Relationships, Health, Spirituality).
-- Distribute the timeframes logically across the 10 years (e.g., Career in 0-12 Months, Wealth in 1-3 Years, etc.).
+- Distribute the timeframes logically across the 15 years (e.g., Career in 0-5 Years, Wealth in 5-10 Years, etc.).
 - The predictions MUST specifically mention their {lagna_rashi} ascendant and {maha_dasha}/{antar_dasha} dasha period so it feels deeply personalized!
 - All text values MUST be translated directly into the language code: {language}. If 'bn', use Bengali script.
 - Do NOT output anything outside the JSON object. No markdown formatting.
 """
 
-    history = [{"role": "user", "content": "Generate the 10-Year Roadmap JSON."}]
+    history = [{"role": "user", "content": "Generate the 15-Year Roadmap JSON."}]
 
 
 
@@ -639,8 +639,8 @@ def get_roadmap_insights_response(
     mulank = numerology.get("mulank", "Unknown")
     bhagyank = numerology.get("bhagyank", "Unknown")
 
-    system_prompt = f"""You are JyotishVeda AI, an expert 10-Year Vedic Astrological Forecaster.
-Generate a 10-Year Astrological Destiny Roadmap for the user based on their specific Lagna, Moon Sign, and Current Dasha.
+    system_prompt = f"""You are JyotishVeda AI, an expert 15-Year Vedic Astrological Forecaster.
+Generate a 15-Year Astrological Destiny Roadmap for the user based on their specific Lagna, Moon Sign, and Current Dasha.
 
 User Details:
 Name: {profile_name}
@@ -656,26 +656,26 @@ You MUST return a JSON object with EXACTLY this structure:
   "milestones": [
     {{
       "id": "string (e.g. ms-1)",
-      "timeframe": "string (Must be one of: '0-12 Months', '1-3 Years', '3-5 Years', '5-10 Years')",
+      "timeframe": "string (Must be one of: '0-5 Years', '5-10 Years', '10-15 Years')",
       "category": "string (Must be one of: 'Career', 'Wealth', 'Relationships', 'Health', 'Spirituality')",
       "title": "Short strategic title",
       "guidance": "Detailed 2-3 sentence prediction based on their dasha and transits.",
       "favorableTransits": "Short transit explanation (e.g., 'Jupiter transit over {lagna_rashi}')",
       "remedialAction": "1 specific Vedic/Vastu remedy",
-      "status": "string (Must be 'In-Progress' for 0-12 months, and 'Pending' for others)"
+      "status": "string (Must be 'In-Progress' for 0-5 Years, and 'Pending' for others)"
     }}
   ]
 }}
 
 Requirements:
 - Generate EXACTLY 5 milestones, one for each category (Career, Wealth, Relationships, Health, Spirituality).
-- Distribute the timeframes logically across the 10 years (e.g., Career in 0-12 Months, Wealth in 1-3 Years, etc.).
+- Distribute the timeframes logically across the 15 years (e.g., Career in 0-5 Years, Wealth in 5-10 Years, etc.).
 - The predictions MUST specifically mention their {lagna_rashi} ascendant and {maha_dasha}/{antar_dasha} dasha period so it feels deeply personalized!
 - All text values MUST be translated directly into the language code: {language}. If 'bn', use Bengali script.
 - Do NOT output anything outside the JSON object. No markdown formatting.
 """
 
-    history = [{"role": "user", "content": "Generate the 10-Year Roadmap JSON."}]
+    history = [{"role": "user", "content": "Generate the 15-Year Roadmap JSON."}]
 
     try:
         if active_llm == "mistral_local":
@@ -702,7 +702,7 @@ Requirements:
             "milestones": [
                 {
                     "id": "ms-1",
-                    "timeframe": "0-12 Months",
+                    "timeframe": "0-5 Years",
                     "category": "Career",
                     "title": f"Professional Elevation & Skill Mastery ({maha_dasha} Dasha)",
                     "guidance": f"Under the active {maha_dasha} dasha and {lagna_rashi} ascendant, focus on high-impact strategic initiatives and specialized executive leadership.",
@@ -712,7 +712,7 @@ Requirements:
                 },
                 {
                     "id": "ms-2",
-                    "timeframe": "1-3 Years",
+                    "timeframe": "5-10 Years",
                     "category": "Wealth",
                     "title": "Compounding Asset Expansion & Fiscal Consolidation",
                     "guidance": "Favorable Dhana Bhava alignments support prudent long-term portfolio growth and diversified investment accumulation.",
@@ -722,7 +722,7 @@ Requirements:
                 },
                 {
                     "id": "ms-3",
-                    "timeframe": "3-5 Years",
+                    "timeframe": "10-15 Years",
                     "category": "Relationships",
                     "title": "Harmonious Alliance & Family Equilibrium",
                     "guidance": "7th house planetary grace brings deepening emotional synergy, trust, and shared life milestones with your partner.",
@@ -732,7 +732,7 @@ Requirements:
                 },
                 {
                     "id": "ms-4",
-                    "timeframe": "5-10 Years",
+                    "timeframe": "10-15 Years",
                     "category": "Health",
                     "title": "Vitality Preservation & Mind-Body Rejuvenation",
                     "guidance": "Sustained holistic wellness through Ayurvedic dinacharya, regular yoga, and balanced mental rest.",
@@ -742,7 +742,7 @@ Requirements:
                 },
                 {
                     "id": "ms-5",
-                    "timeframe": "5-10 Years",
+                    "timeframe": "10-15 Years",
                     "category": "Spirituality",
                     "title": "Spiritual Awakening & Higher Self Realization",
                     "guidance": "9th house Trikona energy unlocks profound contemplative wisdom, pilgrimage, and dharmic peace.",

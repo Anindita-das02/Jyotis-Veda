@@ -706,6 +706,7 @@ export function App() {
                 numerology={numerology}
                 roadmap={roadmap}
                 setRoadmap={setRoadmap}
+                onNavigateToConsultations={() => setActiveTab('consultations')}
               />
             )}
 

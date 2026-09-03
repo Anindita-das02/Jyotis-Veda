@@ -35,33 +35,45 @@ export const NumerologyView: React.FC<NumerologyViewProps> = ({
 }) => {
   const [testName, setTestName] = useState(profile.fullName);
   
+  const [backendData, setBackendData] = useState<NumerologyReport | null>(null);
   const [aiInsights, setAiInsights] = useState<any>(null);
   const [isAiLoading, setIsAiLoading] = useState(false);
 
   useEffect(() => {
-    const fetchAiInsights = async () => {
+    const fetchBackendData = async () => {
       setIsAiLoading(true);
       try {
-        const missingNumbers = [1, 2, 3, 4, 5, 6, 7, 8, 9].filter(n => !numerology.loShuGrid[n]);
-        const data = await api.post<any>(API_ENDPOINTS.NUMEROLOGY.AI_INSIGHTS, {
-          mulank: numerology.mulank,
-          bhagyank: numerology.bhagyank,
-          namank: numerology.namankChaldean,
-          missingNumbers,
-          language: 'en'
+        // Fetch math/calc data from backend
+        const calcData = await api.post<any>('/numerology/calculate', {
+          fullName: profile.fullName,
+          birthDate: profile.birthDate
         });
         
-        if (data) {
-          setAiInsights(data);
+        if (calcData && calcData.data) {
+          setBackendData(calcData.data);
+          
+          // Then fetch AI insights
+          const missingNumbers = [1, 2, 3, 4, 5, 6, 7, 8, 9].filter(n => !calcData.data.loShuGrid[n]);
+          const aiData = await api.post<any>(API_ENDPOINTS.NUMEROLOGY.AI_INSIGHTS, {
+            mulank: calcData.data.mulank,
+            bhagyank: calcData.data.bhagyank,
+            namank: calcData.data.namankChaldean,
+            missingNumbers,
+            language: 'en'
+          });
+          
+          if (aiData) setAiInsights(aiData);
         }
       } catch (e) {
-        console.error('Failed to fetch AI Numerology Insights', e);
+        console.error('Failed to fetch Numerology data', e);
       } finally {
         setIsAiLoading(false);
       }
     };
-    fetchAiInsights();
-  }, [numerology.mulank, numerology.bhagyank]);
+    fetchBackendData();
+  }, [profile.fullName, profile.birthDate]);
+
+  const activeNumerology = backendData || numerology;
   const [activeTab, setActiveTab] = useState<'matrix' | 'loshu' | 'name_correction' | 'remedies'>('matrix');
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -70,7 +82,7 @@ export const NumerologyView: React.FC<NumerologyViewProps> = ({
     setSaveState('saving');
     setSaveError(null);
     try {
-      await saveNumerologyReport(profile.id, numerology, profile);
+      await saveNumerologyReport(profile.id, activeNumerology, profile);
       setSaveState('saved');
       setTimeout(() => setSaveState('idle'), 2500);
     } catch (err) {
@@ -119,15 +131,15 @@ export const NumerologyView: React.FC<NumerologyViewProps> = ({
           <div className="flex items-center space-x-3 shrink-0">
             <div className="text-center bg-[#1A1A1E] border border-[#C9A050]/30 px-3.5 py-2 rounded-xl">
               <div className="text-[9px] uppercase font-sans font-bold text-[#9E9A90] tracking-wider">Mulank (Psychic)</div>
-              <div className="text-2xl font-serif font-bold text-[#C9A050]">{numerology.mulank}</div>
+              <div className="text-2xl font-serif font-bold text-[#C9A050]">{activeNumerology.mulank}</div>
             </div>
             <div className="text-center bg-[#1A1A1E] border border-[#C9A050]/30 px-3.5 py-2 rounded-xl">
               <div className="text-[9px] uppercase font-sans font-bold text-[#9E9A90] tracking-wider">Bhagyank (Destiny)</div>
-              <div className="text-2xl font-serif font-bold text-[#C9A050]">{numerology.bhagyank}</div>
+              <div className="text-2xl font-serif font-bold text-[#C9A050]">{activeNumerology.bhagyank}</div>
             </div>
             <div className="text-center bg-[#1A1A1E] border border-[#C9A050]/30 px-3.5 py-2 rounded-xl">
               <div className="text-[9px] uppercase font-sans font-bold text-[#9E9A90] tracking-wider">Namank (Name)</div>
-              <div className="text-2xl font-serif font-bold text-[#C9A050]">{numerology.namankChaldean}</div>
+              <div className="text-2xl font-serif font-bold text-[#C9A050]">{activeNumerology.namankChaldean}</div>
             </div>
 
             {isAuthenticated && (
@@ -188,7 +200,7 @@ export const NumerologyView: React.FC<NumerologyViewProps> = ({
             }`}
           >
             <Grid className="w-3.5 h-3.5" />
-            <span>Lo Shu 3x3 Magic Grid ({numerology.loShuPlanes.length} Planes)</span>
+            <span>Lo Shu 3x3 Magic Grid ({activeNumerology.loShuPlanes.length} Planes)</span>
           </button>
           <button
             onClick={() => setActiveTab('name_correction')}
@@ -223,21 +235,21 @@ export const NumerologyView: React.FC<NumerologyViewProps> = ({
             <div className="flex items-center justify-between pb-3 border-b border-[#2A2A2E]">
               <div className="flex items-center space-x-2">
                 <span className="w-8 h-8 rounded-xl bg-[#C9A050]/20 text-[#C9A050] font-serif font-bold text-base flex items-center justify-center border border-[#C9A050]/30">
-                  {numerology.mulank}
+                  {activeNumerology.mulank}
                 </span>
                 <div>
                   <h3 className="text-sm font-serif font-bold text-[#F0ECE1]">Mulank (Psychic / Driver Number)</h3>
                   <p className="text-[11px] text-[#9E9A90]">Sum of Birth Day ({profile.birthDate.split('-')[2]})</p>
                 </div>
               </div>
-              <span className="text-xs font-semibold text-[#C9A050]">{numerology.mulankPlanet}</span>
+              <span className="text-xs font-semibold text-[#C9A050]">{activeNumerology.mulankPlanet}</span>
             </div>
 
             <div className="space-y-3 text-xs font-sans">
               <div>
                 <span className="text-[9px] uppercase font-bold text-[#9E9A90] tracking-wider">Psychological Drivers</span>
                 <div className="flex flex-wrap gap-1.5 mt-1.5">
-                  {(aiInsights?.mulankCharacteristics || numerology.mulankCharacteristics).map((trait: string) => (
+                  {(aiInsights?.mulankCharacteristics || activeNumerology.mulankCharacteristics).map((trait: string) => (
                     <span
                       key={trait}
                       className="px-2.5 py-1 rounded-lg bg-[#1A1A1E] border border-[#2A2A2E] text-[#C9A050] font-medium"
@@ -252,18 +264,18 @@ export const NumerologyView: React.FC<NumerologyViewProps> = ({
                 <span className="text-[9px] uppercase font-bold text-[#C9A050] tracking-wider">Instinctive Nature</span>
                 <p className="text-[#E5E1D8] leading-relaxed">
                   Your Mulank reveals how you instinctively react to challenges, your personal desires, and your subconscious behavioral patterns.
-                  Ruled by {numerology.mulankPlanet}, you radiate authority and strive for self-directed excellence.
+                  Ruled by {activeNumerology.mulankPlanet}, you radiate authority and strive for self-directed excellence.
                 </p>
               </div>
 
               <div className="grid grid-cols-2 gap-3 pt-1">
                 <div className="p-3 bg-[#1A1A1E]/60 rounded-lg border border-[#2A2A2E]">
                   <span className="text-[9px] text-[#9E9A90] block uppercase font-bold tracking-wider">Favorable Days</span>
-                  <span className="font-semibold text-[#C9A050]">{numerology.luckyDays.join(', ')}</span>
+                  <span className="font-semibold text-[#C9A050]">{activeNumerology.luckyDays.join(', ')}</span>
                 </div>
                 <div className="p-3 bg-[#1A1A1E]/60 rounded-lg border border-[#2A2A2E]">
                   <span className="text-[9px] text-[#9E9A90] block uppercase font-bold tracking-wider">Lucky Colors</span>
-                  <span className="font-semibold text-[#C9A050]">{numerology.luckyColors.join(', ')}</span>
+                  <span className="font-semibold text-[#C9A050]">{activeNumerology.luckyColors.join(', ')}</span>
                 </div>
               </div>
             </div>
@@ -274,26 +286,26 @@ export const NumerologyView: React.FC<NumerologyViewProps> = ({
             <div className="flex items-center justify-between pb-3 border-b border-[#2A2A2E]">
               <div className="flex items-center space-x-2">
                 <span className="w-8 h-8 rounded-xl bg-[#C9A050]/20 text-[#C9A050] font-serif font-bold text-base flex items-center justify-center border border-[#C9A050]/30">
-                  {numerology.bhagyank}
+                  {activeNumerology.bhagyank}
                 </span>
                 <div>
                   <h3 className="text-sm font-serif font-bold text-[#F0ECE1]">Bhagyank (Destiny / Conductor Number)</h3>
                   <p className="text-[11px] text-[#9E9A90]">Sum of Day + Month + Year ({profile.birthDate})</p>
                 </div>
               </div>
-              <span className="text-xs font-semibold text-[#C9A050]">{numerology.bhagyankPlanet}</span>
+              <span className="text-xs font-semibold text-[#C9A050]">{activeNumerology.bhagyankPlanet}</span>
             </div>
 
             <div className="space-y-3 text-xs font-sans">
               <div className="p-3.5 bg-[#1A1A1E] rounded-xl border border-[#2A2A2E] space-y-1">
                 <span className="text-[9px] uppercase font-bold text-[#C9A050] tracking-wider">Karmic Life Mission</span>
-                <p className="text-[#E5E1D8] leading-relaxed">{numerology.bhagyankMission}</p>
+                <p className="text-[#E5E1D8] leading-relaxed">{activeNumerology.bhagyankMission}</p>
               </div>
 
               <div className="p-3.5 bg-[#1A1A1E] rounded-xl border border-[#2A2A2E] space-y-1">
                 <span className="text-[9px] uppercase font-bold text-[#C9A050] tracking-wider">Mulank-Bhagyank Synergy</span>
                 <p className="text-[#E5E1D8] leading-relaxed">
-                  Your combination of Mulank {numerology.mulank} and Bhagyank {numerology.bhagyank} creates an energetic balance between 
+                  Your combination of Mulank {activeNumerology.mulank} and Bhagyank {activeNumerology.bhagyank} creates an energetic balance between 
                   daily execution and grand karmic accomplishments. Harness this alignment by scheduling critical launches on your auspicious dates.
                 </p>
               </div>
@@ -301,11 +313,11 @@ export const NumerologyView: React.FC<NumerologyViewProps> = ({
               <div className="grid grid-cols-2 gap-3 pt-1">
                 <div className="p-3 bg-[#1A1A1E]/60 rounded-lg border border-[#2A2A2E]">
                   <span className="text-[9px] text-[#9E9A90] block uppercase font-bold tracking-wider">Friendly Numbers</span>
-                  <span className="font-semibold text-[#C9A050]">{numerology.luckyNumbers.join(', ')}</span>
+                  <span className="font-semibold text-[#C9A050]">{activeNumerology.luckyNumbers.join(', ')}</span>
                 </div>
                 <div className="p-3 bg-[#1A1A1E]/60 rounded-lg border border-[#2A2A2E]">
                   <span className="text-[9px] text-[#9E9A90] block uppercase font-bold tracking-wider">Unfavorable Numbers</span>
-                  <span className="font-semibold text-[#C9A050]">{numerology.unfavorableNumbers.join(', ') || 'None (Universal Friend)'}</span>
+                  <span className="font-semibold text-[#C9A050]">{activeNumerology.unfavorableNumbers.join(', ') || 'None (Universal Friend)'}</span>
                 </div>
               </div>
             </div>
@@ -327,7 +339,7 @@ export const NumerologyView: React.FC<NumerologyViewProps> = ({
             <div className="w-full max-w-[320px] aspect-square grid grid-cols-3 grid-rows-3 gap-2 p-3 bg-[#08080A] rounded-2xl border border-[#C9A050]/40 shadow-inner">
               {loShuPositions.map((row) =>
                 row.map((num) => {
-                  const count = numerology.loShuGrid[num] || 0;
+                  const count = activeNumerology.loShuGrid[num] || 0;
                   const isPresent = count > 0;
                   return (
                     <div
@@ -369,7 +381,7 @@ export const NumerologyView: React.FC<NumerologyViewProps> = ({
               </div>
 
               <div className="space-y-3 font-sans">
-                {numerology.loShuPlanes.map((plane) => (
+                {activeNumerology.loShuPlanes.map((plane) => (
                   <div key={plane.name} className="p-3.5 bg-[#1A1A1E] rounded-xl border border-[#2A2A2E] space-y-1.5">
                     <div className="flex justify-between items-center text-xs">
                       <span className="font-serif font-bold text-[#F0ECE1]">{plane.name}</span>
@@ -470,7 +482,7 @@ export const NumerologyView: React.FC<NumerologyViewProps> = ({
 
               <div className="space-y-1">
                 <span className="text-[9px] uppercase font-bold text-[#9E9A90] tracking-wider">Classical Recommendations</span>
-                {numerology.nameCorrectionSuggestions.map((sug, i) => (
+                {activeNumerology.nameCorrectionSuggestions.map((sug, i) => (
                   <p key={i} className="text-[11px] text-[#9E9A90]">• {sug}</p>
                 ))}
               </div>
@@ -493,7 +505,7 @@ export const NumerologyView: React.FC<NumerologyViewProps> = ({
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 font-sans">
-            {(aiInsights?.remedies || numerology.remedies).map((rem: string, idx: number) => (
+            {(aiInsights?.remedies || activeNumerology.remedies).map((rem: string, idx: number) => (
               <div key={idx} className="p-3.5 bg-[#1A1A1E] rounded-xl border border-[#2A2A2E] flex items-start space-x-3">
                 <span className="w-6 h-6 rounded-full bg-[#C9A050]/20 text-[#C9A050] font-serif font-bold text-xs flex items-center justify-center shrink-0 mt-0.5 border border-[#C9A050]/30">
                   {idx + 1}

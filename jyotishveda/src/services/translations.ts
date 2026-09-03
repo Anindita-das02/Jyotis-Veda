@@ -53,7 +53,7 @@ export const TRANSLATIONS: Record<string, Record<string, string>> = {
     'tab.matchmaking': 'Kundli Milan & Matchmaking',
     'tab.numerology': 'Numerology & Lo Shu',
     'tab.counsellor': 'AI Astrological Counsellor',
-    'tab.roadmap': '10-Year Roadmap',
+    'tab.roadmap': '25-Year Roadmap',
     'tab.consultations': 'Consultations & Gateway',
     'tab.admin': 'Admin & K-Graph',
 
@@ -186,7 +186,7 @@ export const TRANSLATIONS: Record<string, Record<string, string>> = {
     'element.air': 'Air',
     'element.ether': 'Ether',
     'element.shadow': 'Shadow',
-  
+
     // Zodiac Dynamic Data
     'zodiac.aries.luckyColor': 'Crimson Red & Warm Saffron',
     'zodiac.aries.luckyDay': 'Tuesday',
@@ -260,7 +260,7 @@ export const TRANSLATIONS: Record<string, Record<string, string>> = {
     'zodiac.pisces.summary': 'The oceanic mystic concluding the zodiacal voyage, dissolving illusions into pure compassion, poetry, and Moksha.',
     'zodiac.pisces.affirmation': 'I surrender to the infinite ocean of divine love, peace, and spiritual grace.',
     'zodiac.pisces.todayForecast': 'Revati nakshatra wraps you in profound artistic inspiration, musical ecstasy, and deep spiritual communion. Lucid dreams and meditative silence unlock hidden life answers.',
-  
+
     // Houses
     'house.1.name': 'Tanur Bhava',
     'house.1.significance': 'Self, Personality, Physical Body, Vitality, Life Path & Head',
@@ -286,7 +286,7 @@ export const TRANSLATIONS: Record<string, Record<string, string>> = {
     'house.11.significance': 'Gains, Income, Elder Siblings, Desires Fulfillment, Large Networks',
     'house.12.name': 'Vyaya Bhava',
     'house.12.significance': 'Expenditure, Foreign Lands, Hospitalization, Isolation, Bed Pleasures & Liberation',
-  
+
     // Nakshatras & Planets
     'nakshatra.1.name': 'Ashwini',
     'planet.ketu': 'Ketu',
@@ -593,19 +593,19 @@ export const TRANSLATIONS: Record<string, Record<string, string>> = {
     'tradition.parashari.name': 'পারাশরী জ্যোতিষ',
     'tradition.parashari.tag': 'বৃহৎ পরাশর হোরা শাস্ত্র',
     'tradition.parashari.desc': 'মৌলিক বৈদিক পদ্ধতি: ১২ ভাব, বিংশোত্তরী দশা, ভাবত ভাবম এবং রাজ/ধন যোগ।',
-    
+
     'tradition.jaimini.name': 'জৈমিনি সূত্র',
     'tradition.jaimini.tag': 'চর কারক ও আরূঢ়',
     'tradition.jaimini.desc': 'আত্মার উদ্দেশ্য (আত্মকারক), ক্যারিয়ার (অমাত্যকারক), জীবনসঙ্গী (দারকারক) এবং চর দশা।',
-    
+
     'tradition.lal_kitab.name': 'লাল কিতাব (১৯৫২)',
     'tradition.lal_kitab.tag': 'ফরমান ও কার্মিক উপায়',
     'tradition.lal_kitab.desc': 'স্থির ভাব বিন্যাস, সুপ্ত গ্রহ (সোয়ী কিসমত), এবং ব্যবহারিক প্রতিকার (তন্ত্র-মন্ত্র ছাড়া)।',
-    
+
     'tradition.kp_system.name': 'কে.পি. সিস্টেম',
     'tradition.kp_system.tag': 'কৃষ্ণমূর্তি পদ্ধতি',
     'tradition.kp_system.desc': 'কাস্পাল সাব-লর্ড, প্লাসিডাস হাউস সিস্টেম এবং ঘটনার সুনির্দিষ্ট সময় নির্ণয়।',
-    
+
     'tradition.bhrigu_nadi.name': 'ভৃগু নন্দী নাড়ী',
     'tradition.bhrigu_nadi.tag': 'জীব-কর্ম সংযোগ',
     'tradition.bhrigu_nadi.desc': 'গ্রহের দিকনির্দেশক দৃষ্টি, পূর্বজন্মের কর্ম, এবং দ্রুত ট্রানজিটের প্রভাব।',
@@ -626,7 +626,7 @@ export const TRANSLATIONS: Record<string, Record<string, string>> = {
     'element.air': 'বায়ু',
     'element.ether': 'আকাশ',
     'element.shadow': 'ছায়া',
-  
+
     // Zodiac Dynamic Data
     'zodiac.aries.luckyColor': 'গাঢ় লাল ও উজ্জ্বল গেরুয়া',
     'zodiac.aries.luckyDay': 'মঙ্গলবার',
@@ -700,7 +700,7 @@ export const TRANSLATIONS: Record<string, Record<string, string>> = {
     'zodiac.pisces.summary': 'অতীন্দ্রিয় স্বপ্নদ্রষ্টা, সীমাহীন সমবেদনা এবং আধ্যাত্মিক সংযোগের প্রতীক।',
     'zodiac.pisces.affirmation': 'আমি দিব্য প্রেম এবং ঐশ্বরিক স্রোতের কাছে আত্মসমর্পণ করি।',
     'zodiac.pisces.todayForecast': 'বৃহস্পতির প্রভাবে আপনার আধ্যাত্মিকতা এবং সমবেদনা বৃদ্ধি পাবে। সৃজনশীল কাজে সাফল্য আসবে।',
-  
+
     // Houses
     'house.1.name': 'Tanur Bhava',
     'house.1.significance': 'নিজস্ব সত্তা, ব্যক্তিত্ব, শারীরিক গঠন, জীবনীশক্তি, জীবনের পথ এবং মস্তিষ্ক',
@@ -726,7 +726,7 @@ export const TRANSLATIONS: Record<string, Record<string, string>> = {
     'house.11.significance': 'লাভ, আয়, বড় ভাইবোন, ইচ্ছা পূরণ, বড় নেটওয়ার্ক',
     'house.12.name': 'Vyaya Bhava',
     'house.12.significance': 'ব্যয়, বিদেশ, হাসপাতাল, একাকীত্ব, শয্যা সুখ এবং মোক্ষলাভ',
-  
+
     // Nakshatras & Planets
     'nakshatra.1.name': 'অশ্বিনী',
     'planet.ketu': 'কেতু',

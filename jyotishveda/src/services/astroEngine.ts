@@ -1018,7 +1018,7 @@ export const DEFAULT_CONSULTATION_TIERS = [
 export const DEFAULT_ROADMAP = [
   {
     id: 'ms-1',
-    timeframe: '0-12 Months',
+    timeframe: '0-5 Years',
     category: 'Career',
     title: 'Strategic Role Transition & Leadership Visibility',
     guidance: 'Jupiter transit over your 10th house stimulates executive authority. Finalize negotiations and launch high-visibility initiatives between April and September.',
@@ -1028,7 +1028,7 @@ export const DEFAULT_ROADMAP = [
   },
   {
     id: 'ms-2',
-    timeframe: '0-12 Months',
+    timeframe: '0-5 Years',
     category: 'Wealth',
     title: 'Diversified Asset Allocation & Real Estate Review',
     guidance: 'Favorable aspect on 2nd and 11th houses indicates strong liquidity growth. Avoid speculative short-term gambling during Rahu Kaal periods.',
@@ -1038,7 +1038,7 @@ export const DEFAULT_ROADMAP = [
   },
   {
     id: 'ms-3',
-    timeframe: '1-3 Years',
+    timeframe: '5-10 Years',
     category: 'Relationships',
     title: 'Harmonious Partnership & Family Auspiciousness',
     guidance: 'Darakaraka planet activation fosters emotional stability and auspicious family events. A peaceful spiritual journey strengthens marital bonds.',
@@ -1048,17 +1048,17 @@ export const DEFAULT_ROADMAP = [
   },
   {
     id: 'ms-4',
-    timeframe: '3-5 Years',
-    category: 'Career',
-    title: 'Independent Venture / Commercial Global Expansion',
-    guidance: 'Mercury-Jupiter combined period sparks entrepreneurial breakthrough. Excellent for intellectual property patents, cross-border commerce, and scaling.',
-    favorableTransits: 'Saturn moving into friendly 11th house',
-    remedialAction: 'Wear a natural 5-carat Emerald or keep a Budh Yantra in the study.',
+    timeframe: '10-15 Years',
+    category: 'Health',
+    title: 'Vitality Preservation & Mind-Body Rejuvenation',
+    guidance: 'Sustained holistic wellness through Ayurvedic dinacharya, regular yoga, and balanced mental rest.',
+    favorableTransits: 'Saturnian transit encourages disciplined daily wellness habits.',
+    remedialAction: 'Wear natural rudraksha and chant Mahamrityunjaya Mantra on Mondays.',
     status: 'Pending' as const,
   },
   {
     id: 'ms-5',
-    timeframe: '5-10 Years',
+    timeframe: '10-15 Years',
     category: 'Spirituality',
     title: 'Spiritual Dharma Mastery & Philanthropic Legacy',
     guidance: 'Ketu transit activating 9th house triggers profound philosophical inquiry, pilgrimage, and institutional philanthropy.',

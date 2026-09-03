@@ -111,3 +111,15 @@ def get_dynamic_insights():
         print(f"Error in get_dynamic_insights: {e}")
         return _error(str(e), "LLM_ERROR", 500)
 
+def calculate_numerology_endpoint():
+    body = request.get_json(silent=True) or {}
+    full_name = body.get("fullName", "")
+    dob_str = body.get("birthDate", "")
+    
+    try:
+        from services.numerology_service import calculate_numerology_report
+        report_data = calculate_numerology_report(full_name, dob_str)
+        return jsonify({"status": "success", "data": report_data})
+    except Exception as e:
+        print(f"Error in calculate_numerology_endpoint: {e}")
+        return _error(str(e), "CALCULATION_ERROR", 500)
