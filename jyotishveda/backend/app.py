@@ -72,6 +72,9 @@ def calculate_ephemeris_panchang():
 def daily_horoscope():
     return daily_insights_controller.daily_horoscope()
 
+# ==========================================
+# BIRTH CHART AND TRADITIONS
+# ==========================================
 
 @app.route("/birth-chart/generate", methods=["POST"])
 def calculate_ephemeris_chart():

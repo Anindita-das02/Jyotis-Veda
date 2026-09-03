@@ -129,8 +129,55 @@ def calculate_chart_data(date_str, time_str, lat, lon, timezone_offset):
     if sid_asc < 0:
         sid_asc += 360.0
         
+    from services.astro_utils import calculate_vimshottari_dasha, calculate_yogas, calculate_doshas, calculate_divisional_chart, calculate_jaimini_karakas, calculate_gemstones, calculate_planetary_aspects
+    
+    # Calculate Dashas
+    dashas = calculate_vimshottari_dasha(planet_results["moon"]["longitude"], date_str)
+    
+    # Calculate Yogas
+    yogas = calculate_yogas(planet_results)
+    
+    # Calculate Doshas
+    doshas = calculate_doshas(planet_results, sid_asc)
+    
+    # Calculate Divisional Charts
+    d9_chart = calculate_divisional_chart(planet_results, sid_asc, 9)
+    d10_chart = calculate_divisional_chart(planet_results, sid_asc, 10)
+    
+    # Calculate Jaimini Karakas
+    karakas = calculate_jaimini_karakas(planet_results)
+    
+    # Calculate Gemstones
+    gemstones = calculate_gemstones(int(sid_asc // 30))
+    
+    # Calculate Aspects
+    aspects = calculate_planetary_aspects(planet_results)
+    
+    # Calculate KP System Houses (Placidus)
+    kp_cusps, _ = swe.houses_ex(jd_ut, lat, lon, b'P', flags)
+    
+    # Normalize KP Cusps
+    kp_houses = []
+    for i in range(12):
+        cusp_deg = kp_cusps[i]
+        sid_cusp = (cusp_deg - aya) % 360.0
+        kp_houses.append(sid_cusp)
+        
     return {
         "ascendant": sid_asc,
         "planets": planet_results,
-        "ayanamsha": aya
+        "ayanamsha": aya,
+        "dashas": dashas,
+        "yogas": yogas,
+        "doshas": doshas,
+        "divisionalCharts": {
+            "d9": d9_chart,
+            "d10": d10_chart
+        },
+        "karakas": karakas,
+        "gemstones": gemstones,
+        "aspects": aspects,
+        "kpSystem": {
+            "houses": kp_houses
+        }
     }

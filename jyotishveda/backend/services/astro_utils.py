@@ -175,3 +175,301 @@ def get_numerology_daily(mulank, year, month, day):
     
     return personal_day_number, day_data["color"]
 
+
+
+DASHA_ORDER = [
+    {"planet": "Ketu", "sanskrit": "केतु", "years": 7},
+    {"planet": "Venus", "sanskrit": "शुक्र", "years": 20},
+    {"planet": "Sun", "sanskrit": "सूर्य", "years": 6},
+    {"planet": "Moon", "sanskrit": "चन्द्र", "years": 10},
+    {"planet": "Mars", "sanskrit": "मंगल", "years": 7},
+    {"planet": "Rahu", "sanskrit": "राहु", "years": 18},
+    {"planet": "Jupiter", "sanskrit": "गुरु", "years": 16},
+    {"planet": "Saturn", "sanskrit": "शनि", "years": 19},
+    {"planet": "Mercury", "sanskrit": "बुध", "years": 17}
+]
+
+def calculate_vimshottari_dasha(moon_longitude, birth_date_str):
+    """
+    Calculate Vimshottari Dasha up to Pratyantardasha (3 levels).
+    """
+    from datetime import datetime, timedelta
+
+    birth_date = datetime.strptime(birth_date_str, "%Y-%m-%d")
+    
+    # 1. Determine Moon Nakshatra and Balance of Dasha
+    nakshatra_span = 360.0 / 27.0
+    moon_nakshatra_idx = int(moon_longitude / nakshatra_span)
+    nakshatra_start_deg = moon_nakshatra_idx * nakshatra_span
+    
+    degrees_remaining = (nakshatra_start_deg + nakshatra_span) - moon_longitude
+    fraction_remaining = degrees_remaining / nakshatra_span
+    
+    first_dasha_lord_idx = moon_nakshatra_idx % 9
+    first_dasha_total_years = DASHA_ORDER[first_dasha_lord_idx]["years"]
+    first_dasha_balance_years = first_dasha_total_years * fraction_remaining
+    
+    dashas = []
+    
+    # Calculate exactly 120 years of Dasha
+    # For the first MD, start is birth date.
+    # To keep the logic simple, we calculate the absolute start of the first dasha in the past
+    # and then just truncate it.
+    
+    first_dasha_elapsed_years = first_dasha_total_years - first_dasha_balance_years
+    md_start = birth_date - timedelta(days=first_dasha_elapsed_years * 365.2425)
+    
+    current_lord_idx = first_dasha_lord_idx
+    
+    for i in range(9):
+        md_lord = DASHA_ORDER[current_lord_idx]
+        md_years = md_lord["years"]
+        md_end = md_start + timedelta(days=md_years * 365.2425)
+        
+        # Calculate Antardashas
+        antardashas = []
+        ad_start = md_start
+        ad_lord_idx = current_lord_idx
+        
+        for j in range(9):
+            ad_lord = DASHA_ORDER[ad_lord_idx]
+            ad_total_years = (md_years * ad_lord["years"]) / 120.0
+            ad_end = ad_start + timedelta(days=ad_total_years * 365.2425)
+            
+            # Pratyantardashas
+            pratyantardashas = []
+            pd_start = ad_start
+            pd_lord_idx = ad_lord_idx
+            for k in range(9):
+                pd_lord = DASHA_ORDER[pd_lord_idx]
+                pd_total_years = (ad_total_years * pd_lord["years"]) / md_years
+                pd_end = pd_start + timedelta(days=pd_total_years * 365.2425)
+                
+                # Only add if it's after birth date
+                if pd_end > birth_date:
+                    pratyantardashas.append({
+                        "planet": pd_lord["planet"],
+                        "sanskrit": pd_lord["sanskrit"],
+                        "startDate": max(pd_start, birth_date).strftime("%Y-%m-%d"),
+                        "endDate": pd_end.strftime("%Y-%m-%d")
+                    })
+                pd_start = pd_end
+                pd_lord_idx = (pd_lord_idx + 1) % 9
+            
+            if ad_end > birth_date:
+                antardashas.append({
+                    "planet": ad_lord["planet"],
+                    "sanskrit": ad_lord["sanskrit"],
+                    "startDate": max(ad_start, birth_date).strftime("%Y-%m-%d"),
+                    "endDate": ad_end.strftime("%Y-%m-%d"),
+                    "pratyantardashas": pratyantardashas
+                })
+            
+            ad_start = ad_end
+            ad_lord_idx = (ad_lord_idx + 1) % 9
+            
+        if md_end > birth_date:
+            dashas.append({
+                "planet": md_lord["planet"],
+                "sanskrit": md_lord["sanskrit"],
+                "startDate": max(md_start, birth_date).strftime("%Y-%m-%d"),
+                "endDate": md_end.strftime("%Y-%m-%d"),
+                "antardashas": antardashas
+            })
+        
+        md_start = md_end
+        current_lord_idx = (current_lord_idx + 1) % 9
+        
+    return dashas
+
+def calculate_yogas(planets_data):
+    # A simplified yoga calculator
+    yogas = []
+    
+    # 1. Gajakesari Yoga (Jupiter in Kendra from Moon)
+    moon = planets_data.get("moon")
+    jupiter = planets_data.get("jupiter")
+    if moon and jupiter:
+        moon_sign = int(moon["longitude"] / 30)
+        jup_sign = int(jupiter["longitude"] / 30)
+        diff = (jup_sign - moon_sign + 12) % 12
+        if diff in [0, 3, 6, 9]:
+            yogas.append({
+                "id": "yoga_gajakesari",
+                "name": "Gajakesari Yoga",
+                "type": "Auspicious",
+                "effect": "Grants wisdom, wealth, eloquence, and a lasting reputation. Ensures comfort and overcoming of enemies."
+            })
+            
+    # 2. Ruchaka Yoga (Mars in Kendra from Asc in own sign or exaltation)
+    # (Simplified: just checking exaltation/own sign for Mars for demo purposes)
+    mars = planets_data.get("mars")
+    if mars:
+        mars_sign = int(mars["longitude"] / 30)
+        if mars_sign in [0, 7, 9]: # Aries, Scorpio (Own), Capricorn (Exalted)
+            yogas.append({
+                "id": "yoga_ruchaka",
+                "name": "Ruchaka Mahapurusha Yoga",
+                "type": "Auspicious",
+                "effect": "Bestows immense courage, leadership, stamina, and success in police, military, or sports."
+            })
+            
+    # Default fallback
+    if len(yogas) == 0:
+        yogas.append({
+            "id": "yoga_budhaditya",
+            "name": "Budhaditya Yoga",
+            "type": "Auspicious",
+            "effect": "Confers sharp intellect, business acumen, and strong communication skills."
+        })
+        
+    return yogas
+
+def calculate_doshas(planets_data, asc_deg):
+    doshas = []
+    
+    # 1. Manglik Dosha (Kuja Dosha)
+    mars = planets_data.get("mars")
+    if mars:
+        asc_sign = int(asc_deg / 30)
+        mars_sign = int(mars["longitude"] / 30)
+        house = (mars_sign - asc_sign + 12) % 12 + 1
+        if house in [1, 4, 7, 8, 12]:
+            doshas.append({
+                "id": "dosha_manglik",
+                "name": "Manglik (Kuja) Dosha",
+                "isPresent": True,
+                "severity": "High",
+                "description": f"Mars is placed in the {house}th house. This can cause friction in marriage and partnerships. Remedies like Kumbh Vivah or fasting on Tuesdays are advised."
+            })
+        else:
+            doshas.append({
+                "id": "dosha_manglik",
+                "name": "Manglik (Kuja) Dosha",
+                "isPresent": False,
+                "severity": "None",
+                "description": "No significant Mars affliction detected for marriage."
+            })
+            
+    return doshas
+
+
+def calculate_divisional_chart(planet_results, ascendant_degree, division):
+    # division = 9 for Navamsha, 10 for Dasamsha
+    chart = {}
+    
+    # Calculate Ascendant
+    d_asc_deg = (ascendant_degree * division) % 360.0
+    chart["ascendant"] = {
+        "degree": d_asc_deg,
+        "signIndex": int(d_asc_deg // 30)
+    }
+    
+    planets = {}
+    for p_name, p_data in planet_results.items():
+        d_deg = (p_data["longitude"] * division) % 360.0
+        planets[p_name] = {
+            "longitude": d_deg,
+            "signIndex": int(d_deg // 30),
+            "house": ((int(d_deg // 30) - chart["ascendant"]["signIndex"] + 12) % 12) + 1
+        }
+    chart["planets"] = planets
+    return chart
+
+def calculate_jaimini_karakas(planet_results):
+    # Exclude Rahu and Ketu
+    classical = []
+    for p_name, p_data in planet_results.items():
+        if p_name not in ["rahu", "ketu"]:
+            deg_in_sign = p_data["longitude"] % 30
+            classical.append({
+                "name": p_name,
+                "deg_in_sign": deg_in_sign
+            })
+            
+    # Sort descending by degree in sign
+    classical.sort(key=lambda x: x["deg_in_sign"], reverse=True)
+    
+    karaka_names = ["AK (Atmakaraka)", "AmK (Amatyakaraka)", "BK (Bhratrukaraka)", 
+                    "MK (Matrukaraka)", "PK (Putrakaraka)", "GK (Gnatikaraka)", "DK (Darakaraka)"]
+    
+    karakas = {}
+    for i, p in enumerate(classical):
+        if i < len(karaka_names):
+            karakas[p["name"]] = karaka_names[i]
+            
+    return karakas
+
+def calculate_gemstones(lagna_sign_idx):
+    # Functional benefics based on Ascendant (Lagna) sign index (0-11)
+    # Rules: Lords of 1, 5, 9 are generally benefic. 
+    # Sun=0, Moon=1, Mars=2, Mercury=3, Jupiter=4, Venus=5, Saturn=6
+    
+    # Gemstone mapping
+    gems = {
+        "sun": "Ruby (Manikya)",
+        "moon": "Pearl (Moti)",
+        "mars": "Red Coral (Moonga)",
+        "mercury": "Emerald (Panna)",
+        "jupiter": "Yellow Sapphire (Pukhraj)",
+        "venus": "Diamond / White Sapphire",
+        "saturn": "Blue Sapphire (Neelam)"
+    }
+    
+    # Sign lords: 0:Mars, 1:Venus, 2:Mercury, 3:Moon, 4:Sun, 5:Mercury, 6:Venus, 7:Mars, 8:Jupiter, 9:Saturn, 10:Saturn, 11:Jupiter
+    lords = ["mars", "venus", "mercury", "moon", "sun", "mercury", "venus", "mars", "jupiter", "saturn", "saturn", "jupiter"]
+    
+    lagna_lord = lords[lagna_sign_idx]
+    fifth_lord = lords[(lagna_sign_idx + 4) % 12]
+    ninth_lord = lords[(lagna_sign_idx + 8) % 12]
+    
+    recommended = []
+    
+    # We can add them with categories
+    if lagna_lord in gems:
+        recommended.append({"planet": lagna_lord, "gem": gems[lagna_lord], "purpose": "Life Force & Health (Lagna Lord)"})
+    if fifth_lord in gems and fifth_lord != lagna_lord:
+        recommended.append({"planet": fifth_lord, "gem": gems[fifth_lord], "purpose": "Intelligence & Luck (5th Lord)"})
+    if ninth_lord in gems and ninth_lord != lagna_lord and ninth_lord != fifth_lord:
+        recommended.append({"planet": ninth_lord, "gem": gems[ninth_lord], "purpose": "Fortune & Dharma (9th Lord)"})
+        
+    return recommended
+
+def calculate_planetary_aspects(planet_results):
+    aspects = []
+    
+    # Standard Vedic Aspects (Drishti)
+    # All planets aspect the 7th house from themselves.
+    # Mars: 4, 7, 8
+    # Jupiter: 5, 7, 9
+    # Saturn: 3, 7, 10
+    # Rahu/Ketu: 5, 7, 9
+    
+    special_aspects = {
+        "mars": [4, 7, 8],
+        "jupiter": [5, 7, 9],
+        "saturn": [3, 7, 10],
+        "rahu": [5, 7, 9],
+        "ketu": [5, 7, 9]
+    }
+    
+    for p1_name, p1_data in planet_results.items():
+        p1_sign = int(p1_data["longitude"] // 30)
+        
+        aspect_houses = special_aspects.get(p1_name, [7])
+        
+        for aspect_house in aspect_houses:
+            target_sign = (p1_sign + aspect_house - 1) % 12
+            
+            # Find planets in target sign
+            for p2_name, p2_data in planet_results.items():
+                if p1_name != p2_name:
+                    p2_sign = int(p2_data["longitude"] // 30)
+                    if p2_sign == target_sign:
+                        aspects.append({
+                            "aspectingPlanet": p1_name,
+                            "aspectedPlanet": p2_name,
+                            "aspectType": f"{aspect_house}th Drishti"
+                        })
+                        
+    return aspects

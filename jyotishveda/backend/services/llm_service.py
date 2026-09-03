@@ -178,12 +178,7 @@ You MUST respond with ONLY a valid JSON object matching exactly this structure, 
   "summary": "A 2-3 sentence overall astrological prediction for today based on transits and tithi.",
   "career": "1-2 sentences on career and commerce predictions.",
   "love": "1-2 sentences on love and relationships.",
-  "health": "1-2 sentences on health and prana.",
-  "morning_ritual_title": "Title for a morning ritual",
-  "morning_ritual_desc": "Description for the morning ritual",
-  "evening_ritual_title": "Title for an evening ritual",
-  "evening_ritual_desc": "Description for the evening ritual",
-  "lucky_color_desc": "Brief 1-sentence reason why the lucky color is auspicious today."
+  "health": "1-2 sentences on health and prana."
 }}
 
 Here is the user's data:

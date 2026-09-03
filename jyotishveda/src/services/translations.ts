@@ -148,11 +148,21 @@ export const TRANSLATIONS: Record<string, Record<string, string>> = {
     'counsellor.suggested': 'Suggested Astrological Inquiries:',
 
     // Traditions
-    'traditions.parashari': 'Parashari Jyotish',
-    'traditions.jaimini': 'Jaimini Sutras',
-    'traditions.lal_kitab': 'Lal Kitab (1952)',
-    'traditions.kp_system': 'KP System',
-    'traditions.bhrigu_nadi': 'Bhrigu Nadi',
+    'tradition.parashari.name': 'Parashari Jyotish',
+    'tradition.parashari.tag': 'Standard Vedic',
+    'tradition.parashari.desc': 'The foundational system of Vedic astrology relying on dashas and transits.',
+    'tradition.jaimini.name': 'Jaimini Sutras',
+    'tradition.jaimini.tag': 'Chara Karakas',
+    'tradition.jaimini.desc': 'Advanced system using variable karakas and rashi dashas.',
+    'tradition.lal_kitab.name': 'Lal Kitab',
+    'tradition.lal_kitab.tag': 'Karmic Remedies',
+    'tradition.lal_kitab.desc': 'Perso-Arabic system famous for simple, practical karmic remedies.',
+    'tradition.kp_system.name': 'KP System',
+    'tradition.kp_system.tag': 'Stellar Astrology',
+    'tradition.kp_system.desc': 'Krishnamurti Paddhati, highly accurate for event timing using Nakshatra sub-lords.',
+    'tradition.bhrigu_nadi.name': 'Bhrigu Nadi',
+    'tradition.bhrigu_nadi.tag': 'Past Life Karma',
+    'tradition.bhrigu_nadi.desc': 'Ancient Nadi leaf readings based on planetary combinations without ascendant dependency.',
 
     // Numerology
     'numerology.mulank': 'Mulank (Psychic Number)',

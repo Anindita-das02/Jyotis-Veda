@@ -33,11 +33,6 @@ interface DailyAiInsights {
   career: string;
   love: string;
   health: string;
-  morning_ritual_title: string;
-  morning_ritual_desc: string;
-  evening_ritual_title: string;
-  evening_ritual_desc: string;
-  lucky_color_desc: string;
 }
 
 export const DailyHoroscopeView: React.FC<DailyHoroscopeViewProps> = ({
@@ -377,20 +372,20 @@ export const DailyHoroscopeView: React.FC<DailyHoroscopeViewProps> = ({
               <div className={`p-4 rounded-xl border ${theme === 'dark' ? 'bg-[#1A1A1E]/80 border-[#2A2A2E]' : 'bg-[#F9F7F1]/80 border-[#E5E1D8]'}`}>
                 <span className="text-[9px] uppercase font-sans font-bold text-[#C9A050] tracking-widest">Morning Sadhana</span>
                 <h4 className={`text-sm font-serif font-bold mt-1 ${theme === 'dark' ? 'text-[#F0ECE1]' : 'text-[#0D0D0F]'}`}>
-                  {aiInsights?.morning_ritual_title || getDailyRituals().morningTitle}
+                  {getDailyRituals().morningTitle}
                 </h4>
                 <p className="text-xs font-sans text-[#9E9A90] mt-1 leading-relaxed">
-                  {aiInsights?.morning_ritual_desc || getDailyRituals().morningDesc}
+                  {getDailyRituals().morningDesc}
                 </p>
               </div>
 
               <div className={`p-4 rounded-xl border ${theme === 'dark' ? 'bg-[#1A1A1E]/80 border-[#2A2A2E]' : 'bg-[#F9F7F1]/80 border-[#E5E1D8]'}`}>
                 <span className="text-[9px] uppercase font-sans font-bold text-[#C9A050] tracking-widest">Evening Sadhana</span>
                 <h4 className={`text-sm font-serif font-bold mt-1 ${theme === 'dark' ? 'text-[#F0ECE1]' : 'text-[#0D0D0F]'}`}>
-                  {aiInsights?.evening_ritual_title || getDailyRituals().eveningTitle}
+                  {getDailyRituals().eveningTitle}
                 </h4>
                 <p className="text-xs font-sans text-[#9E9A90] mt-1 leading-relaxed">
-                  {aiInsights?.evening_ritual_desc || getDailyRituals().eveningDesc}
+                  {getDailyRituals().eveningDesc}
                 </p>
               </div>
             </div>

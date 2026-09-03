@@ -132,6 +132,10 @@ export function calculateVedicChart(profile: UserProfile, ephemerisData?: any): 
   dashas: DashaPeriod[];
   yogas: VedicYoga[];
   doshas: VedicDosha[];
+  divisionalCharts?: { d9: any; d10: any };
+  aspects?: any[];
+  gemstones?: any[];
+  kpSystem?: { houses: number[] };
 } {
   const isWestern = profile.horoscopeSystem === 'western';
   const ayanamshaShift = isWestern ? 23.86 : 0; // Sayana (Tropical) vs Nirayana (Lahiri Sidereal)
@@ -300,47 +304,65 @@ export function calculateVedicChart(profile: UserProfile, ephemerisData?: any): 
   const currentYear = now.getFullYear();
 
   const dashas: DashaPeriod[] = [];
-  for (let i = 0; i < 9; i++) {
-    const dashaIdx = (dashaStartIdx + i) % 9;
-    const item = DASHA_ORDER[dashaIdx];
-    const startYr = currentAccumYear;
-    const endYr = startYr + item.years;
-    currentAccumYear = endYr;
-
-    const isCurrent = (currentYear >= startYr && currentYear < endYr);
-    
-    // Generate Antardashas (Sub-periods)
-    const subPeriods = DASHA_ORDER.map((sub, sIdx) => {
-      const subYears = (item.years * sub.years) / 120;
-      const subStart = startYr + (sIdx * (item.years / 9));
-      const subEnd = subStart + subYears;
+  if (ephemerisData && ephemerisData.dashas) {
+    // Map backend data to match the DashaPeriod interface perfectly
+    const mappedDashas = ephemerisData.dashas.map((d: any) => {
+      const startYr = parseInt(d.startDate.split('-')[0]);
+      const endYr = parseInt(d.endDate.split('-')[0]);
+      const isCurrent = (currentYear >= startYr && currentYear < endYr);
+      
       return {
-        planet: sub.planet,
-        startDate: `${Math.floor(subStart)}-0${Math.min(9, Math.max(1, (sIdx % 9) + 1))}-01`,
-        endDate: `${Math.floor(subEnd)}-0${Math.min(9, Math.max(1, (sIdx % 9) + 1))}-01`,
-        isCurrent: isCurrent && (currentYear >= subStart && currentYear < subEnd),
+        planet: d.planet,
+        sanskrit: d.sanskrit,
+        startDate: d.startDate,
+        endDate: d.endDate,
+        durationYears: endYr - startYr,
+        isCurrent: isCurrent,
+        subPeriods: d.antardashas ? d.antardashas.map((sub: any) => {
+          const subStartYr = parseInt(sub.startDate.split('-')[0]);
+          const subEndYr = parseInt(sub.endDate.split('-')[0]);
+          return {
+            planet: sub.planet,
+            startDate: sub.startDate,
+            endDate: sub.endDate,
+            isCurrent: isCurrent && (currentYear >= subStartYr && currentYear <= subEndYr)
+          };
+        }) : []
       };
     });
+    dashas.push(...mappedDashas);
+  } else {
+    for (let i = 0; i < 9; i++) {
+      const dashaIdx = (dashaStartIdx + i) % 9;
+      const item = DASHA_ORDER[dashaIdx];
+      const startYr = currentAccumYear;
+      const endYr = startYr + item.years;
+      currentAccumYear = endYr;
 
-    dashas.push({
-      planet: item.planet,
-      sanskrit: item.sanskrit,
-      startDate: `${startYr}-01-01`,
-      endDate: `${endYr}-01-01`,
-      durationYears: item.years,
-      isCurrent,
-      subPeriods,
-    });
+      dashas.push({
+        planet: item.planet,
+        sanskrit: item.sanskrit,
+        startDate: `${startYr}-01-01`,
+        endDate: `${endYr}-01-01`,
+        durationYears: item.years,
+        isCurrent: false,
+        subPeriods: []
+      });
+    }
   }
 
-  // Detect Vedic Yogas
-  const yogas: VedicYoga[] = [];
+    // Detect Vedic Yogas
   const jupiter = calculatedPlanets.find(p => p.id === 'jupiter')!;
   const sun = calculatedPlanets.find(p => p.id === 'sun')!;
   const mercury = calculatedPlanets.find(p => p.id === 'mercury')!;
   const mars = calculatedPlanets.find(p => p.id === 'mars')!;
   const venus = calculatedPlanets.find(p => p.id === 'venus')!;
   const saturn = calculatedPlanets.find(p => p.id === 'saturn')!;
+  
+  const yogas: VedicYoga[] = [];
+  if (ephemerisData && ephemerisData.yogas) {
+    yogas.push(...ephemerisData.yogas);
+  } else {
 
   // 1. Gajakesari Yoga (Jupiter in Kendra from Moon: 1, 4, 7, 10 houses away)
   const moonHouse = moon.house;
@@ -424,10 +446,13 @@ export function calculateVedicChart(profile: UserProfile, ephemerisData?: any): 
     });
   }
 
+  }
+
   // Detect Vedic Doshas
   const doshas: VedicDosha[] = [];
-  
-  // 1. Manglik / Kuja Dosha (Mars in 1st, 4th, 7th, 8th, or 12th house)
+  if (ephemerisData && ephemerisData.doshas) {
+    doshas.push(...ephemerisData.doshas);
+  } else {
   const isManglik = [1, 4, 7, 8, 12].includes(mars.house);
   doshas.push({
     id: 'manglik_dosha',
@@ -514,6 +539,7 @@ export function calculateVedicChart(profile: UserProfile, ephemerisData?: any): 
       'Feed black sesame seeds or bread to stray dogs or crows on Saturdays',
     ],
   });
+  }
 
   return {
     system: isWestern ? 'western' : 'vedic',
@@ -531,6 +557,55 @@ export function calculateVedicChart(profile: UserProfile, ephemerisData?: any): 
     dashas,
     yogas,
     doshas,
+    divisionalCharts: ephemerisData?.divisionalCharts ? {
+      d9: {
+        ascendant: {
+          ...{ signIndex: lagnaSignIndex, degree: parseFloat(lagnaDeg.toFixed(2)), signName: ZODIAC_SIGNS[lagnaSignIndex].name, signSanskrit: ZODIAC_SIGNS[lagnaSignIndex].sanskrit, nakshatra: NAKSHATRAS[lagnaNakshatraIdx].name },
+          signIndex: ephemerisData.divisionalCharts.d9.ascendant.signIndex,
+          degree: ephemerisData.divisionalCharts.d9.ascendant.degree,
+          signName: ZODIAC_SIGNS[ephemerisData.divisionalCharts.d9.ascendant.signIndex].name,
+          signSanskrit: ZODIAC_SIGNS[ephemerisData.divisionalCharts.d9.ascendant.signIndex].sanskrit
+        },
+        planets: Object.keys(ephemerisData.divisionalCharts.d9.planets).map(p_id => {
+          const raw = ephemerisData.divisionalCharts.d9.planets[p_id];
+          const orig = calculatedPlanets.find(p => p.id === p_id) || calculatedPlanets[0];
+          return {
+            ...orig,
+            degree: raw.longitude % 30,
+            totalDegree: raw.longitude,
+            signIndex: raw.signIndex,
+            signName: ZODIAC_SIGNS[raw.signIndex].name,
+            signSanskrit: ZODIAC_SIGNS[raw.signIndex].sanskrit,
+            house: raw.house
+          };
+        })
+      },
+      d10: {
+        ascendant: {
+          ...{ signIndex: lagnaSignIndex, degree: parseFloat(lagnaDeg.toFixed(2)), signName: ZODIAC_SIGNS[lagnaSignIndex].name, signSanskrit: ZODIAC_SIGNS[lagnaSignIndex].sanskrit, nakshatra: NAKSHATRAS[lagnaNakshatraIdx].name },
+          signIndex: ephemerisData.divisionalCharts.d10.ascendant.signIndex,
+          degree: ephemerisData.divisionalCharts.d10.ascendant.degree,
+          signName: ZODIAC_SIGNS[ephemerisData.divisionalCharts.d10.ascendant.signIndex].name,
+          signSanskrit: ZODIAC_SIGNS[ephemerisData.divisionalCharts.d10.ascendant.signIndex].sanskrit
+        },
+        planets: Object.keys(ephemerisData.divisionalCharts.d10.planets).map(p_id => {
+          const raw = ephemerisData.divisionalCharts.d10.planets[p_id];
+          const orig = calculatedPlanets.find(p => p.id === p_id) || calculatedPlanets[0];
+          return {
+            ...orig,
+            degree: raw.longitude % 30,
+            totalDegree: raw.longitude,
+            signIndex: raw.signIndex,
+            signName: ZODIAC_SIGNS[raw.signIndex].name,
+            signSanskrit: ZODIAC_SIGNS[raw.signIndex].sanskrit,
+            house: raw.house
+          };
+        })
+      }
+    } : undefined,
+    aspects: ephemerisData?.aspects || [],
+    gemstones: ephemerisData?.gemstones || [],
+    kpSystem: ephemerisData?.kpSystem
   };
 }
 

@@ -88,6 +88,10 @@ interface HoroscopeTraditionsViewProps {
     dashas: DashaPeriod[];
     yogas: VedicYoga[];
     doshas: VedicDosha[];
+    divisionalCharts?: { d9: any; d10: any };
+    aspects?: any[];
+    gemstones?: any[];
+    kpSystem?: { houses: number[] };
   };
 
   numerology: NumerologyReport;
@@ -1103,6 +1107,51 @@ export const HoroscopeTraditionsView: React.FC<
                 ))}
               </div>
             </div>
+
+            {/* ASPECTS */}
+            {chartData.aspects && chartData.aspects.length > 0 && (
+              <div className="bg-[#141418] border border-[#2A2A2E] rounded-xl p-5 text-[#E5E1D8] shadow-xl space-y-3">
+                <div className="flex items-center space-x-2 text-[#C9A050] font-serif font-bold text-xs pb-2 border-b border-[#2A2A2E]">
+                  <Sparkles className="w-4 h-4" />
+                  <span>
+                    Planetary Aspects (Drishti)
+                  </span>
+                </div>
+                <div className="space-y-2">
+                  {chartData.aspects.map((asp, idx) => (
+                    <div key={idx} className="p-2 bg-[#1A1A1E] rounded-lg border border-[#2A2A2E] flex items-center justify-between">
+                      <span className="text-[11px] text-[#E5E1D8] font-semibold uppercase">{asp.aspectingPlanet}</span>
+                      <span className="text-[9px] text-[#9E9A90] bg-[#2A2A2E]/50 px-2 rounded-full">{asp.aspectType}</span>
+                      <span className="text-[11px] text-[#C9A050] font-semibold uppercase">{asp.aspectedPlanet}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* GEMSTONES */}
+            {chartData.gemstones && chartData.gemstones.length > 0 && (
+              <div className="bg-[#141418] border border-[#2A2A2E] rounded-xl p-5 text-[#E5E1D8] shadow-xl space-y-3">
+                <div className="flex items-center space-x-2 text-[#C9A050] font-serif font-bold text-xs pb-2 border-b border-[#2A2A2E]">
+                  <Layers className="w-4 h-4" />
+                  <span>
+                    Favorable Gemstones (Lagna Based)
+                  </span>
+                </div>
+                <div className="space-y-2">
+                  {chartData.gemstones.map((g, idx) => (
+                    <div key={idx} className="p-3 bg-[#1A1A1E] rounded-lg border border-[#2A2A2E] flex flex-col">
+                      <div className="flex justify-between items-center mb-1">
+                        <span className="text-[12px] font-bold text-[#F0ECE1]">{g.gem}</span>
+                        <span className="text-[10px] text-[#C9A050] uppercase tracking-wide">{g.planet}</span>
+                      </div>
+                      <span className="text-[10px] text-[#9E9A90]">{g.purpose}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
           </div>
         </div>
 
