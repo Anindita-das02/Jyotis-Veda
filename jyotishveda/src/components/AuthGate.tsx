@@ -168,6 +168,16 @@ export function AuthGate({
     refreshCaptcha();
   }, [initialMode, isOpen]);
 
+  useEffect(() => {
+    if (isOpen) {
+      const originalOverflow = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      return () => {
+        document.body.style.overflow = originalOverflow;
+      };
+    }
+  }, [isOpen]);
+
   const handleGoogleSuccess = async (targetEmail: string, targetName: string, accountId?: string) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(targetEmail.trim())) {
@@ -343,7 +353,7 @@ export function AuthGate({
     <AnimatePresence>
       <div 
         onClick={onClose}
-        className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4 overflow-y-auto transition-opacity"
+        className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto overflow-x-hidden transition-opacity"
       >
         <motion.div
           initial={{ opacity: 0, scale: 0.95, y: 15 }}
@@ -351,7 +361,7 @@ export function AuthGate({
           exit={{ opacity: 0, scale: 0.95, y: 15 }}
           transition={{ duration: 0.2 }}
           onClick={(e) => e.stopPropagation()}
-          className={`w-full ${mode === 'register' ? 'max-w-lg sm:max-w-2xl' : 'max-w-md'} rounded-t-2xl sm:rounded-2xl border shadow-2xl relative max-h-[92vh] sm:max-h-[90vh] overflow-y-auto my-0 sm:my-auto transition-all duration-300 ${
+          className={`w-full ${mode === 'register' ? 'max-w-lg sm:max-w-2xl' : 'max-w-md'} rounded-2xl border shadow-2xl relative max-h-[90vh] overflow-y-auto overflow-x-hidden my-auto transition-all duration-300 ${
             isDark
               ? 'bg-[#141418] border-[#C9A050]/40 text-[#E5E1D8]'
               : 'bg-[#FFFFFF] border-[#C9A050]/40 text-[#0D0D0F]'
@@ -843,7 +853,7 @@ export function AuthGate({
       {isGoogleModalOpen && (
         <div 
           onClick={() => setIsGoogleModalOpen(false)}
-          className="fixed inset-0 z-[110] bg-black/70 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4"
+          className="fixed inset-0 z-[110] bg-black/70 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 overflow-y-auto overflow-x-hidden"
         >
           <motion.div
             initial={{ opacity: 0, scale: 0.95, y: 10 }}

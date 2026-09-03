@@ -38,7 +38,7 @@ const CustomZodiacSelect = ({ value, onChange, theme, label, zodiacs }: any) => 
         } ${isOpen ? 'border-[#C9A050] ring-1 ring-[#C9A050]/50' : ''}`}
       >
         <div className="flex items-center space-x-2">
-          <span className="text-lg text-[#C9A050]" style={{ fontFamily: '"Segoe UI Symbol", "Apple Symbols", sans-serif' }}>
+          <span className="text-lg text-[#C9A050]" style={{ fontVariantEmoji: 'text' }}>
             {selectedSign.symbol}&#xFE0E;
           </span>
           <span>{selectedSign.name} ({selectedSign.sanskritName})</span>
@@ -65,7 +65,7 @@ const CustomZodiacSelect = ({ value, onChange, theme, label, zodiacs }: any) => 
                   : (theme === 'dark' ? 'text-[#F0ECE1] hover:bg-[#2A2A2E]' : 'text-[#2A2A2E] hover:bg-[#FAF8F2]')
               }`}
             >
-              <span className={`text-lg ${value === s.id ? '' : 'text-[#C9A050]'}`} style={{ fontFamily: '"Segoe UI Symbol", "Apple Symbols", sans-serif' }}>
+              <span className={`text-lg ${value === s.id ? '' : 'text-[#C9A050]'}`} style={{ fontVariantEmoji: 'text' }}>
                 {s.symbol}&#xFE0E;
               </span>
               <span>{s.name} ({s.sanskritName})</span>

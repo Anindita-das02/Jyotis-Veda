@@ -1248,8 +1248,8 @@ Issued by JyotishVeda AI Daivajna Astrological Intelligence Engine
       {/* ========================================================================= */}
       <div
         ref={printableRef}
-        className={`${isPrinting ? 'block' : 'hidden'} print:block bg-white text-black p-8 max-w-4xl mx-auto border-8 border-double border-[#C9A050] my-6`}
-        style={{ fontFamily: 'Georgia, serif' }}
+        className={`${isPrinting ? 'block' : 'hidden'} print:block bg-white text-black p-8 max-w-4xl mx-auto border-8 border-double border-[#C9A050] my-6 font-sans`}
+        style={{ fontFamily: "'Outfit', sans-serif" }}
       >
         {/* Certificate Header */}
         <div className="text-center border-b-2 border-[#C9A050] pb-6 mb-6">
