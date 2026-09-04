@@ -1203,3 +1203,41 @@ def download_match_report_pdf(user_id: str, report_id: str):
         )
     except Exception as exc:
         return _error(f"Error generating PDF: {exc}", "PDF_ERROR", 500)
+
+
+def generate_direct_pdf():
+    """Generates a PDF from the posted matchmaking data directly and streams it back."""
+    try:
+        body = request.get_json() or {}
+        p1_name = body.get("partner1_name") or body.get("partner1Name", "Partner 1")
+        p2_name = body.get("partner2_name") or body.get("partner2Name", "Partner 2")
+        p1_dob = body.get("partner1_birth_date") or body.get("partner1BirthDate", "")
+        p2_dob = body.get("partner2_birth_date") or body.get("partner2BirthDate", "")
+        total_score = body.get("total_score") or body.get("totalScore", 0)
+        max_score = body.get("max_score") or body.get("maxScore", 36)
+        manglik_status = body.get("manglik_status") or body.get("manglikStatus", "Non-Manglik")
+        report_json = body.get("report_json") or body.get("reportJson") or body.get("report", {})
+
+        report_payload = {
+            "partner1_name": p1_name,
+            "partner1_birth_date": p1_dob,
+            "partner2_name": p2_name,
+            "partner2_birth_date": p2_dob,
+            "total_score": total_score,
+            "max_score": max_score,
+            "manglik_status": manglik_status,
+            "report_json": report_json,
+        }
+
+        pdf_bytes = generate_match_report_pdf(report_payload)
+        clean_p1 = str(p1_name).strip().replace(" ", "_")
+        clean_p2 = str(p2_name).strip().replace(" ", "_")
+        filename = f"Kundli_Milan_{clean_p1}_and_{clean_p2}.pdf"
+
+        return Response(
+            pdf_bytes,
+            mimetype="application/pdf",
+            headers={"Content-Disposition": f'attachment; filename="{filename}"'}
+        )
+    except Exception as exc:
+        return _error(f"Error generating PDF: {exc}", "PDF_ERROR", 500)

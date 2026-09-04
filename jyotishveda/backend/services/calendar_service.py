@@ -18,7 +18,7 @@ def get_julian_day(date_obj, timezone_offset=5.5):
     return swe.julday(dt_utc.year, dt_utc.month, dt_utc.day, hour, 1)
 
 def format_jd_to_time(jd, tz_offset=5.5):
-    if jd == 0 or jd is None: return "--:--"
+    if jd == 0 or jd is None: return ""
     y, m, d, h_float = swe.revjul(jd, 1)
     dt = datetime(y, m, d) + timedelta(hours=h_float) + timedelta(hours=tz_offset)
     return dt.strftime("%I:%M %p")
@@ -79,8 +79,8 @@ def calculate_panjika_details(date_obj, lat=22.5726, lon=88.3639, tz_offset=5.5)
         sunrise = format_jd_to_time(sunrise_jd, tz_offset)
         sunset = format_jd_to_time(sunset_jd, tz_offset)
     except:
-        sunrise, sunset = "--:--", "--:--"
-        
+        sunrise, sunset = "", ""
+
     try:
         moonrise_res = swe.rise_trans(jd_start, swe.MOON, swe.CALC_RISE, geopos)
         moonset_res = swe.rise_trans(jd_start, swe.MOON, swe.CALC_SET, geopos)
@@ -91,7 +91,7 @@ def calculate_panjika_details(date_obj, lat=22.5726, lon=88.3639, tz_offset=5.5)
         moonrise = format_jd_to_time(moonrise_jd, tz_offset)
         moonset = format_jd_to_time(moonset_jd, tz_offset)
     except:
-        moonrise, moonset = "--:--", "--:--"
+        moonrise, moonset = "", ""
         
     # Festivals (Simple rules based on Tithi + Month)
     festivals = []

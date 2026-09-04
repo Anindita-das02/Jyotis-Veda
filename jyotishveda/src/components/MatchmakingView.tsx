@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { jsPDF } from 'jspdf';
+import html2canvas from 'html2canvas';
 import {
   HeartHandshake,
   Sparkles,
@@ -13,10 +15,10 @@ import {
   Heart,
   Compass,
   Star,
-  Users,
   Calendar,
   Clock,
   MapPin,
+  User,
   RefreshCw,
   Copy,
   Check,
@@ -29,15 +31,20 @@ import {
   Sliders,
   CloudUpload,
   Loader2,
+  X,
+  Trash2,
+  ArrowRight,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import ReactMarkdown from 'react-markdown';
 import { UserProfile, AshtaKootaMilanResult, KootaItem } from '../types';
+import { VedicDatePicker } from './VedicDatePicker';
+import { VedicTimePicker } from './VedicTimePicker';
 import { calculateKundliMilan, PRESET_MATCHMAKING_COUPLES, calculateVedicChart, calculateNumerology } from '../services/astroEngine';
 import { MatchReportSummary, MatchReportFull, saveMatchReport, listMatchReports, fetchMatchReport, getMatchReportPdfUrl } from '../services/matchmakingApi';
 import { getTranslation } from '../services/translations';
 import { API_ENDPOINTS } from '../config/api_config';
-import { ApiError } from '../services/api';
+import { ApiError, API_BASE_URL } from '../services/api';
 
 interface MatchmakingViewProps {
   currentProfile: UserProfile;
@@ -47,6 +54,33 @@ interface MatchmakingViewProps {
   theme?: 'light' | 'dark';
 }
 
+const formatDisplayDate = (dateStr: string) => {
+  if (!dateStr) return '';
+  try {
+    const [y, m, d] = dateStr.split('-');
+    if (!y || !m || !d) return dateStr;
+    const date = new Date(parseInt(y), parseInt(m) - 1, parseInt(d));
+    return date.toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' });
+  } catch {
+    return dateStr;
+  }
+};
+
+const formatDisplayTime = (timeStr: string) => {
+  if (!timeStr) return '';
+  try {
+    const [h, m] = timeStr.split(':');
+    if (h === undefined || m === undefined) return timeStr;
+    let hour = parseInt(h);
+    const minute = m.slice(0, 2);
+    const ampm = hour >= 12 ? 'PM' : 'AM';
+    hour = hour % 12 || 12;
+    return `${hour}:${minute.padStart(2, '0')} ${ampm}`;
+  } catch {
+    return timeStr;
+  }
+};
+
 export const MatchmakingView: React.FC<MatchmakingViewProps> = ({
   currentProfile,
   profiles,
@@ -54,39 +88,213 @@ export const MatchmakingView: React.FC<MatchmakingViewProps> = ({
   isAuthenticated,
   theme = 'dark',
 }) => {
-  // Select partner 1 and partner 2
-  const [partner1, setPartner1] = useState<UserProfile>(() => {
-    return profiles[0] || PRESET_MATCHMAKING_COUPLES[0].partner1;
+  const profileId = currentProfile?.id || 'default';
+  const storageKey = `jyotish_matchmaking_state_${profileId}`;
+  const historyKey = `jyotish_matchmaking_history_${profileId}`;
+
+  // Default templates for Partner 1 and Partner 2
+  const getDefaultP1 = (): UserProfile => ({
+    id: 'p1',
+    fullName: '',
+    gender: 'male',
+    birthDate: '',
+    birthTime: '',
+    birthPlace: '',
+    latitude: 22.5726,
+    longitude: 88.3639,
+    timezone: 5.5,
+    horoscopeSystem: 'vedic',
+    traditions: ['parashari'],
+    focusAreas: ['relationships'],
   });
 
-  const [partner2, setPartner2] = useState<UserProfile>(() => {
-    return profiles[1] || PRESET_MATCHMAKING_COUPLES[0].partner2;
+  const getDefaultP2 = (): UserProfile => ({
+    id: 'p2',
+    fullName: '',
+    gender: 'female',
+    birthDate: '',
+    birthTime: '',
+    birthPlace: '',
+    latitude: 28.6139,
+    longitude: 77.2090,
+    timezone: 5.5,
+    horoscopeSystem: 'vedic',
+    traditions: ['parashari'],
+    focusAreas: ['relationships'],
   });
 
-  const [isCustomEntryP1, setIsCustomEntryP1] = useState(false);
-  const [isCustomEntryP2, setIsCustomEntryP2] = useState(false);
+  // Load saved matchmaking state for this specific user profile
+  const loadSavedState = () => {
+    try {
+      const raw = localStorage.getItem(storageKey);
+      if (raw) {
+        return JSON.parse(raw);
+      }
+    } catch (e) {
+      console.warn('Failed to load matchmaking state:', e);
+    }
+    return null;
+  };
 
-  const [matchResult, setMatchResult] = useState<AshtaKootaMilanResult>(() =>
-    calculateKundliMilan(partner1, partner2)
-  );
+  const savedState = loadSavedState();
+
+  // Select partner 1 and partner 2 (Persistent per user)
+  const [partner1, setPartner1] = useState<UserProfile>(savedState?.partner1 || getDefaultP1());
+  const [partner2, setPartner2] = useState<UserProfile>(savedState?.partner2 || getDefaultP2());
+
+  const [isP1Saved, setIsP1Saved] = useState<boolean>(savedState?.isP1Saved ?? false);
+  const [isP2Saved, setIsP2Saved] = useState<boolean>(savedState?.isP2Saved ?? false);
+  const [isCalculatingMilan, setIsCalculatingMilan] = useState(false);
+  const [loadingStep, setLoadingStep] = useState(0);
+
+  const [matchResult, setMatchResult] = useState<AshtaKootaMilanResult | null>(savedState?.matchResult || null);
 
   const [expandedKoota, setExpandedKoota] = useState<string | null>('nadi');
   const [activeTab, setActiveTab] = useState<'kootas' | 'doshas' | 'synastry' | 'remedies' | 'ai_counsel' | 'download'>('kootas');
 
   const [isGeneratingAI, setIsGeneratingAI] = useState(false);
-  const [aiSynthesis, setAiSynthesis] = useState<string | null>(null);
+  const [aiSynthesis, setAiSynthesis] = useState<string | null>(savedState?.aiSynthesis || null);
   const [copiedText, setCopiedText] = useState(false);
   const [isPrinting, setIsPrinting] = useState(false);
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const [saveError, setSaveError] = useState<string | null>(null);
   const [savedReportId, setSavedReportId] = useState<string | null>(null);
 
+  // Saved Matches History Modal & List
+  const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
+  const [savedMatches, setSavedMatches] = useState<any[]>(() => {
+    try {
+      const rawHist = localStorage.getItem(historyKey);
+      return rawHist ? JSON.parse(rawHist) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  // When profile switches, load corresponding profile data
+  useEffect(() => {
+    const s = loadSavedState();
+    if (s) {
+      setPartner1(s.partner1 || getDefaultP1());
+      setPartner2(s.partner2 || getDefaultP2());
+      setIsP1Saved(s.isP1Saved ?? false);
+      setIsP2Saved(s.isP2Saved ?? false);
+      setMatchResult(s.matchResult || null);
+      setAiSynthesis(s.aiSynthesis || null);
+    } else {
+      setPartner1(getDefaultP1());
+      setPartner2(getDefaultP2());
+      setIsP1Saved(false);
+      setIsP2Saved(false);
+      setMatchResult(null);
+      setAiSynthesis(null);
+    }
+
+    try {
+      const rawHist = localStorage.getItem(historyKey);
+      setSavedMatches(rawHist ? JSON.parse(rawHist) : []);
+    } catch {
+      setSavedMatches([]);
+    }
+  }, [profileId]);
+
+  // Persist current active matchmaking state to localStorage
+  useEffect(() => {
+    try {
+      const payload = {
+        partner1,
+        partner2,
+        isP1Saved,
+        isP2Saved,
+        matchResult,
+        aiSynthesis,
+        savedAt: new Date().toISOString(),
+      };
+      localStorage.setItem(storageKey, JSON.stringify(payload));
+    } catch (err) {
+      console.warn('Failed to persist matchmaking state to localStorage:', err);
+    }
+  }, [partner1, partner2, isP1Saved, isP2Saved, matchResult, aiSynthesis, storageKey]);
+
+  // Save calculated result to history list
+  const saveToHistoryList = (result: AshtaKootaMilanResult, p1: UserProfile, p2: UserProfile) => {
+    try {
+      const matchId = `match_${Date.now()}`;
+      const record = {
+        id: matchId,
+        partner1Name: p1.fullName || 'Partner 1',
+        partner1BirthDate: p1.birthDate,
+        partner2Name: p2.fullName || 'Partner 2',
+        partner2BirthDate: p2.birthDate,
+        totalScore: result.totalPoints,
+        maxScore: result.maxPoints,
+        percentage: result.percentage,
+        verdictTitle: result.verdictTitle,
+        createdAt: new Date().toISOString(),
+        partner1: p1,
+        partner2: p2,
+        result: result,
+      };
+
+      setSavedMatches((prev) => {
+        // Filter out duplicate if same pair
+        const filtered = prev.filter(
+          (m) => !(m.partner1Name === record.partner1Name && m.partner2Name === record.partner2Name)
+        );
+        const updated = [record, ...filtered].slice(0, 20); // Keep latest 20
+        localStorage.setItem(historyKey, JSON.stringify(updated));
+        return updated;
+      });
+    } catch (e) {
+      console.warn('Failed to save match to history:', e);
+    }
+  };
+
+  // Reset / Start New Match
+  const handleNewMatch = () => {
+    setPartner1(getDefaultP1());
+    setPartner2(getDefaultP2());
+    setIsP1Saved(false);
+    setIsP2Saved(false);
+    setMatchResult(null);
+    setAiSynthesis(null);
+    try {
+      localStorage.removeItem(storageKey);
+    } catch {}
+  };
+
+  // Load a match from history into the UI
+  const handleLoadFromHistory = (item: any) => {
+    if (item.partner1 && item.partner2) {
+      setPartner1(item.partner1);
+      setPartner2(item.partner2);
+      setIsP1Saved(true);
+      setIsP2Saved(true);
+      setMatchResult(item.result || calculateKundliMilan(item.partner1, item.partner2));
+      setIsHistoryModalOpen(false);
+    }
+  };
+
+  // Delete a match record from history
+  const handleDeleteFromHistory = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const updated = savedMatches.filter((m) => m.id !== id);
+    setSavedMatches(updated);
+    try {
+      localStorage.setItem(historyKey, JSON.stringify(updated));
+    } catch {}
+  };
+
   const handleSaveMatchReport = async () => {
+    if (!matchResult) return;
     setSaveState('saving');
     setSaveError(null);
     try {
-      const saved = await saveMatchReport(matchResult);
-      setSavedReportId(saved.id);
+      saveToHistoryList(matchResult, partner1, partner2);
+      if (isAuthenticated) {
+        const saved = await saveMatchReport(matchResult);
+        setSavedReportId(saved.id);
+      }
       setSaveState('saved');
       setTimeout(() => setSaveState('idle'), 2500);
     } catch (err) {
@@ -97,24 +305,54 @@ export const MatchmakingView: React.FC<MatchmakingViewProps> = ({
 
   const printableRef = useRef<HTMLDivElement>(null);
   const t = (key: string) => getTranslation(key, language);
+  const calculationTimerRef = useRef<NodeJS.Timeout[]>([]);
 
-  // Recalculate match whenever partner1 or partner2 changes
-  useEffect(() => {
-    const result = calculateKundliMilan(partner1, partner2);
-    setMatchResult(result);
-    setAiSynthesis(null); // Reset AI synthesis for new pair
-  }, [partner1, partner2]);
-
-  // Handle Preset selection
-  const handleSelectPreset = (idx: number) => {
-    const preset = PRESET_MATCHMAKING_COUPLES[idx];
-    if (preset) {
-      setPartner1(preset.partner1);
-      setPartner2(preset.partner2);
-      setIsCustomEntryP1(false);
-      setIsCustomEntryP2(false);
+  // Recalculate match with cosmic celestial loader animation
+  const triggerMilanCalculation = (p1: UserProfile = partner1, p2: UserProfile = partner2) => {
+    if (!p1.birthDate || !p2.birthDate) {
+      return;
     }
+
+    // Clear any previous running timers
+    calculationTimerRef.current.forEach((timer) => clearTimeout(timer));
+    calculationTimerRef.current = [];
+
+    setIsCalculatingMilan(true);
+    setLoadingStep(0);
+    setMatchResult(null);
+
+    const t1 = setTimeout(() => {
+      setLoadingStep(1);
+    }, 700);
+
+    const t2 = setTimeout(() => {
+      setLoadingStep(2);
+    }, 1400);
+
+    const t3 = setTimeout(() => {
+      const result = calculateKundliMilan(p1, p2);
+      setMatchResult(result);
+      saveToHistoryList(result, p1, p2);
+      setIsCalculatingMilan(false);
+
+      // Smooth scroll to score hero results
+      setTimeout(() => {
+        const resultsEl = document.getElementById('kundli-milan-results');
+        if (resultsEl) {
+          resultsEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }, 100);
+    }, 2200);
+
+    calculationTimerRef.current = [t1, t2, t3];
   };
+
+  // Cleanup timers on unmount
+  useEffect(() => {
+    return () => {
+      calculationTimerRef.current.forEach((timer) => clearTimeout(timer));
+    };
+  }, []);
 
   // Generate AI deep synthesis
   const handleGenerateAISynthesis = async () => {
@@ -141,13 +379,359 @@ export const MatchmakingView: React.FC<MatchmakingViewProps> = ({
     }
   };
 
-  // Trigger browser print for certificate
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
+
+  // Helper to load image as base64 DataURL for jsPDF canvas rendering
+  const loadImageBase64 = (url: string): Promise<string | null> => {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.crossOrigin = 'Anonymous';
+      img.onload = () => {
+        try {
+          const canvas = document.createElement('canvas');
+          canvas.width = img.naturalWidth || img.width || 400;
+          canvas.height = img.naturalHeight || img.height || 400;
+          const ctx = canvas.getContext('2d');
+          if (ctx) {
+            ctx.drawImage(img, 0, 0);
+            resolve(canvas.toDataURL('image/jpeg', 0.85));
+            return;
+          }
+        } catch {
+          // Ignore canvas security errors
+        }
+        resolve(null);
+      };
+      img.onerror = () => resolve(null);
+      img.src = url;
+    });
+  };
+
+  // Direct High-Res PDF Generation & Download via Backend API (with client fallback)
+  const handleDownloadPDF = async () => {
+    if (!matchResult) return;
+    setIsGeneratingPdf(true);
+
+    const cleanP1 = (partner1.fullName || 'Partner1').trim().replace(/\s+/g, '_');
+    const cleanP2 = (partner2.fullName || 'Partner2').trim().replace(/\s+/g, '_');
+    const fileName = `Kundli_Milan_${cleanP1}_and_${cleanP2}.pdf`;
+
+    try {
+      // 1. Hit Backend Python API for direct PDF generation & streaming
+      const response = await fetch(`${API_BASE_URL}/api/matchmaking/generate-pdf`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          partner1_name: partner1.fullName || 'Person A',
+          partner1_birth_date: partner1.birthDate || '',
+          partner1_birth_time: partner1.birthTime || '',
+          partner1_birth_place: partner1.birthPlace || '',
+          partner2_name: partner2.fullName || 'Person B',
+          partner2_birth_date: partner2.birthDate || '',
+          partner2_birth_time: partner2.birthTime || '',
+          partner2_birth_place: partner2.birthPlace || '',
+          total_score: matchResult.totalPoints,
+          max_score: 36,
+          manglik_status: matchResult.manglik.verdict,
+          report_json: matchResult,
+        }),
+      });
+
+      if (response.ok) {
+        const blob = await response.blob();
+        const downloadUrl = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = downloadUrl;
+        link.download = fileName;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        window.URL.revokeObjectURL(downloadUrl);
+        return;
+      }
+      throw new Error(`Backend PDF API responded with status ${response.status}`);
+    } catch (backendErr) {
+      console.warn('Backend API PDF generation fallback to client jsPDF:', backendErr);
+
+      // 2. High-speed vector jsPDF fallback with Full Page Sage Watermark & Website Logo
+      try {
+        const doc = new jsPDF({
+          orientation: 'portrait',
+          unit: 'mm',
+          format: 'a4',
+        });
+
+        const pageWidth = doc.internal.pageSize.getWidth(); // 210mm
+        const pageHeight = doc.internal.pageSize.getHeight(); // 297mm
+
+        // Background canvas fill
+        doc.setFillColor(255, 255, 255);
+        doc.rect(0, 0, pageWidth, pageHeight, 'F');
+
+        // 1. Draw Full Page Background Watermark Image of the Meditating Astrologer / Sage
+        try {
+          const bgBase64 = await loadImageBase64('/astrologer_bg.jpg');
+          if (bgBase64) {
+            try {
+              if (typeof (doc as any).setGState === 'function' && (doc as any).GState) {
+                (doc as any).setGState(new (doc as any).GState({ opacity: 0.09 }));
+              }
+            } catch {}
+            doc.addImage(bgBase64, 'JPEG', 0, 0, pageWidth, pageHeight);
+            try {
+              if (typeof (doc as any).setGState === 'function' && (doc as any).GState) {
+                (doc as any).setGState(new (doc as any).GState({ opacity: 1.0 }));
+              }
+            } catch {}
+          }
+        } catch {}
+
+        // Outer Decorative Golden Double Border
+        doc.setDrawColor(201, 160, 80);
+        doc.setLineWidth(1.2);
+        doc.rect(8, 8, pageWidth - 16, pageHeight - 16);
+        doc.setLineWidth(0.4);
+        doc.rect(10, 10, pageWidth - 20, pageHeight - 20);
+
+        // Corner decorative gold dots
+        doc.setFillColor(201, 160, 80);
+        doc.circle(10, 10, 1.2, 'F');
+        doc.circle(pageWidth - 10, 10, 1.2, 'F');
+        doc.circle(10, pageHeight - 10, 1.2, 'F');
+        doc.circle(pageWidth - 10, pageHeight - 10, 1.2, 'F');
+
+        // Header Brand & Logo Emblem (Matching Image 2)
+        try {
+          const logoBase64 = await loadImageBase64('/jyotishveda_logo.png');
+          if (logoBase64) {
+            doc.addImage(logoBase64, 'PNG', 14, 13, 16, 16);
+          }
+        } catch {}
+
+        // Brand Title "JYOTISH" (black) + "VEDA" (gold)
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(20);
+        doc.setTextColor(17, 17, 17);
+        doc.text('JYOTISH', 33, 20);
+        doc.setTextColor(181, 131, 40);
+        doc.text('VEDA', 33 + doc.getTextWidth('JYOTISH') + 0.5, 20);
+
+        doc.setFontSize(8.5);
+        doc.setTextColor(126, 95, 24);
+        doc.text('VEDIC KUNDLI MILAN & ASHTA KOOTA COMPATIBILITY CERTIFICATE', 33, 24.5);
+
+        doc.setFont('helvetica', 'italic');
+        doc.setFontSize(7);
+        doc.setTextColor(100, 95, 85);
+        doc.text('Calculated in accordance with Brihat Parashara Hora Shastra & Classical Jyotish Sutras', 33, 28);
+
+        // Couple Information Box
+        doc.setFillColor(252, 249, 242);
+        doc.setDrawColor(226, 211, 176);
+        doc.setLineWidth(0.4);
+        doc.roundedRect(13, 33, pageWidth - 26, 25, 2, 2, 'FD');
+        doc.line(pageWidth / 2, 33, pageWidth / 2, 58);
+
+        // Groom (Partner 1)
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(8);
+        doc.setTextColor(126, 95, 24);
+        doc.text('GROOM / PARTNER A', 17, 39);
+        doc.setFontSize(11);
+        doc.setTextColor(26, 26, 30);
+        doc.text(partner1.fullName || 'Person A', 17, 45);
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(7.5);
+        doc.setTextColor(80, 80, 80);
+        const p1Info = `Born: ${partner1.birthDate || 'N/A'}${partner1.birthTime ? ` at ${partner1.birthTime}` : ''}${partner1.birthPlace ? `, ${partner1.birthPlace}` : ''}`;
+        doc.text(doc.splitTextToSize(p1Info, (pageWidth - 36) / 2)[0] || '', 17, 50.5);
+
+        // Bride (Partner 2)
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(8);
+        doc.setTextColor(126, 95, 24);
+        doc.text('BRIDE / PARTNER B', pageWidth / 2 + 5, 39);
+        doc.setFontSize(11);
+        doc.setTextColor(26, 26, 30);
+        doc.text(partner2.fullName || 'Person B', pageWidth / 2 + 5, 45);
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(7.5);
+        doc.setTextColor(80, 80, 80);
+        const p2Info = `Born: ${partner2.birthDate || 'N/A'}${partner2.birthTime ? ` at ${partner2.birthTime}` : ''}${partner2.birthPlace ? `, ${partner2.birthPlace}` : ''}`;
+        doc.text(doc.splitTextToSize(p2Info, (pageWidth - 36) / 2)[0] || '', pageWidth / 2 + 5, 50.5);
+
+        // Score & Verdict Highlight Box
+        doc.setFillColor(254, 250, 240);
+        doc.setDrawColor(201, 160, 80);
+        doc.setLineWidth(0.6);
+        doc.roundedRect(13, 62, pageWidth - 26, 26, 2, 2, 'FD');
+
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(8.5);
+        doc.setTextColor(126, 95, 24);
+        doc.text('TOTAL COMPATIBILITY SCORE', pageWidth / 2, 68, { align: 'center' });
+
+        doc.setFontSize(18);
+        doc.setTextColor(126, 95, 24);
+        doc.text(`${matchResult.totalPoints} / 36 Gunas (${matchResult.percentage}%)`, pageWidth / 2, 75.5, { align: 'center' });
+
+        doc.setFontSize(10);
+        doc.setTextColor(26, 26, 30);
+        doc.text(matchResult.verdictTitle.toUpperCase(), pageWidth / 2, 81, { align: 'center' });
+
+        doc.setFont('helvetica', 'italic');
+        doc.setFontSize(7.8);
+        doc.setTextColor(90, 85, 75);
+        const summaryLines = doc.splitTextToSize(`"${matchResult.summary}"`, pageWidth - 36);
+        doc.text(summaryLines.slice(0, 1), pageWidth / 2, 85.5, { align: 'center' });
+
+        // 8 Kootas Table Header
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(9.5);
+        doc.setTextColor(126, 95, 24);
+        doc.text('ASHTA KOOTA POINTS BREAKDOWN', 13, 93.5);
+
+        // Table Column Headers
+        doc.setFillColor(243, 236, 218);
+        doc.rect(13, 96, pageWidth - 26, 6.5, 'F');
+        doc.setFontSize(8);
+        doc.setTextColor(126, 95, 24);
+        doc.text('Koota', 15, 100.5);
+        doc.text('Significance', 48, 100.5);
+        doc.text(partner1.fullName ? partner1.fullName.split(' ')[0] : 'P1', 118, 100.5, { align: 'center' });
+        doc.text(partner2.fullName ? partner2.fullName.split(' ')[0] : 'P2', 153, 100.5, { align: 'center' });
+        doc.text('Points', pageWidth - 15, 100.5, { align: 'right' });
+
+        // Table Rows
+        let startY = 108;
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(8);
+
+        matchResult.kootas.forEach((k, idx) => {
+          const rowY = startY + idx * 7.5;
+          if (idx % 2 === 1) {
+            doc.setFillColor(252, 250, 245);
+            doc.rect(13, rowY - 5, pageWidth - 26, 7.5, 'F');
+          }
+          doc.setDrawColor(229, 220, 190);
+          doc.setLineWidth(0.3);
+          doc.line(13, rowY + 2.5, pageWidth - 13, rowY + 2.5);
+
+          doc.setFont('helvetica', 'bold');
+          doc.setTextColor(26, 26, 30);
+          doc.text(`${k.name}`, 15, rowY);
+
+          doc.setFont('helvetica', 'normal');
+          doc.setTextColor(90, 85, 76);
+          doc.text(k.area.slice(0, 36), 48, rowY);
+          doc.text(String(k.p1Value || '-'), 118, rowY, { align: 'center' });
+          doc.text(String(k.p2Value || '-'), 153, rowY, { align: 'center' });
+
+          doc.setFont('helvetica', 'bold');
+          doc.setTextColor(126, 95, 24);
+          doc.text(`${k.obtainedPoints} / ${k.maxPoints}`, pageWidth - 15, rowY, { align: 'right' });
+        });
+
+        // Dosha & Vitality Assessment Section
+        const doshaStartY = startY + 8 * 7.5 + 4;
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(9.5);
+        doc.setTextColor(126, 95, 24);
+        doc.text('CRITICAL DOSHA & VITALITY ASSESSMENT', 13, doshaStartY);
+
+        // Dosha Boxes
+        const boxWidth = (pageWidth - 30) / 2;
+        doc.setFillColor(250, 247, 240);
+        doc.setDrawColor(226, 211, 176);
+        doc.roundedRect(13, doshaStartY + 2.5, boxWidth, 23, 2, 2, 'FD');
+        doc.roundedRect(13 + boxWidth + 4, doshaStartY + 2.5, boxWidth, 23, 2, 2, 'FD');
+
+        // Manglik box
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(8);
+        doc.setTextColor(26, 26, 30);
+        doc.text('Manglik (Kuja) Dosha:', 17, doshaStartY + 7.5);
+        doc.setFontSize(7.8);
+        doc.setTextColor(126, 95, 24);
+        doc.text(`Verdict: ${matchResult.manglik.verdict}`, 17, doshaStartY + 12);
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(7.5);
+        doc.setTextColor(80, 80, 80);
+        const manglikExp = doc.splitTextToSize(matchResult.manglik.explanation, boxWidth - 8);
+        doc.text(manglikExp.slice(0, 2), 17, doshaStartY + 16.5);
+
+        // Nadi & Bhakoot box
+        const rightBoxX = 13 + boxWidth + 4;
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(8);
+        doc.setTextColor(26, 26, 30);
+        doc.text('Nadi & Bhakoot Vitality:', rightBoxX + 4, doshaStartY + 7.5);
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(7.5);
+        doc.setTextColor(80, 80, 80);
+        const nadiText = doc.splitTextToSize(`Nadi: ${matchResult.nadiDosha.reason}. Bhakoot: ${matchResult.bhakootDosha.reason}.`, boxWidth - 8);
+        doc.text(nadiText.slice(0, 3), rightBoxX + 4, doshaStartY + 12.5);
+
+        // Remedies Section
+        const remedyY = doshaStartY + 28.5;
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(9.5);
+        doc.setTextColor(126, 95, 24);
+        doc.text('AUSPICIOUS VEDIC REMEDIES & GUIDANCE', 13, remedyY);
+
+        doc.setFillColor(254, 252, 247);
+        doc.setDrawColor(201, 160, 80);
+        doc.roundedRect(13, remedyY + 2.5, pageWidth - 26, 21, 2, 2, 'FD');
+
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(8.2);
+        doc.setTextColor(126, 95, 24);
+        doc.text('AUSPICIOUS VEDIC REMEDIES & GUIDANCE', 17, remedyY + 7.5);
+
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(7.8);
+        doc.setTextColor(60, 60, 60);
+        const remediesText = matchResult.remedies.slice(0, 3).map((r, i) => `${i + 1}. ${r}`);
+        remediesText.forEach((rem, i) => {
+          doc.text(rem, 17, remedyY + 12 + i * 4);
+        });
+
+        // Certificate Footer & Authentication Seal (Raised up cleanly)
+        const footerY = pageHeight - 19;
+        doc.setDrawColor(226, 211, 176);
+        doc.setLineWidth(0.5);
+        doc.line(13, footerY, pageWidth - 13, footerY);
+
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(7);
+        doc.setTextColor(100, 100, 100);
+        doc.text(`Certificate ID: JV-KM-${Date.now().toString(36).toUpperCase()}`, 14, footerY + 4.5);
+        doc.text(`Generated: ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}`, 14, footerY + 8);
+        doc.text('Certified via JyotishVeda Mathematical AstroEngine & Classical Ephemeris', 14, footerY + 11.5);
+
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(8);
+        doc.setTextColor(126, 95, 24);
+        doc.text('DAIVAJNA ASTROLOGICAL SEAL', pageWidth - 14, footerY + 4.5, { align: 'right' });
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(6.5);
+        doc.setTextColor(120, 120, 120);
+        doc.text('Digitally Verified & Certified', pageWidth - 14, footerY + 8, { align: 'right' });
+
+        doc.save(fileName);
+      } catch (clientErr) {
+        console.error('Fatal PDF generation error:', clientErr);
+      }
+    } finally {
+      setIsGeneratingPdf(false);
+    }
+  };
+
+  // Trigger browser print for certificate fallback
   const handlePrintCertificate = () => {
-    setIsPrinting(true);
-    setTimeout(() => {
-      window.print();
-      setIsPrinting(false);
-    }, 300);
+    handleDownloadPDF();
   };
 
   // Download JSON dossier
@@ -249,7 +833,11 @@ Issued by JyotishVeda AI Daivajna Astrological Intelligence Engine
   return (
     <div className="space-y-8 animate-fadeIn">
       {/* Header Banner */}
-      <div className="bg-[#141418] border border-[#2A2A2E] rounded-2xl p-6 sm:p-8 shadow-xl relative overflow-hidden">
+      <div className={`${
+        theme === 'dark' 
+          ? 'bg-[#141418] border-[#2A2A2E]' 
+          : 'bg-gradient-to-br from-[#FAF3DF] via-[#FAF7EB] to-[#F5E8C8] border-[#DFC896] shadow-md shadow-[#C9A050]/10'
+      } border rounded-2xl p-6 sm:p-8 shadow-xl relative overflow-hidden`}>
         <div className="absolute top-0 right-0 w-96 h-96 bg-[#C9A050]/5 rounded-full blur-3xl pointer-events-none" />
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10">
           <div>
@@ -257,261 +845,426 @@ Issued by JyotishVeda AI Daivajna Astrological Intelligence Engine
               <HeartHandshake className="w-4 h-4" />
               <span>{t('matchmaking.title')}</span>
             </div>
-            <h1 className="text-2xl sm:text-4xl font-serif font-bold text-[#F0ECE1]">
+            <h1 className={`text-2xl sm:text-4xl font-serif font-bold ${theme === 'dark' ? 'text-[#F0ECE1]' : 'text-[#1E1B15]'}`}>
               Kundli Milan & Relationship Compatibility
             </h1>
-            <p className="text-sm text-[#9E9A90] mt-2 max-w-2xl leading-relaxed">
+            <p className={`text-sm ${theme === 'dark' ? 'text-[#9E9A90]' : 'text-[#6E6452]'} mt-2 max-w-2xl leading-relaxed`}>
               Authentic Ashta Koota 36 Gunas calculation, Manglik (Kuja) Dosha balance, Nadi vitality, and Western synastry synthesis for marriage, love, and life partnerships.
             </p>
           </div>
 
-          {/* Quick Actions */}
-          <div className="flex flex-wrap items-center gap-3">
+          {/* Action Row: Saved Matches History, New Match, Direct PDF Download */}
+          <div className="flex flex-wrap items-center gap-2.5">
+            {/* Saved Matches History Button */}
             <button
-              onClick={() => setActiveTab('download')}
-              className="flex items-center space-x-2 px-4 py-2.5 rounded-xl bg-[#C9A050] hover:bg-[#D4AF37] text-[#0D0D0F] font-bold text-xs tracking-wide shadow-lg shadow-[#C9A050]/20 transition cursor-pointer"
+              type="button"
+              onClick={() => setIsHistoryModalOpen(true)}
+              className={`flex items-center space-x-1.5 px-3.5 py-2.5 rounded-xl text-xs font-semibold border transition cursor-pointer ${
+                theme === 'dark'
+                  ? 'bg-[#1A1A1E] border-[#2A2A2E] text-[#E5E1D8] hover:border-[#C9A050]/50 hover:bg-[#222228]'
+                  : 'bg-[#FAF4E4] border-[#DFC896] text-[#423C32] hover:border-[#C9A050] hover:bg-[#F5E8C8]'
+              }`}
+              title="View saved matchmaking reports"
             >
-              <Download className="w-4 h-4" />
-              <span>{t('matchmaking.download_pdf')}</span>
+              <FileText className="w-3.5 h-3.5 text-[#C9A050]" />
+              <span>Saved Matches</span>
+              {savedMatches.length > 0 && (
+                <span className="ml-1 px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-[#C9A050]/20 text-[#C9A050]">
+                  {savedMatches.length}
+                </span>
+              )}
             </button>
-            <button
-              onClick={handlePrintCertificate}
-              className="flex items-center space-x-2 px-4 py-2.5 rounded-xl bg-[#1A1A1E] hover:bg-[#222228] border border-[#2A2A2E] text-xs text-[#E5E1D8] font-medium transition cursor-pointer"
-            >
-              <Printer className="w-4 h-4 text-[#C9A050]" />
-              <span>{t('matchmaking.print_report')}</span>
-            </button>
-          </div>
-        </div>
 
-        {/* Preset Couples Selector */}
-        <div className="mt-6 pt-6 border-t border-[#2A2A2E]/80">
-          <span className="text-xs font-semibold text-[#9E9A90] uppercase tracking-wider block mb-3">
-            ✨ Quick Preset Test Couples (Demonstration):
-          </span>
-          <div className="flex flex-wrap gap-2.5">
-            {PRESET_MATCHMAKING_COUPLES.map((preset, idx) => (
-              <button
-                key={idx}
-                onClick={() => handleSelectPreset(idx)}
-                className={`text-xs px-3.5 py-1.5 rounded-lg border transition cursor-pointer ${
-                  partner1.fullName === preset.partner1.fullName && partner2.fullName === preset.partner2.fullName
-                    ? 'bg-[#C9A050]/20 border-[#C9A050] text-[#E8D5B5] font-semibold'
-                    : 'bg-[#0D0D0F] border-[#2A2A2E] text-[#9E9A90] hover:border-[#C9A050]/40 hover:text-[#E5E1D8]'
-                }`}
-              >
-                {preset.label}
-              </button>
-            ))}
+            {/* Quick Action: Direct 1-Page PDF Download */}
+            <button
+              type="button"
+              onClick={() => {
+                if (isGeneratingPdf) return;
+                if (!matchResult) {
+                  if (partner1.birthDate && partner2.birthDate) {
+                    triggerMilanCalculation(partner1, partner2);
+                  } else {
+                    const p1El = document.getElementById('partner-card-1');
+                    p1El?.scrollIntoView({ behavior: 'smooth' });
+                  }
+                  return;
+                }
+                handleDownloadPDF();
+              }}
+              className="flex items-center space-x-2 px-4 py-2.5 rounded-xl font-bold text-xs tracking-wide bg-[#C9A050] hover:bg-[#D4AF37] text-[#0D0D0F] shadow-lg shadow-[#C9A050]/25 transition active:scale-[0.98] cursor-pointer"
+              title="Download Match Report (PDF)"
+            >
+              {isGeneratingPdf ? (
+                <>
+                  <RefreshCw className="w-4 h-4 animate-spin" />
+                  <span>Generating PDF...</span>
+                </>
+              ) : (
+                <>
+                  <Download className="w-4 h-4" />
+                  <span>{t('matchmaking.download_pdf')}</span>
+                </>
+              )}
+            </button>
           </div>
         </div>
       </div>
 
-      {/* Partner Profiles Selection Grid */}
+      {/* 2-Column Grid: Partner 1 & Partner 2 */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Partner 1 Card */}
-        <div className="bg-[#141418] border border-[#2A2A2E] rounded-2xl p-6 shadow-lg relative">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center space-x-2.5">
-              <div className="w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs border matchmaking-avatar-a">
-                A
+        <div className={`rounded-2xl p-6 shadow-sm border ${
+          theme === 'dark' 
+            ? 'bg-[#141418] border-[#2A2A2E]' 
+            : 'bg-gradient-to-b from-[#FAF4E4] via-[#FCF8EE] to-[#F6ECD2] border-[#DFC896] shadow-sm'
+        } relative flex flex-col justify-between`}>
+          <div>
+            <div className={`flex items-center justify-between mb-5 pb-3 border-b ${theme === 'dark' ? 'border-[#2A2A2E]' : 'border-[#DECFA6]'}`}>
+              <div className="flex items-center space-x-2.5">
+                <div className="w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs border matchmaking-avatar-a">
+                  A
+                </div>
+                <div>
+                  <h3 className={`text-base font-serif font-bold ${theme === 'dark' ? 'text-[#F0ECE1]' : 'text-[#1E1B15]'}`}>
+                    {t('matchmaking.partner1')}
+                  </h3>
+                </div>
               </div>
-              <div>
-                <h3 className="text-base font-serif font-bold text-[#F0ECE1]">
-                  {t('matchmaking.partner1')}
-                </h3>
-                <span className="text-[11px] text-[#9E9A90]">Groom / Person A Details</span>
-              </div>
-            </div>
-            <button
-              onClick={() => setIsCustomEntryP1(!isCustomEntryP1)}
-              className="text-xs text-[#C9A050] hover:underline flex items-center space-x-1 cursor-pointer"
-            >
-              <Sliders className="w-3 h-3" />
-              <span>{isCustomEntryP1 ? 'Select Saved' : 'Edit Birth Details'}</span>
-            </button>
-          </div>
 
-          {!isCustomEntryP1 ? (
-            <div className="space-y-3">
-              <label className="text-xs text-[#9E9A90] font-medium block">Select from Saved Profiles:</label>
-              <select
-                value={partner1.id}
-                onChange={(e) => {
-                  const selected = profiles.find((p) => p.id === e.target.value);
-                  if (selected) setPartner1(selected);
-                }}
-                className="w-full bg-[#0D0D0F] border border-[#2A2A2E] rounded-xl px-4 py-2.5 text-sm text-[#E5E1D8] focus:border-[#C9A050] outline-none"
-              >
-                {profiles.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.fullName} ({p.gender}, {p.birthDate} - {p.birthPlace})
-                  </option>
-                ))}
-              </select>
-
-              <div className="p-3.5 rounded-xl bg-[#0D0D0F]/80 border border-[#2A2A2E] text-xs space-y-1.5 mt-3">
-                <div className="flex justify-between text-[#9E9A90]">
-                  <span>Birth Date & Time:</span>
-                  <span className="text-[#E5E1D8] font-medium">{partner1.birthDate} at {partner1.birthTime}</span>
-                </div>
-                <div className="flex justify-between text-[#9E9A90]">
-                  <span>Birth Place:</span>
-                  <span className="text-[#E5E1D8] font-medium">{partner1.birthPlace}</span>
-                </div>
-                <div className="flex justify-between text-[#9E9A90]">
-                  <span>System:</span>
-                  <span className="text-[#C9A050] font-medium uppercase">{partner1.horoscopeSystem || 'Vedic Sidereal'}</span>
-                </div>
-              </div>
+              {isP1Saved && (
+                <span className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full text-xs font-bold bg-[#DECFA6] text-[#2D2104] border border-[#B38730] dark:bg-[#C9A050]/30 dark:text-[#FDE68A] dark:border-[#C9A050] shadow-sm">
+                  <Check className="w-3.5 h-3.5 text-[#2D2104] dark:text-[#FDE68A] stroke-[2.5]" />
+                  <span>Saved</span>
+                </span>
+              )}
             </div>
-          ) : (
-            <div className="space-y-3 text-xs">
+
+            <div className="space-y-4 text-xs">
+              {/* Full Name */}
               <div>
-                <label className="text-[#9E9A90] block mb-1">Full Name</label>
+                <label className={`block mb-1.5 font-medium ${theme === 'dark' ? 'text-[#9E9A90]' : 'text-[#544B3D]'}`}>Full Name</label>
                 <input
                   type="text"
+                  disabled={isP1Saved}
+                  placeholder="Enter Groom / Person A Name"
                   value={partner1.fullName}
                   onChange={(e) => setPartner1({ ...partner1, fullName: e.target.value })}
-                  className="w-full bg-[#0D0D0F] border border-[#2A2A2E] rounded-lg px-3 py-2 text-[#E5E1D8]"
+                  className={`w-full rounded-lg px-3 py-2 text-sm border outline-none transition ${
+                    theme === 'dark'
+                      ? 'bg-[#141418] border-[#2A2A2E] text-[#E5E1D8] placeholder:text-gray-600 focus:border-[#C9A050]'
+                      : 'bg-[#FFFDF7] border-[#DECFA6] text-[#1E1B15] placeholder:text-[#A89F8F] focus:border-[#C9A050] focus:ring-1 focus:ring-[#C9A050]/20'
+                  } disabled:opacity-60 disabled:cursor-not-allowed`}
                 />
               </div>
+
+              {/* Birth Date & Time Grid */}
               <div className="grid grid-cols-2 gap-3">
+                {/* Birth Date */}
                 <div>
-                  <label className="text-[#9E9A90] block mb-1">Birth Date</label>
-                  <input
-                    type="date"
+                  <label className={`block mb-1.5 font-medium ${theme === 'dark' ? 'text-[#9E9A90]' : 'text-[#544B3D]'}`}>Date of Birth</label>
+                  <VedicDatePicker
                     value={partner1.birthDate}
-                    onChange={(e) => setPartner1({ ...partner1, birthDate: e.target.value })}
-                    className="w-full bg-[#0D0D0F] border border-[#2A2A2E] rounded-lg px-3 py-2 text-[#E5E1D8]"
+                    onChange={(newDate) => setPartner1({ ...partner1, birthDate: newDate })}
+                    disabled={isP1Saved}
+                    theme={theme}
+                    placeholder="DD-MM-YYYY"
                   />
                 </div>
+
+                {/* Birth Time */}
                 <div>
-                  <label className="text-[#9E9A90] block mb-1">Birth Time</label>
-                  <input
-                    type="time"
+                  <label className={`block mb-1.5 font-medium ${theme === 'dark' ? 'text-[#9E9A90]' : 'text-[#544B3D]'}`}>Birth Time</label>
+                  <VedicTimePicker
                     value={partner1.birthTime}
-                    onChange={(e) => setPartner1({ ...partner1, birthTime: e.target.value })}
-                    className="w-full bg-[#0D0D0F] border border-[#2A2A2E] rounded-lg px-3 py-2 text-[#E5E1D8]"
+                    onChange={(newTime) => setPartner1({ ...partner1, birthTime: newTime })}
+                    disabled={isP1Saved}
+                    theme={theme}
+                    placeholder="HH:MM (e.g. 10:30)"
                   />
                 </div>
               </div>
+
+              {/* Birth City */}
               <div>
-                <label className="text-[#9E9A90] block mb-1">Birth City / Country</label>
+                <label className={`block mb-1.5 font-medium ${theme === 'dark' ? 'text-[#9E9A90]' : 'text-[#544B3D]'}`}>Birth City / Country</label>
                 <input
                   type="text"
+                  disabled={isP1Saved}
+                  placeholder="e.g. Kolkata, India"
                   value={partner1.birthPlace}
                   onChange={(e) => setPartner1({ ...partner1, birthPlace: e.target.value })}
-                  className="w-full bg-[#0D0D0F] border border-[#2A2A2E] rounded-lg px-3 py-2 text-[#E5E1D8]"
+                  className={`w-full rounded-lg px-3 py-2 text-sm border outline-none transition ${
+                    theme === 'dark'
+                      ? 'bg-[#141418] border-[#2A2A2E] text-[#E5E1D8] placeholder:text-gray-600 focus:border-[#C9A050]'
+                      : 'bg-[#FFFDF7] border-[#DECFA6] text-[#1E1B15] placeholder:text-[#A89F8F] focus:border-[#C9A050]'
+                  } disabled:opacity-60 disabled:cursor-not-allowed`}
                 />
               </div>
             </div>
-          )}
+          </div>
+
+          {/* Bottom Action Footer */}
+          <div className={`pt-4 flex items-center justify-end border-t ${theme === 'dark' ? 'border-[#2A2A2E]' : 'border-[#DECFA6]'} mt-5`}>
+            <div className="flex items-center space-x-2">
+              <button
+                type="button"
+                onClick={() => setIsP1Saved(false)}
+                className={`px-4 py-2 rounded-xl border text-xs font-bold transition cursor-pointer ${
+                  isP1Saved 
+                    ? 'bg-[#EFE4C4] border-[#B89F65] text-[#2D2104] hover:bg-[#E5D7B0] dark:bg-[#1A1A1E] dark:border-[#C9A050]/60 dark:text-[#E8D5B5] dark:hover:text-white' 
+                    : theme === 'dark'
+                    ? 'bg-[#1A1A1E] border-[#2A2A2E] text-[#9E9A90] hover:text-[#F0ECE1]'
+                    : 'bg-[#FAF1D6] border-[#DECFA6] text-[#544B3D] hover:text-[#1E1B15] hover:bg-[#F3E6C2]'
+                }`}
+              >
+                Edit
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  if (partner1.birthDate) {
+                    setIsP1Saved(true);
+                    if (isP2Saved && partner2.birthDate) {
+                      triggerMilanCalculation(partner1, partner2);
+                    }
+                  }
+                }}
+                className={`px-5 py-2 rounded-xl font-bold text-xs shadow-md transition cursor-pointer flex items-center space-x-1.5 ${
+                  isP1Saved
+                    ? 'bg-[#C9A050] text-[#1A1405] border border-[#A67C28] shadow-[#C9A050]/20 dark:bg-[#C9A050] dark:text-[#0D0D0F]'
+                    : 'bg-[#C9A050] hover:bg-[#D4AF37] text-[#1A1405] shadow-[#C9A050]/25 hover:scale-[1.02] dark:text-[#0D0D0F]'
+                }`}
+              >
+                {isP1Saved && <Check className="w-3.5 h-3.5 text-[#1A1405] stroke-[2.5]" />}
+                <span>{isP1Saved ? 'Saved' : 'Save'}</span>
+              </button>
+            </div>
+          </div>
         </div>
 
         {/* Partner 2 Card */}
-        <div className="bg-[#141418] border border-[#2A2A2E] rounded-2xl p-6 shadow-lg relative">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center space-x-2.5">
-              <div className="w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs border matchmaking-avatar-b">
-                B
+        <div className={`rounded-2xl p-6 shadow-sm border ${
+          theme === 'dark' 
+            ? 'bg-[#141418] border-[#2A2A2E]' 
+            : 'bg-gradient-to-b from-[#FAF4E4] via-[#FCF8EE] to-[#F6ECD2] border-[#DFC896] shadow-sm'
+        } relative flex flex-col justify-between`}>
+          <div>
+            <div className={`flex items-center justify-between mb-5 pb-3 border-b ${theme === 'dark' ? 'border-[#2A2A2E]' : 'border-[#DECFA6]'}`}>
+              <div className="flex items-center space-x-2.5">
+                <div className="w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs border matchmaking-avatar-b">
+                  B
+                </div>
+                <div>
+                  <h3 className={`text-base font-serif font-bold ${theme === 'dark' ? 'text-[#F0ECE1]' : 'text-[#1E1B15]'}`}>
+                    {t('matchmaking.partner2')}
+                  </h3>
+                </div>
               </div>
-              <div>
-                <h3 className="text-base font-serif font-bold text-[#F0ECE1]">
-                  {t('matchmaking.partner2')}
-                </h3>
-                <span className="text-[11px] text-[#9E9A90]">Bride / Person B Details</span>
-              </div>
-            </div>
-            <button
-              onClick={() => setIsCustomEntryP2(!isCustomEntryP2)}
-              className="text-xs text-[#C9A050] hover:underline flex items-center space-x-1 cursor-pointer"
-            >
-              <Sliders className="w-3 h-3" />
-              <span>{isCustomEntryP2 ? 'Select Saved' : 'Edit Birth Details'}</span>
-            </button>
-          </div>
 
-          {!isCustomEntryP2 ? (
-            <div className="space-y-3">
-              <label className="text-xs text-[#9E9A90] font-medium block">Select from Saved Profiles:</label>
-              <select
-                value={partner2.id}
-                onChange={(e) => {
-                  const selected = profiles.find((p) => p.id === e.target.value);
-                  if (selected) setPartner2(selected);
-                }}
-                className="w-full bg-[#0D0D0F] border border-[#2A2A2E] rounded-xl px-4 py-2.5 text-sm text-[#E5E1D8] focus:border-[#C9A050] outline-none"
-              >
-                {profiles.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.fullName} ({p.gender}, {p.birthDate} - {p.birthPlace})
-                  </option>
-                ))}
-              </select>
-
-              <div className="p-3.5 rounded-xl bg-[#0D0D0F]/80 border border-[#2A2A2E] text-xs space-y-1.5 mt-3">
-                <div className="flex justify-between text-[#9E9A90]">
-                  <span>Birth Date & Time:</span>
-                  <span className="text-[#E5E1D8] font-medium">{partner2.birthDate} at {partner2.birthTime}</span>
-                </div>
-                <div className="flex justify-between text-[#9E9A90]">
-                  <span>Birth Place:</span>
-                  <span className="text-[#E5E1D8] font-medium">{partner2.birthPlace}</span>
-                </div>
-                <div className="flex justify-between text-[#9E9A90]">
-                  <span>System:</span>
-                  <span className="text-[#C9A050] font-medium uppercase">{partner2.horoscopeSystem || 'Vedic Sidereal'}</span>
-                </div>
-              </div>
+              {isP2Saved && (
+                <span className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full text-xs font-bold bg-[#DECFA6] text-[#2D2104] border border-[#B38730] dark:bg-[#C9A050]/30 dark:text-[#FDE68A] dark:border-[#C9A050] shadow-sm">
+                  <Check className="w-3.5 h-3.5 text-[#2D2104] dark:text-[#FDE68A] stroke-[2.5]" />
+                  <span>Saved</span>
+                </span>
+              )}
             </div>
-          ) : (
-            <div className="space-y-3 text-xs">
+
+            <div className="space-y-4 text-xs">
+              {/* Full Name */}
               <div>
-                <label className="text-[#9E9A90] block mb-1">Full Name</label>
+                <label className={`block mb-1.5 font-medium ${theme === 'dark' ? 'text-[#9E9A90]' : 'text-[#544B3D]'}`}>Full Name</label>
                 <input
                   type="text"
+                  disabled={isP2Saved}
+                  placeholder="Enter Bride / Person B Name"
                   value={partner2.fullName}
                   onChange={(e) => setPartner2({ ...partner2, fullName: e.target.value })}
-                  className="w-full bg-[#0D0D0F] border border-[#2A2A2E] rounded-lg px-3 py-2 text-[#E5E1D8]"
+                  className={`w-full rounded-lg px-3 py-2 text-sm border outline-none transition ${
+                    theme === 'dark'
+                      ? 'bg-[#141418] border-[#2A2A2E] text-[#E5E1D8] placeholder:text-gray-600 focus:border-[#C9A050]'
+                      : 'bg-[#FFFDF7] border-[#DECFA6] text-[#1E1B15] placeholder:text-[#A89F8F] focus:border-[#C9A050]'
+                  } disabled:opacity-60 disabled:cursor-not-allowed`}
                 />
               </div>
+
+              {/* Birth Date & Time Grid */}
               <div className="grid grid-cols-2 gap-3">
+                {/* Birth Date */}
                 <div>
-                  <label className="text-[#9E9A90] block mb-1">Birth Date</label>
-                  <input
-                    type="date"
+                  <label className={`block mb-1.5 font-medium ${theme === 'dark' ? 'text-[#9E9A90]' : 'text-[#544B3D]'}`}>Date of Birth</label>
+                  <VedicDatePicker
                     value={partner2.birthDate}
-                    onChange={(e) => setPartner2({ ...partner2, birthDate: e.target.value })}
-                    className="w-full bg-[#0D0D0F] border border-[#2A2A2E] rounded-lg px-3 py-2 text-[#E5E1D8]"
+                    onChange={(newDate) => setPartner2({ ...partner2, birthDate: newDate })}
+                    disabled={isP2Saved}
+                    theme={theme}
+                    placeholder="DD-MM-YYYY"
                   />
                 </div>
+
+                {/* Birth Time */}
                 <div>
-                  <label className="text-[#9E9A90] block mb-1">Birth Time</label>
-                  <input
-                    type="time"
+                  <label className={`block mb-1.5 font-medium ${theme === 'dark' ? 'text-[#9E9A90]' : 'text-[#544B3D]'}`}>Birth Time</label>
+                  <VedicTimePicker
                     value={partner2.birthTime}
-                    onChange={(e) => setPartner2({ ...partner2, birthTime: e.target.value })}
-                    className="w-full bg-[#0D0D0F] border border-[#2A2A2E] rounded-lg px-3 py-2 text-[#E5E1D8]"
+                    onChange={(newTime) => setPartner2({ ...partner2, birthTime: newTime })}
+                    disabled={isP2Saved}
+                    theme={theme}
+                    placeholder="HH:MM (e.g. 10:30)"
                   />
                 </div>
               </div>
+
+              {/* Birth City */}
               <div>
-                <label className="text-[#9E9A90] block mb-1">Birth City / Country</label>
+                <label className={`block mb-1.5 font-medium ${theme === 'dark' ? 'text-[#9E9A90]' : 'text-[#544B3D]'}`}>Birth City / Country</label>
                 <input
                   type="text"
+                  disabled={isP2Saved}
+                  placeholder="e.g. Mumbai, India"
                   value={partner2.birthPlace}
                   onChange={(e) => setPartner2({ ...partner2, birthPlace: e.target.value })}
-                  className="w-full bg-[#0D0D0F] border border-[#2A2A2E] rounded-lg px-3 py-2 text-[#E5E1D8]"
+                  className={`w-full rounded-lg px-3 py-2 text-sm border outline-none transition ${
+                    theme === 'dark'
+                      ? 'bg-[#141418] border-[#2A2A2E] text-[#E5E1D8] placeholder:text-gray-600 focus:border-[#C9A050]'
+                      : 'bg-[#FFFDF7] border-[#DECFA6] text-[#1E1B15] placeholder:text-[#A89F8F] focus:border-[#C9A050]'
+                  } disabled:opacity-60 disabled:cursor-not-allowed`}
                 />
               </div>
             </div>
-          )}
+          </div>
+
+          {/* Bottom Action Footer */}
+          <div className={`pt-4 flex items-center justify-end border-t ${theme === 'dark' ? 'border-[#2A2A2E]' : 'border-[#DECFA6]'} mt-5`}>
+            <div className="flex items-center space-x-2">
+              <button
+                type="button"
+                onClick={() => setIsP2Saved(false)}
+                className={`px-4 py-2 rounded-xl border text-xs font-bold transition cursor-pointer ${
+                  isP2Saved 
+                    ? 'bg-[#EFE4C4] border-[#B89F65] text-[#2D2104] hover:bg-[#E5D7B0] dark:bg-[#1A1A1E] dark:border-[#C9A050]/60 dark:text-[#E8D5B5] dark:hover:text-white' 
+                    : theme === 'dark'
+                    ? 'bg-[#1A1A1E] border-[#2A2A2E] text-[#9E9A90] hover:text-[#F0ECE1]'
+                    : 'bg-[#FAF1D6] border-[#DECFA6] text-[#544B3D] hover:text-[#1E1B15] hover:bg-[#F3E6C2]'
+                }`}
+              >
+                Edit
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  if (partner2.birthDate) {
+                    setIsP2Saved(true);
+                    if (isP1Saved && partner1.birthDate) {
+                      triggerMilanCalculation(partner1, partner2);
+                    }
+                  }
+                }}
+                className={`px-5 py-2 rounded-xl font-bold text-xs shadow-md transition cursor-pointer flex items-center space-x-1.5 ${
+                  isP2Saved
+                    ? 'bg-[#C9A050] text-[#1A1405] border border-[#A67C28] shadow-[#C9A050]/20 dark:bg-[#C9A050] dark:text-[#0D0D0F]'
+                    : 'bg-[#C9A050] hover:bg-[#D4AF37] text-[#1A1405] shadow-[#C9A050]/25 hover:scale-[1.02] dark:text-[#0D0D0F]'
+                }`}
+              >
+                {isP2Saved && <Check className="w-3.5 h-3.5 text-[#1A1405] stroke-[2.5]" />}
+                <span>{isP2Saved ? 'Saved' : 'Save'}</span>
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 
+      {/* Full-Page Cosmic Astrological Loader Overlay */}
+      <AnimatePresence>
+        {isCalculatingMilan && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.3 }}
+            className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/75 backdrop-blur-md"
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              transition={{ type: "spring", stiffness: 300, damping: 25 }}
+              className={`w-full max-w-lg ${
+                theme === 'dark'
+                  ? 'bg-gradient-to-b from-[#18181D] via-[#121215] to-[#0D0D0F] border-[#C9A050]/50 shadow-[0_0_50px_rgba(201,160,80,0.25)]'
+                  : 'bg-gradient-to-br from-[#FAF2DA] via-[#FAF7EB] to-[#F5E8C8] border-[#DFC896] shadow-[0_0_50px_rgba(201,160,80,0.35)]'
+              } border-2 rounded-3xl p-8 sm:p-12 text-center space-y-6 relative overflow-hidden`}
+            >
+              {/* Ambient Gold Halo Glow */}
+              <div className="absolute inset-0 bg-radial from-[#C9A050]/20 via-transparent to-transparent pointer-events-none" />
+
+              {/* Sacred Rotating Yantra / Chakra Animation */}
+              <div className="relative w-28 h-28 sm:w-36 sm:h-36 mx-auto flex items-center justify-center">
+                {/* Outer dashed spinning celestial ring */}
+                <div
+                  className="absolute inset-0 rounded-full border-2 border-dashed border-[#C9A050]/60 animate-spin"
+                  style={{ animationDuration: '8s' }}
+                />
+                {/* Middle counter-spinning ring */}
+                <div
+                  className="absolute inset-2 rounded-full border-2 border-t-[#C9A050] border-r-[#C9A050]/40 border-b-transparent border-l-transparent animate-spin"
+                  style={{ animationDirection: 'reverse', animationDuration: '3s' }}
+                />
+                {/* Inner glowing core with sparkles */}
+                <div
+                  className={`w-16 h-16 sm:w-20 sm:h-20 rounded-2xl ${
+                    theme === 'dark'
+                      ? 'bg-gradient-to-br from-[#C9A050]/30 to-[#C9A050]/10 border-[#C9A050]/60 text-[#C9A050]'
+                      : 'bg-[#FFF9EE] border-[#C9A050]/50 text-[#8C6218]'
+                  } border flex items-center justify-center shadow-xl shadow-[#C9A050]/30 animate-pulse`}
+                >
+                  <Sparkles className="w-8 h-8 sm:w-10 sm:h-10 text-[#C9A050]" />
+                </div>
+              </div>
+
+              {/* Dynamic Step Text */}
+              <div className="space-y-2 relative z-10">
+                <h3
+                  className={`text-lg sm:text-xl font-serif font-bold ${
+                    theme === 'dark' ? 'text-[#F0ECE1]' : 'text-[#1A1816]'
+                  } tracking-wide min-h-[32px] transition-all`}
+                >
+                  {loadingStep === 0 && '✨ Aligning Moon Nakshatras & Lunar Mansions...'}
+                  {loadingStep === 1 && '🪐 Computing 8 Kootas & 36 Guna Milan Matrix...'}
+                  {loadingStep === 2 && '🔮 Synthesizing Manglik (Kuja), Nadi & Synastry Vitality...'}
+                </h3>
+                <p className="text-xs sm:text-sm text-[#C9A050] font-semibold tracking-widest uppercase">
+                  Vedic Kundli Milan In Progress ({loadingStep === 0 ? '33%' : loadingStep === 1 ? '66%' : '99%'})
+                </p>
+              </div>
+
+              {/* Shimmering Progress Bar */}
+              <div
+                className={`max-w-md mx-auto w-full ${
+                  theme === 'dark' ? 'bg-[#0D0D0F] border-[#2A2A2E]' : 'bg-[#FAF1D8] border-[#DFC896]'
+                } border h-3 rounded-full overflow-hidden p-0.5 shadow-inner`}
+              >
+                <div
+                  className="h-full bg-gradient-to-r from-[#C9A050] via-[#F3E5AB] to-[#C9A050] rounded-full transition-all duration-700 ease-out shadow-sm shadow-[#C9A050]"
+                  style={{ width: loadingStep === 0 ? '35%' : loadingStep === 1 ? '70%' : '100%' }}
+                />
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Results Section (Calculated when matchResult is available) */}
+      {matchResult && !isCalculatingMilan && (
+        <>
+          <div id="kundli-milan-results" className="space-y-8 animate-fadeIn">
       {/* Main Score Hero Card */}
-      <div className={`${theme === 'dark' ? 'bg-gradient-to-br from-[#1A1A1E] via-[#141418] to-[#0D0D0F]' : 'bg-[#FFFFFF]'} border border-[#C9A050]/40 rounded-3xl p-5 sm:p-10 shadow-2xl relative overflow-hidden`}>
+      <div className={`${
+        theme === 'dark' 
+          ? 'bg-gradient-to-br from-[#1A1A1E] via-[#141418] to-[#0D0D0F] border-[#C9A050]/40' 
+          : 'bg-gradient-to-br from-[#FAF2DA] via-[#FAF7EB] to-[#F5E8C8] border-[#DFC896] shadow-xl'
+      } border rounded-3xl p-5 sm:p-10 relative overflow-hidden`}>
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 sm:gap-8">
           {/* Left: Overall Guna Gauge */}
           <div className="flex flex-col sm:flex-row items-center sm:items-start text-center sm:text-left space-y-4 sm:space-y-0 sm:space-x-6">
@@ -546,11 +1299,11 @@ Issued by JyotishVeda AI Daivajna Astrological Intelligence Engine
                 </defs>
               </svg>
               <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-                <span className="text-2xl sm:text-3xl font-serif font-bold text-[#F0ECE1]">
+                <span className={`text-2xl sm:text-3xl font-serif font-bold ${theme === 'dark' ? 'text-[#F0ECE1]' : 'text-[#1E1B15]'}`}>
                   {matchResult.totalPoints}
                 </span>
                 <span className="text-[10px] text-[#C9A050] font-bold tracking-wider uppercase">/ 36 Gunas</span>
-                <span className="text-[9px] text-[#9E9A90] font-sans">{matchResult.percentage}%</span>
+                <span className={`text-[9px] ${theme === 'dark' ? 'text-[#9E9A90]' : 'text-[#6E6452]'} font-sans`}>{matchResult.percentage}%</span>
               </div>
             </div>
 
@@ -559,10 +1312,10 @@ Issued by JyotishVeda AI Daivajna Astrological Intelligence Engine
                 <Award className="w-3.5 h-3.5" />
                 <span>{matchResult.verdictTitle}</span>
               </span>
-              <h2 className="text-xl sm:text-2xl font-serif font-bold text-[#F0ECE1]">
+              <h2 className={`text-xl sm:text-2xl font-serif font-bold ${theme === 'dark' ? 'text-[#F0ECE1]' : 'text-[#1E1B15]'}`}>
                 {partner1.fullName} &amp; {partner2.fullName}
               </h2>
-              <p className="text-xs sm:text-sm text-[#9E9A90] mt-2 max-w-xl leading-relaxed">
+              <p className={`text-xs sm:text-sm ${theme === 'dark' ? 'text-[#9E9A90]' : 'text-[#6E6452]'} mt-2 max-w-xl leading-relaxed`}>
                 {matchResult.summary}
               </p>
             </div>
@@ -570,32 +1323,38 @@ Issued by JyotishVeda AI Daivajna Astrological Intelligence Engine
 
           {/* Right: Key Compatibility Metrics */}
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-            <div className="p-3.5 rounded-xl bg-[#0D0D0F]/80 border border-[#2A2A2E] text-center">
+            <div className={`p-3.5 rounded-xl border text-center ${
+              theme === 'dark' ? 'bg-[#0D0D0F]/80 border-[#2A2A2E]' : 'bg-[#FFFDF7] border-[#DECFA6] shadow-xs'
+            }`}>
               <div className="flex items-center justify-center text-[#C9A050] mb-1">
                 <Flame className="w-4 h-4" />
               </div>
-              <span className="text-[10px] text-[#9E9A90] uppercase tracking-wider block">Manglik Dosha</span>
-              <span className="text-xs font-bold text-[#E5E1D8] mt-0.5 block">
+              <span className={`text-[10px] ${theme === 'dark' ? 'text-[#9E9A90]' : 'text-[#7A6F5D]'} uppercase tracking-wider block`}>Manglik Dosha</span>
+              <span className={`text-xs font-bold ${theme === 'dark' ? 'text-[#E5E1D8]' : 'text-[#1E1B15]'} mt-0.5 block`}>
                 {matchResult.manglik.isNeutralized ? 'Neutralized ✓' : 'Remedy Needed ⚠️'}
               </span>
             </div>
 
-            <div className="p-3.5 rounded-xl bg-[#0D0D0F]/80 border border-[#2A2A2E] text-center">
+            <div className={`p-3.5 rounded-xl border text-center ${
+              theme === 'dark' ? 'bg-[#0D0D0F]/80 border-[#2A2A2E]' : 'bg-[#FFFDF7] border-[#DECFA6] shadow-xs'
+            }`}>
               <div className="flex items-center justify-center text-[#C9A050] mb-1">
                 <Dna className="w-4 h-4" />
               </div>
-              <span className="text-[10px] text-[#9E9A90] uppercase tracking-wider block">Nadi Vitality</span>
-              <span className="text-xs font-bold text-[#E5E1D8] mt-0.5 block">
+              <span className={`text-[10px] ${theme === 'dark' ? 'text-[#9E9A90]' : 'text-[#7A6F5D]'} uppercase tracking-wider block`}>Nadi Vitality</span>
+              <span className={`text-xs font-bold ${theme === 'dark' ? 'text-[#E5E1D8]' : 'text-[#1E1B15]'} mt-0.5 block`}>
                 {matchResult.kootas.find((k) => k.id === 'nadi')?.obtainedPoints}/8 Points
               </span>
             </div>
 
-            <div className="p-3.5 rounded-xl bg-[#0D0D0F]/80 border border-[#2A2A2E] text-center">
+            <div className={`p-3.5 rounded-xl border text-center ${
+              theme === 'dark' ? 'bg-[#0D0D0F]/80 border-[#2A2A2E]' : 'bg-[#FFFDF7] border-[#DECFA6] shadow-xs'
+            }`}>
               <div className="flex items-center justify-center text-[#C9A050] mb-1">
                 <Heart className="w-4 h-4" />
               </div>
-              <span className="text-[10px] text-[#9E9A90] uppercase tracking-wider block">Bhakoot Harmony</span>
-              <span className="text-xs font-bold text-[#E5E1D8] mt-0.5 block">
+              <span className={`text-[10px] ${theme === 'dark' ? 'text-[#9E9A90]' : 'text-[#7A6F5D]'} uppercase tracking-wider block`}>Bhakoot Harmony</span>
+              <span className={`text-xs font-bold ${theme === 'dark' ? 'text-[#E5E1D8]' : 'text-[#1E1B15]'} mt-0.5 block`}>
                 {matchResult.kootas.find((k) => k.id === 'bhakoot')?.obtainedPoints}/7 Points
               </span>
             </div>
@@ -604,13 +1363,15 @@ Issued by JyotishVeda AI Daivajna Astrological Intelligence Engine
       </div>
 
       {/* Sub-Navigation Tabs */}
-      <div className="flex items-center space-x-2 border-b border-[#2A2A2E] pb-2 overflow-x-auto no-scrollbar">
+      <div className={`flex items-center space-x-2 border-b ${theme === 'dark' ? 'border-[#2A2A2E]' : 'border-[#DECFA6]'} pb-2 overflow-x-auto no-scrollbar`}>
         <button
           onClick={() => setActiveTab('kootas')}
           className={`flex items-center space-x-2 px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition cursor-pointer ${
             activeTab === 'kootas'
-              ? 'bg-[#C9A050] text-[#0D0D0F] shadow-md shadow-[#C9A050]/20'
-              : 'bg-[#141418] text-[#9E9A90] hover:text-[#E5E1D8] border border-[#2A2A2E]'
+              ? 'bg-[#C9A050] text-[#0D0D0F] shadow-md shadow-[#C9A050]/20 font-bold'
+              : theme === 'dark'
+              ? 'bg-[#141418] text-[#9E9A90] hover:text-[#E5E1D8] border border-[#2A2A2E]'
+              : 'bg-[#FAF4E4] text-[#6E6452] hover:text-[#1E1B15] hover:bg-[#F5E8C8] border border-[#DECFA6]'
           }`}
         >
           <Layers className="w-3.5 h-3.5" />
@@ -621,8 +1382,10 @@ Issued by JyotishVeda AI Daivajna Astrological Intelligence Engine
           onClick={() => setActiveTab('doshas')}
           className={`flex items-center space-x-2 px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition cursor-pointer ${
             activeTab === 'doshas'
-              ? 'bg-[#C9A050] text-[#0D0D0F] shadow-md shadow-[#C9A050]/20'
-              : 'bg-[#141418] text-[#9E9A90] hover:text-[#E5E1D8] border border-[#2A2A2E]'
+              ? 'bg-[#C9A050] text-[#0D0D0F] shadow-md shadow-[#C9A050]/20 font-bold'
+              : theme === 'dark'
+              ? 'bg-[#141418] text-[#9E9A90] hover:text-[#E5E1D8] border border-[#2A2A2E]'
+              : 'bg-[#FAF4E4] text-[#6E6452] hover:text-[#1E1B15] hover:bg-[#F5E8C8] border border-[#DECFA6]'
           }`}
         >
           <Flame className="w-3.5 h-3.5" />
@@ -633,8 +1396,10 @@ Issued by JyotishVeda AI Daivajna Astrological Intelligence Engine
           onClick={() => setActiveTab('synastry')}
           className={`flex items-center space-x-2 px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition cursor-pointer ${
             activeTab === 'synastry'
-              ? 'bg-[#C9A050] text-[#0D0D0F] shadow-md shadow-[#C9A050]/20'
-              : 'bg-[#141418] text-[#9E9A90] hover:text-[#E5E1D8] border border-[#2A2A2E]'
+              ? 'bg-[#C9A050] text-[#0D0D0F] shadow-md shadow-[#C9A050]/20 font-bold'
+              : theme === 'dark'
+              ? 'bg-[#141418] text-[#9E9A90] hover:text-[#E5E1D8] border border-[#2A2A2E]'
+              : 'bg-[#FAF4E4] text-[#6E6452] hover:text-[#1E1B15] hover:bg-[#F5E8C8] border border-[#DECFA6]'
           }`}
         >
           <Compass className="w-3.5 h-3.5" />
@@ -645,8 +1410,10 @@ Issued by JyotishVeda AI Daivajna Astrological Intelligence Engine
           onClick={() => setActiveTab('ai_counsel')}
           className={`flex items-center space-x-2 px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition cursor-pointer ${
             activeTab === 'ai_counsel'
-              ? 'bg-[#C9A050] text-[#0D0D0F] shadow-md shadow-[#C9A050]/20'
-              : 'bg-[#141418] text-[#9E9A90] hover:text-[#E5E1D8] border border-[#2A2A2E]'
+              ? 'bg-[#C9A050] text-[#0D0D0F] shadow-md shadow-[#C9A050]/20 font-bold'
+              : theme === 'dark'
+              ? 'bg-[#141418] text-[#9E9A90] hover:text-[#E5E1D8] border border-[#2A2A2E]'
+              : 'bg-[#FAF4E4] text-[#6E6452] hover:text-[#1E1B15] hover:bg-[#F5E8C8] border border-[#DECFA6]'
           }`}
         >
           <Sparkles className="w-3.5 h-3.5" />
@@ -657,8 +1424,10 @@ Issued by JyotishVeda AI Daivajna Astrological Intelligence Engine
           onClick={() => setActiveTab('remedies')}
           className={`flex items-center space-x-2 px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition cursor-pointer ${
             activeTab === 'remedies'
-              ? 'bg-[#C9A050] text-[#0D0D0F] shadow-md shadow-[#C9A050]/20'
-              : 'bg-[#141418] text-[#9E9A90] hover:text-[#E5E1D8] border border-[#2A2A2E]'
+              ? 'bg-[#C9A050] text-[#0D0D0F] shadow-md shadow-[#C9A050]/20 font-bold'
+              : theme === 'dark'
+              ? 'bg-[#141418] text-[#9E9A90] hover:text-[#E5E1D8] border border-[#2A2A2E]'
+              : 'bg-[#FAF4E4] text-[#6E6452] hover:text-[#1E1B15] hover:bg-[#F5E8C8] border border-[#DECFA6]'
           }`}
         >
           <ShieldCheck className="w-3.5 h-3.5" />
@@ -669,8 +1438,10 @@ Issued by JyotishVeda AI Daivajna Astrological Intelligence Engine
           onClick={() => setActiveTab('download')}
           className={`flex items-center space-x-2 px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition cursor-pointer ${
             activeTab === 'download'
-              ? 'bg-[#C9A050] text-[#0D0D0F] shadow-md shadow-[#C9A050]/20'
-              : 'bg-[#141418] text-[#9E9A90] hover:text-[#E5E1D8] border border-[#2A2A2E]'
+              ? 'bg-[#C9A050] text-[#0D0D0F] shadow-md shadow-[#C9A050]/20 font-bold'
+              : theme === 'dark'
+              ? 'bg-[#141418] text-[#9E9A90] hover:text-[#E5E1D8] border border-[#2A2A2E]'
+              : 'bg-[#FAF4E4] text-[#6E6452] hover:text-[#1E1B15] hover:bg-[#F5E8C8] border border-[#DECFA6]'
           }`}
         >
           <Download className="w-3.5 h-3.5" />
@@ -682,10 +1453,10 @@ Issued by JyotishVeda AI Daivajna Astrological Intelligence Engine
       {activeTab === 'kootas' && (
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <h3 className="text-lg font-serif font-bold text-[#F0ECE1]">
+            <h3 className={`text-lg font-serif font-bold ${theme === 'dark' ? 'text-[#F0ECE1]' : 'text-[#1E1B15]'}`}>
               Ashta Koota (8 Kootas) Classical Scoring Matrix
             </h3>
-            <span className="text-xs text-[#9E9A90]">
+            <span className={`text-xs ${theme === 'dark' ? 'text-[#9E9A90]' : 'text-[#6E6452]'}`}>
               Score: <strong className="text-[#C9A050]">{matchResult.totalPoints}</strong> / 36 Maximum
             </span>
           </div>
@@ -698,33 +1469,41 @@ Issued by JyotishVeda AI Daivajna Astrological Intelligence Engine
               return (
                 <div
                   key={koota.id}
-                  className="bg-[#141418] border border-[#2A2A2E] rounded-2xl p-5 hover:border-[#C9A050]/40 transition shadow-sm"
+                  className={`${
+                    theme === 'dark'
+                      ? 'bg-[#141418] border-[#2A2A2E] hover:border-[#C9A050]/40'
+                      : 'bg-gradient-to-b from-[#FAF4E4] to-[#F6ECD2] border-[#DFC896] hover:border-[#C9A050]'
+                  } border rounded-2xl p-5 transition shadow-sm`}
                 >
                   <div
                     className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 cursor-pointer"
                     onClick={() => setExpandedKoota(isExpanded ? null : koota.id)}
                   >
                     <div className="flex items-start sm:items-center space-x-4">
-                      <div className="w-9 h-9 rounded-xl bg-[#1A1A1E] border border-[#2A2A2E] flex items-center justify-center font-bold text-sm text-[#C9A050] shrink-0">
+                      <div className={`w-9 h-9 rounded-xl ${
+                        theme === 'dark' ? 'bg-[#1A1A1E] border-[#2A2A2E]' : 'bg-[#FAF0D4] border-[#DECFA6]'
+                      } border flex items-center justify-center font-bold text-sm text-[#C9A050] shrink-0`}>
                         0{index + 1}
                       </div>
                       <div>
                         <div className="flex items-center space-x-2">
-                          <h4 className="text-base font-serif font-bold text-[#F0ECE1]">
+                          <h4 className={`text-base font-serif font-bold ${theme === 'dark' ? 'text-[#F0ECE1]' : 'text-[#1E1B15]'}`}>
                             {koota.name}
                           </h4>
-                          <span className="text-xs text-[#9E9A90] italic">({koota.sanskritName})</span>
+                          <span className={`text-xs ${theme === 'dark' ? 'text-[#9E9A90]' : 'text-[#7A6F5D]'} italic`}>({koota.sanskritName})</span>
                         </div>
-                        <p className="text-xs text-[#9E9A90] mt-0.5">{koota.area}</p>
+                        <p className={`text-xs ${theme === 'dark' ? 'text-[#9E9A90]' : 'text-[#6E6452]'} mt-0.5`}>{koota.area}</p>
                       </div>
                     </div>
 
                     <div className="flex items-center space-x-4">
                       {/* Values Comparison Pill */}
-                      <div className="hidden md:flex items-center space-x-2 text-xs px-3 py-1.5 rounded-lg bg-[#0D0D0F] border border-[#2A2A2E] text-[#9E9A90]">
-                        <span className="text-[#E5E1D8]">{partner1.fullName.split(' ')[0]}: <strong className="text-[#C9A050]">{koota.p1Value}</strong></span>
+                      <div className={`hidden md:flex items-center space-x-2 text-xs px-3 py-1.5 rounded-lg border ${
+                        theme === 'dark' ? 'bg-[#0D0D0F] border-[#2A2A2E] text-[#9E9A90]' : 'bg-[#FFFDF7] border-[#DECFA6] text-[#6E6452]'
+                      }`}>
+                        <span className={theme === 'dark' ? 'text-[#E5E1D8]' : 'text-[#1E1B15]'}>{partner1.fullName.split(' ')[0]}: <strong className="text-[#C9A050]">{koota.p1Value}</strong></span>
                         <span>↔</span>
-                        <span className="text-[#E5E1D8]">{partner2.fullName.split(' ')[0]}: <strong className="text-[#C9A050]">{koota.p2Value}</strong></span>
+                        <span className={theme === 'dark' ? 'text-[#E5E1D8]' : 'text-[#1E1B15]'}>{partner2.fullName.split(' ')[0]}: <strong className="text-[#C9A050]">{koota.p2Value}</strong></span>
                       </div>
 
                       {/* Points Badge */}
@@ -733,9 +1512,9 @@ Issued by JyotishVeda AI Daivajna Astrological Intelligence Engine
                       </div>
 
                       {isExpanded ? (
-                        <ChevronUp className="w-4 h-4 text-[#9E9A90]" />
+                        <ChevronUp className={`w-4 h-4 ${theme === 'dark' ? 'text-[#9E9A90]' : 'text-[#6E6452]'}`} />
                       ) : (
-                        <ChevronDown className="w-4 h-4 text-[#9E9A90]" />
+                        <ChevronDown className={`w-4 h-4 ${theme === 'dark' ? 'text-[#9E9A90]' : 'text-[#6E6452]'}`} />
                       )}
                     </div>
                   </div>
@@ -747,13 +1526,17 @@ Issued by JyotishVeda AI Daivajna Astrological Intelligence Engine
                         initial={{ opacity: 0, height: 0 }}
                         animate={{ opacity: 1, height: 'auto' }}
                         exit={{ opacity: 0, height: 0 }}
-                        className="mt-4 pt-4 border-t border-[#2A2A2E] text-xs text-[#E5E1D8] space-y-2 leading-relaxed"
+                        className={`mt-4 pt-4 border-t ${
+                          theme === 'dark' ? 'border-[#2A2A2E] text-[#E5E1D8]' : 'border-[#DECFA6] text-[#2C2825]'
+                        } text-xs space-y-2 leading-relaxed`}
                       >
-                        <p className="text-[#9E9A90]">{koota.description}</p>
-                        <div className="p-3 rounded-xl bg-[#0D0D0F] border border-[#2A2A2E] flex items-start space-x-2">
+                        <p className={theme === 'dark' ? 'text-[#9E9A90]' : 'text-[#6E6452]'}>{koota.description}</p>
+                        <div className={`p-3 rounded-xl border flex items-start space-x-2 ${
+                          theme === 'dark' ? 'bg-[#0D0D0F] border-[#2A2A2E]' : 'bg-[#FFFDF7] border-[#DECFA6]'
+                        }`}>
                           <Info className="w-4 h-4 text-[#C9A050] shrink-0 mt-0.5" />
                           <div>
-                            <span className="font-semibold text-[#F0ECE1]">Verdict Details: </span>
+                            <span className={`font-semibold ${theme === 'dark' ? 'text-[#F0ECE1]' : 'text-[#1E1B15]'}`}>Verdict Details: </span>
                             <span>{koota.details}</span>
                           </div>
                         </div>
@@ -771,52 +1554,64 @@ Issued by JyotishVeda AI Daivajna Astrological Intelligence Engine
       {activeTab === 'doshas' && (
         <div className="space-y-6">
           {/* Manglik Analysis Card */}
-          <div className="bg-[#141418] border border-[#2A2A2E] rounded-2xl p-6 shadow-md">
+          <div className={`${
+            theme === 'dark' 
+              ? 'bg-[#141418] border-[#2A2A2E]' 
+              : 'bg-gradient-to-b from-[#FAF4E4] to-[#F6ECD2] border-[#DFC896]'
+          } border rounded-2xl p-6 shadow-md`}>
             <div className="flex items-center space-x-3 mb-4">
               <div className="p-2 rounded-xl bg-orange-500/10 text-orange-400 border border-orange-500/30">
                 <Flame className="w-5 h-5" />
               </div>
               <div>
-                <h3 className="text-lg font-serif font-bold text-[#F0ECE1]">
+                <h3 className={`text-lg font-serif font-bold ${theme === 'dark' ? 'text-[#F0ECE1]' : 'text-[#1E1B15]'}`}>
                   Manglik (Kuja) Dosha Comparative Assessment
                 </h3>
-                <p className="text-xs text-[#9E9A90]">Mars placement in 1st, 2nd, 4th, 7th, 8th, or 12th houses</p>
+                <p className={`text-xs ${theme === 'dark' ? 'text-[#9E9A90]' : 'text-[#6E6452]'}`}>Mars placement in 1st, 2nd, 4th, 7th, 8th, or 12th houses</p>
               </div>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 my-4">
               {/* Partner 1 Manglik */}
-              <div className="p-4 rounded-xl bg-[#0D0D0F] border border-[#2A2A2E]">
-                <span className="text-xs text-[#9E9A90] uppercase tracking-wider block mb-1">
+              <div className={`p-4 rounded-xl border ${
+                theme === 'dark' ? 'bg-[#0D0D0F] border-[#2A2A2E]' : 'bg-[#FFFDF7] border-[#DECFA6]'
+              }`}>
+                <span className={`text-xs ${theme === 'dark' ? 'text-[#9E9A90]' : 'text-[#7A6F5D]'} uppercase tracking-wider block mb-1`}>
                   {partner1.fullName} (Partner A)
                 </span>
                 <div className="flex items-center justify-between">
-                  <span className="text-sm font-bold text-[#F0ECE1]">
+                  <span className={`text-sm font-bold ${theme === 'dark' ? 'text-[#F0ECE1]' : 'text-[#1E1B15]'}`}>
                     {matchResult.manglik.partner1.isManglik ? `Manglik (${matchResult.manglik.partner1.severity})` : 'Non-Manglik'}
                   </span>
-                  <span className="text-xs px-2.5 py-0.5 rounded bg-[#1A1A1E] text-[#9E9A90] border border-[#2A2A2E]">
+                  <span className={`text-xs px-2.5 py-0.5 rounded border ${
+                    theme === 'dark' ? 'bg-[#1A1A1E] text-[#9E9A90] border-[#2A2A2E]' : 'bg-[#FAF1D8] text-[#6E6452] border-[#DECFA6]'
+                  }`}>
                     House {matchResult.manglik.partner1.marsHouse}
                   </span>
                 </div>
-                <p className="text-[11px] text-[#9E9A90] mt-2">
+                <p className={`text-[11px] ${theme === 'dark' ? 'text-[#9E9A90]' : 'text-[#6E6452]'} mt-2`}>
                   Status: <strong className="text-[#C9A050]">{matchResult.manglik.partner1.cancellation}</strong>
                 </p>
               </div>
 
               {/* Partner 2 Manglik */}
-              <div className="p-4 rounded-xl bg-[#0D0D0F] border border-[#2A2A2E]">
-                <span className="text-xs text-[#9E9A90] uppercase tracking-wider block mb-1">
+              <div className={`p-4 rounded-xl border ${
+                theme === 'dark' ? 'bg-[#0D0D0F] border-[#2A2A2E]' : 'bg-[#FFFDF7] border-[#DECFA6]'
+              }`}>
+                <span className={`text-xs ${theme === 'dark' ? 'text-[#9E9A90]' : 'text-[#7A6F5D]'} uppercase tracking-wider block mb-1`}>
                   {partner2.fullName} (Partner B)
                 </span>
                 <div className="flex items-center justify-between">
-                  <span className="text-sm font-bold text-[#F0ECE1]">
+                  <span className={`text-sm font-bold ${theme === 'dark' ? 'text-[#F0ECE1]' : 'text-[#1E1B15]'}`}>
                     {matchResult.manglik.partner2.isManglik ? `Manglik (${matchResult.manglik.partner2.severity})` : 'Non-Manglik'}
                   </span>
-                  <span className="text-xs px-2.5 py-0.5 rounded bg-[#1A1A1E] text-[#9E9A90] border border-[#2A2A2E]">
+                  <span className={`text-xs px-2.5 py-0.5 rounded border ${
+                    theme === 'dark' ? 'bg-[#1A1A1E] text-[#9E9A90] border-[#2A2A2E]' : 'bg-[#FAF1D8] text-[#6E6452] border-[#DECFA6]'
+                  }`}>
                     House {matchResult.manglik.partner2.marsHouse}
                   </span>
                 </div>
-                <p className="text-[11px] text-[#9E9A90] mt-2">
+                <p className={`text-[11px] ${theme === 'dark' ? 'text-[#9E9A90]' : 'text-[#6E6452]'} mt-2`}>
                   Status: <strong className="text-[#C9A050]">{matchResult.manglik.partner2.cancellation}</strong>
                 </p>
               </div>
@@ -843,19 +1638,23 @@ Issued by JyotishVeda AI Daivajna Astrological Intelligence Engine
           {/* Nadi & Bhakoot Dosha Cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Nadi Dosha */}
-            <div className="bg-[#141418] border border-[#2A2A2E] rounded-2xl p-6 shadow-md">
+            <div className={`${
+              theme === 'dark' 
+                ? 'bg-[#141418] border-[#2A2A2E]' 
+                : 'bg-gradient-to-b from-[#FAF4E4] to-[#F6ECD2] border-[#DFC896]'
+            } border rounded-2xl p-6 shadow-md`}>
               <div className="flex items-center space-x-3 mb-3">
                 <Dna className="w-5 h-5 text-[#C9A050]" />
-                <h4 className="text-base font-serif font-bold text-[#F0ECE1]">Nadi Dosha Examination</h4>
+                <h4 className={`text-base font-serif font-bold ${theme === 'dark' ? 'text-[#F0ECE1]' : 'text-[#1E1B15]'}`}>Nadi Dosha Examination</h4>
               </div>
-              <div className="space-y-2 text-xs text-[#9E9A90]">
+              <div className={`space-y-2 text-xs ${theme === 'dark' ? 'text-[#9E9A90]' : 'text-[#6E6452]'}`}>
                 <div className="flex justify-between">
                   <span>{partner1.fullName.split(' ')[0]} Nadi:</span>
-                  <strong className="text-[#E5E1D8]">{matchResult.nadiDosha.partner1Nadi}</strong>
+                  <strong className={theme === 'dark' ? 'text-[#E5E1D8]' : 'text-[#1E1B15]'}>{matchResult.nadiDosha.partner1Nadi}</strong>
                 </div>
                 <div className="flex justify-between">
                   <span>{partner2.fullName.split(' ')[0]} Nadi:</span>
-                  <strong className="text-[#E5E1D8]">{matchResult.nadiDosha.partner2Nadi}</strong>
+                  <strong className={theme === 'dark' ? 'text-[#E5E1D8]' : 'text-[#1E1B15]'}>{matchResult.nadiDosha.partner2Nadi}</strong>
                 </div>
                 <div className="flex justify-between">
                   <span>Status:</span>
@@ -867,32 +1666,40 @@ Issued by JyotishVeda AI Daivajna Astrological Intelligence Engine
                       : 'No Dosha (Pure Harmony) ✓'}
                   </strong>
                 </div>
-                <p className="p-3 rounded-lg bg-[#0D0D0F] border border-[#2A2A2E] text-[11px] text-[#E5E1D8] mt-3">
+                <p className={`p-3 rounded-lg border text-[11px] mt-3 ${
+                  theme === 'dark' ? 'bg-[#0D0D0F] border-[#2A2A2E] text-[#E5E1D8]' : 'bg-[#FFFDF7] border-[#DECFA6] text-[#2C2825]'
+                }`}>
                   {matchResult.nadiDosha.reason}. {matchResult.nadiDosha.remedy}
                 </p>
               </div>
             </div>
 
             {/* Bhakoot Dosha */}
-            <div className="bg-[#141418] border border-[#2A2A2E] rounded-2xl p-6 shadow-md">
+            <div className={`${
+              theme === 'dark' 
+                ? 'bg-[#141418] border-[#2A2A2E]' 
+                : 'bg-gradient-to-b from-[#FAF4E4] to-[#F6ECD2] border-[#DFC896]'
+            } border rounded-2xl p-6 shadow-md`}>
               <div className="flex items-center space-x-3 mb-3">
                 <Heart className="w-5 h-5 text-[#C9A050]" />
-                <h4 className="text-base font-serif font-bold text-[#F0ECE1]">Bhakoot Dosha Examination</h4>
+                <h4 className={`text-base font-serif font-bold ${theme === 'dark' ? 'text-[#F0ECE1]' : 'text-[#1E1B15]'}`}>Bhakoot Dosha Examination</h4>
               </div>
-              <div className="space-y-2 text-xs text-[#9E9A90]">
+              <div className={`space-y-2 text-xs ${theme === 'dark' ? 'text-[#9E9A90]' : 'text-[#6E6452]'}`}>
                 <div className="flex justify-between">
                   <span>{partner1.fullName.split(' ')[0]} Rashi:</span>
-                  <strong className="text-[#E5E1D8]">{matchResult.bhakootDosha.partner1Rashi}</strong>
+                  <strong className={theme === 'dark' ? 'text-[#E5E1D8]' : 'text-[#1E1B15]'}>{matchResult.bhakootDosha.partner1Rashi}</strong>
                 </div>
                 <div className="flex justify-between">
                   <span>{partner2.fullName.split(' ')[0]} Rashi:</span>
-                  <strong className="text-[#E5E1D8]">{matchResult.bhakootDosha.partner2Rashi}</strong>
+                  <strong className={theme === 'dark' ? 'text-[#E5E1D8]' : 'text-[#1E1B15]'}>{matchResult.bhakootDosha.partner2Rashi}</strong>
                 </div>
                 <div className="flex justify-between">
                   <span>Rashi Angular Disparity:</span>
                   <strong className="text-[#C9A050]">{matchResult.bhakootDosha.rashiDistance}</strong>
                 </div>
-                <p className="p-3 rounded-lg bg-[#0D0D0F] border border-[#2A2A2E] text-[11px] text-[#E5E1D8] mt-3">
+                <p className={`p-3 rounded-lg border text-[11px] mt-3 ${
+                  theme === 'dark' ? 'bg-[#0D0D0F] border-[#2A2A2E] text-[#E5E1D8]' : 'bg-[#FFFDF7] border-[#DECFA6] text-[#2C2825]'
+                }`}>
                   {matchResult.bhakootDosha.reason}. {matchResult.bhakootDosha.remedy}
                 </p>
               </div>
@@ -904,32 +1711,38 @@ Issued by JyotishVeda AI Daivajna Astrological Intelligence Engine
       {/* Tab 3: Western Synastry & Elements */}
       {activeTab === 'synastry' && (
         <div className="space-y-6">
-          <div className="bg-[#141418] border border-[#2A2A2E] rounded-2xl p-6 shadow-md">
-            <h3 className="text-lg font-serif font-bold text-[#F0ECE1] mb-2">
+          <div className={`${
+            theme === 'dark' 
+              ? 'bg-[#141418] border-[#2A2A2E]' 
+              : 'bg-gradient-to-b from-[#FAF4E4] to-[#F6ECD2] border-[#DFC896]'
+          } border rounded-2xl p-6 shadow-md`}>
+            <h3 className={`text-lg font-serif font-bold ${theme === 'dark' ? 'text-[#F0ECE1]' : 'text-[#1E1B15]'} mb-2`}>
               Western Synastry &amp; Cosmic Planetary Aspects
             </h3>
-            <p className="text-xs text-[#9E9A90] mb-6">
+            <p className={`text-xs ${theme === 'dark' ? 'text-[#9E9A90]' : 'text-[#6E6452]'} mb-6`}>
               Cross-tradition psychological harmonization between solar-lunar archetypes and interpersonal attraction vectors.
             </p>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {matchResult.synastry.map((syn, i) => (
-                <div key={i} className="p-4 rounded-xl bg-[#0D0D0F] border border-[#2A2A2E] space-y-2.5">
+                <div key={i} className={`p-4 rounded-xl border space-y-2.5 ${
+                  theme === 'dark' ? 'bg-[#0D0D0F] border-[#2A2A2E]' : 'bg-[#FFFDF7] border-[#DECFA6]'
+                }`}>
                   <div className="flex justify-between items-center gap-2">
                     <span className="text-xs font-bold text-[#C9A050] truncate">{syn.title}</span>
                     <span className={`text-xs font-extrabold px-2.5 py-0.5 rounded-full shrink-0 shadow-sm ${
                       theme === 'light'
-                        ? 'bg-[#F4EBD9] text-[#7A5210] border border-[#C9A050]/50'
+                        ? 'bg-[#FAF1D6] text-[#8C6218] border border-[#DECFA6]'
                         : 'bg-[#C9A050]/20 text-[#E8C470] border border-[#C9A050]/40'
                     }`}>
                       {syn.harmonyScore}%
                     </span>
                   </div>
-                  <span className="text-[11px] text-[#9E9A90] block">{syn.planets}</span>
-                  <div className={`w-full ${theme === 'light' ? 'bg-[#EAE3D2]' : 'bg-[#1A1A1E]'} h-2 rounded-full overflow-hidden`}>
+                  <span className={`text-[11px] ${theme === 'dark' ? 'text-[#9E9A90]' : 'text-[#7A6F5D]'} block`}>{syn.planets}</span>
+                  <div className={`w-full ${theme === 'light' ? 'bg-[#FAF1D6]' : 'bg-[#1A1A1E]'} h-2 rounded-full overflow-hidden`}>
                     <div className="bg-[#C9A050] h-full rounded-full transition-all duration-500" style={{ width: `${syn.harmonyScore}%` }} />
                   </div>
-                  <p className="text-xs text-[#E5E1D8] pt-1 leading-relaxed">{syn.description}</p>
+                  <p className={`text-xs ${theme === 'dark' ? 'text-[#E5E1D8]' : 'text-[#2C2825]'} pt-1 leading-relaxed`}>{syn.description}</p>
                 </div>
               ))}
             </div>
@@ -937,49 +1750,61 @@ Issued by JyotishVeda AI Daivajna Astrological Intelligence Engine
 
           {/* Elemental & Numerology Matrix */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="bg-[#141418] border border-[#2A2A2E] rounded-2xl p-6 shadow-md">
-              <h4 className="text-base font-serif font-bold text-[#F0ECE1] mb-3">Elemental Synergy</h4>
-              <div className="p-4 rounded-xl bg-[#0D0D0F] border border-[#2A2A2E] space-y-2.5 text-xs">
-                <div className="flex justify-between text-[#9E9A90]">
+            <div className={`${
+              theme === 'dark' 
+                ? 'bg-[#141418] border-[#2A2A2E]' 
+                : 'bg-gradient-to-b from-[#FAF4E4] to-[#F6ECD2] border-[#DFC896]'
+            } border rounded-2xl p-6 shadow-md`}>
+              <h4 className={`text-base font-serif font-bold ${theme === 'dark' ? 'text-[#F0ECE1]' : 'text-[#1E1B15]'} mb-3`}>Elemental Synergy</h4>
+              <div className={`p-4 rounded-xl border space-y-2.5 text-xs ${
+                theme === 'dark' ? 'bg-[#0D0D0F] border-[#2A2A2E]' : 'bg-[#FFFDF7] border-[#DECFA6]'
+              }`}>
+                <div className={`flex justify-between ${theme === 'dark' ? 'text-[#9E9A90]' : 'text-[#6E6452]'}`}>
                   <span>Elements:</span>
-                  <strong className="text-[#E5E1D8]">
+                  <strong className={theme === 'dark' ? 'text-[#E5E1D8]' : 'text-[#1E1B15]'}>
                     {matchResult.elementalBalance.partner1Element} ↔ {matchResult.elementalBalance.partner2Element}
                   </strong>
                 </div>
-                <div className="flex justify-between items-center text-[#9E9A90]">
+                <div className={`flex justify-between items-center ${theme === 'dark' ? 'text-[#9E9A90]' : 'text-[#6E6452]'}`}>
                   <span>Synergy Score:</span>
                   <span className={`text-xs font-extrabold px-2.5 py-0.5 rounded-full ${
                     theme === 'light'
-                      ? 'bg-[#F4EBD9] text-[#7A5210] border border-[#C9A050]/50'
+                      ? 'bg-[#FAF1D6] text-[#8C6218] border border-[#DECFA6]'
                       : 'bg-[#C9A050]/20 text-[#E8C470] border border-[#C9A050]/40'
                   }`}>
                     {matchResult.elementalBalance.score}%
                   </span>
                 </div>
-                <p className="text-[#E5E1D8] pt-1 leading-relaxed">{matchResult.elementalBalance.synergy}</p>
+                <p className={`${theme === 'dark' ? 'text-[#E5E1D8]' : 'text-[#2C2825]'} pt-1 leading-relaxed`}>{matchResult.elementalBalance.synergy}</p>
               </div>
             </div>
 
-            <div className="bg-[#141418] border border-[#2A2A2E] rounded-2xl p-6 shadow-md">
-              <h4 className="text-base font-serif font-bold text-[#F0ECE1] mb-3">Numerological Alignment (Mulank &amp; Bhagyank)</h4>
-              <div className="p-4 rounded-xl bg-[#0D0D0F] border border-[#2A2A2E] space-y-2.5 text-xs">
-                <div className="flex justify-between text-[#9E9A90]">
+            <div className={`${
+              theme === 'dark' 
+                ? 'bg-[#141418] border-[#2A2A2E]' 
+                : 'bg-gradient-to-b from-[#FAF4E4] to-[#F6ECD2] border-[#DFC896]'
+            } border rounded-2xl p-6 shadow-md`}>
+              <h4 className={`text-base font-serif font-bold ${theme === 'dark' ? 'text-[#F0ECE1]' : 'text-[#1E1B15]'} mb-3`}>Numerological Alignment (Mulank &amp; Bhagyank)</h4>
+              <div className={`p-4 rounded-xl border space-y-2.5 text-xs ${
+                theme === 'dark' ? 'bg-[#0D0D0F] border-[#2A2A2E]' : 'bg-[#FFFDF7] border-[#DECFA6]'
+              }`}>
+                <div className={`flex justify-between ${theme === 'dark' ? 'text-[#9E9A90]' : 'text-[#6E6452]'}`}>
                   <span>Psychic Numbers (Mulank):</span>
-                  <strong className="text-[#E5E1D8]">
+                  <strong className={theme === 'dark' ? 'text-[#E5E1D8]' : 'text-[#1E1B15]'}>
                     Mulank {matchResult.numerologyMilan.partner1Mulank} ↔ Mulank {matchResult.numerologyMilan.partner2Mulank}
                   </strong>
                 </div>
-                <div className="flex justify-between items-center text-[#9E9A90]">
+                <div className={`flex justify-between items-center ${theme === 'dark' ? 'text-[#9E9A90]' : 'text-[#6E6452]'}`}>
                   <span>Destiny Harmony Score:</span>
                   <span className={`text-xs font-extrabold px-2.5 py-0.5 rounded-full ${
                     theme === 'light'
-                      ? 'bg-[#F4EBD9] text-[#7A5210] border border-[#C9A050]/50'
+                      ? 'bg-[#FAF1D6] text-[#8C6218] border border-[#DECFA6]'
                       : 'bg-[#C9A050]/20 text-[#E8C470] border border-[#C9A050]/40'
                   }`}>
                     {matchResult.numerologyMilan.harmonyScore}%
                   </span>
                 </div>
-                <p className="text-[#E5E1D8] pt-1 leading-relaxed">{matchResult.numerologyMilan.description}</p>
+                <p className={`${theme === 'dark' ? 'text-[#E5E1D8]' : 'text-[#2C2825]'} pt-1 leading-relaxed`}>{matchResult.numerologyMilan.description}</p>
               </div>
             </div>
           </div>
@@ -988,17 +1813,21 @@ Issued by JyotishVeda AI Daivajna Astrological Intelligence Engine
 
       {/* Tab 4: AI Astrological Counsel */}
       {activeTab === 'ai_counsel' && (
-        <div className="bg-[#141418] border border-[#2A2A2E] rounded-2xl p-6 sm:p-8 shadow-xl space-y-6">
+        <div className={`${
+          theme === 'dark' 
+            ? 'bg-[#141418] border-[#2A2A2E]' 
+            : 'bg-gradient-to-b from-[#FAF4E4] to-[#F6ECD2] border-[#DFC896]'
+        } border rounded-2xl p-6 sm:p-8 shadow-xl space-y-6`}>
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
               <div className="flex items-center space-x-2 text-xs font-semibold tracking-widest text-[#C9A050] uppercase mb-1">
                 <Sparkles className="w-4 h-4" />
                 <span>{t('matchmaking.ai_counsel')}</span>
               </div>
-              <h3 className="text-xl font-serif font-bold text-[#F0ECE1]">
+              <h3 className={`text-xl font-serif font-bold ${theme === 'dark' ? 'text-[#F0ECE1]' : 'text-[#1E1B15]'}`}>
                 AI Daivajna Deep Relationship Synthesis
               </h3>
-              <p className="text-xs text-[#9E9A90]">
+              <p className={`text-xs ${theme === 'dark' ? 'text-[#9E9A90]' : 'text-[#6E6452]'}`}>
                 Multidimensional karmic counsel generated dynamically for {partner1.fullName} &amp; {partner2.fullName}.
               </p>
             </div>
@@ -1023,18 +1852,22 @@ Issued by JyotishVeda AI Daivajna Astrological Intelligence Engine
           </div>
 
           {aiSynthesis ? (
-            <div className="p-6 rounded-2xl bg-[#0D0D0F] border border-[#2A2A2E] text-sm text-[#E5E1D8] leading-relaxed space-y-4">
-              <div className="prose prose-invert max-w-none text-xs sm:text-sm">
+            <div className={`p-6 rounded-2xl border text-sm leading-relaxed space-y-4 ${
+              theme === 'dark' ? 'bg-[#0D0D0F] border-[#2A2A2E] text-[#E5E1D8]' : 'bg-[#FFFDF7] border-[#DECFA6] text-[#1E1B15]'
+            }`}>
+              <div className={`prose max-w-none text-xs sm:text-sm ${theme === 'dark' ? 'prose-invert' : 'text-[#1E1B15]'}`}>
                 <ReactMarkdown>{aiSynthesis}</ReactMarkdown>
               </div>
             </div>
           ) : (
-            <div className="p-8 rounded-2xl bg-[#0D0D0F]/60 border border-dashed border-[#2A2A2E] text-center space-y-3">
+            <div className={`p-8 rounded-2xl border border-dashed text-center space-y-3 ${
+              theme === 'dark' ? 'bg-[#0D0D0F]/60 border-[#2A2A2E]' : 'bg-[#FFFDF7]/80 border-[#DECFA6]'
+            }`}>
               <Sparkles className="w-8 h-8 text-[#C9A050] mx-auto opacity-70" />
-              <p className="text-sm text-[#E5E1D8] font-serif">
+              <p className={`text-sm font-serif ${theme === 'dark' ? 'text-[#E5E1D8]' : 'text-[#1E1B15]'}`}>
                 Generate an exhaustive AI consultation covering psychological affinity, wealth generation, marital timing, and conflict resolution.
               </p>
-              <p className="text-xs text-[#9E9A90]">
+              <p className={`text-xs ${theme === 'dark' ? 'text-[#9E9A90]' : 'text-[#6E6452]'}`}>
                 Click the button above to synthesize charts using Gemini 3.7 Flash.
               </p>
             </div>
@@ -1045,38 +1878,50 @@ Issued by JyotishVeda AI Daivajna Astrological Intelligence Engine
       {/* Tab 5: Remedies & Muhurat */}
       {activeTab === 'remedies' && (
         <div className="space-y-6">
-          <div className="bg-[#141418] border border-[#2A2A2E] rounded-2xl p-6 shadow-md space-y-4">
+          <div className={`${
+            theme === 'dark' 
+              ? 'bg-[#141418] border-[#2A2A2E]' 
+              : 'bg-gradient-to-b from-[#FAF4E4] to-[#F6ECD2] border-[#DFC896]'
+          } border rounded-2xl p-6 shadow-md space-y-4`}>
             <div className="flex items-center space-x-2.5 text-[#C9A050]">
               <ShieldCheck className="w-5 h-5" />
-              <h3 className="text-lg font-serif font-bold text-[#F0ECE1]">
+              <h3 className={`text-lg font-serif font-bold ${theme === 'dark' ? 'text-[#F0ECE1]' : 'text-[#1E1B15]'}`}>
                 {t('matchmaking.remedies_title')}
               </h3>
             </div>
-            <p className="text-xs text-[#9E9A90]">
+            <p className={`text-xs ${theme === 'dark' ? 'text-[#9E9A90]' : 'text-[#6E6452]'}`}>
               Traditional Vedic Upayas and practical actions designed to pacify minor planetary afflictions and enhance marital sweetness.
             </p>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
               {matchResult.remedies.map((rem, idx) => (
-                <div key={idx} className="p-4 rounded-xl bg-[#0D0D0F] border border-[#2A2A2E] flex items-start space-x-3 text-xs">
+                <div key={idx} className={`p-4 rounded-xl border flex items-start space-x-3 text-xs ${
+                  theme === 'dark' ? 'bg-[#0D0D0F] border-[#2A2A2E]' : 'bg-[#FFFDF7] border-[#DECFA6]'
+                }`}>
                   <span className="w-6 h-6 rounded-full bg-[#C9A050]/20 text-[#C9A050] font-bold flex items-center justify-center shrink-0 text-[11px]">
                     {idx + 1}
                   </span>
-                  <span className="text-[#E5E1D8] leading-relaxed">{rem}</span>
+                  <span className={`${theme === 'dark' ? 'text-[#E5E1D8]' : 'text-[#2C2825]'} leading-relaxed`}>{rem}</span>
                 </div>
               ))}
             </div>
           </div>
 
           {/* Auspicious Muhurat Window Card */}
-          <div className="bg-[#141418] border border-[#2A2A2E] rounded-2xl p-6 shadow-md space-y-3">
-            <div className="flex items-center space-x-2.5 text-amber-400">
+          <div className={`${
+            theme === 'dark' 
+              ? 'bg-[#141418] border-[#2A2A2E]' 
+              : 'bg-gradient-to-b from-[#FAF4E4] to-[#F6ECD2] border-[#DFC896]'
+          } border rounded-2xl p-6 shadow-md space-y-3`}>
+            <div className="flex items-center space-x-2.5 text-amber-500">
               <Calendar className="w-5 h-5" />
-              <h4 className="text-base font-serif font-bold text-[#F0ECE1]">
+              <h4 className={`text-base font-serif font-bold ${theme === 'dark' ? 'text-[#F0ECE1]' : 'text-[#1E1B15]'}`}>
                 Auspicious Vivaha / Partnership Muhurat Guidance
               </h4>
             </div>
-            <p className="text-xs text-[#E5E1D8] leading-relaxed p-4 rounded-xl bg-[#0D0D0F] border border-[#2A2A2E]">
+            <p className={`text-xs leading-relaxed p-4 rounded-xl border ${
+              theme === 'dark' ? 'bg-[#0D0D0F] border-[#2A2A2E] text-[#E5E1D8]' : 'bg-[#FFFDF7] border-[#DECFA6] text-[#2C2825]'
+            }`}>
               {matchResult.auspiciousMuhuratAdvice}
             </p>
           </div>
@@ -1086,16 +1931,20 @@ Issued by JyotishVeda AI Daivajna Astrological Intelligence Engine
       {/* Tab 6: Dedicated Match Report Download & Export Center */}
       {activeTab === 'download' && (
         <div className="space-y-6">
-          <div className="bg-[#141418] border border-[#2A2A2E] rounded-2xl p-6 sm:p-8 shadow-xl">
+          <div className={`${
+            theme === 'dark' 
+              ? 'bg-[#141418] border-[#2A2A2E]' 
+              : 'bg-gradient-to-b from-[#FAF4E4] to-[#F6ECD2] border-[#DFC896]'
+          } border rounded-2xl p-6 sm:p-8 shadow-xl`}>
             <div className="max-w-2xl">
               <div className="flex items-center space-x-2 text-xs font-semibold tracking-widest text-[#C9A050] uppercase mb-1">
                 <Download className="w-4 h-4" />
                 <span>Match Report Export &amp; Archival</span>
               </div>
-              <h3 className="text-2xl font-serif font-bold text-[#F0ECE1]">
-                Download Official Kundli Milan Dossier
+              <h3 className={`text-2xl font-serif font-bold ${theme === 'dark' ? 'text-[#F0ECE1]' : 'text-[#1E1B15]'}`}>
+                Download Kundli Milan Dossier
               </h3>
-              <p className="text-xs sm:text-sm text-[#9E9A90] mt-1.5 leading-relaxed">
+              <p className={`text-xs sm:text-sm ${theme === 'dark' ? 'text-[#9E9A90]' : 'text-[#6E6452]'} mt-1.5 leading-relaxed`}>
                 Export high-resolution printable certificates, formatted PDF reports, JSON astrological payloads, or plain-text summaries for family consultation.
               </p>
             </div>
@@ -1104,15 +1953,17 @@ Issued by JyotishVeda AI Daivajna Astrological Intelligence Engine
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mt-6">
               {/* Option 0: Save to Account (server persistence) */}
               {isAuthenticated && (
-                <div className="p-5 rounded-2xl bg-[#0D0D0F] border border-[#2A2A2E] hover:border-[#C9A050]/50 transition space-y-4 flex flex-col justify-between">
+                <div className={`p-5 rounded-2xl border transition space-y-4 flex flex-col justify-between ${
+                  theme === 'dark' ? 'bg-[#0D0D0F] border-[#2A2A2E] hover:border-[#C9A050]/50' : 'bg-[#FFFDF7] border-[#DECFA6] hover:border-[#C9A050]'
+                }`}>
                   <div>
                     <div className="w-10 h-10 rounded-xl bg-[#C9A050]/15 border border-[#C9A050]/30 flex items-center justify-center text-[#C9A050] mb-3">
                       <CloudUpload className="w-5 h-5" />
                     </div>
-                    <h4 className="text-base font-serif font-bold text-[#F0ECE1]">
+                    <h4 className={`text-base font-serif font-bold ${theme === 'dark' ? 'text-[#F0ECE1]' : 'text-[#1E1B15]'}`}>
                       Save to My Account
                     </h4>
-                    <p className="text-xs text-[#9E9A90] mt-1 leading-relaxed">
+                    <p className={`text-xs ${theme === 'dark' ? 'text-[#9E9A90]' : 'text-[#6E6452]'} mt-1 leading-relaxed`}>
                       Persist this match report to your JyotishVeda account so it's accessible from any device.
                     </p>
                   </div>
@@ -1152,71 +2003,91 @@ Issued by JyotishVeda AI Daivajna Astrological Intelligence Engine
                   {savedReportId && (
                     <button
                       onClick={() => window.open(getMatchReportPdfUrl(savedReportId), '_blank')}
-                      className="w-full py-2 rounded-xl bg-[#1A1A1E] hover:bg-[#222228] border border-[#2A2A2E] text-xs font-semibold text-[#E5E1D8] transition cursor-pointer flex items-center justify-center space-x-1.5"
+                      className="w-full py-2.5 rounded-xl bg-[#C9A050] hover:bg-[#D4AF37] text-[#0D0D0F] font-bold text-xs tracking-wide shadow-md shadow-[#C9A050]/20 transition cursor-pointer flex items-center justify-center space-x-1.5"
                     >
-                      <Download className="w-3.5 h-3.5 text-[#C9A050]" />
+                      <Download className="w-3.5 h-3.5 text-[#0D0D0F]" />
                       <span>Download Server-Generated PDF</span>
                     </button>
                   )}
                 </div>
               )}
 
-              {/* Option 1: PDF Certificate */}
-              <div className="p-5 rounded-2xl bg-[#0D0D0F] border border-[#2A2A2E] hover:border-[#C9A050]/50 transition space-y-4 flex flex-col justify-between">
+              {/* Option 1: Direct 1-Page PDF Certificate */}
+              <div className={`p-5 rounded-2xl border transition space-y-4 flex flex-col justify-between ${
+                theme === 'dark' ? 'bg-[#0D0D0F] border-[#2A2A2E] hover:border-[#C9A050]/50' : 'bg-[#FFFDF7] border-[#DECFA6] hover:border-[#C9A050]'
+              }`}>
                 <div>
                   <div className="w-10 h-10 rounded-xl bg-[#C9A050]/15 border border-[#C9A050]/30 flex items-center justify-center text-[#C9A050] mb-3">
-                    <Printer className="w-5 h-5" />
+                    <Download className="w-5 h-5" />
                   </div>
-                  <h4 className="text-base font-serif font-bold text-[#F0ECE1]">
-                    Print / Save PDF Certificate
+                  <h4 className={`text-base font-serif font-bold ${theme === 'dark' ? 'text-[#F0ECE1]' : 'text-[#1E1B15]'}`}>
+                    Download PDF Certificate
                   </h4>
-                  <p className="text-xs text-[#9E9A90] mt-1 leading-relaxed">
+                  <p className={`text-xs ${theme === 'dark' ? 'text-[#9E9A90]' : 'text-[#6E6452]'} mt-1 leading-relaxed`}>
                     Formatted with classical borders, authentication seal, 8 Kootas matrix, and Pandit verification line.
                   </p>
                 </div>
 
                 <button
-                  onClick={handlePrintCertificate}
+                  onClick={handleDownloadPDF}
+                  disabled={isGeneratingPdf}
                   className="w-full py-2.5 rounded-xl bg-[#C9A050] hover:bg-[#D4AF37] text-[#0D0D0F] font-bold text-xs tracking-wide shadow-md shadow-[#C9A050]/20 transition cursor-pointer flex items-center justify-center space-x-1.5"
                 >
-                  <Printer className="w-3.5 h-3.5" />
-                  <span>Print / Save as PDF</span>
+                  {isGeneratingPdf ? (
+                    <>
+                      <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                      <span>Generating PDF...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Download className="w-3.5 h-3.5" />
+                      <span>Download 1-Page PDF</span>
+                    </>
+                  )}
                 </button>
               </div>
 
               {/* Option 2: JSON Astrological Payload */}
-              <div className="p-5 rounded-2xl bg-[#0D0D0F] border border-[#2A2A2E] hover:border-[#C9A050]/50 transition space-y-4 flex flex-col justify-between">
+              <div className={`p-5 rounded-2xl border transition space-y-4 flex flex-col justify-between ${
+                theme === 'dark' ? 'bg-[#0D0D0F] border-[#2A2A2E] hover:border-[#C9A050]/50' : 'bg-[#FFFDF7] border-[#DECFA6] hover:border-[#C9A050]'
+              }`}>
                 <div>
                   <div className="w-10 h-10 rounded-xl bg-blue-500/15 border border-blue-500/30 flex items-center justify-center text-blue-400 mb-3">
                     <FileText className="w-5 h-5" />
                   </div>
-                  <h4 className="text-base font-serif font-bold text-[#F0ECE1]">
+                  <h4 className={`text-base font-serif font-bold ${theme === 'dark' ? 'text-[#F0ECE1]' : 'text-[#1E1B15]'}`}>
                     Export Digital Dossier (JSON)
                   </h4>
-                  <p className="text-xs text-[#9E9A90] mt-1 leading-relaxed">
+                  <p className={`text-xs ${theme === 'dark' ? 'text-[#9E9A90]' : 'text-[#6E6452]'} mt-1 leading-relaxed`}>
                     Full mathematical calculation objects, planetary longitudes, and dosha records for archival.
                   </p>
                 </div>
 
                 <button
                   onClick={handleDownloadJSON}
-                  className="w-full py-2.5 rounded-xl bg-[#1A1A1E] hover:bg-[#222228] border border-[#2A2A2E] text-xs font-semibold text-[#E5E1D8] transition cursor-pointer flex items-center justify-center space-x-1.5"
+                  className={`w-full py-2.5 rounded-xl border text-xs font-semibold transition cursor-pointer flex items-center justify-center space-x-1.5 ${
+                    theme === 'dark'
+                      ? 'bg-[#1A1A1E] hover:bg-[#222228] border-[#2A2A2E] text-[#E5E1D8]'
+                      : 'bg-[#FAF1D6] hover:bg-[#F3E6C2] border-[#DECFA6] text-[#423C32]'
+                  }`}
                 >
-                  <Download className="w-3.5 h-3.5 text-blue-400" />
+                  <Download className="w-3.5 h-3.5 text-blue-500" />
                   <span>Download .JSON File</span>
                 </button>
               </div>
 
               {/* Option 3: Plain Text Summary */}
-              <div className="p-5 rounded-2xl bg-[#0D0D0F] border border-[#2A2A2E] hover:border-[#C9A050]/50 transition space-y-4 flex flex-col justify-between">
+              <div className={`p-5 rounded-2xl border transition space-y-4 flex flex-col justify-between ${
+                theme === 'dark' ? 'bg-[#0D0D0F] border-[#2A2A2E] hover:border-[#C9A050]/50' : 'bg-[#FFFDF7] border-[#DECFA6] hover:border-[#C9A050]'
+              }`}>
                 <div>
                   <div className="w-10 h-10 rounded-xl bg-purple-500/15 border border-purple-500/30 flex items-center justify-center text-purple-400 mb-3">
                     <Copy className="w-5 h-5" />
                   </div>
-                  <h4 className="text-base font-serif font-bold text-[#F0ECE1]">
+                  <h4 className={`text-base font-serif font-bold ${theme === 'dark' ? 'text-[#F0ECE1]' : 'text-[#1E1B15]'}`}>
                     Plain Text / WhatsApp Summary
                   </h4>
-                  <p className="text-xs text-[#9E9A90] mt-1 leading-relaxed">
+                  <p className={`text-xs ${theme === 'dark' ? 'text-[#9E9A90]' : 'text-[#6E6452]'} mt-1 leading-relaxed`}>
                     Formatted text report ready to copy or download for rapid sharing with elders or consultants.
                   </p>
                 </div>
@@ -1224,17 +2095,25 @@ Issued by JyotishVeda AI Daivajna Astrological Intelligence Engine
                 <div className="flex items-center space-x-2">
                   <button
                     onClick={handleDownloadTextReport}
-                    className="flex-1 py-2.5 rounded-xl bg-[#1A1A1E] hover:bg-[#222228] border border-[#2A2A2E] text-xs font-semibold text-[#E5E1D8] transition cursor-pointer flex items-center justify-center space-x-1"
+                    className={`flex-1 py-2.5 rounded-xl border text-xs font-semibold transition cursor-pointer flex items-center justify-center space-x-1 ${
+                      theme === 'dark'
+                        ? 'bg-[#1A1A1E] hover:bg-[#222228] border-[#2A2A2E] text-[#E5E1D8]'
+                        : 'bg-[#FAF1D6] hover:bg-[#F3E6C2] border-[#DECFA6] text-[#423C32]'
+                    }`}
                   >
-                    <Download className="w-3.5 h-3.5 text-purple-400" />
+                    <Download className="w-3.5 h-3.5 text-purple-500" />
                     <span>Download .TXT</span>
                   </button>
                   <button
                     onClick={handleCopyReport}
-                    className="px-3 py-2.5 rounded-xl bg-[#1A1A1E] hover:bg-[#222228] border border-[#2A2A2E] text-xs font-semibold text-[#E5E1D8] transition cursor-pointer"
+                    className={`px-3 py-2.5 rounded-xl border text-xs font-semibold transition cursor-pointer ${
+                      theme === 'dark'
+                        ? 'bg-[#1A1A1E] hover:bg-[#222228] border-[#2A2A2E] text-[#E5E1D8]'
+                        : 'bg-[#FAF1D6] hover:bg-[#F3E6C2] border-[#DECFA6] text-[#423C32]'
+                    }`}
                     title="Copy Summary"
                   >
-                    {copiedText ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4 text-[#9E9A90]" />}
+                    {copiedText ? <Check className="w-4 h-4 text-emerald-500" /> : <Copy className={`w-4 h-4 ${theme === 'dark' ? 'text-[#9E9A90]' : 'text-[#6E6452]'}`} />}
                   </button>
                 </div>
               </div>
@@ -1242,13 +2121,15 @@ Issued by JyotishVeda AI Daivajna Astrological Intelligence Engine
           </div>
         </div>
       )}
+      </div>
 
       {/* ========================================================================= */}
-      {/* PRINTABLE OFFICIAL KUNDLI MILAN CERTIFICATE (Visible in Print Mode)       */}
+      {/* PRINTABLE OFFICIAL KUNDLI MILAN CERTIFICATE (Visible in Print Mode Only)  */}
       {/* ========================================================================= */}
       <div
         ref={printableRef}
-        className={`${isPrinting ? 'block' : 'hidden'} print:block bg-white text-black p-8 max-w-4xl mx-auto border-8 border-double border-[#C9A050] my-6 font-sans`}
+        id="printable-certificate"
+        className="hidden print:block bg-white text-black p-8 max-w-4xl mx-auto border-8 border-double border-[#C9A050] my-6 font-sans"
         style={{ fontFamily: "'Outfit', sans-serif" }}
       >
         {/* Certificate Header */}
@@ -1257,7 +2138,7 @@ Issued by JyotishVeda AI Daivajna Astrological Intelligence Engine
             🕉️ JYOTISHVEDA
           </div>
           <div className="text-sm font-semibold tracking-wider text-gray-700 uppercase">
-            Official Vedic Kundli Milan &amp; Ashta Koota Compatibility Certificate
+            Vedic Kundli Milan &amp; Ashta Koota Compatibility Certificate
           </div>
           <p className="text-xs text-gray-500 mt-1">
             Calculated in accordance with Brihat Parashara Hora Shastra &amp; Classical Jyotish Sutras
@@ -1353,6 +2234,144 @@ Issued by JyotishVeda AI Daivajna Astrological Intelligence Engine
           </div>
         </div>
       </div>
+        </>
+      )}
+
+      {/* Saved Matches History Modal */}
+      <AnimatePresence>
+        {isHistoryModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 15 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 15 }}
+              transition={{ duration: 0.2 }}
+              className={`w-full max-w-2xl max-h-[85vh] flex flex-col rounded-2xl border shadow-2xl overflow-hidden ${
+                theme === 'dark' ? 'bg-[#141418] border-[#2A2A2E]' : 'bg-[#FAF4E4] border-[#DFC896]'
+              }`}
+            >
+              {/* Modal Header */}
+              <div className={`p-5 border-b flex items-center justify-between ${
+                theme === 'dark' ? 'border-[#2A2A2E]' : 'border-[#DECFA6]'
+              }`}>
+                <div className="flex items-center space-x-2.5">
+                  <div className="w-8 h-8 rounded-lg bg-[#C9A050]/15 flex items-center justify-center text-[#C9A050]">
+                    <FileText className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h3 className={`font-serif font-bold text-base ${theme === 'dark' ? 'text-[#F0ECE1]' : 'text-[#1E1B15]'}`}>
+                      Saved Matchmaking Reports
+                    </h3>
+                    <p className={`text-xs ${theme === 'dark' ? 'text-[#9E9A90]' : 'text-[#6E6452]'}`}>
+                      History for {currentProfile?.fullName || 'Current User'} ({savedMatches.length} records)
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => setIsHistoryModalOpen(false)}
+                  className={`p-1.5 rounded-lg transition ${
+                    theme === 'dark' ? 'text-[#9E9A90] hover:text-[#F0ECE1] hover:bg-[#1A1A1E]' : 'text-[#6E6452] hover:text-[#1E1B15] hover:bg-[#F3EACB]'
+                  }`}
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Modal Body: List of Saved Matches */}
+              <div className="flex-1 p-5 overflow-y-auto space-y-3">
+                {savedMatches.length === 0 ? (
+                  <div className="text-center py-12 space-y-3">
+                    <HeartHandshake className="w-12 h-12 text-[#9E9A90]/40 mx-auto" />
+                    <p className={`text-sm ${theme === 'dark' ? 'text-[#9E9A90]' : 'text-[#6E6452]'}`}>
+                      No saved matchmaking reports yet for this profile.
+                    </p>
+                    <p className={`text-xs ${theme === 'dark' ? 'text-[#9E9A90]/60' : 'text-[#6E6452]/70'}`}>
+                      When you enter partner details and save them, your match reports will appear here.
+                    </p>
+                  </div>
+                ) : (
+                  savedMatches.map((m) => (
+                    <div
+                      key={m.id}
+                      onClick={() => handleLoadFromHistory(m)}
+                      className={`p-4 rounded-xl border transition cursor-pointer flex flex-col sm:flex-row sm:items-center justify-between gap-4 ${
+                        theme === 'dark'
+                          ? 'bg-[#1A1A1E] border-[#2A2A2E] hover:border-[#C9A050]/60 hover:bg-[#202026]'
+                          : 'bg-[#FFFDF7] border-[#DECFA6] hover:border-[#C9A050] hover:bg-[#FAF4E4]'
+                      }`}
+                    >
+                      <div className="space-y-1">
+                        <div className="flex items-center space-x-2">
+                          <span className="font-bold text-sm text-[#C9A050]">
+                            {m.partner1Name || 'Partner 1'}
+                          </span>
+                          <span className={`text-xs ${theme === 'dark' ? 'text-[#9E9A90]' : 'text-[#6E6452]'}`}>&amp;</span>
+                          <span className="font-bold text-sm text-[#C9A050]">
+                            {m.partner2Name || 'Partner 2'}
+                          </span>
+                        </div>
+
+                        <div className="flex flex-wrap items-center gap-2 text-xs">
+                          <span className="px-2 py-0.5 rounded font-bold bg-[#C9A050]/15 text-[#C9A050] border border-[#C9A050]/30">
+                            {m.totalScore} / {m.maxScore || 36} Gunas ({m.percentage || Math.round((m.totalScore / (m.maxScore || 36)) * 100)}%)
+                          </span>
+                          <span className={`text-[11px] font-semibold ${theme === 'dark' ? 'text-[#E5E1D8]' : 'text-[#1E1B15]'}`}>
+                            {m.verdictTitle || 'Calculated Match'}
+                          </span>
+                        </div>
+
+                        <div className={`text-[11px] ${theme === 'dark' ? 'text-[#9E9A90]' : 'text-[#6E6452]'} flex items-center space-x-2 pt-0.5`}>
+                          <Calendar className="w-3 h-3" />
+                          <span>{new Date(m.createdAt).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center space-x-2 self-end sm:self-center">
+                        <button
+                          type="button"
+                          onClick={() => handleLoadFromHistory(m)}
+                          className="flex items-center space-x-1 px-3 py-1.5 rounded-lg text-xs font-semibold bg-[#C9A050] hover:bg-[#D4AF37] text-black transition shadow-sm"
+                        >
+                          <span>Load</span>
+                          <ArrowRight className="w-3 h-3" />
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={(e) => handleDeleteFromHistory(m.id, e)}
+                          className="p-1.5 rounded-lg text-red-400/70 hover:text-red-400 hover:bg-red-500/10 transition"
+                          title="Delete from history"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+
+              {/* Modal Footer */}
+              <div className={`p-4 border-t flex justify-between items-center ${
+                theme === 'dark' ? 'border-[#2A2A2E] bg-[#101014]' : 'border-[#DECFA6] bg-[#FAF0D8]'
+              }`}>
+                <span className={`text-xs ${theme === 'dark' ? 'text-[#9E9A90]' : 'text-[#6E6452]'}`}>
+                  Click "Load" to restore any match report directly into the UI.
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setIsHistoryModalOpen(false)}
+                  className={`px-4 py-1.5 rounded-lg text-xs font-semibold border transition ${
+                    theme === 'dark' ? 'bg-[#1A1A1E] border-[#2A2A2E] text-[#E5E1D8]' : 'bg-[#FFFDF7] border-[#DECFA6] text-[#423C32] hover:bg-[#F3EACB]'
+                  }`}
+                >
+                  Close
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

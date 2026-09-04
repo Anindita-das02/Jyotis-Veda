@@ -63,7 +63,7 @@ export const TRANSLATIONS: Record<string, Record<string, string>> = {
     'matchmaking.partner1': 'Partner 1 (Person A / Groom)',
     'matchmaking.partner2': 'Partner 2 (Person B / Bride)',
     'matchmaking.calculate': 'Calculate Compatibility (Kundli Milan)',
-    'matchmaking.download_pdf': 'Download Official Match Report (PDF)',
+    'matchmaking.download_pdf': 'Download Match Report (PDF)',
     'matchmaking.download_json': 'Export Astrological Dossier (JSON)',
     'matchmaking.print_report': 'Print / Save Certificate',
     'matchmaking.gunas_score': 'Total Gunas Matched',

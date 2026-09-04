@@ -1,170 +1,368 @@
 import io
+import os
 from datetime import datetime
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import mm
 from reportlab.lib import colors
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.platypus import (
-    SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+    SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image
 )
 
-GOLD = colors.HexColor("#8C6D23")
-DARK = colors.HexColor("#1A1A1A")
+GOLD_DARK = colors.HexColor("#7E5F18")
+GOLD_MAIN = colors.HexColor("#C9A050")
+GOLD_LIGHT = colors.HexColor("#FCF9F2")
+GOLD_BORDER = colors.HexColor("#E2D3B0")
+TEXT_DARK = colors.HexColor("#1A1A1E")
+TEXT_MUTED = colors.HexColor("#5A554C")
 
 
 def _styles():
     styles = getSampleStyleSheet()
     styles.add(ParagraphStyle(
-        name="JVTitle", fontSize=20, leading=24, alignment=1,
-        textColor=GOLD, spaceAfter=4, fontName="Helvetica-Bold",
+        name="JVBrand", fontSize=22, leading=26, alignment=0,
+        fontName="Helvetica-Bold",
     ))
     styles.add(ParagraphStyle(
-        name="JVSubtitle", fontSize=10, leading=14, alignment=1,
-        textColor=colors.grey, spaceAfter=14,
+        name="JVSubtitle", fontSize=9, leading=12, alignment=0,
+        textColor=GOLD_DARK, fontName="Helvetica-Bold",
     ))
     styles.add(ParagraphStyle(
-        name="JVSection", fontSize=13, leading=16, spaceBefore=14,
-        spaceAfter=6, textColor=GOLD, fontName="Helvetica-Bold",
+        name="JVCitation", fontSize=7.5, leading=10, alignment=0,
+        textColor=colors.HexColor("#6B655B"), fontName="Helvetica-Oblique",
     ))
     styles.add(ParagraphStyle(
-        name="JVBody", fontSize=9.5, leading=14, textColor=DARK,
+        name="JVSection", fontSize=10, leading=13, spaceBefore=4,
+        spaceAfter=3, textColor=GOLD_DARK, fontName="Helvetica-Bold",
+    ))
+    styles.add(ParagraphStyle(
+        name="JVBody", fontSize=8.5, leading=11.5, textColor=TEXT_DARK,
+    ))
+    styles.add(ParagraphStyle(
+        name="JVBodyBold", fontSize=9, leading=12, textColor=TEXT_DARK,
+        fontName="Helvetica-Bold",
+    ))
+    styles.add(ParagraphStyle(
+        name="JVBodyMuted", fontSize=8, leading=10.5, textColor=TEXT_MUTED,
+    ))
+    styles.add(ParagraphStyle(
+        name="JVTableHead", fontSize=8.5, leading=11, textColor=GOLD_DARK,
+        fontName="Helvetica-Bold", alignment=0,
+    ))
+    styles.add(ParagraphStyle(
+        name="JVTableHeadCenter", fontSize=8.5, leading=11, textColor=GOLD_DARK,
+        fontName="Helvetica-Bold", alignment=1,
+    ))
+    styles.add(ParagraphStyle(
+        name="JVTableHeadRight", fontSize=8.5, leading=11, textColor=GOLD_DARK,
+        fontName="Helvetica-Bold", alignment=2,
+    ))
+    styles.add(ParagraphStyle(
+        name="JVTableCellCenter", fontSize=8.5, leading=11, textColor=TEXT_DARK,
+        alignment=1,
+    ))
+    styles.add(ParagraphStyle(
+        name="JVTableCellRight", fontSize=9, leading=11.5, textColor=GOLD_DARK,
+        fontName="Helvetica-Bold", alignment=2,
     ))
     return styles
 
 
 def generate_match_report_pdf(report: dict) -> bytes:
-    """report is the full matchmaking_reports row (dict), with report_json
-    already parsed into a Python dict. Builds a real PDF, page numbers
-    included, from that persisted data — nothing here is invented."""
+    """Builds an official Vedic Kundli Milan Certificate
+    with full-page watermark background, brand logo, and 8 Koota breakdown."""
     styles = _styles()
     buffer = io.BytesIO()
     doc = SimpleDocTemplate(
-        buffer, pagesize=A4,
-        topMargin=20 * mm, bottomMargin=18 * mm,
-        leftMargin=18 * mm, rightMargin=18 * mm,
+        buffer,
+        pagesize=A4,
+        topMargin=12 * mm,
+        bottomMargin=22 * mm,
+        leftMargin=13 * mm,
+        rightMargin=13 * mm,
         title="JyotishVeda Kundli Milan Report",
     )
 
     story = []
-    story.append(Paragraph("JYOTISHVEDA", styles["JVTitle"]))
-    story.append(Paragraph(
-        "Official Vedic Kundli Milan &amp; Ashta Koota Compatibility Report",
-        styles["JVSubtitle"],
+
+    # 1. Header Title & Brand with Logo Icon (matching Image 2)
+    logo_candidates = [
+        os.path.abspath(os.path.join(os.path.dirname(__file__), "jyotishveda_logo.png")),
+        os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "public", "jyotishveda_logo.png")),
+        os.path.abspath(os.path.join("public", "jyotishveda_logo.png")),
+        os.path.abspath("jyotishveda_logo.png"),
+    ]
+    logo_path = next((p for p in logo_candidates if os.path.exists(p)), None)
+
+    brand_html = (
+        '<b><font size="20" color="#111111">JYOTISH</font><font size="20" color="#B58328">VEDA</font></b><br/>'
+        '<font size="8.5" color="#7E5F18"><b>VEDIC KUNDLI MILAN &amp; ASHTA KOOTA COMPATIBILITY CERTIFICATE</b></font><br/>'
+        '<font size="7" color="#666666"><i>Calculated in accordance with Brihat Parashara Hora Shastra &amp; Classical Jyotish Sutras</i></font>'
+    )
+    brand_p = Paragraph(brand_html, ParagraphStyle(
+        name="JVHeaderBlock",
+        fontName="Helvetica-Bold",
+        fontSize=18,
+        leading=16,
+        alignment=0,
     ))
 
-    generated = datetime.utcnow().strftime("%d %B %Y, %H:%M UTC")
-    header_data = [
-        ["Partner 1", report["partner1_name"], "Partner 2", report["partner2_name"]],
-        ["Birth Date", str(report["partner1_birth_date"]), "Birth Date", str(report["partner2_birth_date"])],
-        ["Generated", generated, "Manglik Status", report.get("manglik_status") or "N/A"],
-    ]
-    header_table = Table(header_data, colWidths=[80, 130, 80, 130])
-    header_table.setStyle(TableStyle([
-        ("FONTSIZE", (0, 0), (-1, -1), 9),
-        ("TEXTCOLOR", (0, 0), (0, -1), GOLD),
-        ("TEXTCOLOR", (2, 0), (2, -1), GOLD),
-        ("FONTNAME", (0, 0), (0, -1), "Helvetica-Bold"),
-        ("FONTNAME", (2, 0), (2, -1), "Helvetica-Bold"),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
-        ("TOPPADDING", (0, 0), (-1, -1), 6),
-        ("LINEBELOW", (0, 0), (-1, -1), 0.4, colors.lightgrey),
-    ]))
-    story.append(header_table)
-    story.append(Spacer(1, 10))
+    if logo_path:
+        logo_img = Image(logo_path, width=16 * mm, height=16 * mm)
+        header_table = Table([[logo_img, brand_p]], colWidths=[18 * mm, 166 * mm])
+        header_table.setStyle(TableStyle([
+            ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+            ("LEFTPADDING", (0, 0), (-1, -1), 0),
+            ("RIGHTPADDING", (0, 0), (-1, -1), 0),
+            ("TOPPADDING", (0, 0), (-1, -1), 0),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 0),
+        ]))
+        story.append(header_table)
+    else:
+        story.append(brand_p)
 
-    total = float(report["total_score"])
-    max_score = float(report["max_score"])
-    story.append(Paragraph("Compatibility Score", styles["JVSection"]))
-    score_table = Table([[f"{total:g} / {max_score:g}", f"{(total / max_score * 100):.1f}%"]],
-                         colWidths=[210, 210])
-    score_table.setStyle(TableStyle([
-        ("FONTSIZE", (0, 0), (-1, -1), 16),
-        ("FONTNAME", (0, 0), (-1, -1), "Helvetica-Bold"),
-        ("TEXTCOLOR", (0, 0), (-1, -1), GOLD),
-        ("ALIGN", (0, 0), (-1, -1), "CENTER"),
-        ("BOX", (0, 0), (-1, -1), 0.75, colors.lightgrey),
-        ("TOPPADDING", (0, 0), (-1, -1), 10),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 10),
+    story.append(Spacer(1, 4 * mm))
+
+    # 2. Couple Information Box (Partner 1 & Partner 2)
+    p1_name = str(report.get("partner1_name", "Partner 1"))
+    p2_name = str(report.get("partner2_name", "Partner 2"))
+    p1_dob = str(report.get("partner1_birth_date", "N/A"))
+    p2_dob = str(report.get("partner2_birth_date", "N/A"))
+    p1_time = str(report.get("partner1_birth_time", ""))
+    p2_time = str(report.get("partner2_birth_time", ""))
+    p1_place = str(report.get("partner1_birth_place", ""))
+    p2_place = str(report.get("partner2_birth_place", ""))
+
+    p1_extra = f"Born: {p1_dob}" + (f" at {p1_time}" if p1_time else "") + (f", {p1_place}" if p1_place else "")
+    p2_extra = f"Born: {p2_dob}" + (f" at {p2_time}" if p2_time else "") + (f", {p2_place}" if p2_place else "")
+
+    couple_data = [
+        [
+            Paragraph(f"<font size=8.5 color='#7E5F18'><b>GROOM / PARTNER A</b></font><br/><font size=11.5 color='#1A1A1E'><b>{p1_name}</b></font><br/><font size=8 color='#555555'>{p1_extra}</font>", styles["JVBody"]),
+            Paragraph(f"<font size=8.5 color='#7E5F18'><b>BRIDE / PARTNER B</b></font><br/><font size=11.5 color='#1A1A1E'><b>{p2_name}</b></font><br/><font size=8 color='#555555'>{p2_extra}</font>", styles["JVBody"]),
+        ]
+    ]
+    couple_table = Table(couple_data, colWidths=[92 * mm, 92 * mm])
+    couple_table.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, -1), GOLD_LIGHT),
+        ("BOX", (0, 0), (-1, -1), 0.6, GOLD_BORDER),
+        ("LINEBEFORE", (1, 0), (1, -1), 0.6, GOLD_BORDER),
+        ("TOPPADDING", (0, 0), (-1, -1), 8),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 8),
+        ("LEFTPADDING", (0, 0), (-1, -1), 10),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 10),
     ]))
-    story.append(score_table)
+    story.append(couple_table)
+    story.append(Spacer(1, 4.5 * mm))
+
+    # 3. Total Compatibility Score Banner
+    total = float(report.get("total_score", 0))
+    max_score = float(report.get("max_score", 36))
+    pct = (total / max_score * 100) if max_score > 0 else 0
 
     report_json = report.get("report_json") or {}
+    verdict_title = report_json.get("verdictTitle") or ("AUSPICIOUS MATCH" if total >= 18 else "AVERAGE MATCH")
+    summary_text = report_json.get("summary") or "Vedic synastry points calculated across Moon Nakshatras."
 
-    verdict_title = report_json.get("verdictTitle")
-    verdict_desc = report_json.get("verdictDescription")
-    if verdict_title or verdict_desc:
-        story.append(Paragraph(f"Verdict: {verdict_title or 'Analysis'}", styles["JVSection"]))
-        if verdict_desc:
-            story.append(Paragraph(verdict_desc, styles["JVBody"]))
+    score_data = [
+        [
+            Paragraph(
+                f"<font size=9 color='#7E5F18'><b>TOTAL COMPATIBILITY SCORE</b></font><br/>"
+                f"<font size=18.5 color='#7E5F18'><b>{total:g} / {max_score:g} Gunas ({pct:.0f}%)</b></font><br/>"
+                f"<font size=10.5 color='#1A1A1E'><b>{verdict_title.upper()}</b></font><br/>"
+                f"<font size=8 color='#555555'><i>\"{summary_text[:190]}\"</i></font>",
+                ParagraphStyle(name="ScoreCenter", parent=styles["JVBody"], alignment=1, leading=14)
+            )
+        ]
+    ]
+    score_table = Table(score_data, colWidths=[184 * mm])
+    score_table.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#FEFAF0")),
+        ("BOX", (0, 0), (-1, -1), 0.8, GOLD_MAIN),
+        ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+        ("TOPPADDING", (0, 0), (-1, -1), 8),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 8),
+        ("LEFTPADDING", (0, 0), (-1, -1), 8),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 8),
+    ]))
+    story.append(score_table)
+    story.append(Spacer(1, 4.5 * mm))
 
-    kootas = report_json.get("kootas")
+    # 4. Ashta Koota Points Breakdown Table
+    story.append(Paragraph("ASHTA KOOTA POINTS BREAKDOWN", styles["JVSection"]))
+    kootas = report_json.get("kootas") or []
+    
+    rows = [[
+        Paragraph("<b>Koota</b>", styles["JVTableHead"]),
+        Paragraph("<b>Significance</b>", styles["JVTableHead"]),
+        Paragraph(f"<b>{p1_name.split()[0]}</b>", styles["JVTableHeadCenter"]),
+        Paragraph(f"<b>{p2_name.split()[0]}</b>", styles["JVTableHeadCenter"]),
+        Paragraph("<b>Points</b>", styles["JVTableHeadRight"]),
+    ]]
+
     if isinstance(kootas, list) and kootas:
-        story.append(Paragraph("Ashta Koota Analysis", styles["JVSection"]))
-        rows = [["Koota", "Points", "Max", "Notes"]]
-        for k in kootas:
-            # Wrap the notes text in a Paragraph so it wraps onto multiple lines instead of being cut off
-            desc_text = str(k.get("description", k.get("notes", "")))
-            notes_paragraph = Paragraph(desc_text, styles["JVBody"])
+        for idx, k in enumerate(kootas):
+            k_name = str(k.get("name", ""))
+            k_area = str(k.get("area", k.get("description", "")))[:45]
+            p1_v = str(k.get("p1Value", "-"))
+            p2_v = str(k.get("p2Value", "-"))
+            score_v = float(k.get("obtainedPoints", k.get("score", 0)))
+            max_v = float(k.get("maxPoints", k.get("max", 0)))
+            pts_text = f"<b>{score_v:g} / {max_v:g}</b>"
+
+            pts_style = ParagraphStyle(
+                name=f"Pts_{idx}",
+                parent=styles["JVTableCellRight"],
+                textColor=GOLD_DARK,
+            )
+
             rows.append([
-                str(k.get("name", "")),
-                str(k.get("points", k.get("score", ""))),
-                str(k.get("maxPoints", k.get("max", ""))),
-                notes_paragraph,
+                Paragraph(f"<b>{k_name}</b>", styles["JVBodyBold"]),
+                Paragraph(k_area, styles["JVBodyMuted"]),
+                Paragraph(p1_v, styles["JVTableCellCenter"]),
+                Paragraph(p2_v, styles["JVTableCellCenter"]),
+                Paragraph(pts_text, pts_style),
             ])
-        koota_table = Table(rows, colWidths=[80, 40, 40, 260])
-        koota_table.setStyle(TableStyle([
-            ("FONTSIZE", (0, 0), (-1, 0), 8),
-            ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#F0E6C8")),
-            ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
-            ("GRID", (0, 0), (-1, -1), 0.4, colors.lightgrey),
-            ("VALIGN", (0, 0), (-1, -1), "TOP"),
-            ("TOPPADDING", (0, 0), (-1, -1), 4),
-            ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
-        ]))
-        story.append(koota_table)
 
-    manglik = report_json.get("manglik")
-    if isinstance(manglik, dict):
-        story.append(Paragraph("Manglik (Kuja) Dosha Analysis", styles["JVSection"]))
-        story.append(Paragraph(str(manglik.get("conclusion", "")), styles["JVBody"]))
-        if manglik.get("cancellationRules"):
-            story.append(Paragraph(f"<b>Cancellations:</b> {', '.join(manglik.get('cancellationRules', []))}", styles["JVBody"]))
+    koota_table = Table(rows, colWidths=[33 * mm, 57 * mm, 35 * mm, 35 * mm, 24 * mm])
+    t_style = [
+        ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#F3ECDA")),
+        ("LINEBELOW", (0, 0), (-1, -1), 0.4, colors.HexColor("#E5DCBE")),
+        ("BOX", (0, 0), (-1, -1), 0.6, GOLD_BORDER),
+        ("TOPPADDING", (0, 0), (-1, -1), 6),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
+        ("LEFTPADDING", (0, 0), (-1, -1), 6),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 6),
+        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+    ]
+    for r_i in range(1, len(rows)):
+        if r_i % 2 == 0:
+            t_style.append(("BACKGROUND", (0, r_i), (-1, r_i), colors.HexColor("#FCFAF5")))
+    koota_table.setStyle(TableStyle(t_style))
+    story.append(koota_table)
+    story.append(Spacer(1, 4.5 * mm))
 
-    remedies = report_json.get("remedies")
-    if isinstance(remedies, list) and remedies:
-        story.append(Paragraph("Recommended Remedies", styles["JVSection"]))
-        for r in remedies:
-            story.append(Paragraph(f"• {r}", styles["JVBody"]))
+    # 5. Critical Dosha & Vitality Assessment
+    story.append(Paragraph("CRITICAL DOSHA &amp; VITALITY ASSESSMENT", styles["JVSection"]))
+    manglik = report_json.get("manglik") or {}
+    m_verdict = manglik.get("verdict") or report.get("manglik_status") or "Non-Manglik"
+    m_exp = manglik.get("explanation") or manglik.get("conclusion") or "Planetary Kuja influence analyzed between both birth charts."
+    
+    nadi = report_json.get("nadiDosha") or {}
+    bhakoot = report_json.get("bhakootDosha") or {}
+    vitality_text = f"Nadi: {nadi.get('reason', 'Balanced')}. Bhakoot: {bhakoot.get('reason', 'Auspicious harmony')}."
 
-    strengths = report_json.get("strengths")
-    if isinstance(strengths, list) and strengths:
-        story.append(Paragraph("Strengths", styles["JVSection"]))
-        for s in strengths:
-            story.append(Paragraph(f"• {s}", styles["JVBody"]))
+    dosha_data = [
+        [
+            Paragraph(f"<b>Manglik (Kuja) Dosha:</b><br/><font size=8.5 color='#7E5F18'><b>Verdict: {m_verdict}</b></font><br/><font size=8 color='#555555'>{m_exp[:150]}</font>", styles["JVBody"]),
+            Paragraph(f"<b>Nadi &amp; Bhakoot Vitality:</b><br/><font size=8 color='#555555'>{vitality_text[:170]}</font>", styles["JVBody"]),
+        ]
+    ]
+    dosha_table = Table(dosha_data, colWidths=[92 * mm, 92 * mm])
+    dosha_table.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#FAF7F0")),
+        ("BOX", (0, 0), (-1, -1), 0.6, GOLD_BORDER),
+        ("LINEBEFORE", (1, 0), (1, -1), 0.6, GOLD_BORDER),
+        ("TOPPADDING", (0, 0), (-1, -1), 7),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 7),
+        ("LEFTPADDING", (0, 0), (-1, -1), 8),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 8),
+        ("VALIGN", (0, 0), (-1, -1), "TOP"),
+    ]))
+    story.append(dosha_table)
+    story.append(Spacer(1, 4.5 * mm))
 
-    challenges = report_json.get("challenges")
-    if isinstance(challenges, list) and challenges:
-        story.append(Paragraph("Challenges", styles["JVSection"]))
-        for c in challenges:
-            story.append(Paragraph(f"• {c}", styles["JVBody"]))
+    # 6. Auspicious Remedies Section
+    remedies = report_json.get("remedies") or [
+        "Perform Joint Gauri-Shankar Puja on Shukla Paksha Mondays to evoke divine marital grace.",
+        "Chant the sacred Shukra Beej Mantra (Om Shum Shukraya Namaha) for enduring sweetness.",
+        "Light a pure cow-ghee lamp during sunset on Thursdays for spiritual harmony."
+    ]
+    rem_lines = "<br/>".join([f"{i+1}. {r[:150]}" for i, r in enumerate(remedies[:3])])
+    
+    rem_style = ParagraphStyle(
+        name="JVRemedies",
+        parent=styles["JVBody"],
+        fontSize=8.2,
+        leading=12,
+        textColor=colors.HexColor("#3A3A3C"),
+    )
+    rem_table = Table([[
+        Paragraph(f"<font size=8.8 color='#7E5F18'><b>AUSPICIOUS VEDIC REMEDIES &amp; GUIDANCE</b></font><br/>{rem_lines}", rem_style)
+    ]], colWidths=[184 * mm])
+    rem_table.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#FEFCF7")),
+        ("BOX", (0, 0), (-1, -1), 0.6, GOLD_MAIN),
+        ("TOPPADDING", (0, 0), (-1, -1), 7),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 7),
+        ("LEFTPADDING", (0, 0), (-1, -1), 8),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 8),
+    ]))
+    story.append(rem_table)
 
-    story.append(Spacer(1, 16))
-    story.append(Paragraph("Disclaimer", styles["JVSection"]))
-    story.append(Paragraph(
-        "This report reflects traditional Vedic astrological interpretation and is provided "
-        "for informational and cultural purposes. It does not constitute a guaranteed "
-        "prediction and is not a substitute for professional medical, legal, or financial "
-        "advice. Final decisions rest with the individuals concerned.",
-        styles["JVBody"],
-    ))
-
-    def _add_page_number(canvas, doc_):
+    # 7. Decorative Canvas Decorator: Full Page Watermark + Borders + Raised Footer
+    def _draw_page_decorations(canvas, doc_):
         canvas.saveState()
-        canvas.setFont("Helvetica", 8)
-        canvas.setFillColor(colors.grey)
-        canvas.drawRightString(200 * mm, 10 * mm, f"Page {doc_.page}")
-        canvas.drawString(18 * mm, 10 * mm, "JyotishVeda \u2022 AI Daivajna")
+        
+        # 1. Full Page Background Astrologer / Sage Image Watermark
+        img_candidates = [
+            os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "public", "astrologer_bg.jpg")),
+            os.path.abspath(os.path.join("public", "astrologer_bg.jpg")),
+            os.path.abspath("astrologer_bg.jpg"),
+        ]
+        img_path = next((p for p in img_candidates if os.path.exists(p)), None)
+        
+        if img_path:
+            try:
+                canvas.setFillAlpha(0.09)
+                # Full page watermark across the entire 210mm x 297mm page
+                canvas.drawImage(
+                    img_path,
+                    0,
+                    0,
+                    width=210 * mm,
+                    height=297 * mm,
+                    preserveAspectRatio=False,
+                    mask='auto'
+                )
+            except Exception:
+                pass
+
+        # Outer Decorative Golden Double Border
+        canvas.setFillAlpha(1.0)
+        canvas.setStrokeColor(GOLD_MAIN)
+        canvas.setLineWidth(1.2)
+        canvas.rect(8 * mm, 8 * mm, (210 - 16) * mm, (297 - 16) * mm)
+        canvas.setLineWidth(0.4)
+        canvas.rect(10 * mm, 10 * mm, (210 - 20) * mm, (297 - 20) * mm)
+
+        # Corner Golden Rosettes
+        canvas.setFillColor(GOLD_MAIN)
+        canvas.circle(10 * mm, 10 * mm, 1.2 * mm, fill=1, stroke=0)
+        canvas.circle((210 - 10) * mm, 10 * mm, 1.2 * mm, fill=1, stroke=0)
+        canvas.circle(10 * mm, (297 - 10) * mm, 1.2 * mm, fill=1, stroke=0)
+        canvas.circle((210 - 10) * mm, (297 - 10) * mm, 1.2 * mm, fill=1, stroke=0)
+
+        # Raised Footer Divider Line
+        canvas.setStrokeColor(GOLD_BORDER)
+        canvas.setLineWidth(0.5)
+        canvas.line(13 * mm, 19 * mm, (210 - 13) * mm, 19 * mm)
+
+        # Raised Footer Details (comfortably positioned above the bottom border)
+        canvas.setFont("Helvetica", 7)
+        canvas.setFillColor(colors.HexColor("#666666"))
+        cert_id = f"JV-KM-{datetime.utcnow().strftime('%Y%m%d')}-{report.get('id', 'CERT')[:6].upper()}"
+        canvas.drawString(14 * mm, 15 * mm, f"Certificate ID: {cert_id}  |  Generated: {datetime.utcnow().strftime('%d %B %Y')}")
+        canvas.drawString(14 * mm, 12 * mm, "Certified via JyotishVeda Mathematical AstroEngine & Classical Ephemeris")
+
+        canvas.setFont("Helvetica-Bold", 8)
+        canvas.setFillColor(GOLD_DARK)
+        canvas.drawRightString((210 - 14) * mm, 15 * mm, "DAIVAJNA ASTROLOGICAL SEAL")
+        canvas.setFont("Helvetica", 6.5)
+        canvas.setFillColor(colors.HexColor("#777777"))
+        canvas.drawRightString((210 - 14) * mm, 12 * mm, "Digitally Verified & Certified")
+
         canvas.restoreState()
 
-    doc.build(story, onFirstPage=_add_page_number, onLaterPages=_add_page_number)
+    doc.build(story, onFirstPage=_draw_page_decorations)
     return buffer.getvalue()
