@@ -1125,8 +1125,9 @@ def create_match_report(user_id: str):
 
     try:
         rows = call_procedure(
-            "sp_create_match_report",
+            "sp_matchmaking_ops",
             [
+                "create",
                 report_id,
                 user_id,
                 p1_name,

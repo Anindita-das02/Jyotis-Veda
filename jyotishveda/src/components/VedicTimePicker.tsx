@@ -118,6 +118,29 @@ export const VedicTimePicker: React.FC<VedicTimePickerProps> = ({
     }
   }, [value]);
 
+  // Dynamic placement (flip upwards if near bottom of screen)
+  const [openPlacement, setOpenPlacement] = useState<'bottom' | 'top'>('bottom');
+
+  useEffect(() => {
+    if (isOpen && containerRef.current) {
+      const rect = containerRef.current.getBoundingClientRect();
+      const popoverEstimatedHeight = 280;
+      const spaceBelow = window.innerHeight - rect.bottom;
+      const spaceAbove = rect.top;
+
+      if (spaceBelow < popoverEstimatedHeight && spaceAbove > popoverEstimatedHeight) {
+        setOpenPlacement('top');
+      } else {
+        setOpenPlacement('bottom');
+        if (spaceBelow < popoverEstimatedHeight) {
+          setTimeout(() => {
+            containerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }, 50);
+        }
+      }
+    }
+  }, [isOpen]);
+
   // Close on outside click
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -309,11 +332,13 @@ export const VedicTimePicker: React.FC<VedicTimePickerProps> = ({
       <AnimatePresence>
         {isOpen && !disabled && (
           <motion.div
-            initial={{ opacity: 0, y: -6, scale: 0.98 }}
+            initial={{ opacity: 0, y: openPlacement === 'top' ? 6 : -6, scale: 0.98 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -6, scale: 0.98 }}
+            exit={{ opacity: 0, y: openPlacement === 'top' ? 6 : -6, scale: 0.98 }}
             transition={{ duration: 0.15 }}
-            className={`absolute left-0 top-full mt-1.5 z-50 w-72 sm:w-80 rounded-2xl border shadow-2xl p-4 overflow-hidden backdrop-blur-md ${
+            className={`absolute left-0 ${
+              openPlacement === 'top' ? 'bottom-full mb-1.5' : 'top-full mt-1.5'
+            } z-50 w-72 sm:w-80 rounded-2xl border shadow-2xl p-4 overflow-hidden backdrop-blur-md ${
               theme === 'dark'
                 ? 'bg-[#141418] border-[#C9A050]/40 shadow-black/80'
                 : 'bg-gradient-to-b from-[#FAF4E4] to-[#F5EACB] border-[#DFC896] shadow-[#C9A050]/15 text-[#1E1B15]'
@@ -399,11 +424,57 @@ export const VedicTimePicker: React.FC<VedicTimePickerProps> = ({
               </div>
             </div>
 
-            {/* Minute Selector (Presets) */}
+            {/* Minute Selector (Full Range 00 - 59 with Slider + Stepper + Quick Intervals) */}
             <div className="mb-3">
-              <span className="block text-[10px] font-bold uppercase tracking-wider text-[#C9A050] mb-1.5">
-                Minute
-              </span>
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-[#C9A050]">
+                  Minute (00 – 59)
+                </span>
+                {/* Stepper buttons - and + */}
+                <div className="flex items-center space-x-1.5">
+                  <button
+                    type="button"
+                    onClick={() => handleSelectMinute((selectedMinute - 1 + 60) % 60)}
+                    className={`w-6 h-6 rounded-md font-bold text-xs flex items-center justify-center transition border cursor-pointer ${
+                      theme === 'dark'
+                        ? 'bg-[#1C1C22] border-[#2A2A2E] text-[#E5E1D8] hover:border-[#C9A050] hover:text-[#C9A050]'
+                        : 'bg-[#FFFDF7] border-[#DECFA6] text-[#1E1B15] hover:border-[#C9A050] hover:bg-[#FAF1D6]'
+                    }`}
+                    title="Decrement 1 minute"
+                  >
+                    -
+                  </button>
+                  <span className="font-mono text-xs font-bold text-[#C9A050] min-w-[28px] text-center">
+                    :{String(selectedMinute).padStart(2, '0')}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => handleSelectMinute((selectedMinute + 1) % 60)}
+                    className={`w-6 h-6 rounded-md font-bold text-xs flex items-center justify-center transition border cursor-pointer ${
+                      theme === 'dark'
+                        ? 'bg-[#1C1C22] border-[#2A2A2E] text-[#E5E1D8] hover:border-[#C9A050] hover:text-[#C9A050]'
+                        : 'bg-[#FFFDF7] border-[#DECFA6] text-[#1E1B15] hover:border-[#C9A050] hover:bg-[#FAF1D6]'
+                    }`}
+                    title="Increment 1 minute"
+                  >
+                    +
+                  </button>
+                </div>
+              </div>
+
+              {/* Smooth Range Slider for Any Minute (0 to 59) */}
+              <div className="mb-2 px-1">
+                <input
+                  type="range"
+                  min="0"
+                  max="59"
+                  value={selectedMinute}
+                  onChange={(e) => handleSelectMinute(parseInt(e.target.value, 10))}
+                  className="w-full h-1.5 bg-[#C9A050]/20 rounded-lg appearance-none cursor-pointer accent-[#C9A050]"
+                />
+              </div>
+
+              {/* Quick 5-min Interval Chips */}
               <div className="grid grid-cols-6 gap-1 text-center">
                 {MINUTE_PRESETS.map((m) => {
                   const isSelected = selectedMinute === m;
@@ -412,7 +483,7 @@ export const VedicTimePicker: React.FC<VedicTimePickerProps> = ({
                       key={`m-${m}`}
                       type="button"
                       onClick={() => handleSelectMinute(m)}
-                      className={`py-1.5 rounded-lg text-xs font-mono font-medium transition cursor-pointer select-none ${
+                      className={`py-1 rounded-lg text-xs font-mono font-medium transition cursor-pointer select-none ${
                         isSelected
                           ? theme === 'dark'
                             ? 'bg-[#C9A050] text-[#0D0D0F] font-bold shadow-md shadow-[#C9A050]/40 scale-105'
@@ -427,69 +498,6 @@ export const VedicTimePicker: React.FC<VedicTimePickerProps> = ({
                   );
                 })}
               </div>
-            </div>
-
-            {/* Astrological Muhurat / Time Period Presets */}
-            <div className="mb-3 pt-2 border-t border-[#C9A050]/20">
-              <span className="block text-[10px] font-bold uppercase tracking-wider text-[#C9A050] mb-1.5">
-                Quick Astrological Presets
-              </span>
-              <div className="grid grid-cols-3 gap-1.5">
-                {TIME_PRESETS.map((p) => (
-                  <button
-                    key={p.label}
-                    type="button"
-                    onClick={() => handleSelectPreset(p)}
-                    className={`py-1 px-1.5 rounded-lg text-[10px] font-semibold text-left transition cursor-pointer truncate ${
-                      theme === 'dark'
-                        ? 'bg-[#1C1C22] border border-[#2A2A2E] hover:border-[#C9A050] text-gray-300 hover:text-white'
-                        : 'bg-[#FFFDF7] border border-[#DECFA6] hover:border-[#C9A050] text-[#423C32]'
-                    }`}
-                    title={`${p.label} (${p.desc})`}
-                  >
-                    <div className="font-bold text-[#C9A050]">{p.desc}</div>
-                    <div className="opacity-70 truncate">{p.label}</div>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Footer / Done Button */}
-            <div className="pt-2 border-t border-[#C9A050]/20 flex items-center justify-between text-xs">
-              <button
-                type="button"
-                onClick={() => {
-                  const now = new Date();
-                  const h = now.getHours();
-                  const m = now.getMinutes();
-                  const nowStr = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
-                  onChange(nowStr);
-                  const p = parseTimeTo12Hr(nowStr);
-                  if (p.valid) {
-                    setSelectedHour(p.hour12);
-                    setSelectedMinute(p.minute);
-                    setAmPm(p.ampm);
-                    setTypedText(`${String(p.hour12).padStart(2, '0')}:${String(p.minute).padStart(2, '0')}`);
-                  }
-                  setIsOpen(false);
-                }}
-                className="text-[#C9A050] hover:underline font-semibold flex items-center space-x-1 cursor-pointer"
-              >
-                <Sparkles className="w-3 h-3" />
-                <span>Current Time</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setIsOpen(false)}
-                className={`px-3 py-1 rounded-lg text-xs font-semibold transition cursor-pointer ${
-                  theme === 'dark'
-                    ? 'bg-[#222228] hover:bg-[#2A2A32] text-gray-300'
-                    : 'bg-[#FAF1D6] hover:bg-[#F3E6C2] text-[#423C32] border border-[#DECFA6]'
-                }`}
-              >
-                Done
-              </button>
             </div>
           </motion.div>
         )}

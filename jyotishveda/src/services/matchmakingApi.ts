@@ -21,16 +21,21 @@ export interface MatchReportFull extends MatchReportSummary {
 export async function saveMatchReport(
   result: AshtaKootaMilanResult,
 ): Promise<MatchReportFull> {
+  const p1Name = result.partner1?.fullName || 'Partner 1';
+  const p1Dob = result.partner1?.birthDate || '2000-01-01';
+  const p2Name = result.partner2?.fullName || 'Partner 2';
+  const p2Dob = result.partner2?.birthDate || '2000-01-01';
+
   return api.post<MatchReportFull>(API_ENDPOINTS.MATCHMAKING.REPORTS, {
-    partner1Name: result.partner1.fullName,
-    partner1BirthDate: result.partner1.birthDate,
-    partner2Name: result.partner2.fullName,
-    partner2BirthDate: result.partner2.birthDate,
-    totalScore: result.totalPoints,
-    maxScore: result.maxPoints,
+    partner1Name: p1Name,
+    partner1BirthDate: p1Dob,
+    partner2Name: p2Name,
+    partner2BirthDate: p2Dob,
+    totalScore: result.totalPoints ?? 0,
+    maxScore: result.maxPoints ?? 36,
     manglikStatus:
-      result.manglik?.partner1.isManglik || result.manglik?.partner2.isManglik
-        ? `${result.manglik.partner1.severity} / ${result.manglik.partner2.severity}`
+      result.manglik?.partner1?.isManglik || result.manglik?.partner2?.isManglik
+        ? `${result.manglik?.partner1?.severity || 'Manglik'} / ${result.manglik?.partner2?.severity || 'Manglik'}`
         : 'Non-Manglik',
     report: result,
   });

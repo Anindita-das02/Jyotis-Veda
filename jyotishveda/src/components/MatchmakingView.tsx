@@ -123,37 +123,22 @@ export const MatchmakingView: React.FC<MatchmakingViewProps> = ({
     focusAreas: ['relationships'],
   });
 
-  // Load saved matchmaking state for this specific user profile
-  const loadSavedState = () => {
-    try {
-      const raw = localStorage.getItem(storageKey);
-      if (raw) {
-        return JSON.parse(raw);
-      }
-    } catch (e) {
-      console.warn('Failed to load matchmaking state:', e);
-    }
-    return null;
-  };
+  // Select partner 1 and partner 2 (Clean default state on load/refresh)
+  const [partner1, setPartner1] = useState<UserProfile>(getDefaultP1());
+  const [partner2, setPartner2] = useState<UserProfile>(getDefaultP2());
 
-  const savedState = loadSavedState();
-
-  // Select partner 1 and partner 2 (Persistent per user)
-  const [partner1, setPartner1] = useState<UserProfile>(savedState?.partner1 || getDefaultP1());
-  const [partner2, setPartner2] = useState<UserProfile>(savedState?.partner2 || getDefaultP2());
-
-  const [isP1Saved, setIsP1Saved] = useState<boolean>(savedState?.isP1Saved ?? false);
-  const [isP2Saved, setIsP2Saved] = useState<boolean>(savedState?.isP2Saved ?? false);
+  const [isP1Saved, setIsP1Saved] = useState<boolean>(false);
+  const [isP2Saved, setIsP2Saved] = useState<boolean>(false);
   const [isCalculatingMilan, setIsCalculatingMilan] = useState(false);
   const [loadingStep, setLoadingStep] = useState(0);
 
-  const [matchResult, setMatchResult] = useState<AshtaKootaMilanResult | null>(savedState?.matchResult || null);
+  const [matchResult, setMatchResult] = useState<AshtaKootaMilanResult | null>(null);
 
   const [expandedKoota, setExpandedKoota] = useState<string | null>('nadi');
   const [activeTab, setActiveTab] = useState<'kootas' | 'doshas' | 'synastry' | 'remedies' | 'ai_counsel' | 'download'>('kootas');
 
   const [isGeneratingAI, setIsGeneratingAI] = useState(false);
-  const [aiSynthesis, setAiSynthesis] = useState<string | null>(savedState?.aiSynthesis || null);
+  const [aiSynthesis, setAiSynthesis] = useState<string | null>(null);
   const [copiedText, setCopiedText] = useState(false);
   const [isPrinting, setIsPrinting] = useState(false);
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
@@ -171,24 +156,14 @@ export const MatchmakingView: React.FC<MatchmakingViewProps> = ({
     }
   });
 
-  // When profile switches, load corresponding profile data
+  // When profile switches, reset to clean form and load profile history
   useEffect(() => {
-    const s = loadSavedState();
-    if (s) {
-      setPartner1(s.partner1 || getDefaultP1());
-      setPartner2(s.partner2 || getDefaultP2());
-      setIsP1Saved(s.isP1Saved ?? false);
-      setIsP2Saved(s.isP2Saved ?? false);
-      setMatchResult(s.matchResult || null);
-      setAiSynthesis(s.aiSynthesis || null);
-    } else {
-      setPartner1(getDefaultP1());
-      setPartner2(getDefaultP2());
-      setIsP1Saved(false);
-      setIsP2Saved(false);
-      setMatchResult(null);
-      setAiSynthesis(null);
-    }
+    setPartner1(getDefaultP1());
+    setPartner2(getDefaultP2());
+    setIsP1Saved(false);
+    setIsP2Saved(false);
+    setMatchResult(null);
+    setAiSynthesis(null);
 
     try {
       const rawHist = localStorage.getItem(historyKey);
@@ -196,25 +171,20 @@ export const MatchmakingView: React.FC<MatchmakingViewProps> = ({
     } catch {
       setSavedMatches([]);
     }
-  }, [profileId]);
+  }, [profileId, historyKey]);
 
-  // Persist current active matchmaking state to localStorage
+  // Auto-scroll down smoothly to the Generate button when both partners are saved
   useEffect(() => {
-    try {
-      const payload = {
-        partner1,
-        partner2,
-        isP1Saved,
-        isP2Saved,
-        matchResult,
-        aiSynthesis,
-        savedAt: new Date().toISOString(),
-      };
-      localStorage.setItem(storageKey, JSON.stringify(payload));
-    } catch (err) {
-      console.warn('Failed to persist matchmaking state to localStorage:', err);
+    if (isP1Saved && isP2Saved && partner1.birthDate && partner2.birthDate && !matchResult) {
+      const scrollTimer = setTimeout(() => {
+        const generateSection = document.getElementById('generate-milan-section');
+        if (generateSection) {
+          generateSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }, 150);
+      return () => clearTimeout(scrollTimer);
     }
-  }, [partner1, partner2, isP1Saved, isP2Saved, matchResult, aiSynthesis, storageKey]);
+  }, [isP1Saved, isP2Saved, partner1.birthDate, partner2.birthDate, matchResult]);
 
   // Save calculated result to history list
   const saveToHistoryList = (result: AshtaKootaMilanResult, p1: UserProfile, p2: UserProfile) => {
@@ -258,20 +228,17 @@ export const MatchmakingView: React.FC<MatchmakingViewProps> = ({
     setIsP2Saved(false);
     setMatchResult(null);
     setAiSynthesis(null);
-    try {
-      localStorage.removeItem(storageKey);
-    } catch {}
   };
 
-  // Load a match from history into the UI
+  // Load a match from history into the UI with full-page cosmic loader & auto-scroll
   const handleLoadFromHistory = (item: any) => {
     if (item.partner1 && item.partner2) {
       setPartner1(item.partner1);
       setPartner2(item.partner2);
       setIsP1Saved(true);
       setIsP2Saved(true);
-      setMatchResult(item.result || calculateKundliMilan(item.partner1, item.partner2));
       setIsHistoryModalOpen(false);
+      triggerMilanCalculation(item.partner1, item.partner2);
     }
   };
 
@@ -293,13 +260,17 @@ export const MatchmakingView: React.FC<MatchmakingViewProps> = ({
       saveToHistoryList(matchResult, partner1, partner2);
       if (isAuthenticated) {
         const saved = await saveMatchReport(matchResult);
-        setSavedReportId(saved.id);
+        if (saved && saved.id) {
+          setSavedReportId(saved.id);
+        }
       }
       setSaveState('saved');
-      setTimeout(() => setSaveState('idle'), 2500);
-    } catch (err) {
+      setTimeout(() => setSaveState('idle'), 3000);
+    } catch (err: any) {
+      console.error('Failed to save match report to server:', err);
       setSaveState('error');
-      setSaveError(err instanceof ApiError ? err.message : 'Could not save report');
+      const errorMsg = err instanceof ApiError ? err.message : (err?.message || 'Could not save report to server.');
+      setSaveError(errorMsg);
     }
   };
 
@@ -932,8 +903,8 @@ Issued by JyotishVeda AI Daivajna Astrological Intelligence Engine
               </div>
 
               {isP1Saved && (
-                <span className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full text-xs font-bold bg-[#DECFA6] text-[#2D2104] border border-[#B38730] dark:bg-[#C9A050]/30 dark:text-[#FDE68A] dark:border-[#C9A050] shadow-sm">
-                  <Check className="w-3.5 h-3.5 text-[#2D2104] dark:text-[#FDE68A] stroke-[2.5]" />
+                <span className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full text-xs font-extrabold bg-[#FCE59F] text-[#3B2902] border-2 border-[#C9A050] dark:bg-[#C9A050] dark:text-[#0D0D0F] dark:border-[#DFC896] shadow-md">
+                  <Check className="w-3.5 h-3.5 text-[#3B2902] dark:text-[#0D0D0F] stroke-[3]" />
                   <span>Saved</span>
                 </span>
               )}
@@ -1009,13 +980,7 @@ Issued by JyotishVeda AI Daivajna Astrological Intelligence Engine
               <button
                 type="button"
                 onClick={() => setIsP1Saved(false)}
-                className={`px-4 py-2 rounded-xl border text-xs font-bold transition cursor-pointer ${
-                  isP1Saved 
-                    ? 'bg-[#EFE4C4] border-[#B89F65] text-[#2D2104] hover:bg-[#E5D7B0] dark:bg-[#1A1A1E] dark:border-[#C9A050]/60 dark:text-[#E8D5B5] dark:hover:text-white' 
-                    : theme === 'dark'
-                    ? 'bg-[#1A1A1E] border-[#2A2A2E] text-[#9E9A90] hover:text-[#F0ECE1]'
-                    : 'bg-[#FAF1D6] border-[#DECFA6] text-[#544B3D] hover:text-[#1E1B15] hover:bg-[#F3E6C2]'
-                }`}
+                className="px-5 py-2 rounded-xl font-extrabold text-xs border-2 border-[#B38730] bg-[#FAF0D0] hover:bg-[#EEDCA8] text-[#0D0D0F] dark:bg-[#FAF0D0] dark:border-[#B38730] dark:text-[#0D0D0F] dark:hover:bg-[#EEDCA8] transition shadow-sm cursor-pointer"
               >
                 Edit
               </button>
@@ -1025,18 +990,14 @@ Issued by JyotishVeda AI Daivajna Astrological Intelligence Engine
                 onClick={() => {
                   if (partner1.birthDate) {
                     setIsP1Saved(true);
-                    if (isP2Saved && partner2.birthDate) {
-                      triggerMilanCalculation(partner1, partner2);
-                    }
                   }
                 }}
-                className={`px-5 py-2 rounded-xl font-bold text-xs shadow-md transition cursor-pointer flex items-center space-x-1.5 ${
+                className={`px-5 py-2 rounded-xl font-extrabold text-xs shadow-md transition cursor-pointer flex items-center justify-center ${
                   isP1Saved
-                    ? 'bg-[#C9A050] text-[#1A1405] border border-[#A67C28] shadow-[#C9A050]/20 dark:bg-[#C9A050] dark:text-[#0D0D0F]'
-                    : 'bg-[#C9A050] hover:bg-[#D4AF37] text-[#1A1405] shadow-[#C9A050]/25 hover:scale-[1.02] dark:text-[#0D0D0F]'
+                    ? 'bg-[#C9A050] text-[#0D0D0F] border border-[#A67C28] shadow-[#C9A050]/25 dark:bg-[#C9A050] dark:text-[#0D0D0F]'
+                    : 'bg-[#D4AF37] hover:bg-[#C9A050] text-[#0D0D0F] border border-[#B38730] shadow-[#C9A050]/30 hover:scale-[1.02] dark:bg-[#D4AF37] dark:text-[#0D0D0F]'
                 }`}
               >
-                {isP1Saved && <Check className="w-3.5 h-3.5 text-[#1A1405] stroke-[2.5]" />}
                 <span>{isP1Saved ? 'Saved' : 'Save'}</span>
               </button>
             </div>
@@ -1063,8 +1024,8 @@ Issued by JyotishVeda AI Daivajna Astrological Intelligence Engine
               </div>
 
               {isP2Saved && (
-                <span className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full text-xs font-bold bg-[#DECFA6] text-[#2D2104] border border-[#B38730] dark:bg-[#C9A050]/30 dark:text-[#FDE68A] dark:border-[#C9A050] shadow-sm">
-                  <Check className="w-3.5 h-3.5 text-[#2D2104] dark:text-[#FDE68A] stroke-[2.5]" />
+                <span className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full text-xs font-extrabold bg-[#FCE59F] text-[#3B2902] border-2 border-[#C9A050] dark:bg-[#C9A050] dark:text-[#0D0D0F] dark:border-[#DFC896] shadow-md">
+                  <Check className="w-3.5 h-3.5 text-[#3B2902] dark:text-[#0D0D0F] stroke-[3]" />
                   <span>Saved</span>
                 </span>
               )}
@@ -1140,13 +1101,7 @@ Issued by JyotishVeda AI Daivajna Astrological Intelligence Engine
               <button
                 type="button"
                 onClick={() => setIsP2Saved(false)}
-                className={`px-4 py-2 rounded-xl border text-xs font-bold transition cursor-pointer ${
-                  isP2Saved 
-                    ? 'bg-[#EFE4C4] border-[#B89F65] text-[#2D2104] hover:bg-[#E5D7B0] dark:bg-[#1A1A1E] dark:border-[#C9A050]/60 dark:text-[#E8D5B5] dark:hover:text-white' 
-                    : theme === 'dark'
-                    ? 'bg-[#1A1A1E] border-[#2A2A2E] text-[#9E9A90] hover:text-[#F0ECE1]'
-                    : 'bg-[#FAF1D6] border-[#DECFA6] text-[#544B3D] hover:text-[#1E1B15] hover:bg-[#F3E6C2]'
-                }`}
+                className="px-5 py-2 rounded-xl font-extrabold text-xs border-2 border-[#B38730] bg-[#FAF0D0] hover:bg-[#EEDCA8] text-[#0D0D0F] dark:bg-[#FAF0D0] dark:border-[#B38730] dark:text-[#0D0D0F] dark:hover:bg-[#EEDCA8] transition shadow-sm cursor-pointer"
               >
                 Edit
               </button>
@@ -1156,24 +1111,43 @@ Issued by JyotishVeda AI Daivajna Astrological Intelligence Engine
                 onClick={() => {
                   if (partner2.birthDate) {
                     setIsP2Saved(true);
-                    if (isP1Saved && partner1.birthDate) {
-                      triggerMilanCalculation(partner1, partner2);
-                    }
                   }
                 }}
-                className={`px-5 py-2 rounded-xl font-bold text-xs shadow-md transition cursor-pointer flex items-center space-x-1.5 ${
+                className={`px-5 py-2 rounded-xl font-extrabold text-xs shadow-md transition cursor-pointer flex items-center justify-center ${
                   isP2Saved
-                    ? 'bg-[#C9A050] text-[#1A1405] border border-[#A67C28] shadow-[#C9A050]/20 dark:bg-[#C9A050] dark:text-[#0D0D0F]'
-                    : 'bg-[#C9A050] hover:bg-[#D4AF37] text-[#1A1405] shadow-[#C9A050]/25 hover:scale-[1.02] dark:text-[#0D0D0F]'
+                    ? 'bg-[#C9A050] text-[#0D0D0F] border border-[#A67C28] shadow-[#C9A050]/25 dark:bg-[#C9A050] dark:text-[#0D0D0F]'
+                    : 'bg-[#D4AF37] hover:bg-[#C9A050] text-[#0D0D0F] border border-[#B38730] shadow-[#C9A050]/30 hover:scale-[1.02] dark:bg-[#D4AF37] dark:text-[#0D0D0F]'
                 }`}
               >
-                {isP2Saved && <Check className="w-3.5 h-3.5 text-[#1A1405] stroke-[2.5]" />}
                 <span>{isP2Saved ? 'Saved' : 'Save'}</span>
               </button>
             </div>
           </div>
         </div>
       </div>
+
+      {/* Right-Aligned Generate Action Button */}
+      {partner1.birthDate && partner2.birthDate && isP1Saved && isP2Saved && (
+        <div id="generate-milan-section" className="flex justify-end my-4 animate-fadeIn">
+          <button
+            type="button"
+            onClick={() => triggerMilanCalculation(partner1, partner2)}
+            disabled={isCalculatingMilan}
+            className={`px-8 py-3.5 rounded-2xl font-serif font-bold text-sm sm:text-base tracking-wider shadow-xl transition-all duration-300 flex items-center space-x-2.5 cursor-pointer hover:scale-105 active:scale-95 ${
+              isCalculatingMilan
+                ? 'bg-[#C9A050]/60 text-[#0D0D0F] cursor-wait opacity-80'
+                : 'bg-gradient-to-r from-[#C9A050] via-[#D4AF37] to-[#B38730] hover:from-[#D4AF37] hover:to-[#C9A050] text-[#0D0D0F] shadow-[#C9A050]/30 border border-[#B38730]'
+            }`}
+          >
+            <Sparkles className={`w-5 h-5 text-[#0D0D0F] ${isCalculatingMilan ? 'animate-spin' : ''}`} />
+            <span>
+              {isCalculatingMilan
+                ? 'Synthesizing Celestial Mansions...'
+                : 'Generate'}
+            </span>
+          </button>
+        </div>
+      )}
 
       {/* Full-Page Cosmic Astrological Loader Overlay */}
       <AnimatePresence>
@@ -1945,74 +1919,13 @@ Issued by JyotishVeda AI Daivajna Astrological Intelligence Engine
                 Download Kundli Milan Dossier
               </h3>
               <p className={`text-xs sm:text-sm ${theme === 'dark' ? 'text-[#9E9A90]' : 'text-[#6E6452]'} mt-1.5 leading-relaxed`}>
-                Export high-resolution printable certificates, formatted PDF reports, JSON astrological payloads, or plain-text summaries for family consultation.
+                Export high-resolution printable certificates and formatted PDF reports for family consultation.
               </p>
             </div>
 
-            {/* Export Cards Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mt-6">
-              {/* Option 0: Save to Account (server persistence) */}
-              {isAuthenticated && (
-                <div className={`p-5 rounded-2xl border transition space-y-4 flex flex-col justify-between ${
-                  theme === 'dark' ? 'bg-[#0D0D0F] border-[#2A2A2E] hover:border-[#C9A050]/50' : 'bg-[#FFFDF7] border-[#DECFA6] hover:border-[#C9A050]'
-                }`}>
-                  <div>
-                    <div className="w-10 h-10 rounded-xl bg-[#C9A050]/15 border border-[#C9A050]/30 flex items-center justify-center text-[#C9A050] mb-3">
-                      <CloudUpload className="w-5 h-5" />
-                    </div>
-                    <h4 className={`text-base font-serif font-bold ${theme === 'dark' ? 'text-[#F0ECE1]' : 'text-[#1E1B15]'}`}>
-                      Save to My Account
-                    </h4>
-                    <p className={`text-xs ${theme === 'dark' ? 'text-[#9E9A90]' : 'text-[#6E6452]'} mt-1 leading-relaxed`}>
-                      Persist this match report to your JyotishVeda account so it's accessible from any device.
-                    </p>
-                  </div>
-
-                  <button
-                    onClick={handleSaveMatchReport}
-                    disabled={saveState === 'saving'}
-                    title={saveError || undefined}
-                    className={`w-full py-2.5 rounded-xl font-bold text-xs tracking-wide transition cursor-pointer flex items-center justify-center space-x-1.5 ${
-                      saveState === 'saved'
-                        ? 'bg-[#C9A050]/20 border border-[#C9A050]/50 text-[#C9A050]'
-                        : saveState === 'error'
-                        ? 'bg-rose-500/15 border border-rose-500/40 text-rose-400'
-                        : 'bg-[#C9A050] hover:bg-[#D4AF37] text-[#0D0D0F] shadow-md shadow-[#C9A050]/20'
-                    }`}
-                  >
-                    {saveState === 'saving' ? (
-                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                    ) : saveState === 'saved' ? (
-                      <CheckCircle2 className="w-3.5 h-3.5" />
-                    ) : saveState === 'error' ? (
-                      <AlertTriangle className="w-3.5 h-3.5" />
-                    ) : (
-                      <CloudUpload className="w-3.5 h-3.5" />
-                    )}
-                    <span>
-                      {saveState === 'saving'
-                        ? 'Saving...'
-                        : saveState === 'saved'
-                        ? 'Saved to Account'
-                        : saveState === 'error'
-                        ? 'Retry Save'
-                        : 'Save Report'}
-                    </span>
-                  </button>
-
-                  {savedReportId && (
-                    <button
-                      onClick={() => window.open(getMatchReportPdfUrl(savedReportId), '_blank')}
-                      className="w-full py-2.5 rounded-xl bg-[#C9A050] hover:bg-[#D4AF37] text-[#0D0D0F] font-bold text-xs tracking-wide shadow-md shadow-[#C9A050]/20 transition cursor-pointer flex items-center justify-center space-x-1.5"
-                    >
-                      <Download className="w-3.5 h-3.5 text-[#0D0D0F]" />
-                      <span>Download Server-Generated PDF</span>
-                    </button>
-                  )}
-                </div>
-              )}
-
-              {/* Option 1: Direct 1-Page PDF Certificate */}
+            {/* Export Cards */}
+            <div className="mt-6 max-w-md">
+              {/* Direct 1-Page PDF Certificate */}
               <div className={`p-5 rounded-2xl border transition space-y-4 flex flex-col justify-between ${
                 theme === 'dark' ? 'bg-[#0D0D0F] border-[#2A2A2E] hover:border-[#C9A050]/50' : 'bg-[#FFFDF7] border-[#DECFA6] hover:border-[#C9A050]'
               }`}>
@@ -2045,77 +1958,6 @@ Issued by JyotishVeda AI Daivajna Astrological Intelligence Engine
                     </>
                   )}
                 </button>
-              </div>
-
-              {/* Option 2: JSON Astrological Payload */}
-              <div className={`p-5 rounded-2xl border transition space-y-4 flex flex-col justify-between ${
-                theme === 'dark' ? 'bg-[#0D0D0F] border-[#2A2A2E] hover:border-[#C9A050]/50' : 'bg-[#FFFDF7] border-[#DECFA6] hover:border-[#C9A050]'
-              }`}>
-                <div>
-                  <div className="w-10 h-10 rounded-xl bg-blue-500/15 border border-blue-500/30 flex items-center justify-center text-blue-400 mb-3">
-                    <FileText className="w-5 h-5" />
-                  </div>
-                  <h4 className={`text-base font-serif font-bold ${theme === 'dark' ? 'text-[#F0ECE1]' : 'text-[#1E1B15]'}`}>
-                    Export Digital Dossier (JSON)
-                  </h4>
-                  <p className={`text-xs ${theme === 'dark' ? 'text-[#9E9A90]' : 'text-[#6E6452]'} mt-1 leading-relaxed`}>
-                    Full mathematical calculation objects, planetary longitudes, and dosha records for archival.
-                  </p>
-                </div>
-
-                <button
-                  onClick={handleDownloadJSON}
-                  className={`w-full py-2.5 rounded-xl border text-xs font-semibold transition cursor-pointer flex items-center justify-center space-x-1.5 ${
-                    theme === 'dark'
-                      ? 'bg-[#1A1A1E] hover:bg-[#222228] border-[#2A2A2E] text-[#E5E1D8]'
-                      : 'bg-[#FAF1D6] hover:bg-[#F3E6C2] border-[#DECFA6] text-[#423C32]'
-                  }`}
-                >
-                  <Download className="w-3.5 h-3.5 text-blue-500" />
-                  <span>Download .JSON File</span>
-                </button>
-              </div>
-
-              {/* Option 3: Plain Text Summary */}
-              <div className={`p-5 rounded-2xl border transition space-y-4 flex flex-col justify-between ${
-                theme === 'dark' ? 'bg-[#0D0D0F] border-[#2A2A2E] hover:border-[#C9A050]/50' : 'bg-[#FFFDF7] border-[#DECFA6] hover:border-[#C9A050]'
-              }`}>
-                <div>
-                  <div className="w-10 h-10 rounded-xl bg-purple-500/15 border border-purple-500/30 flex items-center justify-center text-purple-400 mb-3">
-                    <Copy className="w-5 h-5" />
-                  </div>
-                  <h4 className={`text-base font-serif font-bold ${theme === 'dark' ? 'text-[#F0ECE1]' : 'text-[#1E1B15]'}`}>
-                    Plain Text / WhatsApp Summary
-                  </h4>
-                  <p className={`text-xs ${theme === 'dark' ? 'text-[#9E9A90]' : 'text-[#6E6452]'} mt-1 leading-relaxed`}>
-                    Formatted text report ready to copy or download for rapid sharing with elders or consultants.
-                  </p>
-                </div>
-
-                <div className="flex items-center space-x-2">
-                  <button
-                    onClick={handleDownloadTextReport}
-                    className={`flex-1 py-2.5 rounded-xl border text-xs font-semibold transition cursor-pointer flex items-center justify-center space-x-1 ${
-                      theme === 'dark'
-                        ? 'bg-[#1A1A1E] hover:bg-[#222228] border-[#2A2A2E] text-[#E5E1D8]'
-                        : 'bg-[#FAF1D6] hover:bg-[#F3E6C2] border-[#DECFA6] text-[#423C32]'
-                    }`}
-                  >
-                    <Download className="w-3.5 h-3.5 text-purple-500" />
-                    <span>Download .TXT</span>
-                  </button>
-                  <button
-                    onClick={handleCopyReport}
-                    className={`px-3 py-2.5 rounded-xl border text-xs font-semibold transition cursor-pointer ${
-                      theme === 'dark'
-                        ? 'bg-[#1A1A1E] hover:bg-[#222228] border-[#2A2A2E] text-[#E5E1D8]'
-                        : 'bg-[#FAF1D6] hover:bg-[#F3E6C2] border-[#DECFA6] text-[#423C32]'
-                    }`}
-                    title="Copy Summary"
-                  >
-                    {copiedText ? <Check className="w-4 h-4 text-emerald-500" /> : <Copy className={`w-4 h-4 ${theme === 'dark' ? 'text-[#9E9A90]' : 'text-[#6E6452]'}`} />}
-                  </button>
-                </div>
               </div>
             </div>
           </div>

@@ -115,6 +115,29 @@ export const VedicDatePicker: React.FC<VedicDatePickerProps> = ({
     }
   }, [value]);
 
+  // Dynamic placement (flip upwards if near bottom of screen)
+  const [openPlacement, setOpenPlacement] = useState<'bottom' | 'top'>('bottom');
+
+  useEffect(() => {
+    if (isOpen && containerRef.current) {
+      const rect = containerRef.current.getBoundingClientRect();
+      const popoverEstimatedHeight = 290;
+      const spaceBelow = window.innerHeight - rect.bottom;
+      const spaceAbove = rect.top;
+
+      if (spaceBelow < popoverEstimatedHeight && spaceAbove > popoverEstimatedHeight) {
+        setOpenPlacement('top');
+      } else {
+        setOpenPlacement('bottom');
+        if (spaceBelow < popoverEstimatedHeight) {
+          setTimeout(() => {
+            containerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }, 50);
+        }
+      }
+    }
+  }, [isOpen]);
+
   // Close on outside click
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -303,11 +326,13 @@ export const VedicDatePicker: React.FC<VedicDatePickerProps> = ({
       <AnimatePresence>
         {isOpen && !disabled && (
           <motion.div
-            initial={{ opacity: 0, y: -6, scale: 0.98 }}
+            initial={{ opacity: 0, y: openPlacement === 'top' ? 6 : -6, scale: 0.98 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -6, scale: 0.98 }}
+            exit={{ opacity: 0, y: openPlacement === 'top' ? 6 : -6, scale: 0.98 }}
             transition={{ duration: 0.15 }}
-            className={`absolute left-0 top-full mt-1.5 z-50 w-72 sm:w-80 rounded-2xl border shadow-2xl p-4 overflow-hidden backdrop-blur-md ${
+            className={`absolute left-0 ${
+              openPlacement === 'top' ? 'bottom-full mb-1.5' : 'top-full mt-1.5'
+            } z-50 w-72 sm:w-80 rounded-2xl border shadow-2xl p-4 overflow-hidden backdrop-blur-md ${
               theme === 'dark'
                 ? 'bg-[#141418] border-[#C9A050]/40 shadow-black/80'
                 : 'bg-gradient-to-b from-[#FAF4E4] to-[#F5EACB] border-[#DFC896] shadow-[#C9A050]/15 text-[#1E1B15]'
@@ -520,51 +545,8 @@ export const VedicDatePicker: React.FC<VedicDatePickerProps> = ({
                     );
                   })}
                 </div>
-
-                {/* Quick Decades Navigation Bar */}
-                <div className="mt-2 pt-2 border-t border-[#C9A050]/20 flex items-center justify-between text-[10px] text-[#C9A050] font-bold">
-                  {[1970, 1980, 1990, 2000, 2010].map((dec) => (
-                    <button
-                      key={dec}
-                      type="button"
-                      onClick={() => {
-                        setDecadeStart(dec);
-                      }}
-                      className="px-1.5 py-0.5 rounded hover:bg-[#C9A050]/20 cursor-pointer"
-                    >
-                      {dec}s
-                    </button>
-                  ))}
-                </div>
               </div>
             )}
-
-            {/* Footer / Quick Actions */}
-            <div className="mt-3 pt-2.5 border-t border-[#C9A050]/20 flex items-center justify-between text-xs">
-              <button
-                type="button"
-                onClick={handleSelectToday}
-                className="text-[#C9A050] hover:underline font-semibold flex items-center space-x-1 cursor-pointer"
-              >
-                <Sparkles className="w-3 h-3" />
-                <span>Today</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  setIsOpen(false);
-                  setViewMode('days');
-                }}
-                className={`px-3 py-1 rounded-lg text-xs font-semibold transition cursor-pointer ${
-                  theme === 'dark'
-                    ? 'bg-[#222228] hover:bg-[#2A2A32] text-gray-300'
-                    : 'bg-[#FAF1D6] hover:bg-[#F3E6C2] text-[#423C32] border border-[#DECFA6]'
-                }`}
-              >
-                Done
-              </button>
-            </div>
           </motion.div>
         )}
       </AnimatePresence>

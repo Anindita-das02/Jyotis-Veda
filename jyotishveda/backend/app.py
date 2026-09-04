@@ -188,6 +188,7 @@ def calculate_numerology_route():
 # ---------------- Matchmaking / Kundli Milan reports (require login) ----------------
 
 
+@app.route("/matchmaking/reports", methods=["POST"])
 @app.route("/api/matchmaking/reports", methods=["POST"])
 @require_auth
 def post_match_report1():
@@ -195,6 +196,7 @@ def post_match_report1():
     return match_making.create_match_report(request.user_id)
 
 
+@app.route("/matchmaking/reports", methods=["GET"])
 @app.route("/api/matchmaking/reports", methods=["GET"])
 @require_auth
 def get_match_reports1():
@@ -202,6 +204,7 @@ def get_match_reports1():
     return match_making.list_match_reports(request.user_id)
 
 
+@app.route("/matchmaking/reports/<report_id>", methods=["GET"])
 @app.route("/api/matchmaking/reports/<report_id>", methods=["GET"])
 @require_auth
 def get_match_report1(report_id):
@@ -209,6 +212,7 @@ def get_match_report1(report_id):
     return match_making.get_match_report(request.user_id, report_id)
 
 
+@app.route("/matchmaking/reports/<report_id>/pdf", methods=["GET"])
 @app.route("/api/matchmaking/reports/<report_id>/pdf", methods=["GET"])
 def get_match_report_pdf1(report_id):
     # PDF ডাউনলোড করার জন্য (এখানে টোকেন URL প্যারামিটারে আসে)
@@ -223,6 +227,7 @@ def get_match_report_pdf1(report_id):
     return match_making.download_match_report_pdf(payload["sub"], report_id)
 
 
+@app.route("/matchmaking/generate-pdf", methods=["POST"])
 @app.route("/api/matchmaking/generate-pdf", methods=["POST"])
 def generate_direct_match_pdf():
     # ফ্রন্টএন্ড থেকে সরাসরি ডেটা পাঠিয়ে ব্যাকএন্ড থেকে PDF জেনারেট করে ডাউনলোড করার এন্ডপয়েন্ট
