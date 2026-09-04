@@ -28,16 +28,16 @@
   }
 
   .light {
-    --bg-canvas: #F7F5EE;
-    --bg-card: #FFFFFF;
-    --bg-card-elevated: #FAF8F2;
-    --bg-card-subtle: #EFEBE0;
-    --bg-inner: #EAE5D9;
-    --border-color: #DDD7C9;
-    --border-hover: #C5BEAD;
+    --bg-canvas: #F5EFE0;
+    --bg-card: #FAF4E4;
+    --bg-card-elevated: #FFFDF7;
+    --bg-card-subtle: #F6EDD7;
+    --bg-inner: #EFE4CC;
+    --border-color: #DFC896;
+    --border-hover: #C9B278;
     --text-primary: #1A1816;
     --text-secondary: #2C2825;
-    --text-muted: #6E6860;
+    --text-muted: #6E6452;
     --gold-primary: #94691E;
     --gold-hover: #AF7F26;
     --gold-bg: rgba(148, 105, 30, 0.12);
@@ -494,5 +494,26 @@ samp {
 @media (max-width: 768px) {
   button, select, input[type="checkbox"], input[type="radio"] {
     min-height: 38px;
+  }
+}
+
+/* Dedicated Print Media Styles for Kundli Milan Report */
+@media print {
+  body {
+    background: #ffffff !important;
+    color: #000000 !important;
+  }
+  header, nav, .no-print, button, #root > div > header {
+    display: none !important;
+  }
+  #printable-certificate {
+    display: block !important;
+    visibility: visible !important;
+    position: relative !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 auto !important;
+    padding: 20px !important;
+    box-shadow: none !important;
   }
 }

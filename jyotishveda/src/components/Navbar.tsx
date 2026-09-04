@@ -142,43 +142,9 @@ export const Navbar: React.FC<NavbarProps> = ({
       {/* Top Primary Header Bar */}
       <header
         className={`sticky top-0 z-40 backdrop-blur-xl transition-colors ${
-          theme === 'dark' ? 'bg-[#0D0D0F]/90 text-[#E5E1D8]' : 'bg-[#F9F7F1]/95 text-[#0D0D0F]'
+          theme === 'dark' ? 'bg-[#0D0D0F]/90 text-[#E5E1D8]' : 'bg-[#F6EFE0]/95 text-[#0D0D0F] border-b border-[#DFC896]/40'
         }`}
       >
-        {/* Top Auspicious & Astronomical Banner (Hidden in Admin Console) */}
-        {!isViewingAdmin && (
-          <div
-            className={`px-3 sm:px-4 py-1 text-xs border-b flex items-center justify-between text-[#C9A050]/90 overflow-x-auto no-scrollbar ${
-              theme === 'dark' ? 'bg-[#08080A] border-[#2A2A2E]/60' : 'bg-[#F0ECE1] border-[#E5E1D8]'
-            }`}
-          >
-            <div className="flex items-center space-x-2 shrink-0">
-              <span className="font-semibold tracking-wide text-[#C9A050] text-[11px] sm:text-[12px]">
-                {t('header.ephemeris')}
-              </span>
-              <span className="text-[#2A2A2E] hidden xs:inline">|</span>
-              <span className="hidden sm:inline text-[#9E9A90] text-[11px] uppercase tracking-wider">
-                {t('header.traditions')}
-              </span>
-            </div>
-            <div className="flex items-center space-x-3 sm:space-x-4 shrink-0 text-[11px]">
-              <div className="flex items-center space-x-1.5 text-[#E5E1D8]">
-                <Clock className="w-3.5 h-3.5 text-[#C9A050]" />
-                <span className="text-[#9E9A90] truncate max-w-[150px] sm:max-w-none">
-                  {t('header.active_dasha')}: <span className="font-semibold text-[#C9A050]">Jupiter-Venus</span>
-                </span>
-              </div>
-              <button
-                onClick={onOpenDisclaimer}
-                className="text-[#C9A050] hover:text-[#E8D5B5] flex items-center space-x-1 cursor-pointer transition-colors"
-              >
-                <ShieldCheck className="w-3.5 h-3.5" />
-                <span className="hidden xs:inline">{t('header.disclaimer')}</span>
-              </button>
-            </div>
-          </div>
-        )}
-
         {/* Main Header Row */}
         <div className="w-full px-3 sm:px-6 lg:px-8 py-2">
           <div className="flex items-center justify-between h-14 sm:h-16">
@@ -190,7 +156,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               <AncientTraditionLogo size="sm" isLight={theme === 'light'} />
               <div>
                 <div className="flex items-center space-x-1.5 sm:space-x-2">
-                  <span className="text-lg sm:text-xl font-bold tracking-wider text-[#F0ECE1]">
+                  <span className={`text-lg sm:text-xl font-bold tracking-wider ${theme === 'dark' ? 'text-[#F0ECE1]' : 'text-[#1E1B15]'}`}>
                     JYOTISH<span className="text-[#C9A050]">VEDA</span>
                   </span>
                   {isAdmin ? (
@@ -203,7 +169,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                     </span>
                   )}
                 </div>
-                <p className="text-[10px] sm:text-[11px] text-[#9E9A90] hidden md:block">
+                <p className={`text-[10px] sm:text-[11px] ${theme === 'dark' ? 'text-[#9E9A90]' : 'text-[#7A6F5D]'} hidden md:block`}>
                   {t('brand.tagline')}
                 </p>
               </div>
@@ -215,7 +181,11 @@ export const Navbar: React.FC<NavbarProps> = ({
               <div className="relative" ref={langMenuRef}>
                 <button
                   onClick={() => setIsLangMenuOpen((prev) => !prev)}
-                  className="flex items-center space-x-1 px-2 py-1.5 sm:px-2.5 rounded-lg bg-[#141418] border border-[#2A2A2E] text-xs text-[#E5E1D8] hover:border-[#C9A050]/50 hover:bg-[#1A1A1E] transition cursor-pointer shadow-sm"
+                  className={`flex items-center space-x-1 px-2 py-1.5 sm:px-2.5 rounded-lg border text-xs transition cursor-pointer shadow-sm ${
+                    theme === 'dark'
+                      ? 'bg-[#141418] border-[#2A2A2E] text-[#E5E1D8] hover:border-[#C9A050]/50 hover:bg-[#1A1A1E]'
+                      : 'bg-[#FAF3DF] border-[#DFC896] text-[#2C2825] hover:border-[#C9A050] hover:bg-[#F5E8C8]'
+                  }`}
                   title={t('header.switch_lang')}
                   aria-label="Language Selector"
                 >
@@ -226,7 +196,9 @@ export const Navbar: React.FC<NavbarProps> = ({
                 </button>
 
                 {isLangMenuOpen && (
-                  <div className="absolute right-0 mt-2 w-60 sm:w-64 max-h-80 overflow-y-auto bg-[#141418] border border-[#2A2A2E] rounded-xl shadow-2xl z-50 p-1.5 divide-y divide-[#2A2A2E]/50">
+                  <div className={`absolute right-0 mt-2 w-60 sm:w-64 max-h-80 overflow-y-auto border rounded-xl shadow-2xl z-50 p-1.5 divide-y ${
+                    theme === 'dark' ? 'bg-[#141418] border-[#2A2A2E] divide-[#2A2A2E]/50' : 'bg-[#FAF4E4] border-[#DFC896] divide-[#DFC896]/40'
+                  }`}>
                     <div className="px-2.5 py-1.5 text-[11px] font-bold text-[#C9A050] uppercase tracking-wider">
                       {t('header.switch_lang')} ({SUPPORTED_LANGUAGES.length})
                     </div>
@@ -243,14 +215,16 @@ export const Navbar: React.FC<NavbarProps> = ({
                             className={`w-full flex items-center justify-between px-2.5 py-2 rounded-lg text-xs transition cursor-pointer text-left ${
                               isSelected
                                 ? 'bg-[#C9A050]/20 text-[#C9A050] font-bold'
-                                : 'text-[#E5E1D8] hover:bg-[#1C1C22] hover:text-[#F0ECE1]'
+                                : theme === 'dark'
+                                ? 'text-[#E5E1D8] hover:bg-[#1C1C22] hover:text-[#F0ECE1]'
+                                : 'text-[#2C2825] hover:bg-[#F3EADB] hover:text-[#1A1816]'
                             }`}
                           >
                             <div className="flex items-center space-x-2.5">
                               <span className="text-base">{lang.flag}</span>
                               <div>
-                                <div className="font-medium text-xs text-[#F0ECE1]">{lang.nativeName}</div>
-                                <div className="text-[10px] text-[#9E9A90]">{lang.name} • {lang.region}</div>
+                                <div className={`font-medium text-xs ${theme === 'dark' ? 'text-[#F0ECE1]' : 'text-[#1A1816]'}`}>{lang.nativeName}</div>
+                                <div className={`text-[10px] ${theme === 'dark' ? 'text-[#9E9A90]' : 'text-[#7A6F5D]'}`}>{lang.name} • {lang.region}</div>
                               </div>
                             </div>
                             {isSelected && <Check className="w-3.5 h-3.5 text-[#C9A050]" />}
@@ -266,32 +240,42 @@ export const Navbar: React.FC<NavbarProps> = ({
               <button
                 onClick={toggleTheme}
                 title={theme === 'dark' ? t('header.theme_light') : t('header.theme_dark')}
-                className="flex items-center justify-center w-8 h-8 rounded-lg bg-[#141418] border border-[#2A2A2E] text-[#C9A050] hover:border-[#C9A050]/50 hover:bg-[#1A1A1E] transition-all cursor-pointer shadow-sm shrink-0"
+                className={`flex items-center justify-center w-8 h-8 rounded-lg border transition-all cursor-pointer shadow-sm shrink-0 ${
+                  theme === 'dark'
+                    ? 'bg-[#141418] border-[#2A2A2E] text-[#C9A050] hover:border-[#C9A050]/50 hover:bg-[#1A1A1E]'
+                    : 'bg-[#FAF3DF] border-[#DFC896] text-[#8C6218] hover:border-[#C9A050] hover:bg-[#F5E8C8]'
+                }`}
                 aria-label="Toggle theme"
               >
                 {theme === 'dark' ? (
                   <Sun className="w-4 h-4 text-[#C9A050] transition-transform hover:rotate-45" />
                 ) : (
-                  <Moon className="w-4 h-4 text-[#C9A050] transition-transform hover:-rotate-12" />
+                  <Moon className="w-4 h-4 text-[#8C6218] transition-transform hover:-rotate-12" />
                 )}
               </button>
 
               {/* Active Profile Dropdown */}
               <div
-                className="relative flex items-center bg-[#141418] border border-[#2A2A2E] rounded-lg p-1 sm:p-1.5 text-xs shadow-inner max-w-[130px] sm:max-w-[200px]"
+                className={`relative flex items-center border rounded-lg p-1 sm:p-1.5 text-xs shadow-inner max-w-[130px] sm:max-w-[200px] ${
+                  theme === 'dark' ? 'bg-[#141418] border-[#2A2A2E]' : 'bg-[#FAF3DF] border-[#DFC896]'
+                }`}
                 ref={profileMenuRef}
               >
                 <User className="w-3.5 h-3.5 text-[#C9A050] ml-1 mr-1 shrink-0" />
                 <button
                   onClick={() => setIsProfileMenuOpen((prev) => !prev)}
-                  className="bg-transparent text-[#E5E1D8] focus:outline-none pr-4 sm:pr-5 cursor-pointer text-xs truncate flex items-center flex-1 text-left"
+                  className={`bg-transparent focus:outline-none pr-4 sm:pr-5 cursor-pointer text-xs truncate flex items-center flex-1 text-left ${
+                    theme === 'dark' ? 'text-[#E5E1D8]' : 'text-[#2C2825]'
+                  }`}
                 >
                   <span className="truncate">{currentProfile.fullName}</span>
                   <ChevronDown className="w-3 h-3 ml-0.5 absolute right-6 text-[#9E9A90]" />
                 </button>
 
                 {isProfileMenuOpen && (
-                  <div className="absolute top-full right-0 mt-2 w-52 bg-[#141418] border border-[#2A2A2E] rounded-xl shadow-xl shadow-[#0D0D0F]/50 overflow-hidden z-50">
+                  <div className={`absolute top-full right-0 mt-2 w-52 border rounded-xl shadow-xl overflow-hidden z-50 ${
+                    theme === 'dark' ? 'bg-[#141418] border-[#2A2A2E] shadow-[#0D0D0F]/50' : 'bg-[#FAF4E4] border-[#DFC896] shadow-xl'
+                  }`}>
                     <div className="py-1">
                       {profiles.map((p) => {
                         const isSelected = p.id === currentProfile.id;
@@ -305,7 +289,9 @@ export const Navbar: React.FC<NavbarProps> = ({
                             className={`w-full flex items-center justify-between px-3 py-2 text-xs transition cursor-pointer text-left ${
                               isSelected
                                 ? 'bg-[#C9A050]/20 text-[#C9A050] font-bold'
-                                : 'text-[#E5E1D8] hover:bg-[#1C1C22] hover:text-[#F0ECE1]'
+                                : theme === 'dark'
+                                ? 'text-[#E5E1D8] hover:bg-[#1C1C22] hover:text-[#F0ECE1]'
+                                : 'text-[#2C2825] hover:bg-[#F3EADB] hover:text-[#1A1816]'
                             }`}
                           >
                             <span className="truncate">
@@ -334,10 +320,10 @@ export const Navbar: React.FC<NavbarProps> = ({
                 className={`hidden lg:flex items-center space-x-1.5 px-3 py-1.5 rounded-lg font-bold text-xs shadow-md transition-all duration-300 cursor-pointer shrink-0 hover:-translate-y-0.5 hover:scale-105 ${
                   theme === 'dark'
                     ? 'bg-gradient-to-r from-[#C9A050] to-[#A07828] hover:from-[#D4AF37] hover:to-[#B38730] text-[#0D0D0F] shadow-[#C9A050]/20 hover:shadow-[#C9A050]/40'
-                    : 'bg-[#FFFFFF] border border-[#C9A050]/50 text-[#C9A050] hover:bg-[#C9A050]/10 shadow-[#C9A050]/10 hover:shadow-[#C9A050]/20'
+                    : 'bg-gradient-to-r from-[#FAF2DA] to-[#F5E8C8] border border-[#DFC896] text-[#8C6218] hover:bg-[#F3E5BE] shadow-sm'
                 }`}
               >
-                <Sparkles className="w-3.5 h-3.5" />
+                <Sparkles className="w-3.5 h-3.5 text-[#C9A050]" />
                 <span>{t('header.ask_ai')}</span>
               </button>
 
@@ -346,7 +332,11 @@ export const Navbar: React.FC<NavbarProps> = ({
                 <button
                   onClick={onLogout}
                   title="Log out"
-                  className="hidden sm:flex items-center justify-center w-8 h-8 rounded-lg bg-[#141418] border border-[#2A2A2E] text-[#9E9A90] hover:border-[#C9A050]/50 hover:text-[#C9A050] transition-all cursor-pointer shadow-sm shrink-0"
+                  className={`hidden sm:flex items-center justify-center w-8 h-8 rounded-lg border transition-all cursor-pointer shadow-sm shrink-0 ${
+                    theme === 'dark'
+                      ? 'bg-[#141418] border-[#2A2A2E] text-[#9E9A90] hover:border-[#C9A050]/50 hover:text-[#C9A050]'
+                      : 'bg-[#FAF3DF] border-[#DFC896] text-[#6E6452] hover:border-[#C9A050] hover:text-[#1E1B15]'
+                  }`}
                   aria-label="Log out"
                 >
                   <LogOut className="w-4 h-4" />
@@ -356,7 +346,11 @@ export const Navbar: React.FC<NavbarProps> = ({
               {/* Mobile Drawer Menu Toggle */}
               <button
                 onClick={() => setIsMobileDrawerOpen((prev) => !prev)}
-                className="md:hidden flex items-center justify-center w-8 h-8 rounded-lg bg-[#141418] border border-[#2A2A2E] text-[#E5E1D8] hover:text-[#C9A050] hover:border-[#C9A050]/50 transition cursor-pointer shrink-0"
+                className={`md:hidden flex items-center justify-center w-8 h-8 rounded-lg border transition cursor-pointer shrink-0 ${
+                  theme === 'dark'
+                    ? 'bg-[#141418] border-[#2A2A2E] text-[#E5E1D8] hover:text-[#C9A050] hover:border-[#C9A050]/50'
+                    : 'bg-[#FAF3DF] border-[#DFC896] text-[#2C2825] hover:text-[#C9A050] hover:border-[#C9A050]'
+                }`}
                 aria-label="Toggle navigation drawer"
               >
                 {isMobileDrawerOpen ? <X className="w-4 h-4 text-[#C9A050]" /> : <Menu className="w-4 h-4" />}
@@ -372,7 +366,7 @@ export const Navbar: React.FC<NavbarProps> = ({
         */}
         <div
           className={`hidden md:block w-full border-t transition-colors ${
-            theme === 'dark' ? 'border-[#2A2A2E]/60' : 'border-[#EAE4D8]'
+            theme === 'dark' ? 'border-[#2A2A2E]/60' : 'border-[#DFC896]/50'
           } bg-transparent`}
         >
           <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2">
@@ -391,10 +385,10 @@ export const Navbar: React.FC<NavbarProps> = ({
                       isActive
                         ? theme === 'dark'
                           ? 'bg-[#1C1A14] text-[#E8C470] border-2 border-[#C9A050] shadow-md shadow-[#C9A050]/20 font-bold scale-[1.02]'
-                          : 'bg-[#FFFFFF] text-[#94691E] border-2 border-[#C9A050] shadow-md shadow-[#C9A050]/15 font-bold scale-[1.02]'
+                          : 'bg-[#FAF2DA] text-[#8C6218] border-2 border-[#C9A050] shadow-md shadow-[#C9A050]/15 font-bold scale-[1.02]'
                         : theme === 'dark'
                         ? 'bg-[#141418] text-[#9E9A90] border border-[#2A2A2E] hover:border-[#C9A050]/60 hover:text-[#F0ECE1] hover:bg-[#1A1A1E]'
-                        : 'bg-[#FFFFFF] text-[#5C574F] border border-[#DDD7C9] hover:border-[#C9A050] hover:text-[#1A1816] hover:bg-[#FDFBF7]'
+                        : 'bg-[#FAF5E6] text-[#5C574F] border border-[#DFC896] hover:border-[#C9A050] hover:text-[#1A1816] hover:bg-[#F3EACB]'
                     }`}
                   >
                     <Icon

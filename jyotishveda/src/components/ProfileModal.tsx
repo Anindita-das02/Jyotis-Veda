@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { X, Calendar, Clock, MapPin, Sparkles, Check, User, Target, Globe, Compass, Star } from 'lucide-react';
 import { UserProfile } from '../types';
 import { AncientTraditionLogo } from './AncientTraditionLogo';
+import { VedicDatePicker } from './VedicDatePicker';
+import { VedicTimePicker } from './VedicTimePicker';
 
 interface ProfileModalProps {
   isOpen: boolean;
@@ -314,16 +316,11 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                 <Calendar className="w-3.5 h-3.5 text-[#C9A050]" />
                 <span>Date of Birth</span>
               </label>
-              <input
-                type="date"
-                required
+              <VedicDatePicker
                 value={birthDate}
-                onChange={(e) => setBirthDate(e.target.value)}
-                className={`w-full px-3 py-2 rounded-lg text-sm focus:outline-none focus:border-[#C9A050] cursor-pointer ${
-                  theme === 'light'
-                    ? 'bg-[#FFFFFF] border border-[#DDD5C7] text-[#1A1816]'
-                    : 'bg-[#1A1A1E] border border-[#2A2A2E] text-[#F0ECE1]'
-                }`}
+                onChange={(newDate) => setBirthDate(newDate)}
+                theme={theme}
+                placeholder="Select Date of Birth"
               />
             </div>
 
@@ -331,19 +328,15 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
               <label className={`block text-xs font-semibold mb-1 flex items-center justify-between ${theme === 'light' ? 'text-[#8C6218]' : 'text-[#C9A050]'}`}>
                 <span className="flex items-center space-x-1">
                   <Clock className="w-3.5 h-3.5 text-[#C9A050]" />
-                  <span>Exact Time of Birth (24hr format)</span>
+                  <span>Exact Time of Birth</span>
                 </span>
                 <span className={`text-[10px] font-normal ${theme === 'light' ? 'text-[#6E685E]' : 'text-gray-400'}`}>(Optional)</span>
               </label>
-              <input
-                type="time"
+              <VedicTimePicker
                 value={birthTime}
-                onChange={(e) => setBirthTime(e.target.value)}
-                className={`w-full px-3 py-2 rounded-lg text-sm focus:outline-none focus:border-[#C9A050] cursor-pointer ${
-                  theme === 'light'
-                    ? 'bg-[#FFFFFF] border border-[#DDD5C7] text-[#1A1816]'
-                    : 'bg-[#1A1A1E] border border-[#2A2A2E] text-[#F0ECE1]'
-                }`}
+                onChange={(newTime) => setBirthTime(newTime)}
+                theme={theme}
+                placeholder="HH:MM (e.g. 10:30)"
               />
             </div>
           </div>

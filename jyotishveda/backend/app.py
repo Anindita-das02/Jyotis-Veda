@@ -223,6 +223,12 @@ def get_match_report_pdf1(report_id):
     return match_making.download_match_report_pdf(payload["sub"], report_id)
 
 
+@app.route("/api/matchmaking/generate-pdf", methods=["POST"])
+def generate_direct_match_pdf():
+    # ফ্রন্টএন্ড থেকে সরাসরি ডেটা পাঠিয়ে ব্যাকএন্ড থেকে PDF জেনারেট করে ডাউনলোড করার এন্ডপয়েন্ট
+    return match_making.generate_direct_pdf()
+
+
 
 # ---------------- AI Counsellor sessions & messages (require login) ----------------
 
