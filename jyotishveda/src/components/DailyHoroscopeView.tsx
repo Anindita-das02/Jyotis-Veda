@@ -39,6 +39,7 @@ interface DailyAiInsights {
   career: string;
   love: string;
   health: string;
+  lucky_color_desc?: string;
 }
 
 export const DailyHoroscopeView: React.FC<DailyHoroscopeViewProps> = ({

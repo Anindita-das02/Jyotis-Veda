@@ -150,6 +150,7 @@ export function calculateVedicChart(profile?: UserProfile, ephemerisData?: any):
     focusAreas: ['spiritual', 'career'],
     isPremium: false,
     horoscopeSystem: 'vedic',
+    createdAt: new Date().toISOString(),
   };
 
   const isWestern = p.horoscopeSystem === 'western';
@@ -1329,8 +1330,8 @@ export function calculateKundliMilan(partner1: UserProfile, partner2: UserProfil
     sanskritName: 'तारा कूट',
     maxPoints: 3,
     obtainedPoints: taraPoints,
-    p1Value: `Tara ${tara1to2}/9 (${nak1.lord})`,
-    p2Value: `Tara ${tara2to1}/9 (${nak2.lord})`,
+    p1Value: `Tara ${tara1to2}/9`,
+    p2Value: `Tara ${tara2to1}/9`,
     area: 'Destiny, Health & Longevity Accord',
     description: 'Evaluates cosmic fortune, health protection, longevity, and mutual auspicious timing.',
     verdict: taraPoints === 3 ? 'Excellent' : taraPoints >= 1.5 ? 'Good' : 'Challenging',
@@ -1597,6 +1598,14 @@ export function calculateKundliMilan(partner1: UserProfile, partner2: UserProfil
 
   const isNeutralized = (isP1Manglik && isP2Manglik) || (!isP1Manglik && !isP2Manglik);
 
+  if (!isNeutralized && totalPoints >= 18) {
+    summary += ' However, since one partner is Manglik and the other is not, strict Manglik pacification remedies (like Kumbh Vivah) are strongly advised before proceeding to ensure marital longevity.';
+    if (totalPoints >= 28) {
+        verdictTitle = 'Uttam Milan (with Manglik Caution)';
+        verdictColor = '#E6A15C';
+    }
+  }
+
   const manglikAnalysis: ManglikAnalysis = {
     partner1: {
       name: partner1.fullName,
@@ -1729,7 +1738,7 @@ export function calculateKundliMilan(partner1: UserProfile, partner2: UserProfil
       partner1Nadi: nadi1,
       partner2Nadi: nadi2,
       reason: isSameNadi ? (isNadiCancelled ? 'Cancelled by Nakshatra/Rashi variance' : 'Both share same Nadi') : 'Different Nadis',
-      remedy: 'Maha Mrityunjaya Japa and Gold/Cow charity on auspicious constellation days.',
+      remedy: isSameNadi && !isNadiCancelled ? 'Maha Mrityunjaya Japa and Gold/Cow charity on auspicious constellation days.' : 'No specific remedy required as Nadi is pure.',
     },
     bhakootDosha: {
       hasDosha: isBhakootInauspicious,
@@ -1738,7 +1747,7 @@ export function calculateKundliMilan(partner1: UserProfile, partner2: UserProfil
       partner2Rashi: ZODIAC_SIGNS[rashi2Idx].name,
       rashiDistance: `${rashiDiff}/${altDiff}`,
       reason: isBhakootInauspicious ? (isBhakootCancelled ? 'Cancelled by common/friendly lordship' : `${rashiDiff}/${altDiff} placement`) : 'Auspicious Rashi Disposition',
-      remedy: 'Recite Vishnu Sahasranama and offer yellow sweets to Lord Brihaspati.',
+      remedy: isBhakootInauspicious && !isBhakootCancelled ? 'Recite Vishnu Sahasranama and offer yellow sweets to Lord Brihaspati.' : 'No specific remedy required.',
     },
     synastry,
     numerologyMilan,

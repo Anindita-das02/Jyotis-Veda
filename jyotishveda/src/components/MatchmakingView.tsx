@@ -104,8 +104,8 @@ export const MatchmakingView: React.FC<MatchmakingViewProps> = ({
     longitude: 88.3639,
     timezone: 5.5,
     horoscopeSystem: 'vedic',
-    traditions: ['parashari'],
     focusAreas: ['relationships'],
+    createdAt: new Date().toISOString(),
   });
 
   const getDefaultP2 = (): UserProfile => ({
@@ -119,8 +119,8 @@ export const MatchmakingView: React.FC<MatchmakingViewProps> = ({
     longitude: 77.2090,
     timezone: 5.5,
     horoscopeSystem: 'vedic',
-    traditions: ['parashari'],
     focusAreas: ['relationships'],
+    createdAt: new Date().toISOString(),
   });
 
   // Select partner 1 and partner 2 (Clean default state on load/refresh)
