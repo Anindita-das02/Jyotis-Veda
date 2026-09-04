@@ -138,7 +138,7 @@ export const MatchmakingView: React.FC<MatchmakingViewProps> = ({
   const [activeTab, setActiveTab] = useState<'kootas' | 'doshas' | 'synastry' | 'remedies' | 'ai_counsel' | 'download'>('kootas');
 
   const [isGeneratingAI, setIsGeneratingAI] = useState(false);
-  const [aiSynthesis, setAiSynthesis] = useState<string | null>(null);
+  const [aiSynthesis, setAiSynthesis] = useState<any | null>(null);
   const [copiedText, setCopiedText] = useState(false);
   const [isPrinting, setIsPrinting] = useState(false);
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
@@ -294,26 +294,35 @@ export const MatchmakingView: React.FC<MatchmakingViewProps> = ({
 
     const t1 = setTimeout(() => {
       setLoadingStep(1);
-    }, 700);
+    }, 300);
 
     const t2 = setTimeout(() => {
       setLoadingStep(2);
-    }, 1400);
+    }, 600);
 
     const t3 = setTimeout(() => {
-      const result = calculateKundliMilan(p1, p2);
-      setMatchResult(result);
-      saveToHistoryList(result, p1, p2);
-      setIsCalculatingMilan(false);
+      try {
+        const result = calculateKundliMilan(p1, p2);
+        setMatchResult(result);
+        setAiSynthesis(null);
+        saveToHistoryList(result, p1, p2);
 
-      // Smooth scroll to score hero results
-      setTimeout(() => {
-        const resultsEl = document.getElementById('kundli-milan-results');
-        if (resultsEl) {
-          resultsEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }
-      }, 100);
-    }, 2200);
+        // Auto-fetch AI relationship synthesis in background
+        handleGenerateAISynthesis(result, p1, p2);
+
+        // Smooth scroll to score hero results
+        setTimeout(() => {
+          const resultsEl = document.getElementById('kundli-milan-results');
+          if (resultsEl) {
+            resultsEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }
+        }, 50);
+      } catch (err) {
+        console.error('Error calculating Kundli Milan:', err);
+      } finally {
+        setIsCalculatingMilan(false);
+      }
+    }, 900);
 
     calculationTimerRef.current = [t1, t2, t3];
   };
@@ -326,28 +335,82 @@ export const MatchmakingView: React.FC<MatchmakingViewProps> = ({
   }, []);
 
   // Generate AI deep synthesis
-  const handleGenerateAISynthesis = async () => {
+  const handleGenerateAISynthesis = async (
+    customResult?: AshtaKootaMilanResult | null,
+    p1: UserProfile = partner1,
+    p2: UserProfile = partner2
+  ) => {
+    const resToUse = customResult || matchResult;
+    if (!resToUse || !p1.birthDate || !p2.birthDate) return;
+
     setIsGeneratingAI(true);
     try {
-      const response = await fetch(API_ENDPOINTS.MATCHMAKING.SYNTHESIS, {
+      const response = await fetch(`${API_BASE_URL}/api/matchmaking/synthesis`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          partner1,
-          partner2,
-          matchResult,
+          partner1: p1,
+          partner2: p2,
+          matchResult: resToUse,
           language,
         }),
       });
       const data = await response.json();
-      if (data.success && data.synthesis) {
-        setAiSynthesis(data.synthesis);
+      if ((data.success || data.status === 'success') && data.synthesis) {
+        let synth = data.synthesis;
+        if (typeof synth === 'string') {
+          try {
+            synth = JSON.parse(synth);
+          } catch {
+            // Keep as raw string if it's pure markdown
+          }
+        }
+        setAiSynthesis(synth);
+      } else {
+        throw new Error(data.message || 'Failed to generate synthesis');
       }
     } catch (err) {
       console.error('Failed to generate AI Kundli Milan synthesis:', err);
     } finally {
       setIsGeneratingAI(false);
     }
+  };
+
+  // If user opens AI Counsel tab and synthesis is not yet generated, auto-fetch it
+  useEffect(() => {
+    if (activeTab === 'ai_counsel' && !aiSynthesis && !isGeneratingAI && matchResult) {
+      handleGenerateAISynthesis(matchResult, partner1, partner2);
+    }
+  }, [activeTab, aiSynthesis, isGeneratingAI, matchResult, partner1, partner2]);
+
+  const handleCopyAISynthesis = () => {
+    if (!aiSynthesis) return;
+    let textToCopy = '';
+    if (typeof aiSynthesis === 'object') {
+      textToCopy = `JYOTISHVEDA • AI RELATIONSHIP SYNTHESIS\n` +
+        `Partner 1: ${partner1.fullName || 'Partner 1'} | Partner 2: ${partner2.fullName || 'Partner 2'}\n\n` +
+        (aiSynthesis.overall_compatibility ? `OVERALL COMPATIBILITY:\n${aiSynthesis.overall_compatibility}\n\n` : '') +
+        (aiSynthesis.guna_milan ? `GUNA MILAN:\n${aiSynthesis.guna_milan}\n\n` : '') +
+        (aiSynthesis.manglik_dosha ? `MANGLIK DOSHA:\n${aiSynthesis.manglik_dosha}\n\n` : '') +
+        (aiSynthesis.nadi_analysis ? `NADI ANALYSIS:\n${aiSynthesis.nadi_analysis}\n\n` : '') +
+        (aiSynthesis.bhakoot_analysis ? `BHAKOOT ANALYSIS:\n${aiSynthesis.bhakoot_analysis}\n\n` : '') +
+        (aiSynthesis.psychological_affinity ? `PSYCHOLOGICAL AFFINITY:\n${aiSynthesis.psychological_affinity}\n\n` : '') +
+        (aiSynthesis.emotional_resonance ? `EMOTIONAL RESONANCE:\n${aiSynthesis.emotional_resonance}\n\n` : '') +
+        (aiSynthesis.karmic_bond ? `KARMIC BOND:\n${aiSynthesis.karmic_bond}\n\n` : '') +
+        (aiSynthesis.physical_harmonization ? `PHYSICAL HARMONIZATION:\n${aiSynthesis.physical_harmonization}\n\n` : '') +
+        (aiSynthesis.family_and_married_life ? `FAMILY & MARRIED LIFE:\n${aiSynthesis.family_and_married_life}\n\n` : '') +
+        (aiSynthesis.wealth_and_prosperity ? `WEALTH & PROSPERITY:\n${aiSynthesis.wealth_and_prosperity}\n\n` : '') +
+        (Array.isArray(aiSynthesis.major_strengths) ? `MAJOR STRENGTHS:\n${aiSynthesis.major_strengths.map((s: string) => `• ${s}`).join('\n')}\n\n` : '') +
+        (Array.isArray(aiSynthesis.major_challenges) ? `POTENTIAL CHALLENGES:\n${aiSynthesis.major_challenges.map((s: string) => `• ${s}`).join('\n')}\n\n` : '') +
+        (Array.isArray(aiSynthesis.conflict_resolution) ? `CONFLICT RESOLUTION:\n${aiSynthesis.conflict_resolution.map((s: string) => `• ${s}`).join('\n')}\n\n` : '') +
+        (Array.isArray(aiSynthesis.vedic_remedies) ? `VEDIC REMEDIES:\n${aiSynthesis.vedic_remedies.map((s: string) => `• ${s}`).join('\n')}\n\n` : '') +
+        (aiSynthesis.final_assessment ? `FINAL ASSESSMENT:\n${aiSynthesis.final_assessment}\n` : '');
+    } else {
+      textToCopy = String(aiSynthesis);
+    }
+    navigator.clipboard.writeText(textToCopy);
+    setCopiedText(true);
+    setTimeout(() => setCopiedText(false), 2000);
   };
 
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
@@ -406,7 +469,11 @@ export const MatchmakingView: React.FC<MatchmakingViewProps> = ({
           total_score: matchResult.totalPoints,
           max_score: 36,
           manglik_status: matchResult.manglik.verdict,
-          report_json: matchResult,
+          report_json: {
+            ...matchResult,
+            ai_synthesis: aiSynthesis,
+          },
+          ai_synthesis: aiSynthesis,
         }),
       });
 
@@ -1806,31 +1873,304 @@ Issued by JyotishVeda AI Daivajna Astrological Intelligence Engine
               </p>
             </div>
 
-            <button
-              onClick={handleGenerateAISynthesis}
-              disabled={isGeneratingAI}
-              className="flex items-center space-x-2 px-5 py-2.5 rounded-xl bg-[#C9A050] hover:bg-[#D4AF37] disabled:opacity-50 text-[#0D0D0F] font-bold text-xs shadow-lg shadow-[#C9A050]/20 transition cursor-pointer shrink-0"
-            >
-              {isGeneratingAI ? (
-                <>
-                  <RefreshCw className="w-4 h-4 animate-spin" />
-                  <span>Synthesizing Cosmic Charts...</span>
-                </>
-              ) : (
-                <>
-                  <Sparkles className="w-4 h-4" />
-                  <span>Generate Full AI Counsel</span>
-                </>
+            <div className="flex items-center space-x-2.5 shrink-0">
+              {aiSynthesis && (
+                <button
+                  onClick={handleCopyAISynthesis}
+                  className={`flex items-center space-x-1.5 px-3.5 py-2.5 rounded-xl border text-xs font-semibold transition cursor-pointer ${
+                    theme === 'dark'
+                      ? 'bg-[#1C1C22] hover:bg-[#25252E] text-[#E5E1D8] border-[#3A3A42]'
+                      : 'bg-[#FFFDF7] hover:bg-[#FAF4E4] text-[#1E1B15] border-[#DECFA6]'
+                  }`}
+                  title="Copy counsel report"
+                >
+                  {copiedText ? (
+                    <>
+                      <Check className="w-3.5 h-3.5 text-emerald-500" />
+                      <span className="text-emerald-500 font-bold">Copied</span>
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-3.5 h-3.5 text-[#C9A050]" />
+                      <span>Copy Report</span>
+                    </>
+                  )}
+                </button>
               )}
-            </button>
+
+              <button
+                onClick={handleGenerateAISynthesis}
+                disabled={isGeneratingAI}
+                className="flex items-center space-x-2 px-5 py-2.5 rounded-xl bg-[#C9A050] hover:bg-[#D4AF37] disabled:opacity-50 text-[#0D0D0F] font-bold text-xs shadow-lg shadow-[#C9A050]/20 transition cursor-pointer"
+              >
+                {isGeneratingAI ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 animate-spin" />
+                    <span>Synthesizing Cosmic Charts...</span>
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="w-4 h-4" />
+                    <span>{aiSynthesis ? 'Regenerate Full AI Counsel' : 'Generate Full AI Counsel'}</span>
+                  </>
+                )}
+              </button>
+            </div>
           </div>
 
           {aiSynthesis ? (
-            <div className={`p-6 rounded-2xl border text-sm leading-relaxed space-y-4 ${
-              theme === 'dark' ? 'bg-[#0D0D0F] border-[#2A2A2E] text-[#E5E1D8]' : 'bg-[#FFFDF7] border-[#DECFA6] text-[#1E1B15]'
+            <div className="space-y-6">
+              {typeof aiSynthesis === 'object' ? (
+                <div className="space-y-6 text-xs sm:text-sm">
+                  {/* Overall Compatibility Hero */}
+                  {aiSynthesis.overall_compatibility && (
+                    <div className={`p-5 rounded-2xl border ${
+                      theme === 'dark' ? 'bg-[#0D0D0F] border-[#C9A050]/40' : 'bg-[#FFFDF7] border-[#DECFA6]'
+                    } space-y-2`}>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-2 text-[#C9A050] font-serif font-bold text-sm">
+                          <Sparkles className="w-4 h-4" />
+                          <span>Overall Astrological Compatibility</span>
+                        </div>
+                        {typeof aiSynthesis.overall_compatibility === 'string' && aiSynthesis.overall_compatibility.length < 30 && (
+                          <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-[#C9A050]/20 text-[#C9A050] border border-[#C9A050]/40">
+                            {aiSynthesis.overall_compatibility}
+                          </span>
+                        )}
+                      </div>
+                      <p className={`${theme === 'dark' ? 'text-[#E5E1D8]' : 'text-[#2C2825]'} leading-relaxed`}>
+                        {aiSynthesis.overall_compatibility}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Core Dimensions Grid */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {aiSynthesis.guna_milan && (
+                      <div className={`p-4 rounded-xl border ${theme === 'dark' ? 'bg-[#141418] border-[#2A2A2E]' : 'bg-[#FFFDF7] border-[#DECFA6]'} space-y-1.5`}>
+                        <h4 className="font-serif font-bold text-[#C9A050] text-xs uppercase tracking-wider flex items-center space-x-1.5">
+                          <span>✨ Guna Milan &amp; Cosmic Alignment</span>
+                        </h4>
+                        <p className={`${theme === 'dark' ? 'text-[#9E9A90]' : 'text-[#544B3D]'} leading-relaxed`}>
+                          {aiSynthesis.guna_milan}
+                        </p>
+                      </div>
+                    )}
+
+                    {aiSynthesis.manglik_dosha && (
+                      <div className={`p-4 rounded-xl border ${theme === 'dark' ? 'bg-[#141418] border-[#2A2A2E]' : 'bg-[#FFFDF7] border-[#DECFA6]'} space-y-1.5`}>
+                        <h4 className="font-serif font-bold text-amber-500 text-xs uppercase tracking-wider flex items-center space-x-1.5">
+                          <Flame className="w-3.5 h-3.5 text-amber-500" />
+                          <span>Manglik (Kuja) Dosha Evaluation</span>
+                        </h4>
+                        <p className={`${theme === 'dark' ? 'text-[#9E9A90]' : 'text-[#544B3D]'} leading-relaxed`}>
+                          {aiSynthesis.manglik_dosha}
+                        </p>
+                      </div>
+                    )}
+
+                    {aiSynthesis.nadi_analysis && (
+                      <div className={`p-4 rounded-xl border ${theme === 'dark' ? 'bg-[#141418] border-[#2A2A2E]' : 'bg-[#FFFDF7] border-[#DECFA6]'} space-y-1.5`}>
+                        <h4 className="font-serif font-bold text-purple-400 text-xs uppercase tracking-wider flex items-center space-x-1.5">
+                          <Dna className="w-3.5 h-3.5 text-purple-400" />
+                          <span>Nadi Koota &amp; Genetic Prana Harmony</span>
+                        </h4>
+                        <p className={`${theme === 'dark' ? 'text-[#9E9A90]' : 'text-[#544B3D]'} leading-relaxed`}>
+                          {aiSynthesis.nadi_analysis}
+                        </p>
+                      </div>
+                    )}
+
+                    {aiSynthesis.bhakoot_analysis && (
+                      <div className={`p-4 rounded-xl border ${theme === 'dark' ? 'bg-[#141418] border-[#2A2A2E]' : 'bg-[#FFFDF7] border-[#DECFA6]'} space-y-1.5`}>
+                        <h4 className="font-serif font-bold text-[#C9A050] text-xs uppercase tracking-wider flex items-center space-x-1.5">
+                          <Heart className="w-3.5 h-3.5 text-[#C9A050]" />
+                          <span>Bhakoot Harmony &amp; Emotional Rhythm</span>
+                        </h4>
+                        <p className={`${theme === 'dark' ? 'text-[#9E9A90]' : 'text-[#544B3D]'} leading-relaxed`}>
+                          {aiSynthesis.bhakoot_analysis}
+                        </p>
+                      </div>
+                    )}
+
+                    {aiSynthesis.psychological_affinity && (
+                      <div className={`p-4 rounded-xl border ${theme === 'dark' ? 'bg-[#141418] border-[#2A2A2E]' : 'bg-[#FFFDF7] border-[#DECFA6]'} space-y-1.5`}>
+                        <h4 className="font-serif font-bold text-[#C9A050] text-xs uppercase tracking-wider flex items-center space-x-1.5">
+                          <span>🧠 Psychological &amp; Intellectual Affinity</span>
+                        </h4>
+                        <p className={`${theme === 'dark' ? 'text-[#9E9A90]' : 'text-[#544B3D]'} leading-relaxed`}>
+                          {aiSynthesis.psychological_affinity}
+                        </p>
+                      </div>
+                    )}
+
+                    {aiSynthesis.emotional_resonance && (
+                      <div className={`p-4 rounded-xl border ${theme === 'dark' ? 'bg-[#141418] border-[#2A2A2E]' : 'bg-[#FFFDF7] border-[#DECFA6]'} space-y-1.5`}>
+                        <h4 className="font-serif font-bold text-[#C9A050] text-xs uppercase tracking-wider flex items-center space-x-1.5">
+                          <span>❤️ Emotional Resonance &amp; Temperament</span>
+                        </h4>
+                        <p className={`${theme === 'dark' ? 'text-[#9E9A90]' : 'text-[#544B3D]'} leading-relaxed`}>
+                          {aiSynthesis.emotional_resonance}
+                        </p>
+                      </div>
+                    )}
+
+                    {aiSynthesis.karmic_bond && (
+                      <div className={`p-4 rounded-xl border ${theme === 'dark' ? 'bg-[#141418] border-[#2A2A2E]' : 'bg-[#FFFDF7] border-[#DECFA6]'} space-y-1.5`}>
+                        <h4 className="font-serif font-bold text-[#C9A050] text-xs uppercase tracking-wider flex items-center space-x-1.5">
+                          <span>🪐 Karmic Bond &amp; Destiny</span>
+                        </h4>
+                        <p className={`${theme === 'dark' ? 'text-[#9E9A90]' : 'text-[#544B3D]'} leading-relaxed`}>
+                          {aiSynthesis.karmic_bond}
+                        </p>
+                      </div>
+                    )}
+
+                    {aiSynthesis.physical_harmonization && (
+                      <div className={`p-4 rounded-xl border ${theme === 'dark' ? 'bg-[#141418] border-[#2A2A2E]' : 'bg-[#FFFDF7] border-[#DECFA6]'} space-y-1.5`}>
+                        <h4 className="font-serif font-bold text-[#C9A050] text-xs uppercase tracking-wider flex items-center space-x-1.5">
+                          <span>🌿 Biological &amp; Physical Harmonization</span>
+                        </h4>
+                        <p className={`${theme === 'dark' ? 'text-[#9E9A90]' : 'text-[#544B3D]'} leading-relaxed`}>
+                          {aiSynthesis.physical_harmonization}
+                        </p>
+                      </div>
+                    )}
+
+                    {aiSynthesis.family_and_married_life && (
+                      <div className={`p-4 rounded-xl border ${theme === 'dark' ? 'bg-[#141418] border-[#2A2A2E]' : 'bg-[#FFFDF7] border-[#DECFA6]'} space-y-1.5`}>
+                        <h4 className="font-serif font-bold text-[#C9A050] text-xs uppercase tracking-wider flex items-center space-x-1.5">
+                          <span>🏡 Family &amp; Married Life</span>
+                        </h4>
+                        <p className={`${theme === 'dark' ? 'text-[#9E9A90]' : 'text-[#544B3D]'} leading-relaxed`}>
+                          {aiSynthesis.family_and_married_life}
+                        </p>
+                      </div>
+                    )}
+
+                    {aiSynthesis.wealth_and_prosperity && (
+                      <div className={`p-4 rounded-xl border ${theme === 'dark' ? 'bg-[#141418] border-[#2A2A2E]' : 'bg-[#FFFDF7] border-[#DECFA6]'} space-y-1.5`}>
+                        <h4 className="font-serif font-bold text-[#C9A050] text-xs uppercase tracking-wider flex items-center space-x-1.5">
+                          <span>💰 Wealth Multiplication &amp; Prosperity</span>
+                        </h4>
+                        <p className={`${theme === 'dark' ? 'text-[#9E9A90]' : 'text-[#544B3D]'} leading-relaxed`}>
+                          {aiSynthesis.wealth_and_prosperity}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Strengths & Challenges Grid */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {Array.isArray(aiSynthesis.major_strengths) && aiSynthesis.major_strengths.length > 0 && (
+                      <div className={`p-4 rounded-xl border ${theme === 'dark' ? 'bg-[#0D0D0F] border-emerald-500/30' : 'bg-[#FFFDF7] border-emerald-500/30'} space-y-2`}>
+                        <h4 className="font-serif font-bold text-emerald-500 text-xs uppercase tracking-wider flex items-center space-x-1.5">
+                          <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                          <span>Major Relationship Strengths</span>
+                        </h4>
+                        <ul className="space-y-1.5">
+                          {aiSynthesis.major_strengths.map((str: string, i: number) => (
+                            <li key={i} className="flex items-start space-x-2 text-xs">
+                              <span className="text-emerald-500 font-bold">•</span>
+                              <span className={theme === 'dark' ? 'text-[#E5E1D8]' : 'text-[#2C2825]'}>{str}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                    {Array.isArray(aiSynthesis.major_challenges) && aiSynthesis.major_challenges.length > 0 && (
+                      <div className={`p-4 rounded-xl border ${theme === 'dark' ? 'bg-[#0D0D0F] border-amber-500/30' : 'bg-[#FFFDF7] border-amber-500/30'} space-y-2`}>
+                        <h4 className="font-serif font-bold text-amber-500 text-xs uppercase tracking-wider flex items-center space-x-1.5">
+                          <AlertTriangle className="w-4 h-4 text-amber-500" />
+                          <span>Potential Challenges &amp; Growth Areas</span>
+                        </h4>
+                        <ul className="space-y-1.5">
+                          {aiSynthesis.major_challenges.map((ch: string, i: number) => (
+                            <li key={i} className="flex items-start space-x-2 text-xs">
+                              <span className="text-amber-500 font-bold">•</span>
+                              <span className={theme === 'dark' ? 'text-[#E5E1D8]' : 'text-[#2C2825]'}>{ch}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Conflict Resolution & Vedic Remedies */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {Array.isArray(aiSynthesis.conflict_resolution) && aiSynthesis.conflict_resolution.length > 0 && (
+                      <div className={`p-4 rounded-xl border ${theme === 'dark' ? 'bg-[#0D0D0F] border-[#2A2A2E]' : 'bg-[#FFFDF7] border-[#DECFA6]'} space-y-2`}>
+                        <h4 className="font-serif font-bold text-blue-400 text-xs uppercase tracking-wider flex items-center space-x-1.5">
+                          <ShieldCheck className="w-4 h-4 text-blue-400" />
+                          <span>Conflict Resolution Guidance</span>
+                        </h4>
+                        <ul className="space-y-1.5">
+                          {aiSynthesis.conflict_resolution.map((cr: string, i: number) => (
+                            <li key={i} className="flex items-start space-x-2 text-xs">
+                              <span className="text-blue-400 font-bold">•</span>
+                              <span className={theme === 'dark' ? 'text-[#E5E1D8]' : 'text-[#2C2825]'}>{cr}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                    {Array.isArray(aiSynthesis.vedic_remedies) && aiSynthesis.vedic_remedies.length > 0 && (
+                      <div className={`p-4 rounded-xl border ${theme === 'dark' ? 'bg-[#0D0D0F] border-[#C9A050]/40' : 'bg-[#FFFDF7] border-[#DECFA6]'} space-y-2`}>
+                        <h4 className="font-serif font-bold text-[#C9A050] text-xs uppercase tracking-wider flex items-center space-x-1.5">
+                          <Sparkles className="w-4 h-4 text-[#C9A050]" />
+                          <span>Vedic Upayas &amp; Remedies</span>
+                        </h4>
+                        <ul className="space-y-1.5">
+                          {aiSynthesis.vedic_remedies.map((vr: string, i: number) => (
+                            <li key={i} className="flex items-start space-x-2 text-xs">
+                              <span className="text-[#C9A050] font-bold">•</span>
+                              <span className={theme === 'dark' ? 'text-[#E5E1D8]' : 'text-[#2C2825]'}>{vr}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Final Assessment Box */}
+                  {aiSynthesis.final_assessment && (
+                    <div className={`p-5 rounded-2xl border ${
+                      theme === 'dark' ? 'bg-gradient-to-r from-[#C9A050]/15 via-[#C9A050]/5 to-transparent border-[#C9A050]/50' : 'bg-gradient-to-r from-[#FAF0D0] via-[#FAF6E8] to-[#FFFDF7] border-[#DFC896]'
+                    } space-y-2`}>
+                      <h4 className="font-serif font-bold text-[#C9A050] text-sm flex items-center space-x-2">
+                        <HeartHandshake className="w-4 h-4 text-[#C9A050]" />
+                        <span>AI Daivajna Final Assessment &amp; Blessings</span>
+                      </h4>
+                      <p className={`${theme === 'dark' ? 'text-[#F0ECE1]' : 'text-[#1E1B15]'} font-serif italic text-xs sm:text-sm leading-relaxed`}>
+                        "{aiSynthesis.final_assessment}"
+                      </p>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className={`p-6 rounded-2xl border text-sm leading-relaxed space-y-4 ${
+                  theme === 'dark' ? 'bg-[#0D0D0F] border-[#2A2A2E] text-[#E5E1D8]' : 'bg-[#FFFDF7] border-[#DECFA6] text-[#1E1B15]'
+                }`}>
+                  <div className={`prose max-w-none text-xs sm:text-sm ${theme === 'dark' ? 'prose-invert' : 'text-[#1E1B15]'}`}>
+                    <ReactMarkdown>{aiSynthesis}</ReactMarkdown>
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : isGeneratingAI ? (
+            <div className={`p-12 rounded-2xl border border-dashed text-center space-y-4 ${
+              theme === 'dark' ? 'bg-[#0D0D0F]/60 border-[#C9A050]/40' : 'bg-[#FFFDF7]/80 border-[#DECFA6]'
             }`}>
-              <div className={`prose max-w-none text-xs sm:text-sm ${theme === 'dark' ? 'prose-invert' : 'text-[#1E1B15]'}`}>
-                <ReactMarkdown>{aiSynthesis}</ReactMarkdown>
+              <RefreshCw className="w-8 h-8 text-[#C9A050] mx-auto animate-spin" />
+              <div className="space-y-1">
+                <h4 className={`text-base font-serif font-bold ${theme === 'dark' ? 'text-[#F0ECE1]' : 'text-[#1E1B15]'}`}>
+                  Synthesizing Vedic Charts &amp; Planetary Alignments...
+                </h4>
+                <p className={`text-xs ${theme === 'dark' ? 'text-[#9E9A90]' : 'text-[#6E6452]'}`}>
+                  AI Daivajna is analyzing Guna Milan, Doshas, and synastry dynamics for {partner1.fullName} &amp; {partner2.fullName}.
+                </p>
               </div>
             </div>
           ) : (
@@ -1842,7 +2182,7 @@ Issued by JyotishVeda AI Daivajna Astrological Intelligence Engine
                 Generate an exhaustive AI consultation covering psychological affinity, wealth generation, marital timing, and conflict resolution.
               </p>
               <p className={`text-xs ${theme === 'dark' ? 'text-[#9E9A90]' : 'text-[#6E6452]'}`}>
-                Click the button above to synthesize charts using Gemini 3.7 Flash.
+                Click the button above to synthesize charts using AI Daivajna intelligence.
               </p>
             </div>
           )}
@@ -1879,6 +2219,23 @@ Issued by JyotishVeda AI Daivajna Astrological Intelligence Engine
                 </div>
               ))}
             </div>
+
+            {Array.isArray(aiSynthesis?.vedic_remedies) && aiSynthesis.vedic_remedies.length > 0 && (
+              <div className={`p-4 rounded-xl border ${theme === 'dark' ? 'bg-[#0D0D0F] border-[#C9A050]/40' : 'bg-[#FFFDF7] border-[#DECFA6]'} space-y-2 mt-4`}>
+                <h4 className="font-serif font-bold text-[#C9A050] text-xs uppercase tracking-wider flex items-center space-x-1.5">
+                  <Sparkles className="w-4 h-4 text-[#C9A050]" />
+                  <span>AI Daivajna Personalized Relationship Upayas</span>
+                </h4>
+                <ul className="space-y-1.5">
+                  {aiSynthesis.vedic_remedies.map((vr: string, i: number) => (
+                    <li key={i} className="flex items-start space-x-2 text-xs">
+                      <span className="text-[#C9A050] font-bold">•</span>
+                      <span className={theme === 'dark' ? 'text-[#E5E1D8]' : 'text-[#2C2825]'}>{vr}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </div>
 
           {/* Auspicious Muhurat Window Card */}
@@ -1923,38 +2280,41 @@ Issued by JyotishVeda AI Daivajna Astrological Intelligence Engine
               </p>
             </div>
 
-            {/* Export Cards */}
-            <div className="mt-6 max-w-md">
-              {/* Direct 1-Page PDF Certificate */}
-              <div className={`p-5 rounded-2xl border transition space-y-4 flex flex-col justify-between ${
-                theme === 'dark' ? 'bg-[#0D0D0F] border-[#2A2A2E] hover:border-[#C9A050]/50' : 'bg-[#FFFDF7] border-[#DECFA6] hover:border-[#C9A050]'
+            {/* Export Card - Full Width Banner */}
+            <div className="mt-6 w-full">
+              <div className={`p-6 sm:p-7 rounded-2xl border transition flex flex-col md:flex-row md:items-center justify-between gap-6 ${
+                theme === 'dark' 
+                  ? 'bg-[#0D0D0F] border-[#2A2A2E] hover:border-[#C9A050]/60 shadow-lg' 
+                  : 'bg-[#FFFDF7] border-[#DECFA6] hover:border-[#C9A050] shadow-md'
               }`}>
-                <div>
-                  <div className="w-10 h-10 rounded-xl bg-[#C9A050]/15 border border-[#C9A050]/30 flex items-center justify-center text-[#C9A050] mb-3">
-                    <Download className="w-5 h-5" />
+                <div className="flex items-start space-x-4">
+                  <div className="w-12 h-12 rounded-2xl bg-[#C9A050]/15 border border-[#C9A050]/30 flex items-center justify-center text-[#C9A050] shrink-0 shadow-sm">
+                    <Download className="w-6 h-6" />
                   </div>
-                  <h4 className={`text-base font-serif font-bold ${theme === 'dark' ? 'text-[#F0ECE1]' : 'text-[#1E1B15]'}`}>
-                    Download PDF Certificate
-                  </h4>
-                  <p className={`text-xs ${theme === 'dark' ? 'text-[#9E9A90]' : 'text-[#6E6452]'} mt-1 leading-relaxed`}>
-                    Formatted with classical borders, authentication seal, 8 Kootas matrix, and Pandit verification line.
-                  </p>
+                  <div className="space-y-1">
+                    <h4 className={`text-lg font-serif font-bold ${theme === 'dark' ? 'text-[#F0ECE1]' : 'text-[#1E1B15]'}`}>
+                      Download Official Kundli Milan PDF Certificate
+                    </h4>
+                    <p className={`text-xs sm:text-sm ${theme === 'dark' ? 'text-[#9E9A90]' : 'text-[#6E6452]'} leading-relaxed max-w-2xl`}>
+                      High-resolution printable document with traditional Vedic double borders, authentication seal, 8 Kootas matrix score, and Pandit verification signature line.
+                    </p>
+                  </div>
                 </div>
 
                 <button
                   onClick={handleDownloadPDF}
                   disabled={isGeneratingPdf}
-                  className="w-full py-2.5 rounded-xl bg-[#C9A050] hover:bg-[#D4AF37] text-[#0D0D0F] font-bold text-xs tracking-wide shadow-md shadow-[#C9A050]/20 transition cursor-pointer flex items-center justify-center space-x-1.5"
+                  className="w-full md:w-auto px-8 py-3.5 rounded-xl bg-[#C9A050] hover:bg-[#D4AF37] text-[#0D0D0F] font-bold text-xs sm:text-sm tracking-wide shadow-lg shadow-[#C9A050]/25 transition cursor-pointer flex items-center justify-center space-x-2 shrink-0 hover:scale-[1.02] active:scale-95"
                 >
                   {isGeneratingPdf ? (
                     <>
-                      <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                      <RefreshCw className="w-4 h-4 animate-spin" />
                       <span>Generating PDF...</span>
                     </>
                   ) : (
                     <>
-                      <Download className="w-3.5 h-3.5" />
-                      <span>Download 1-Page PDF</span>
+                      <Download className="w-4 h-4" />
+                      <span>Download PDF Certificate</span>
                     </>
                   )}
                 </button>

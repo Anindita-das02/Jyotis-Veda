@@ -1704,21 +1704,48 @@ export function calculateKundliMilan(partner1: UserProfile, partner2: UserProfil
     score: elemScore,
   };
 
-  // REMEDIES
-  const remedies: string[] = [
-    'Perform Joint Gauri-Shankar Puja on Shukla Paksha Mondays to invite divine marital grace.',
-    'Chant the sacred Shukra Beej Mantra ("Om Shum Shukraya Namaha") for enduring romantic sweetness.',
-    'Light a pure cow ghee lamp facing East during sunset on Thursdays for spiritual harmony and family prosperity.',
-    'Wear a natural Rose Quartz or energize a Sphatik (Quartz) Shivling in the northeast corner of your home.',
-  ];
+  // PERSONALIZED DYNAMIC REMEDIES & UPAYAS
+  const remedies: string[] = [];
 
+  const p1Name = partner1.fullName || 'Partner 1';
+  const p2Name = partner2.fullName || 'Partner 2';
+  const rashi1Name = ZODIAC_SIGNS[rashi1Idx].name;
+  const rashi2Name = ZODIAC_SIGNS[rashi2Idx].name;
+
+  // 1. Manglik Specific Upaya
   if (!isNeutralized && (isP1Manglik || isP2Manglik)) {
-    remedies.unshift('Recite Hanuman Chalisa on Tuesdays and offer red flowers to neutralize Mars intensity.');
+    const manglikNames = [isP1Manglik ? p1Name : '', isP2Manglik ? p2Name : ''].filter(Boolean).join(' and ');
+    remedies.push(`Kuja Shanti Upaya: ${manglikNames} should recite Hanuman Chalisa on Tuesdays, light a sesame/mustard oil lamp, and donate red lentils or copper to pacify Mars intensity.`);
   }
 
-  if (nadiPoints === 0) {
-    remedies.unshift('Perform Maha Mrityunjaya Homa or donate food and warm blankets to the needy to pacify Nadi Dosha.');
+  // 2. Nadi Dosha Nivaran
+  if (nadiPoints === 0 && isSameNadi && !isNadiCancelled) {
+    remedies.push(`Nadi Dosha Nivaran: As both ${p1Name} and ${p2Name} share ${nadi1} Nadi, perform Maha Mrityunjaya Japa (108 chants) and donate warm clothing, grain, or a silver/gold token on auspicious constellation days.`);
   }
+
+  // 3. Bhakoot Shanti
+  if (isBhakootInauspicious && !isBhakootCancelled) {
+    remedies.push(`Bhakoot Shanti: To balance the ${rashi1Name} ↔ ${rashi2Name} (${rashiDiff}/${altDiff}) rashi disposition, recite Vishnu Sahasranama together every Thursday and offer yellow flowers to Lord Brihaspati.`);
+  }
+
+  // 4. Graha Maitri (Rashi Lords)
+  if (grahaPoints < 3) {
+    remedies.push(`Graha Maitri Harmony: Rashi rulers ${lord1} (${p1Name}) & ${lord2} (${p2Name}) benefit from joint Archana at Shiva-Parvati or Radha-Krishna temples on Shukla Paksha Mondays.`);
+  }
+
+  // 5. Shukra & Love Harmony
+  remedies.push(`Shukra & Preeti Mantra: ${p1Name} & ${p2Name} should chant "Om Shum Shukraya Namaha" (21 times) every Friday to invoke enduring romantic sweetness and Venusian grace.`);
+
+  // 6. Vastu Energy Alignment
+  remedies.push(`Ishanya Vastu Remedy: Place energized Rose Quartz crystals or a sacred silver coin in the Northeast (Ishanya) corner of your home to attract marital tranquility and financial growth.`);
+
+  // 7. Auspicious Deep Daan
+  remedies.push(`Deep Daan: Light a pure cow ghee lamp facing East during sunset on Thursdays to foster family tranquility and sustained fortune.`);
+
+  // DYNAMIC MUHURAT ADVICE
+  const nak1Name = moon1.nakshatra || 'Ashwini';
+  const nak2Name = moon2.nakshatra || 'Rohini';
+  const auspiciousMuhuratAdvice = `Personalized Vivaha Muhurat for ${p1Name} (${nak1Name} Nakshatra, ${rashi1Name}) & ${p2Name} (${nak2Name} Nakshatra, ${rashi2Name}): Ideal wedding & auspicious partnership dates occur during Shukla Paksha under Rohini, Mrigashira, Magha, Uttara Phalguni, Hasta, Swati, Anuradha, or Revati Nakshatras during Venus (Shukra) or Jupiter (Guru) Hora, avoiding Rikta Tithis (4th, 9th, 14th) and Rahu Kaal.`;
 
   return {
     partner1,
@@ -1753,7 +1780,7 @@ export function calculateKundliMilan(partner1: UserProfile, partner2: UserProfil
     numerologyMilan,
     elementalBalance,
     remedies,
-    auspiciousMuhuratAdvice: 'Auspicious wedding & partnership Muhurats are ideal during Shukla Paksha under Rohini, Uttara Phalguni, Uttara Ashadha, or Revati Nakshatras during Venus/Jupiter Hora.',
+    auspiciousMuhuratAdvice,
   };
 }
 

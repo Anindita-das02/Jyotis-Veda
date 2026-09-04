@@ -1,12 +1,13 @@
 import io
 import os
+import json
 from datetime import datetime
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import mm
 from reportlab.lib import colors
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.platypus import (
-    SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image
+    SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image, PageBreak
 )
 
 GOLD_DARK = colors.HexColor("#7E5F18")
@@ -62,8 +63,11 @@ def _styles():
         alignment=1,
     ))
     styles.add(ParagraphStyle(
-        name="JVTableCellRight", fontSize=9, leading=11.5, textColor=GOLD_DARK,
-        fontName="Helvetica-Bold", alignment=2,
+        name="JVTableCellRight", fontSize=8.5, leading=11, textColor=TEXT_DARK,
+        alignment=2, fontName="Helvetica-Bold",
+    ))
+    styles.add(ParagraphStyle(
+        name="ScoreCenter", parent=styles["JVBody"], alignment=1, leading=14,
     ))
     return styles
 
@@ -171,7 +175,7 @@ def generate_match_report_pdf(report: dict) -> bytes:
                 f"<font size=18.5 color='#7E5F18'><b>{total:g} / {max_score:g} Gunas ({pct:.0f}%)</b></font><br/>"
                 f"<font size=10.5 color='#1A1A1E'><b>{verdict_title.upper()}</b></font><br/>"
                 f"<font size=8 color='#555555'><i>\"{summary_text[:190]}\"</i></font>",
-                ParagraphStyle(name="ScoreCenter", parent=styles["JVBody"], alignment=1, leading=14)
+                styles["ScoreCenter"]
             )
         ]
     ]
@@ -272,33 +276,170 @@ def generate_match_report_pdf(report: dict) -> bytes:
     story.append(dosha_table)
     story.append(Spacer(1, 4.5 * mm))
 
-    # 6. Auspicious Remedies Section
+    # 6. Auspicious Remedies & Muhurat Section
     remedies = report_json.get("remedies") or [
         "Perform Joint Gauri-Shankar Puja on Shukla Paksha Mondays to evoke divine marital grace.",
         "Chant the sacred Shukra Beej Mantra (Om Shum Shukraya Namaha) for enduring sweetness.",
         "Light a pure cow-ghee lamp during sunset on Thursdays for spiritual harmony."
     ]
-    rem_lines = "<br/>".join([f"{i+1}. {r[:150]}" for i, r in enumerate(remedies[:3])])
+    rem_lines = "<br/>".join([f"{i+1}. {r[:140]}" for i, r in enumerate(remedies[:3])])
+    muhurat_str = report_json.get("auspiciousMuhuratAdvice") or "Auspicious wedding & partnership dates ideal during Shukla Paksha under Rohini, Uttara Phalguni, or Revati Nakshatras."
     
     rem_style = ParagraphStyle(
         name="JVRemedies",
         parent=styles["JVBody"],
-        fontSize=8.2,
-        leading=12,
+        fontSize=8,
+        leading=11.5,
         textColor=colors.HexColor("#3A3A3C"),
     )
     rem_table = Table([[
-        Paragraph(f"<font size=8.8 color='#7E5F18'><b>AUSPICIOUS VEDIC REMEDIES &amp; GUIDANCE</b></font><br/>{rem_lines}", rem_style)
+        Paragraph(f"<font size=8.5 color='#7E5F18'><b>AUSPICIOUS VEDIC REMEDIES &amp; MUHURAT</b></font><br/>{rem_lines}<br/><font size=7.5 color='#666666'><b>Muhurat Guidance:</b> {muhurat_str[:150]}</font>", rem_style)
     ]], colWidths=[184 * mm])
     rem_table.setStyle(TableStyle([
         ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#FEFCF7")),
         ("BOX", (0, 0), (-1, -1), 0.6, GOLD_MAIN),
-        ("TOPPADDING", (0, 0), (-1, -1), 7),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 7),
+        ("TOPPADDING", (0, 0), (-1, -1), 6),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
         ("LEFTPADDING", (0, 0), (-1, -1), 8),
         ("RIGHTPADDING", (0, 0), (-1, -1), 8),
     ]))
     story.append(rem_table)
+
+    # ============================================================
+    # PAGE 2: WESTERN SYNASTRY, ELEMENTS & AI RELATIONSHIP COUNSEL
+    # ============================================================
+    synastry_list = report_json.get("synastry") or []
+    elem_balance = report_json.get("elementalBalance") or {}
+    num_milan = report_json.get("numerologyMilan") or {}
+    ai_synth = report_json.get("ai_synthesis") or report.get("ai_synthesis") or {}
+    if isinstance(ai_synth, str):
+        try:
+            ai_synth = json.loads(ai_synth)
+        except Exception:
+            ai_synth = {}
+
+    story.append(PageBreak())
+
+    # Page 2 Header
+    p2_hdr = Paragraph(
+        '<b><font size="14" color="#111111">JYOTISH</font><font size="14" color="#B58328">VEDA</font></b> '
+        '<font size="10" color="#7E5F18"><b>• WESTERN SYNASTRY, ELEMENTS &amp; AI COUNSEL</b></font><br/>'
+        f'<font size=8 color="#555555">Comprehensive Cosmic Alignment Dossier for {p1_name} &amp; {p2_name}</font>',
+        styles["ScoreCenter"]
+    )
+    story.append(p2_hdr)
+    story.append(Spacer(1, 3.5 * mm))
+
+    # Western Synastry & Elements Section
+    story.append(Paragraph("WESTERN SYNASTRY &amp; COSMIC ELEMENTS", styles["JVSection"]))
+    
+    syn_rows = []
+    if synastry_list and isinstance(synastry_list, list):
+        for s in synastry_list[:3]:
+            s_title = s.get("title", "Aspect")
+            s_planets = s.get("planets", "")
+            s_score = s.get("harmonyScore", 80)
+            s_verdict = s.get("verdict", "")
+            s_desc = s.get("description", "")
+            syn_rows.append(Paragraph(
+                f"<b>{s_title} ({s_planets}):</b> <font color='#7E5F18'><b>{s_score}% • {s_verdict}</b></font><br/>"
+                f"<font size=7.5 color='#555555'>{s_desc[:120]}</font>",
+                styles["JVBody"]
+            ))
+
+    elem_text = f"<b>Elemental Synergy ({elem_balance.get('score', 80)}%):</b> {elem_balance.get('synergy', 'Harmonious elemental polarity')}."
+    num_text = f"<b>Numerology Harmony ({num_milan.get('harmonyScore', 85)}%):</b> {num_milan.get('description', 'Favorable psychic numbers')[:120]}."
+
+    syn_table_data = [
+        [
+            syn_rows[0] if len(syn_rows) > 0 else Paragraph(elem_text, styles["JVBody"]),
+            syn_rows[1] if len(syn_rows) > 1 else Paragraph(num_text, styles["JVBody"]),
+        ],
+        [
+            Paragraph(elem_text, styles["JVBody"]),
+            Paragraph(num_text, styles["JVBody"]),
+        ]
+    ]
+    syn_table = Table(syn_table_data, colWidths=[92 * mm, 92 * mm])
+    syn_table.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#FAF7F0")),
+        ("BOX", (0, 0), (-1, -1), 0.6, GOLD_BORDER),
+        ("LINEBEFORE", (1, 0), (1, -1), 0.6, GOLD_BORDER),
+        ("LINEBELOW", (0, 0), (-1, 0), 0.6, GOLD_BORDER),
+        ("TOPPADDING", (0, 0), (-1, -1), 5),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
+        ("LEFTPADDING", (0, 0), (-1, -1), 7),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 7),
+    ]))
+    story.append(syn_table)
+    story.append(Spacer(1, 3.5 * mm))
+
+    # AI Daivajna Relationship Synthesis Section
+    story.append(Paragraph("AI DAIVAJNA DEEP RELATIONSHIP SYNTHESIS", styles["JVSection"]))
+    
+    ai_overall = ai_synth.get("overall_compatibility") or "Harmonious celestial resonance across emotional and material domains."
+    ai_psych = ai_synth.get("psychological_affinity") or "Strong intellectual rapport and fluid communication."
+    ai_emot = ai_synth.get("emotional_resonance") or "Emotionally supportive dynamic with high mutual respect."
+    ai_karmic = ai_synth.get("karmic_bond") or "Favorable karmic alignment supporting longevity and shared destiny."
+    ai_phys = ai_synth.get("physical_harmonization") or "Harmonious physical vitality and mutual instinctual care."
+    ai_wealth = ai_synth.get("wealth_and_prosperity") or "Planetary trines indicate joint prosperity and domestic bliss."
+    ai_final = ai_synth.get("final_assessment") or f"A promising Vedic Kundli Milan. {p1_name} and {p2_name} will enjoy a flourishing and prosperous companionship."
+
+    ai_strengths = ai_synth.get("major_strengths") or ["High mutual respect & commitment", "Strong emotional alignment"]
+    ai_challenges = ai_synth.get("major_challenges") or ["Balancing communication during stressful cycles"]
+    ai_conflict = ai_synth.get("conflict_resolution") or ["Practice open dialogue before major decisions"]
+
+    str_bullets = "<br/>".join([f"• {s[:100]}" for s in ai_strengths[:3]])
+    ch_bullets = "<br/>".join([f"• {c[:100]}" for c in ai_challenges[:2]])
+    cr_bullets = "<br/>".join([f"• {r[:100]}" for r in ai_conflict[:2]])
+
+    ai_grid_data = [
+        [
+            Paragraph(f"<b>Overall Compatibility:</b><br/><font size=7.8 color='#555555'>{ai_overall[:160]}</font>", styles["JVBody"]),
+            Paragraph(f"<b>Psychological Affinity:</b><br/><font size=7.8 color='#555555'>{ai_psych[:160]}</font>", styles["JVBody"]),
+        ],
+        [
+            Paragraph(f"<b>Emotional Resonance:</b><br/><font size=7.8 color='#555555'>{ai_emot[:160]}</font>", styles["JVBody"]),
+            Paragraph(f"<b>Karmic Bond &amp; Destiny:</b><br/><font size=7.8 color='#555555'>{ai_karmic[:160]}</font>", styles["JVBody"]),
+        ],
+        [
+            Paragraph(f"<font color='#1B7A43'><b>Major Relationship Strengths:</b></font><br/><font size=7.5 color='#333333'>{str_bullets}</font>", styles["JVBody"]),
+            Paragraph(f"<font color='#B56A00'><b>Challenges &amp; Conflict Resolution:</b></font><br/><font size=7.5 color='#333333'>{ch_bullets}<br/>{cr_bullets}</font>", styles["JVBody"]),
+        ],
+    ]
+
+    ai_table = Table(ai_grid_data, colWidths=[92 * mm, 92 * mm])
+    ai_table.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#FEFAF0")),
+        ("BOX", (0, 0), (-1, -1), 0.6, GOLD_MAIN),
+        ("LINEBELOW", (0, 0), (-1, -2), 0.4, GOLD_BORDER),
+        ("LINEBEFORE", (1, 0), (1, -1), 0.4, GOLD_BORDER),
+        ("TOPPADDING", (0, 0), (-1, -1), 4.5),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 4.5),
+        ("LEFTPADDING", (0, 0), (-1, -1), 7),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 7),
+        ("VALIGN", (0, 0), (-1, -1), "TOP"),
+    ]))
+    story.append(ai_table)
+    story.append(Spacer(1, 3.5 * mm))
+
+    # AI Final Assessment Box
+    final_box = Table([[
+        Paragraph(
+            f"<font size=8.5 color='#7E5F18'><b>AI DAIVAJNA FINAL ASSESSMENT &amp; BLESSINGS</b></font><br/>"
+            f"<font size=7.8 color='#222222'><i>\"{ai_final[:220]}\"</i></font>",
+            styles["ScoreCenter"]
+        )
+    ]], colWidths=[184 * mm])
+    final_box.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#FDF7E7")),
+        ("BOX", (0, 0), (-1, -1), 0.7, GOLD_DARK),
+        ("TOPPADDING", (0, 0), (-1, -1), 5),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
+        ("LEFTPADDING", (0, 0), (-1, -1), 8),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 8),
+    ]))
+    story.append(final_box)
 
     # 7. Decorative Canvas Decorator: Full Page Watermark + Borders + Raised Footer
     def _draw_page_decorations(canvas, doc_):
@@ -351,7 +492,7 @@ def generate_match_report_pdf(report: dict) -> bytes:
         # Raised Footer Details (comfortably positioned above the bottom border)
         canvas.setFont("Helvetica", 7)
         canvas.setFillColor(colors.HexColor("#666666"))
-        cert_id = f"JV-KM-{datetime.utcnow().strftime('%Y%m%d')}-{report.get('id', 'CERT')[:6].upper()}"
+        cert_id = f"JV-KM-{datetime.utcnow().strftime('%Y%m%d')}-{str(report.get('id', 'CERT'))[:6].upper()}"
         canvas.drawString(14 * mm, 15 * mm, f"Certificate ID: {cert_id}  |  Generated: {datetime.utcnow().strftime('%d %B %Y')}")
         canvas.drawString(14 * mm, 12 * mm, "Certified via JyotishVeda Mathematical AstroEngine & Classical Ephemeris")
 
@@ -360,9 +501,9 @@ def generate_match_report_pdf(report: dict) -> bytes:
         canvas.drawRightString((210 - 14) * mm, 15 * mm, "DAIVAJNA ASTROLOGICAL SEAL")
         canvas.setFont("Helvetica", 6.5)
         canvas.setFillColor(colors.HexColor("#777777"))
-        canvas.drawRightString((210 - 14) * mm, 12 * mm, "Digitally Verified & Certified")
+        canvas.drawRightString((210 - 14) * mm, 12 * mm, f"Page {doc_.page} | Digitally Verified & Certified")
 
         canvas.restoreState()
 
-    doc.build(story, onFirstPage=_draw_page_decorations)
+    doc.build(story, onFirstPage=_draw_page_decorations, onLaterPages=_draw_page_decorations)
     return buffer.getvalue()

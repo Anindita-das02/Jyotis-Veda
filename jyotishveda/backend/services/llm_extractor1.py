@@ -86,3 +86,66 @@ def generate_facts_from_topic(topic):
     except Exception as e:
         print(f"Error fetching data for topic '{topic}': {e}")
         return {"facts": []}
+
+
+def get_ai_response(system_prompt, messages, timeout=20, max_tokens=750):
+    llm_url = os.getenv(
+        "MISTRAL_LOCAL_URL",
+        "http://122.163.121.176:3041"
+    )
+
+    model_name = os.getenv(
+        "MISTRAL_MODEL",
+        "mistral:latest"
+    )
+
+    llm_url = llm_url.rstrip("/")
+
+    # OpenAI-compatible endpoint
+    api_endpoint = f"{llm_url}/v1/chat/completions"
+
+    payload = {
+        "model": model_name,
+        "messages": [
+            {
+                "role": "system",
+                "content": system_prompt
+            },
+            *messages
+        ],
+        "temperature": 0.2,
+        "max_tokens": max_tokens,
+        "stream": False
+    }
+
+    try:
+        response = requests.post(
+            api_endpoint,
+            json=payload,
+            headers={
+                "Content-Type": "application/json"
+            },
+            timeout=timeout
+        )
+
+        response.raise_for_status()
+
+        response_data = response.json()
+
+        # OpenAI-compatible response
+        if "choices" in response_data:
+            return response_data["choices"][0]["message"]["content"].strip()
+
+        # Ollama response
+        elif "message" in response_data:
+            return response_data["message"]["content"].strip()
+
+        else:
+            raise ValueError(
+                f"Unexpected LLM response: {response_data}"
+            )
+
+    except Exception as e:
+        print(f"LLM Error: {e}")
+        raise
+    

@@ -1,6 +1,7 @@
 import math
 import uuid
 import json
+import re
 from datetime import datetime
 from typing import Dict, Any, Optional, Tuple, List
 
@@ -8,6 +9,7 @@ from flask import request, jsonify, Response
 
 from database.db_connection import call_procedure
 from services.report_service import generate_match_report_pdf
+from services.llm_extractor1 import get_ai_response
 
 
 # ============================================================
@@ -928,19 +930,36 @@ def calculate_kundli_milan(partner1: dict, partner2: dict) -> dict:
         "description": f"Mulank {num1['mulank']} ({num1['mulankPlanet'].split('(')[0].strip()}) and Mulank {num2['mulank']} ({num2['mulankPlanet'].split('(')[0].strip()}) share an intuitive numerical frequency for cooperative success."
     }
 
-    # Vedic Remedies
-    remedies = [
-        "Perform Joint Gauri-Shankar Puja on Shukla Paksha Mondays to invite divine marital grace.",
-        "Chant the sacred Shukra Beej Mantra ('Om Shum Shukraya Namaha') for enduring romantic sweetness.",
-        "Light a pure cow ghee lamp facing East during sunset on Thursdays for spiritual harmony and family prosperity.",
-        "Wear a natural Rose Quartz or energize a Sphatik (Quartz) Shivling in the northeast corner of your home."
-    ]
+    # Personalized Dynamic Vedic Remedies
+    remedies = []
+    p1_name = p1["name"]
+    p2_name = p2["name"]
+    r1_name = ZODIAC_SIGNS[r1_idx]["name"]
+    r2_name = ZODIAC_SIGNS[r2_idx]["name"]
+    lord1 = ZODIAC_SIGNS[r1_idx]["lord"]
+    lord2 = ZODIAC_SIGNS[r2_idx]["lord"]
 
     if not manglik_analysis["isNeutralized"] and (manglik_analysis["partner1"]["isManglik"] or manglik_analysis["partner2"]["isManglik"]):
-        remedies.insert(0, "Recite Hanuman Chalisa on Tuesdays and offer red flowers to neutralize Mars intensity.")
+        m_names = [p1_name if manglik_analysis["partner1"]["isManglik"] else "", p2_name if manglik_analysis["partner2"]["isManglik"] else ""]
+        m_names_str = " and ".join(filter(None, m_names))
+        remedies.append(f"Kuja Shanti Upaya: {m_names_str} should recite Hanuman Chalisa on Tuesdays, light a sesame/mustard oil lamp, and donate red lentils or copper to pacify Mars intensity.")
 
-    if ashta_koota_dict["nadi"]["score"] == 0:
-        remedies.insert(0, "Perform Maha Mrityunjaya Homa or donate food and warm blankets to the needy to pacify Nadi Dosha.")
+    if ashta_koota_dict["nadi"]["score"] == 0 and not ashta_koota_dict["nadi"].get("isCancelled", False):
+        remedies.append(f"Nadi Dosha Nivaran: As both {p1_name} and {p2_name} share the same Nadi, perform Maha Mrityunjaya Japa (108 chants) and donate warm clothing, grain, or a token to a deserving priest on auspicious constellation days.")
+
+    if ashta_koota_dict["bhakoot"]["score"] == 0 and not ashta_koota_dict["bhakoot"].get("isCancelled", False):
+        remedies.append(f"Bhakoot Shanti: To balance the {r1_name} ↔ {r2_name} rashi disposition, recite Vishnu Sahasranama together every Thursday and offer yellow flowers to Lord Brihaspati.")
+
+    if ashta_koota_dict["grahaMaitri"]["score"] < 3:
+        remedies.append(f"Graha Maitri Harmony: Rashi rulers {lord1} ({p1_name}) & {lord2} ({p2_name}) benefit from joint Archana at Shiva-Parvati or Radha-Krishna temples on Shukla Paksha Mondays.")
+
+    remedies.append(f"Shukra & Preeti Mantra: {p1_name} & {p2_name} should chant 'Om Shum Shukraya Namaha' (21 times) every Friday to invoke enduring romantic sweetness and Venusian grace.")
+    remedies.append("Ishanya Vastu Remedy: Place energized Rose Quartz crystals or a sacred silver coin in the Northeast (Ishanya) corner of your home to attract marital tranquility and financial growth.")
+    remedies.append("Deep Daan: Light a pure cow ghee lamp facing East during sunset on Thursdays to foster family tranquility and sustained fortune.")
+
+    nak1_name = moon1.get("nakshatra", "Nakshatra")
+    nak2_name = moon2.get("nakshatra", "Nakshatra")
+    muhurat_advice = f"Personalized Vivaha Muhurat for {p1_name} ({nak1_name}, {r1_name}) & {p2_name} ({nak2_name}, {r2_name}): Ideal wedding & auspicious partnership dates occur during Shukla Paksha under Rohini, Mrigashira, Magha, Uttara Phalguni, Hasta, Swati, Anuradha, or Revati Nakshatras during Venus (Shukra) or Jupiter (Guru) Hora, avoiding Rikta Tithis (4th, 9th, 14th) and Rahu Kaal."
 
     # Detailed report object
     report = {
@@ -986,7 +1005,7 @@ def calculate_kundli_milan(partner1: dict, partner2: dict) -> dict:
         "numerologyMilan": numerology_milan,
         "elementalBalance": elemental_balance,
         "remedies": remedies,
-        "auspiciousMuhuratAdvice": "Auspicious wedding & partnership Muhurats are ideal during Shukla Paksha under Rohini, Uttara Phalguni, Uttara Ashadha, or Revati Nakshatras during Venus/Jupiter Hora."
+        "auspiciousMuhuratAdvice": muhurat_advice
     }
 
     return {
@@ -1242,3 +1261,161 @@ def generate_direct_pdf():
         )
     except Exception as exc:
         return _error(f"Error generating PDF: {exc}", "PDF_ERROR", 500)
+
+
+def _generate_fallback_synthesis(partner1: dict, partner2: dict, match_result: dict) -> dict:
+    p1_name = partner1.get("fullName") or partner1.get("name") or "Partner 1"
+    p2_name = partner2.get("fullName") or partner2.get("name") or "Partner 2"
+    score = match_result.get("totalPoints", 26)
+    max_score = match_result.get("maxPoints", 36)
+    percentage = match_result.get("percentage", 72)
+    verdict = match_result.get("verdictTitle", "Auspicious Match (Uttam Milan)")
+    summary = match_result.get("summary", "")
+    manglik_exp = match_result.get("manglik", {}).get("explanation") or f"Planetary energies of Mars are harmoniously balanced between {p1_name} and {p2_name}."
+    nadi_reason = match_result.get("nadiDosha", {}).get("reason") or "Bio-magnetic energy frequencies balance Vata, Pitta, and Kapha doshas."
+    bhakoot_reason = match_result.get("bhakootDosha", {}).get("reason") or "Rashi placement dynamics support mutual affection, longevity, and family welfare."
+
+    return {
+        "overall_compatibility": f"The astrological synastry between {p1_name} and {p2_name} yields an Ashta Koota compatibility score of {score}/{max_score} Gunas ({percentage}%), classified as {verdict}. {summary}",
+        "guna_milan": f"With {score} out of 36 points obtained, the alignment indicates strong celestial harmony across mental, biological, and spiritual domains.",
+        "psychological_affinity": f"{p1_name} and {p2_name} share complementary psychological inclinations, enabling fluid communication, mutual respect, and shared vision for life.",
+        "emotional_resonance": "Both partners share an emotionally supportive dynamic, allowing them to de-escalate tension effortlessly with patience and empathy.",
+        "karmic_bond": f"This alliance between {p1_name} and {p2_name} reflects auspicious karmic merit (Purva Punya), bringing natural companionship and enduring loyalty.",
+        "physical_harmonization": "The physiological and instinctual matrix (Yoni Koota) signals genuine warmth, comforting intimacy, and mutual care.",
+        "manglik_dosha": f"{manglik_exp} Recommended remedies ensure marital tranquility and protection against impulsive friction.",
+        "nadi_analysis": f"{nadi_reason}. The pranic flow fosters physiological harmony, hereditary vitality, and supportive health dynamics.",
+        "bhakoot_analysis": f"{bhakoot_reason}. The planetary angular configuration supports emotional closeness, affection, and sustained domestic prosperity.",
+        "family_and_married_life": f"The union between {p1_name} and {p2_name} promises profound domestic bliss, family harmony, and respectful collaboration between both families.",
+        "wealth_and_prosperity": "Planetary 2nd, 7th, and 11th house alignments indicate joint prosperity, real estate stability, and progressive financial growth after marriage.",
+        "major_strengths": [
+            f"Strong emotional and mental alignment between {p1_name} and {p2_name}",
+            "High mutual respect, loyalty, and enduring commitment to shared goals",
+            "Favorable joint financial prospects and domestic tranquility",
+            "Harmonious physiological compatibility and spiritual accord"
+        ],
+        "major_challenges": [
+            "Differing stress-response styles during fast-paced decision making",
+            "Occasional communication delays during heavy professional cycles",
+            "Need for balanced boundary setting with extended family obligations"
+        ],
+        "conflict_resolution": [
+            "Practice open and empathetic dialogue before making major financial or lifestyle decisions",
+            "Dedicate daily quality time without digital distractions for mutual bonding",
+            "Seek guidance during stressful transits with patience and mutual understanding"
+        ],
+        "vedic_remedies": [
+            "Perform a joint Shiva-Parvati or Gauri-Shankar archana on Shukla Paksha Mondays",
+            "Recite 'Om Lakshmi Narayanaya Namaha' 21 times together each Friday",
+            "Place a pair of loving Rose Quartz figurines or sacred silver coin in the Northeast (Ishanya) corner"
+        ],
+        "final_assessment": f"A promising Vedic Kundli Milan for {p1_name} and {p2_name}. By honoring individual karmic paths and practicing the suggested Vedic remedies, both partners will enjoy a flourishing, prosperous, and blissful companionship."
+    }
+
+
+_SYNTHESIS_CACHE = {}
+
+
+def generate_ai_synthesis(user_id: str):
+    body = request.get_json(silent=True) or {}
+
+    partner1 = body.get("partner1", {})
+    partner2 = body.get("partner2", {})
+    match_result = body.get("matchResult", {})
+
+    p1_name = partner1.get("fullName") or partner1.get("name") or "Partner 1"
+    p2_name = partner2.get("fullName") or partner2.get("name") or "Partner 2"
+    p1_dob = partner1.get("birthDate") or partner1.get("dob") or ""
+    p2_dob = partner2.get("birthDate") or partner2.get("dob") or ""
+    score = match_result.get("totalPoints", "Unknown")
+    verdict = match_result.get("verdictTitle", "Match Result")
+    manglik_info = match_result.get("manglik", {})
+    nadi_info = match_result.get("nadiDosha", {})
+    bhakoot_info = match_result.get("bhakootDosha", {})
+
+    cache_key = f"{p1_name}_{p1_dob}_{p2_name}_{p2_dob}_{score}"
+    if cache_key in _SYNTHESIS_CACHE:
+        return jsonify({
+            "status": "success",
+            "success": True,
+            "synthesis": _SYNTHESIS_CACHE[cache_key]
+        })
+
+    system_prompt = """You are the AI Daivajna Vedic Astrologer. Provide concise, high-speed Deep Relationship Synthesis JSON for Kundli Milan.
+Return ONLY valid JSON. Do not wrap in markdown.
+JSON format:
+{
+    "overall_compatibility": "1-2 crisp analytical sentences",
+    "guna_milan": "1-2 sentences on Guna score",
+    "psychological_affinity": "1 sentence on mental rapport",
+    "emotional_resonance": "1 sentence on empathy",
+    "karmic_bond": "1 sentence on soul connection",
+    "physical_harmonization": "1 sentence on physical harmony",
+    "manglik_dosha": "1 sentence on Manglik status",
+    "nadi_analysis": "1 sentence on Nadi health",
+    "bhakoot_analysis": "1 sentence on Bhakoot rhythm",
+    "family_and_married_life": "1 sentence on family bliss",
+    "wealth_and_prosperity": "1 sentence on prosperity",
+    "major_strengths": ["Strength 1", "Strength 2", "Strength 3"],
+    "major_challenges": ["Challenge 1", "Challenge 2"],
+    "conflict_resolution": ["Resolution 1", "Resolution 2"],
+    "vedic_remedies": ["Remedy 1", "Remedy 2"],
+    "final_assessment": "1-2 blessing sentences"
+}"""
+
+    prompt = f"""Vedic Kundli Milan Analysis for:
+- Partner 1: {p1_name} (DOB: {p1_dob})
+- Partner 2: {p2_name} (DOB: {p2_dob})
+- Score: {score}/36 ({verdict})
+- Manglik: {manglik_info.get('verdict', 'Evaluated')}
+- Nadi: {nadi_info.get('reason', 'Nadi Balanced')}
+- Bhakoot: {bhakoot_info.get('reason', 'Bhakoot Harmony')}
+
+Output valid JSON now."""
+
+    try:
+        synthesis = get_ai_response(
+            system_prompt,
+            [
+                {
+                    "role": "user",
+                    "content": prompt
+                }
+            ],
+            timeout=18,
+            max_tokens=650
+        )
+
+        # LLM যদি ```json পাঠায়, সেটা remove করবে
+        synthesis = synthesis.strip()
+
+        if synthesis.startswith("```"):
+            synthesis = re.sub(
+                r"^```(?:json)?\s*",
+                "",
+                synthesis
+            )
+            synthesis = re.sub(
+                r"\s*```$",
+                "",
+                synthesis
+            )
+
+        # String → JSON object
+        synthesis_json = json.loads(synthesis)
+        _SYNTHESIS_CACHE[cache_key] = synthesis_json
+
+        return jsonify({
+            "status": "success",
+            "success": True,
+            "synthesis": synthesis_json
+        })
+
+    except Exception as e:
+        print(f"LLM Error or timeout during synthesis: {e}. Generating fallback synthesis.")
+        fallback = _generate_fallback_synthesis(partner1, partner2, match_result)
+        _SYNTHESIS_CACHE[cache_key] = fallback
+        return jsonify({
+            "status": "success",
+            "success": True,
+            "synthesis": fallback
+        })
