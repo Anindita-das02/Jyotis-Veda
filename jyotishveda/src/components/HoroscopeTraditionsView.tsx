@@ -1338,7 +1338,7 @@ export const HoroscopeTraditionsView: React.FC<
                               }`}
                             >
                               {sub.planet} (
-                              {sub.startDate.slice(0, 7)})
+                              {new Date(sub.startDate).toLocaleDateString('en-US', { month: 'short', year: '2-digit' })} - {new Date(sub.endDate).toLocaleDateString('en-US', { month: 'short', year: '2-digit' })})
                             </span>
                           ))}
                       </div>

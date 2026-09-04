@@ -770,9 +770,17 @@ def get_interpret_response(
     lagna_rashi = lagna_info.get("signName", "Unknown")
     lagna_nak = lagna_info.get("nakshatra", "Unknown")
     
-    dasha_info = chart_data.get("currentDasha", {})
-    maha_dasha = dasha_info.get("mahadasha", "Unknown")
-    antar_dasha = dasha_info.get("antardasha", "Unknown")
+    dashas = chart_data.get("dashas", [])
+    maha_dasha = "Unknown"
+    antar_dasha = "Unknown"
+    for d in dashas:
+        if d.get("isCurrent"):
+            maha_dasha = d.get("planet", "Unknown")
+            for sub in d.get("subPeriods", []):
+                if sub.get("isCurrent"):
+                    antar_dasha = sub.get("planet", "Unknown")
+                    break
+            break
     
     def fetch_part(system_prompt):
         history = [{"role": "user", "content": f"Analyze my chart using {tradition}."}]

@@ -411,7 +411,11 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
               <label className={`block text-[11px] mb-1 ${theme === 'light' ? 'text-[#6E685E]' : 'text-[#9E9A90]'}`}>Latitude (°N/S)</label>
               <input
                 type="number"
-                step="0.0001"
+                step="any"
+                min="-90"
+                max="90"
+                placeholder="e.g., 23.8103"
+                required
                 value={latitude}
                 onChange={(e) => setLatitude(parseFloat(e.target.value))}
                 className={`w-full px-2.5 py-1.5 rounded text-xs focus:outline-none focus:border-[#C9A050] ${
@@ -425,7 +429,11 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
               <label className={`block text-[11px] mb-1 ${theme === 'light' ? 'text-[#6E685E]' : 'text-[#9E9A90]'}`}>Longitude (°E/W)</label>
               <input
                 type="number"
-                step="0.0001"
+                step="any"
+                min="-180"
+                max="180"
+                placeholder="e.g., 90.4125"
+                required
                 value={longitude}
                 onChange={(e) => setLongitude(parseFloat(e.target.value))}
                 className={`w-full px-2.5 py-1.5 rounded text-xs focus:outline-none focus:border-[#C9A050] ${

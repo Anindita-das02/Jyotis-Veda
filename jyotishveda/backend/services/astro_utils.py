@@ -449,11 +449,13 @@ def calculate_planetary_aspects(planet_results):
         "mars": [4, 7, 8],
         "jupiter": [5, 7, 9],
         "saturn": [3, 7, 10],
-        "rahu": [5, 7, 9],
-        "ketu": [5, 7, 9]
+        "rahu": [5, 7, 9]
     }
     
     for p1_name, p1_data in planet_results.items():
+        if p1_name == "ketu":
+            continue
+            
         p1_sign = int(p1_data["longitude"] // 30)
         
         aspect_houses = special_aspects.get(p1_name, [7])

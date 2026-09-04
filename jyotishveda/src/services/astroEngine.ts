@@ -191,11 +191,23 @@ export function calculateVedicChart(profile?: UserProfile, ephemerisData?: any):
     let totDeg = 0;
     let isRetro = false;
     
-    if (ephemerisData && ephemerisData.planets && ephemerisData.planets[p.id]) {
+    if (p.id === 'ketu' && ephemerisData?.planets?.rahu) {
+      // Force Ketu to be exactly opposite Rahu (180 degrees)
+      totDeg = (ephemerisData.planets.rahu.longitude + ayanamshaShift + 180) % 360;
+      isRetro = ephemerisData.planets.rahu.isRetrograde;
+    } else if (ephemerisData && ephemerisData.planets && ephemerisData.planets[p.id]) {
       totDeg = (ephemerisData.planets[p.id].longitude + ayanamshaShift) % 360;
       isRetro = ephemerisData.planets[p.id].isRetrograde;
     } else {
-      totDeg = (p.offset + (seed * p.baseRate * 0.1) + idx * 23.5 + ayanamshaShift) % 360;
+      // Fallback if no exact ephemeris data exists
+      let fallbackBase = p.offset + (seed * p.baseRate * 0.1) + ayanamshaShift;
+      if (p.id === 'ketu') {
+        // Ensure even the fallback keeps Ketu opposite Rahu (offset 15 vs 195)
+        fallbackBase = (15 + (seed * -0.052 * 0.1) + ayanamshaShift + 180);
+      } else {
+        fallbackBase += idx * 2.5; // Reduced the wild 23.5 random spread to keep them within plausible bounds
+      }
+      totDeg = fallbackBase % 360;
       isRetro = (idx === 2 || idx === 4 || idx === 6) ? (Math.sin(seed * idx) > 0.4) : false;
     }
     
@@ -347,22 +359,59 @@ export function calculateVedicChart(profile?: UserProfile, ephemerisData?: any):
     });
     dashas.push(...mappedDashas);
   } else {
+    // Calculate balance of Dasha for the first period
+    const fractionRemaining = 1.0 - (moon.totalDegree % 13.3333) / 13.3333;
+    const firstYears = DASHA_ORDER[dashaStartIdx].years * fractionRemaining;
+    const firstElapsed = DASHA_ORDER[dashaStartIdx].years - firstYears;
+    
+    // Absolute start date of the first Mahadasha in the past
+    let currentAccumDate = new Date(bDate.getTime() - firstElapsed * 365.2425 * 86400000);
+    
     for (let i = 0; i < 9; i++) {
       const dashaIdx = (dashaStartIdx + i) % 9;
       const item = DASHA_ORDER[dashaIdx];
-      const startYr = currentAccumYear;
-      const endYr = startYr + item.years;
-      currentAccumYear = endYr;
+      
+      const startMs = currentAccumDate.getTime();
+      const endMs = startMs + item.years * 365.2425 * 86400000;
+      const mdStartStr = new Date(startMs).toISOString().split('T')[0];
+      const mdEndStr = new Date(endMs).toISOString().split('T')[0];
+      
+      const isCurrentMD = (now.getTime() >= startMs && now.getTime() <= endMs);
+      
+      // Calculate Sub-Periods (Antardashas)
+      const subPeriods = [];
+      let subAccumDate = currentAccumDate;
+      for (let j = 0; j < 9; j++) {
+        const adIdx = (dashaIdx + j) % 9;
+        const adItem = DASHA_ORDER[adIdx];
+        const adDurationYears = (item.years * adItem.years) / 120;
+        
+        const subStartMs = subAccumDate.getTime();
+        const subEndMs = subStartMs + adDurationYears * 365.2425 * 86400000;
+        const subStartStr = new Date(subStartMs).toISOString().split('T')[0];
+        const subEndStr = new Date(subEndMs).toISOString().split('T')[0];
+        
+        subPeriods.push({
+          planet: adItem.planet,
+          startDate: subStartStr,
+          endDate: subEndStr,
+          isCurrent: isCurrentMD && (now.getTime() >= subStartMs && now.getTime() <= subEndMs)
+        });
+        
+        subAccumDate = new Date(subEndMs);
+      }
 
       dashas.push({
         planet: item.planet,
         sanskrit: item.sanskrit,
-        startDate: `${startYr}-01-01`,
-        endDate: `${endYr}-01-01`,
+        startDate: mdStartStr,
+        endDate: mdEndStr,
         durationYears: item.years,
-        isCurrent: false,
-        subPeriods: []
+        isCurrent: isCurrentMD,
+        subPeriods: subPeriods
       });
+      
+      currentAccumDate = new Date(endMs);
     }
   }
 
@@ -904,9 +953,22 @@ export function getDailyPanchang(dateOrLat?: Date | number, lng?: number, apiDat
   const phase = (daysSinceNewMoon % 29.530588 + 29.530588) % 29.530588;
   const tithiIdx = apiData && apiData.tithiIndex !== undefined ? apiData.tithiIndex : (Math.floor(phase * (30 / 29.530588)) % 30);
   
-  // Nakshatra approximation (Moon travels ~13.33 degrees per day, 27.32 days per orbit)
-  const daysSinceKnownNak = (date.getTime() - new Date('2024-01-01T00:00:00Z').getTime()) / 86400000;
-  const nakIdx = apiData && apiData.nakshatraIndex !== undefined ? apiData.nakshatraIndex : (Math.floor((daysSinceKnownNak % 27.321661 + 27.321661) % 27.321661) % 27);
+  // Single Source of Truth (Moon Longitude) for Nakshatra and Rashi
+  let moonLongitude = 0;
+  if (apiData?.planets?.moon?.longitude !== undefined) {
+    moonLongitude = apiData.planets.moon.longitude;
+  } else if (apiData && apiData.nakshatraIndex !== undefined) {
+    // Reverse engineer a valid moon longitude so Nakshatra and Rashi perfectly sync
+    moonLongitude = apiData.nakshatraIndex * (360 / 27) + 2; 
+  } else {
+    // Mathematical approximation fallback
+    const daysSinceKnownNak = (date.getTime() - new Date('2024-01-01T00:00:00Z').getTime()) / 86400000;
+    const moonDaysInCycle = ((daysSinceKnownNak % 27.321661) + 27.321661) % 27.321661;
+    moonLongitude = (moonDaysInCycle / 27.321661) * 360; // 0 to 360 degrees
+  }
+  
+  const nakIdx = Math.floor(moonLongitude / (360 / 27)) % 27;
+  const lunarSignIdx = Math.floor(moonLongitude / 30) % 12;
 
   const yogaIdx = apiData && apiData.yogaIndex !== undefined ? apiData.yogaIndex : ((dayOfYear * 3) % yogas.length);
   const karanaIdx = apiData && apiData.karanaIndex !== undefined ? (apiData.karanaIndex % karanas.length) : ((dayOfYear * 4) % karanas.length);
@@ -938,7 +1000,7 @@ export function getDailyPanchang(dateOrLat?: Date | number, lng?: number, apiDat
     yoga: yoga,
     karana: karana,
     solarSign: ZODIAC_SIGNS[(Math.floor(dayOfYear / 30.5) + 4) % 12].sanskrit,
-    lunarSign: ZODIAC_SIGNS[(Math.floor(dayOfYear / 2.3) + 1) % 12].sanskrit,
+    lunarSign: ZODIAC_SIGNS[lunarSignIdx].sanskrit,
     sunrise: sunriseStr,
     sunset: sunsetStr,
     rahuKaal: rahuKaalStr,

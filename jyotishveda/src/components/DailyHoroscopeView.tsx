@@ -19,6 +19,12 @@ import { api } from '../services/api';
 import { API_ENDPOINTS } from '../config/api_config';
 import { UserProfile, PanchangInfo, NumerologyReport } from '../types';
 
+const getPlanetForNumber = (num: number): string => {
+  const reduced = num > 9 ? num % 9 || 9 : num;
+  const planets = ['Sun', 'Moon', 'Jupiter', 'Rahu', 'Mercury', 'Venus', 'Ketu', 'Saturn', 'Mars'];
+  return planets[reduced - 1] || 'Unknown';
+};
+
 interface DailyHoroscopeViewProps {
   profile: UserProfile;
   panchang: PanchangInfo;
@@ -190,7 +196,7 @@ export const DailyHoroscopeView: React.FC<DailyHoroscopeViewProps> = ({
           <div className={`p-3.5 rounded-lg border ${theme === 'dark' ? 'bg-[#1A1A1E]/80 border-[#2A2A2E]' : 'bg-[#F9F7F1]/80 border-[#E5E1D8]'}`}>
             <div className="text-[9px] text-[#9E9A90] uppercase font-sans font-bold tracking-wider">Lucky Number Today</div>
             <div className="text-xl font-serif font-bold text-[#C9A050] mt-0.5">{panchang.luckyData?.luckyNumber || numerology.luckyNumbers[0] || numerology.mulank}</div>
-            <div className="text-[11px] text-[#9E9A90]">Ruled by {numerology.mulankPlanet.split('(')[0]}</div>
+            <div className="text-[11px] text-[#9E9A90]">Ruled by {getPlanetForNumber(panchang.luckyData?.luckyNumber || numerology.luckyNumbers[0] || numerology.mulank)}</div>
           </div>
 
           <div className={`p-3.5 rounded-lg border ${theme === 'dark' ? 'bg-[#1A1A1E]/80 border-[#2A2A2E]' : 'bg-[#F9F7F1]/80 border-[#E5E1D8]'}`}>
