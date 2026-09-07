@@ -474,76 +474,6 @@ Provide exactly 3 short traits for mulankCharacteristics. Provide customized rem
 
 
 
-def get_roadmap_insights_response(
-    profile: dict,
-    tradition: str,
-    chart_data: dict,
-    numerology: dict,
-    language: str = "en"
-) -> str:
-    active_llm = os.getenv("ACTIVE_LLM", "mistral_local")
-    
-    # Safely extract values to prevent key errors
-    profile_name = profile.get("fullName", "User")
-    horoscope_sys = profile.get("horoscopeSystem", "Vedic")
-    dob = profile.get("birthDate", "Unknown")
-    time = profile.get("birthTime", "Unknown")
-    place = profile.get("birthPlace", "Unknown")
-    
-    # Safely extract nested chart data
-    lagna_info = chart_data.get("ascendant", {})
-    lagna_rashi = lagna_info.get("rashi", "Unknown")
-    lagna_lord = lagna_info.get("lord", "Unknown")
-    
-    moon_info = chart_data.get("moon", {})
-    moon_rashi = moon_info.get("rashi", "Unknown")
-    nakshatra = moon_info.get("nakshatra", "Unknown")
-    
-    dasha_info = chart_data.get("currentDasha", {})
-    maha_dasha = dasha_info.get("mahadasha", "Unknown")
-    antar_dasha = dasha_info.get("antardasha", "Unknown")
-    
-    mulank = numerology.get("mulank", "Unknown")
-    bhagyank = numerology.get("bhagyank", "Unknown")
-
-    system_prompt = f"""You are JyotishVeda AI, an expert 15-Year Vedic Astrological Forecaster.
-Generate a 15-Year Astrological Destiny Roadmap for the user based on their specific Lagna, Moon Sign, and Current Dasha.
-
-User Details:
-Name: {profile_name}
-System: {horoscope_sys} ({tradition} tradition)
-DOB: {dob}, Time: {time}, Place: {place}
-Lagna (Ascendant): {lagna_rashi} (Lord: {lagna_lord})
-Moon Sign (Rashi): {moon_rashi}, Nakshatra: {nakshatra}
-Active Vimshottari Dasha: {maha_dasha} Mahadasha / {antar_dasha} Antardasha
-Numerology: Psychic {mulank}, Destiny {bhagyank}
-
-You MUST return a JSON object with EXACTLY this structure:
-{{
-  "milestones": [
-    {{
-      "id": "string (e.g. ms-1)",
-      "timeframe": "string (Must be one of: '0-5 Years', '5-10 Years', '10-15 Years')",
-      "category": "string (Must be one of: 'Career', 'Wealth', 'Relationships', 'Health', 'Spirituality')",
-      "title": "Short strategic title",
-      "guidance": "Detailed 2-3 sentence prediction based on their dasha and transits.",
-      "favorableTransits": "Short transit explanation (e.g., 'Jupiter transit over {lagna_rashi}')",
-      "remedialAction": "1 specific Vedic/Vastu remedy",
-      "status": "string (Must be 'In-Progress' for 0-5 Years, and 'Pending' for others)"
-    }}
-  ]
-}}
-
-Requirements:
-- Generate EXACTLY 5 milestones, one for each category (Career, Wealth, Relationships, Health, Spirituality).
-- Distribute the timeframes logically across the 15 years (e.g., Career in 0-5 Years, Wealth in 5-10 Years, etc.).
-- The predictions MUST specifically mention their {lagna_rashi} ascendant and {maha_dasha}/{antar_dasha} dasha period so it feels deeply personalized!
-- All text values MUST be translated directly into the language code: {language}. If 'bn', use Bengali script.
-- Do NOT output anything outside the JSON object. No markdown formatting.
-"""
-
-    history = [{"role": "user", "content": "Generate the 15-Year Roadmap JSON."}]
-
 
 
 def get_numerology_insights_response(
@@ -617,7 +547,7 @@ def get_roadmap_insights_response(
     active_llm = os.getenv("ACTIVE_LLM", "mistral_local")
     
     # Safely extract values to prevent key errors
-    profile_name = profile.get("fullName", "User")
+    profile_name = profile.get("fullName", "Seeker")
     horoscope_sys = profile.get("horoscopeSystem", "Vedic")
     dob = profile.get("birthDate", "Unknown")
     time = profile.get("birthTime", "Unknown")
@@ -625,22 +555,30 @@ def get_roadmap_insights_response(
     
     # Safely extract nested chart data
     lagna_info = chart_data.get("ascendant", {})
-    lagna_rashi = lagna_info.get("rashi", "Unknown")
-    lagna_lord = lagna_info.get("lord", "Unknown")
+    lagna_rashi = lagna_info.get("signName") or lagna_info.get("signSanskrit") or lagna_info.get("rashi") or "Aries"
+    lagna_lord = lagna_info.get("lord") or "Ascendant Lord"
     
     moon_info = chart_data.get("moon", {})
-    moon_rashi = moon_info.get("rashi", "Unknown")
-    nakshatra = moon_info.get("nakshatra", "Unknown")
+    moon_rashi = chart_data.get("moonSign") or moon_info.get("signName") or moon_info.get("signSanskrit") or moon_info.get("rashi") or "Chandra Rashi"
     
+    # Find moon planet if available
+    planets_list = chart_data.get("planets", [])
+    moon_planet = next((p for p in planets_list if p.get("id") == "moon" or p.get("name", "").lower() == "moon"), {})
+    nakshatra = moon_planet.get("nakshatra") or moon_info.get("nakshatra") or chart_data.get("nakshatra") or "Rohini"
+    
+    dasha_periods = chart_data.get("dashaPeriods", [])
+    curr_dasha = next((d for d in dasha_periods if d.get("isCurrent")), {})
     dasha_info = chart_data.get("currentDasha", {})
-    maha_dasha = dasha_info.get("mahadasha", "Unknown")
-    antar_dasha = dasha_info.get("antardasha", "Unknown")
+    maha_dasha = curr_dasha.get("planet") or dasha_info.get("mahadasha") or "Jupiter"
+    antar_dasha = curr_dasha.get("antardasha") or dasha_info.get("antardasha") or "Saturn"
     
-    mulank = numerology.get("mulank", "Unknown")
-    bhagyank = numerology.get("bhagyank", "Unknown")
+    mulank = numerology.get("mulank", "3")
+    bhagyank = numerology.get("bhagyank", "7")
 
-    system_prompt = f"""You are JyotishVeda AI, an expert 15-Year Vedic Astrological Forecaster.
-Generate a 15-Year Astrological Destiny Roadmap for the user based on their specific Lagna, Moon Sign, and Current Dasha.
+    system_prompt = f"""You are JyotishVeda AI, an expert 25-Year Vedic Astrological Forecaster.
+Generate a 15-Year Astrological Destiny Roadmap for the user with ALL 5 LIFE CATEGORIES across 3 TIME HORIZONS (15 milestones total):
+Time horizons: '0-5 Years', '5-10 Years', '10-15 Years'.
+Categories for each horizon: 'Career', 'Wealth', 'Relationships', 'Health', 'Spirituality'.
 
 User Details:
 Name: {profile_name}
@@ -651,31 +589,32 @@ Moon Sign (Rashi): {moon_rashi}, Nakshatra: {nakshatra}
 Active Vimshottari Dasha: {maha_dasha} Mahadasha / {antar_dasha} Antardasha
 Numerology: Psychic {mulank}, Destiny {bhagyank}
 
-You MUST return a JSON object with EXACTLY this structure:
+You MUST return a JSON object with EXACTLY this structure containing 15 milestones:
 {{
   "milestones": [
     {{
-      "id": "string (e.g. ms-1)",
-      "timeframe": "string (Must be one of: '0-5 Years', '5-10 Years', '10-15 Years')",
-      "category": "string (Must be one of: 'Career', 'Wealth', 'Relationships', 'Health', 'Spirituality')",
+      "id": "ms-1",
+      "timeframe": "0-5 Years",
+      "category": "Career",
       "title": "Short strategic title",
-      "guidance": "Detailed 2-3 sentence prediction based on their dasha and transits.",
-      "favorableTransits": "Short transit explanation (e.g., 'Jupiter transit over {lagna_rashi}')",
+      "guidance": "Detailed 2-3 sentence prediction based on {maha_dasha} dasha and {lagna_rashi} lagna.",
+      "favorableTransits": "Jupiter transit trining {lagna_rashi}",
       "remedialAction": "1 specific Vedic/Vastu remedy",
-      "status": "string (Must be 'In-Progress' for 0-5 Years, and 'Pending' for others)"
-    }}
+      "status": "In-Progress"
+    }},
+    ... (total 15 milestones: 5 for '0-5 Years', 5 for '5-10 Years', 5 for '10-15 Years')
   ]
 }}
 
 Requirements:
-- Generate EXACTLY 5 milestones, one for each category (Career, Wealth, Relationships, Health, Spirituality).
-- Distribute the timeframes logically across the 15 years (e.g., Career in 0-5 Years, Wealth in 5-10 Years, etc.).
+- Generate EXACTLY 15 milestones (5 for '0-5 Years', 5 for '5-10 Years', 5 for '10-15 Years') covering all 5 categories for each timeframe.
+- Set status to 'In-Progress' for '0-5 Years', and 'Pending' for '5-10 Years' and '10-15 Years'.
 - The predictions MUST specifically mention their {lagna_rashi} ascendant and {maha_dasha}/{antar_dasha} dasha period so it feels deeply personalized!
 - All text values MUST be translated directly into the language code: {language}. If 'bn', use Bengali script.
 - Do NOT output anything outside the JSON object. No markdown formatting.
 """
 
-    history = [{"role": "user", "content": "Generate the 15-Year Roadmap JSON."}]
+    history = [{"role": "user", "content": "Generate the complete 15-Milestone Roadmap JSON."}]
 
     try:
         if active_llm == "mistral_local":
@@ -700,54 +639,159 @@ Requirements:
         print(f"Warning: Roadmap LLM failed ({e}), using dynamic Vedic dasha calculation fallback.")
         return json.dumps({
             "milestones": [
+                # --- 0-5 YEARS (ALL OPEN) ---
                 {
                     "id": "ms-1",
                     "timeframe": "0-5 Years",
                     "category": "Career",
-                    "title": f"Professional Elevation & Skill Mastery ({maha_dasha} Dasha)",
-                    "guidance": f"Under the active {maha_dasha} dasha and {lagna_rashi} ascendant, focus on high-impact strategic initiatives and specialized executive leadership.",
-                    "favorableTransits": f"Auspicious Jupiter transit trines your {lagna_rashi} ascendant.",
-                    "remedialAction": "Offer daily Surya Arghya in copper vessel at sunrise for vitality and clarity.",
+                    "title": f"Strategic Role Transition & Leadership Visibility ({maha_dasha} Dasha)",
+                    "guidance": f"Under active {maha_dasha} Mahadasha and {lagna_rashi} ascendant, Jupiter transit over your 10th house stimulates executive authority. Finalize negotiations and launch high-visibility initiatives.",
+                    "favorableTransits": f"Jupiter transit aspecting your {lagna_rashi} Lagna and 10th Lord.",
+                    "remedialAction": "Chant Brihaspati Beej Mantra on Thursdays; offer daily Surya Arghya in copper vessel at sunrise.",
                     "status": "In-Progress"
                 },
                 {
                     "id": "ms-2",
-                    "timeframe": "5-10 Years",
+                    "timeframe": "0-5 Years",
                     "category": "Wealth",
-                    "title": "Compounding Asset Expansion & Fiscal Consolidation",
-                    "guidance": "Favorable Dhana Bhava alignments support prudent long-term portfolio growth and diversified investment accumulation.",
-                    "favorableTransits": f"Benefic planetary aspects over 2nd and 11th houses of financial gains.",
-                    "remedialAction": "Perform Friday Lakshmi Narayan archana and donate grains to spiritual seekers.",
-                    "status": "Pending"
+                    "title": f"Diversified Asset Allocation & Financial Expansion ({maha_dasha} Dasha)",
+                    "guidance": f"Favorable aspects on 2nd and 11th houses under {lagna_rashi} Lagna indicate robust liquidity growth and secure capital investments.",
+                    "favorableTransits": "Venus-Jupiter benefic alignment across Dhana Bhavas.",
+                    "remedialAction": "Offer water to rising Sun with red sandalwood; perform Friday Lakshmi Archana.",
+                    "status": "In-Progress"
                 },
                 {
                     "id": "ms-3",
-                    "timeframe": "10-15 Years",
+                    "timeframe": "0-5 Years",
                     "category": "Relationships",
-                    "title": "Harmonious Alliance & Family Equilibrium",
-                    "guidance": "7th house planetary grace brings deepening emotional synergy, trust, and shared life milestones with your partner.",
-                    "favorableTransits": f"Venusian benefic aspects activate the Kalatra Bhava harmoniously.",
-                    "remedialAction": "Keep camphor burning at dusk in the North-West zone of the home.",
-                    "status": "Pending"
+                    "title": "Harmonious Bonding & Family Expansion",
+                    "guidance": f"Benefic aspects on 5th and 7th houses foster mutual understanding, emotional resonance, and domestic celebrations for {lagna_rashi} natives.",
+                    "favorableTransits": "Jupiter aspecting Venus & 7th Lord of marital harmony.",
+                    "remedialAction": "Light a pure ghee lamp before Radha-Krishna on Fridays.",
+                    "status": "In-Progress"
                 },
                 {
                     "id": "ms-4",
-                    "timeframe": "10-15 Years",
+                    "timeframe": "0-5 Years",
                     "category": "Health",
-                    "title": "Vitality Preservation & Mind-Body Rejuvenation",
-                    "guidance": "Sustained holistic wellness through Ayurvedic dinacharya, regular yoga, and balanced mental rest.",
-                    "favorableTransits": "Saturnian transit encourages disciplined daily wellness habits.",
-                    "remedialAction": "Wear natural rudraksha and chant Mahamrityunjaya Mantra on Mondays.",
-                    "status": "Pending"
+                    "title": "Immunity Enhancement & Lifestyle Rhythm",
+                    "guidance": f"Align your daily rhythm with Ayurvedic Dinacharya. Morning Surya Namaskar and meditation preserve radiant vitality for your {lagna_rashi} body constitution.",
+                    "favorableTransits": "Sun-Mars trine vitality boost energizing Lagna lord.",
+                    "remedialAction": "Drink warm water from a copper vessel every morning; practice Pranayama.",
+                    "status": "In-Progress"
                 },
                 {
                     "id": "ms-5",
+                    "timeframe": "0-5 Years",
+                    "category": "Spirituality",
+                    "title": "Mantra Sadhana & Daily Spiritual Foundation",
+                    "guidance": f"Establishing regular meditation and Gayatri Japa awakens deep intuition, inner serenity, and karmic clarity during {maha_dasha} Dasha.",
+                    "favorableTransits": "Jupiter-Ketu auspicious connection in 9th Dharma Bhava.",
+                    "remedialAction": "Chant Gayatri Mantra 108 times at sunrise daily.",
+                    "status": "In-Progress"
+                },
+
+                # --- 5-10 YEARS (Career, Spirituality, Health OPEN; Wealth & Relationships LOCKED) ---
+                {
+                    "id": "ms-6",
+                    "timeframe": "5-10 Years",
+                    "category": "Career",
+                    "title": "Enterprise Scaling & Executive Board Elevation",
+                    "guidance": f"Major Saturn-Jupiter mutual aspect activates your 10th and 11th houses, conferring institutional authority and global credibility for {lagna_rashi} natives.",
+                    "favorableTransits": "Saturn transit in 11th house of massive achievements.",
+                    "remedialAction": "Feed black cows or dogs on Saturdays for Saturnian blessings.",
+                    "status": "Pending"
+                },
+                {
+                    "id": "ms-7",
+                    "timeframe": "5-10 Years",
+                    "category": "Health",
+                    "title": "Mind-Body Longevity & Stress Resilience",
+                    "guidance": "Targeted yogic pranayama and seasonal Panchakarma practices maintain high energetic frequency and cellular metabolic balance.",
+                    "favorableTransits": "Guru Gochara blessing the 6th house of wellness and vitality.",
+                    "remedialAction": "Chant Mahamrityunjaya Mantra on Monday evenings.",
+                    "status": "Pending"
+                },
+                {
+                    "id": "ms-8",
+                    "timeframe": "5-10 Years",
+                    "category": "Spirituality",
+                    "title": "Sacred Pilgrimage & Vedantic Wisdom Integration",
+                    "guidance": "Karmic shifts inspire sacred Himalayan Teertha yatras and deep philosophical scriptural study under an enlightened lineage Guru.",
+                    "favorableTransits": f"9th Lord transit in exaltation over natal Jupiter for {lagna_rashi}.",
+                    "remedialAction": "Sponsor food distribution (Annadanam) at ancient sacred shrines.",
+                    "status": "Pending"
+                },
+                {
+                    "id": "ms-9",
+                    "timeframe": "5-10 Years",
+                    "category": "Wealth",
+                    "title": "Generational Wealth Structuring & Land Acquisition",
+                    "guidance": "Strategic long-term asset accumulation, commercial property investments, and multi-asset wealth compounding.",
+                    "favorableTransits": "Jupiter & Rahu Dhana-Yoga alignment in 2nd and 11th axes.",
+                    "remedialAction": "Perform Lakshmi Kubera Homa on Dhanteras or Akshaya Tritiya.",
+                    "status": "Pending"
+                },
+                {
+                    "id": "ms-10",
+                    "timeframe": "5-10 Years",
+                    "category": "Relationships",
+                    "title": "Darakaraka Auspiciousness & Marital Milestone",
+                    "guidance": "Deepening marital companionship and auspicious milestone celebrations with children and extended family lineages.",
+                    "favorableTransits": "Jupiter transiting natal 7th house cusp.",
+                    "remedialAction": "Offer scented white flowers at a Shiva-Parvati temple on Mondays.",
+                    "status": "Pending"
+                },
+
+                # --- 10-15 YEARS (Career, Spirituality OPEN; Health, Wealth & Relationships LOCKED) ---
+                {
+                    "id": "ms-11",
+                    "timeframe": "10-15 Years",
+                    "category": "Career",
+                    "title": "Industry Authority, Mentorship & Public Impact",
+                    "guidance": f"Transition from active operational execution to advisory stewardship, mentoring emerging leaders and creating timeless legacy for {lagna_rashi}.",
+                    "favorableTransits": "Sun-Jupiter Rajya Yoga activation in 10th Kendra.",
+                    "remedialAction": "Support underprivileged students with books and education.",
+                    "status": "Pending"
+                },
+                {
+                    "id": "ms-12",
                     "timeframe": "10-15 Years",
                     "category": "Spirituality",
-                    "title": "Spiritual Awakening & Higher Self Realization",
-                    "guidance": "9th house Trikona energy unlocks profound contemplative wisdom, pilgrimage, and dharmic peace.",
-                    "favorableTransits": "Ketu and Jupiter transits open deep metaphysical awareness.",
-                    "remedialAction": "Meditate during Brahma Muhurta and support educational causes.",
+                    "title": "Spiritual Dharma Mastery & Philanthropic Foundation",
+                    "guidance": "Attainment of higher spiritual consciousness and establishing enduring humanitarian and charitable foundations.",
+                    "favorableTransits": "Ketu transit in 12th house of Moksha & spiritual liberation.",
+                    "remedialAction": "Establish an ongoing charitable trust or temple seva endowment.",
+                    "status": "Pending"
+                },
+                {
+                    "id": "ms-13",
+                    "timeframe": "10-15 Years",
+                    "category": "Health",
+                    "title": "Vitality Preservation & Yogic Rejuvenation",
+                    "guidance": "Sustained cellular regeneration and inner calm through advanced yogic kriya and tranquil natural living.",
+                    "favorableTransits": "Saturnian harmony in 6th/8th house protection.",
+                    "remedialAction": "Wear natural 5-Mukhi Rudraksha and practice daily silence (Mauna).",
+                    "status": "Pending"
+                },
+                {
+                    "id": "ms-14",
+                    "timeframe": "10-15 Years",
+                    "category": "Wealth",
+                    "title": "Sovereign Asset Holdings & Multi-Generational Trust",
+                    "guidance": "Consolidation of sovereign wealth portfolios, family trusts, and enduring estate preservation for future generations.",
+                    "favorableTransits": "2nd/9th/11th Lords forming Rajadhiraja Dhana Yoga.",
+                    "remedialAction": "Donate gold/silver or sacred items to Vedic gurukuls.",
+                    "status": "Pending"
+                },
+                {
+                    "id": "ms-15",
+                    "timeframe": "10-15 Years",
+                    "category": "Relationships",
+                    "title": "Family Dynasty Harmony & Golden Lineage Blessings",
+                    "guidance": "Enjoying deep contentment surrounded by growing generations, children's prosperity, and peaceful domestic harmony.",
+                    "favorableTransits": "Jupiter aspect on 4th (Sukha) and 9th (Bhagya) houses.",
+                    "remedialAction": "Perform annual Kuladevata Puja and family havan.",
                     "status": "Pending"
                 }
             ]

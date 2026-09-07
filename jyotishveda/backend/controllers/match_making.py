@@ -1,10 +1,15 @@
-import math
-import uuid
 import json
+import math
 import re
-from datetime import datetime
-from typing import Dict, Any, Optional, Tuple, List
+import uuid
+from datetime import datetime, timezone
+from typing import Any, Dict, Optional, Tuple, List
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
+from geopy.geocoders import Nominatim
+from timezonefinder import TimezoneFinder
+
+import swisseph as swe
 from flask import request, jsonify, Response
 
 from database.db_connection import call_procedure
@@ -13,7 +18,7 @@ from services.llm_extractor1 import get_ai_response
 
 
 # ============================================================
-# ASTROLOGICAL REFERENCE CONSTANTS & TABLES
+# ASTROLOGICAL REFERENCE DATA
 # ============================================================
 
 ZODIAC_SIGNS = [
@@ -26,97 +31,634 @@ ZODIAC_SIGNS = [
     {"name": "Libra", "sanskrit": "Tula (तुला)", "lord": "Venus", "element": "Air", "symbol": "♎"},
     {"name": "Scorpio", "sanskrit": "Vrishchika (वृश्चिक)", "lord": "Mars", "element": "Water", "symbol": "♏"},
     {"name": "Sagittarius", "sanskrit": "Dhanu (धनु)", "lord": "Jupiter", "element": "Fire", "symbol": "♐"},
-    {"name": "Capricorn", "sanskrit": "Makara (मकर)", "lord": "Saturn", "element": "Earth", "symbol": "♑"},
+    {"name": "Capricorn", "sanskrit": "Makara (मকর)", "lord": "Saturn", "element": "Earth", "symbol": "♑"},
     {"name": "Aquarius", "sanskrit": "Kumbha (कुम्भ)", "lord": "Saturn", "element": "Air", "symbol": "♒"},
     {"name": "Pisces", "sanskrit": "Meena (मीन)", "lord": "Jupiter", "element": "Water", "symbol": "♓"},
 ]
 
+# Exact 27 Nakshatras, each 13°20′.
 NAKSHATRAS = [
-    {"name": "Ashwini", "lord": "Ketu", "deity": "Ashwini Kumaras", "degrees": 13.3333},
-    {"name": "Bharani", "lord": "Venus", "deity": "Yama", "degrees": 13.3333},
-    {"name": "Krittika", "lord": "Sun", "deity": "Agni", "degrees": 13.3333},
-    {"name": "Rohini", "lord": "Moon", "deity": "Brahma / Prajapati", "degrees": 13.3333},
-    {"name": "Mrigashira", "lord": "Mars", "deity": "Soma", "degrees": 13.3333},
-    {"name": "Ardra", "lord": "Rahu", "deity": "Rudra", "degrees": 13.3333},
-    {"name": "Punarvasu", "lord": "Jupiter", "deity": "Aditi", "degrees": 13.3333},
-    {"name": "Pushya", "lord": "Saturn", "deity": "Brihaspati", "degrees": 13.3333},
-    {"name": "Ashlesha", "lord": "Mercury", "deity": "Nagas / Serpents", "degrees": 13.3333},
-    {"name": "Magha", "lord": "Ketu", "deity": "Pitris (Ancestors)", "degrees": 13.3333},
-    {"name": "Purva Phalguni", "lord": "Venus", "deity": "Bhaga", "degrees": 13.3333},
-    {"name": "Uttara Phalguni", "lord": "Sun", "deity": "Aryaman", "degrees": 13.3333},
-    {"name": "Hasta", "lord": "Moon", "deity": "Savitr", "degrees": 13.3333},
-    {"name": "Chitra", "lord": "Mars", "deity": "Vishwakarma", "degrees": 13.3333},
-    {"name": "Swati", "lord": "Rahu", "deity": "Vayu", "degrees": 13.3333},
-    {"name": "Vishakha", "lord": "Jupiter", "deity": "Indra-Agni", "degrees": 13.3333},
-    {"name": "Anuradha", "lord": "Saturn", "deity": "Mitra", "degrees": 13.3333},
-    {"name": "Jyeshtha", "lord": "Mercury", "deity": "Indra", "degrees": 13.3333},
-    {"name": "Mula", "lord": "Ketu", "deity": "Nirriti", "degrees": 13.3333},
-    {"name": "Purva Ashadha", "lord": "Venus", "deity": "Apas (Water)", "degrees": 13.3333},
-    {"name": "Uttara Ashadha", "lord": "Sun", "deity": "Vishwadevas", "degrees": 13.3333},
-    {"name": "Shravana", "lord": "Moon", "deity": "Vishnu", "degrees": 13.3333},
-    {"name": "Dhanishta", "lord": "Mars", "deity": "Ashta Vasus", "degrees": 13.3333},
-    {"name": "Shatabhisha", "lord": "Rahu", "deity": "Varuna", "degrees": 13.3333},
-    {"name": "Purva Bhadrapada", "lord": "Jupiter", "deity": "Aja Ekapada", "degrees": 13.3333},
-    {"name": "Uttara Bhadrapada", "lord": "Saturn", "deity": "Ahirbudhnya", "degrees": 13.3333},
-    {"name": "Revati", "lord": "Mercury", "deity": "Pushan", "degrees": 13.3333},
+    {"name": "Ashwini", "lord": "Ketu", "deity": "Ashwini Kumaras"},
+    {"name": "Bharani", "lord": "Venus", "deity": "Yama"},
+    {"name": "Krittika", "lord": "Sun", "deity": "Agni"},
+    {"name": "Rohini", "lord": "Moon", "deity": "Prajapati"},
+    {"name": "Mrigashira", "lord": "Mars", "deity": "Soma"},
+    {"name": "Ardra", "lord": "Rahu", "deity": "Rudra"},
+    {"name": "Punarvasu", "lord": "Jupiter", "deity": "Aditi"},
+    {"name": "Pushya", "lord": "Saturn", "deity": "Brihaspati"},
+    {"name": "Ashlesha", "lord": "Mercury", "deity": "Nagas"},
+    {"name": "Magha", "lord": "Ketu", "deity": "Pitris"},
+    {"name": "Purva Phalguni", "lord": "Venus", "deity": "Bhaga"},
+    {"name": "Uttara Phalguni", "lord": "Sun", "deity": "Aryaman"},
+    {"name": "Hasta", "lord": "Moon", "deity": "Savitr"},
+    {"name": "Chitra", "lord": "Mars", "deity": "Vishvakarma"},
+    {"name": "Swati", "lord": "Rahu", "deity": "Vayu"},
+    {"name": "Vishakha", "lord": "Jupiter", "deity": "Indra-Agni"},
+    {"name": "Anuradha", "lord": "Saturn", "deity": "Mitra"},
+    {"name": "Jyeshtha", "lord": "Mercury", "deity": "Indra"},
+    {"name": "Mula", "lord": "Ketu", "deity": "Nirriti"},
+    {"name": "Purva Ashadha", "lord": "Venus", "deity": "Apas"},
+    {"name": "Uttara Ashadha", "lord": "Sun", "deity": "Vishvedevas"},
+    {"name": "Shravana", "lord": "Moon", "deity": "Vishnu"},
+    {"name": "Dhanishta", "lord": "Mars", "deity": "Vasus"},
+    {"name": "Shatabhisha", "lord": "Rahu", "deity": "Varuna"},
+    {"name": "Purva Bhadrapada", "lord": "Jupiter", "deity": "Aja Ekapada"},
+    {"name": "Uttara Bhadrapada", "lord": "Saturn", "deity": "Ahirbudhnya"},
+    {"name": "Revati", "lord": "Mercury", "deity": "Pushan"},
 ]
 
+# Gana / Yoni / Nadi tables are fixed traditional reference data.
 NAKSHATRA_ATTRIBUTES = {
-    "Ashwini": {"index": 0, "gana": "Deva", "yoni": "Horse (Ashwa)", "nadi": "Adi", "rashiIndex": 0, "rashiName": "Aries", "lord": "Ketu"},
-    "Bharani": {"index": 1, "gana": "Manushya", "yoni": "Elephant (Gaja)", "nadi": "Madhya", "rashiIndex": 0, "rashiName": "Aries", "lord": "Venus"},
-    "Krittika": {"index": 2, "gana": "Rakshasa", "yoni": "Ram (Mesha)", "nadi": "Antya", "rashiIndex": 1, "rashiName": "Taurus", "lord": "Sun"},
-    "Rohini": {"index": 3, "gana": "Manushya", "yoni": "Serpent (Sarpa)", "nadi": "Antya", "rashiIndex": 1, "rashiName": "Taurus", "lord": "Moon"},
-    "Mrigashira": {"index": 4, "gana": "Deva", "yoni": "Serpent (Sarpa)", "nadi": "Madhya", "rashiIndex": 1, "rashiName": "Taurus", "lord": "Mars"},
-    "Ardra": {"index": 5, "gana": "Manushya", "yoni": "Dog (Shwan)", "nadi": "Adi", "rashiIndex": 2, "rashiName": "Gemini", "lord": "Rahu"},
-    "Punarvasu": {"index": 6, "gana": "Deva", "yoni": "Cat (Marjara)", "nadi": "Adi", "rashiIndex": 2, "rashiName": "Gemini", "lord": "Jupiter"},
-    "Pushya": {"index": 7, "gana": "Deva", "yoni": "Ram (Mesha)", "nadi": "Madhya", "rashiIndex": 3, "rashiName": "Cancer", "lord": "Saturn"},
-    "Ashlesha": {"index": 8, "gana": "Rakshasa", "yoni": "Cat (Marjara)", "nadi": "Antya", "rashiIndex": 3, "rashiName": "Cancer", "lord": "Mercury"},
-    "Magha": {"index": 9, "gana": "Rakshasa", "yoni": "Rat (Mushaka)", "nadi": "Antya", "rashiIndex": 4, "rashiName": "Leo", "lord": "Ketu"},
-    "Purva Phalguni": {"index": 10, "gana": "Manushya", "yoni": "Rat (Mushaka)", "nadi": "Madhya", "rashiIndex": 4, "rashiName": "Leo", "lord": "Venus"},
-    "Uttara Phalguni": {"index": 11, "gana": "Manushya", "yoni": "Cow (Gau)", "nadi": "Adi", "rashiIndex": 5, "rashiName": "Virgo", "lord": "Sun"},
-    "Hasta": {"index": 12, "gana": "Deva", "yoni": "Buffalo (Mahisha)", "nadi": "Adi", "rashiIndex": 5, "rashiName": "Virgo", "lord": "Moon"},
-    "Chitra": {"index": 13, "gana": "Rakshasa", "yoni": "Tiger (Vyaghra)", "nadi": "Madhya", "rashiIndex": 5, "rashiName": "Virgo", "lord": "Mars"},
-    "Swati": {"index": 14, "gana": "Deva", "yoni": "Buffalo (Mahisha)", "nadi": "Antya", "rashiIndex": 6, "rashiName": "Libra", "lord": "Rahu"},
-    "Vishakha": {"index": 15, "gana": "Rakshasa", "yoni": "Tiger (Vyaghra)", "nadi": "Antya", "rashiIndex": 6, "rashiName": "Libra", "lord": "Jupiter"},
-    "Anuradha": {"index": 16, "gana": "Deva", "yoni": "Deer (Mriga)", "nadi": "Madhya", "rashiIndex": 7, "rashiName": "Scorpio", "lord": "Saturn"},
-    "Jyeshtha": {"index": 17, "gana": "Rakshasa", "yoni": "Deer (Mriga)", "nadi": "Adi", "rashiIndex": 7, "rashiName": "Scorpio", "lord": "Mercury"},
-    "Mula": {"index": 18, "gana": "Rakshasa", "yoni": "Dog (Shwan)", "nadi": "Adi", "rashiIndex": 8, "rashiName": "Sagittarius", "lord": "Ketu"},
-    "Purva Ashadha": {"index": 19, "gana": "Manushya", "yoni": "Monkey (Vanara)", "nadi": "Madhya", "rashiIndex": 8, "rashiName": "Sagittarius", "lord": "Venus"},
-    "Uttara Ashadha": {"index": 20, "gana": "Manushya", "yoni": "Mongoose (Nakula)", "nadi": "Antya", "rashiIndex": 9, "rashiName": "Capricorn", "lord": "Sun"},
-    "Shravana": {"index": 21, "gana": "Deva", "yoni": "Monkey (Vanara)", "nadi": "Antya", "rashiIndex": 9, "rashiName": "Capricorn", "lord": "Moon"},
-    "Dhanishta": {"index": 22, "gana": "Rakshasa", "yoni": "Lion (Simha)", "nadi": "Madhya", "rashiIndex": 9, "rashiName": "Capricorn", "lord": "Mars"},
-    "Shatabhisha": {"index": 23, "gana": "Rakshasa", "yoni": "Horse (Ashwa)", "nadi": "Adi", "rashiIndex": 10, "rashiName": "Aquarius", "lord": "Rahu"},
-    "Purva Bhadrapada": {"index": 24, "gana": "Manushya", "yoni": "Lion (Simha)", "nadi": "Adi", "rashiIndex": 10, "rashiName": "Aquarius", "lord": "Jupiter"},
-    "Uttara Bhadrapada": {"index": 25, "gana": "Manushya", "yoni": "Cow (Gau)", "nadi": "Madhya", "rashiIndex": 11, "rashiName": "Pisces", "lord": "Saturn"},
-    "Revati": {"index": 26, "gana": "Deva", "yoni": "Elephant (Gaja)", "nadi": "Antya", "rashiIndex": 11, "rashiName": "Pisces", "lord": "Mercury"},
+    "Ashwini": {"index": 0, "gana": "Deva", "yoni": "Horse", "nadi": "Adi"},
+    "Bharani": {"index": 1, "gana": "Manushya", "yoni": "Elephant", "nadi": "Madhya"},
+    "Krittika": {"index": 2, "gana": "Rakshasa", "yoni": "Sheep", "nadi": "Antya"},
+    "Rohini": {"index": 3, "gana": "Manushya", "yoni": "Serpent", "nadi": "Antya"},
+    "Mrigashira": {"index": 4, "gana": "Deva", "yoni": "Serpent", "nadi": "Madhya"},
+    "Ardra": {"index": 5, "gana": "Manushya", "yoni": "Dog", "nadi": "Adi"},
+    "Punarvasu": {"index": 6, "gana": "Deva", "yoni": "Cat", "nadi": "Adi"},
+    "Pushya": {"index": 7, "gana": "Deva", "yoni": "Sheep", "nadi": "Madhya"},
+    "Ashlesha": {"index": 8, "gana": "Rakshasa", "yoni": "Cat", "nadi": "Antya"},
+    "Magha": {"index": 9, "gana": "Rakshasa", "yoni": "Rat", "nadi": "Antya"},
+    "Purva Phalguni": {"index": 10, "gana": "Manushya", "yoni": "Rat", "nadi": "Madhya"},
+    "Uttara Phalguni": {"index": 11, "gana": "Manushya", "yoni": "Cow", "nadi": "Adi"},
+    "Hasta": {"index": 12, "gana": "Deva", "yoni": "Buffalo", "nadi": "Adi"},
+    "Chitra": {"index": 13, "gana": "Rakshasa", "yoni": "Tiger", "nadi": "Madhya"},
+    "Swati": {"index": 14, "gana": "Deva", "yoni": "Buffalo", "nadi": "Antya"},
+    "Vishakha": {"index": 15, "gana": "Rakshasa", "yoni": "Tiger", "nadi": "Antya"},
+    "Anuradha": {"index": 16, "gana": "Deva", "yoni": "Deer", "nadi": "Madhya"},
+    "Jyeshtha": {"index": 17, "gana": "Rakshasa", "yoni": "Deer", "nadi": "Adi"},
+    "Mula": {"index": 18, "gana": "Rakshasa", "yoni": "Dog", "nadi": "Adi"},
+    "Purva Ashadha": {"index": 19, "gana": "Manushya", "yoni": "Monkey", "nadi": "Madhya"},
+    "Uttara Ashadha": {"index": 20, "gana": "Manushya", "yoni": "Mongoose", "nadi": "Antya"},
+    "Shravana": {"index": 21, "gana": "Deva", "yoni": "Monkey", "nadi": "Antya"},
+    "Dhanishta": {"index": 22, "gana": "Rakshasa", "yoni": "Lion", "nadi": "Madhya"},
+    "Shatabhisha": {"index": 23, "gana": "Rakshasa", "yoni": "Horse", "nadi": "Adi"},
+    "Purva Bhadrapada": {"index": 24, "gana": "Manushya", "yoni": "Lion", "nadi": "Adi"},
+    "Uttara Bhadrapada": {"index": 25, "gana": "Manushya", "yoni": "Cow", "nadi": "Madhya"},
+    "Revati": {"index": 26, "gana": "Deva", "yoni": "Elephant", "nadi": "Antya"},
 }
 
+# Traditional yoni enemy pairs.
 YONI_ENEMIES = {
-    "Horse (Ashwa)": "Buffalo (Mahisha)",
-    "Buffalo (Mahisha)": "Horse (Ashwa)",
-    "Elephant (Gaja)": "Lion (Simha)",
-    "Lion (Simha)": "Elephant (Gaja)",
-    "Ram (Mesha)": "Monkey (Vanara)",
-    "Monkey (Vanara)": "Ram (Mesha)",
-    "Serpent (Sarpa)": "Mongoose (Nakula)",
-    "Mongoose (Nakula)": "Serpent (Sarpa)",
-    "Dog (Shwan)": "Deer (Mriga)",
-    "Deer (Mriga)": "Dog (Shwan)",
-    "Cat (Marjara)": "Rat (Mushaka)",
-    "Rat (Mushaka)": "Cat (Marjara)",
-    "Cow (Gau)": "Tiger (Vyaghra)",
-    "Tiger (Vyaghra)": "Cow (Gau)",
+    frozenset(("Horse", "Buffalo")),
+    frozenset(("Elephant", "Lion")),
+    frozenset(("Sheep", "Monkey")),
+    frozenset(("Serpent", "Mongoose")),
+    frozenset(("Dog", "Deer")),
+    frozenset(("Cat", "Rat")),
+    frozenset(("Cow", "Tiger")),
 }
 
-GRAHA_FRIENDSHIPS = {
-    "Sun": {"friends": ["Moon", "Mars", "Jupiter"], "neutrals": ["Mercury"], "enemies": ["Venus", "Saturn"]},
-    "Moon": {"friends": ["Sun", "Mercury"], "neutrals": ["Mars", "Jupiter", "Venus", "Saturn"], "enemies": []},
-    "Mars": {"friends": ["Sun", "Moon", "Jupiter"], "neutrals": ["Venus", "Saturn"], "enemies": ["Mercury"]},
-    "Mercury": {"friends": ["Sun", "Venus"], "neutrals": ["Mars", "Jupiter", "Saturn"], "enemies": ["Moon"]},
-    "Jupiter": {"friends": ["Sun", "Moon", "Mars"], "neutrals": ["Saturn"], "enemies": ["Mercury", "Venus"]},
-    "Venus": {"friends": ["Mercury", "Saturn"], "neutrals": ["Mars", "Jupiter"], "enemies": ["Sun", "Moon"]},
-    "Saturn": {"friends": ["Mercury", "Venus"], "neutrals": ["Jupiter"], "enemies": ["Sun", "Moon", "Mars"]},
+# Common standard Yoni friendship pairs. Unlisted non-enemy pairs receive 2.
+YONI_FRIENDS = {
+    frozenset(("Horse", "Horse")),
+    frozenset(("Elephant", "Elephant")),
+    frozenset(("Sheep", "Sheep")),
+    frozenset(("Serpent", "Serpent")),
+    frozenset(("Dog", "Dog")),
+    frozenset(("Cat", "Cat")),
+    frozenset(("Rat", "Rat")),
+    frozenset(("Cow", "Cow")),
+    frozenset(("Tiger", "Tiger")),
+    frozenset(("Deer", "Deer")),
+    frozenset(("Monkey", "Monkey")),
+    frozenset(("Buffalo", "Buffalo")),
+    frozenset(("Lion", "Lion")),
+    frozenset(("Mongoose", "Mongoose")),
+    # Frequently used friendly combinations.
+    frozenset(("Horse", "Sheep")),
+    frozenset(("Horse", "Monkey")),
+    frozenset(("Elephant", "Sheep")),
+    frozenset(("Elephant", "Buffalo")),
+    frozenset(("Cow", "Buffalo")),
+    frozenset(("Deer", "Monkey")),
+    frozenset(("Dog", "Monkey")),
+    frozenset(("Cat", "Monkey")),
+    frozenset(("Rat", "Monkey")),
+    frozenset(("Lion", "Monkey")),
 }
+
+# Natural planetary relationships used by Graha Maitri.
+GRAHA_REL = {
+    "Sun": {"friends": {"Moon", "Mars", "Jupiter"}, "neutral": {"Mercury"}, "enemies": {"Venus", "Saturn"}},
+    "Moon": {"friends": {"Sun", "Mercury"}, "neutral": {"Mars", "Jupiter", "Venus", "Saturn"}, "enemies": set()},
+    "Mars": {"friends": {"Sun", "Moon", "Jupiter"}, "neutral": {"Venus", "Saturn"}, "enemies": {"Mercury"}},
+    "Mercury": {"friends": {"Sun", "Venus"}, "neutral": {"Mars", "Jupiter", "Saturn"}, "enemies": {"Moon"}},
+    "Jupiter": {"friends": {"Sun", "Moon", "Mars"}, "neutral": {"Saturn"}, "enemies": {"Mercury", "Venus"}},
+    "Venus": {"friends": {"Mercury", "Saturn"}, "neutral": {"Mars", "Jupiter"}, "enemies": {"Sun", "Moon"}},
+    "Saturn": {"friends": {"Mercury", "Venus"}, "neutral": {"Jupiter"}, "enemies": {"Sun", "Moon", "Mars"}},
+}
+
+PLANET_IDS = {
+    "sun": swe.SUN,
+    "moon": swe.MOON,
+    "mars": swe.MARS,
+    "mercury": swe.MERCURY,
+    "jupiter": swe.JUPITER,
+    "venus": swe.VENUS,
+    "saturn": swe.SATURN,
+    "rahu": swe.TRUE_NODE,
+}
+
+PLANET_META = {
+    "sun": ("Sun", "Surya (सूर्य)", "☉"),
+    "moon": ("Moon", "Chandra (चन्द्र)", "☽"),
+    "mars": ("Mars", "Mangal (मंगल)", "♂"),
+    "mercury": ("Mercury", "Budha (बुध)", "☿"),
+    "jupiter": ("Jupiter", "Guru (गुरु)", "♃"),
+    "venus": ("Venus", "Shukra (शुक्र)", "♀"),
+    "saturn": ("Saturn", "Shani (शनि)", "♄"),
+    "rahu": ("Rahu", "Rahu (राहु)", "☊"),
+    "ketu": ("Ketu", "Ketu (केतु)", "☋"),
+}
+
+_geolocator = Nominatim(user_agent="jyotishveda-kundli/1.0")
+_timezone_finder = TimezoneFinder()
+
+
+def resolve_birth_place(place: str) -> dict:
+    """Resolve human-readable birthplace to coordinates + IANA timezone."""
+    place = str(place or "").strip()
+    if not place:
+        raise ValueError("birth place is required")
+
+    location = _geolocator.geocode(
+        place, exactly_one=True, addressdetails=True, language="en", timeout=10
+    )
+    if location is None:
+        raise ValueError(f"Could not resolve birth place: {place}")
+
+    lat = float(location.latitude)
+    lon = float(location.longitude)
+    _validate_lat_lon(lat, lon)
+
+    tz_name = _timezone_finder.timezone_at(lat=lat, lng=lon)
+    if not tz_name:
+        raise ValueError(f"Could not determine timezone for birth place: {place}")
+    try:
+        ZoneInfo(tz_name)
+    except ZoneInfoNotFoundError:
+        raise ValueError(f"Invalid timezone resolved for birth place: {tz_name}")
+
+    return {
+        "latitude": lat,
+        "longitude": lon,
+        "timezone": tz_name,
+        "resolvedPlace": getattr(location, "address", None) or place,
+    }
+
+
+def prepare_partner(partner: dict) -> dict:
+    """Accept only name/date/time/place from the client and enrich location internally."""
+    if not isinstance(partner, dict):
+        raise ValueError("partner must be a JSON object")
+    q = dict(partner)
+    if not q.get("name"):
+        q["name"] = q.get("fullName")
+    if not q.get("dob"):
+        q["dob"] = q.get("birthDate")
+    if not q.get("time"):
+        q["time"] = q.get("birthTime")
+    if not q.get("place"):
+        q["place"] = q.get("birthPlace")
+
+    if q.get("latitude") is None or q.get("longitude") is None or not q.get("timezone"):
+        q.update(resolve_birth_place(q.get("place")))
+    return q
+
+
+# ============================================================
+# BASIC HELPERS
+# ============================================================
+
+def _error(message: str, code: str, http_status: int = 400):
+    return jsonify({"status": "error", "message": message, "error_code": code}), http_status
+
+
+def _norm360(x: float) -> float:
+    return x % 360.0
+
+
+def _format_dms(deg: float) -> str:
+    deg = deg % 30.0
+    d = int(deg)
+    minutes_float = (deg - d) * 60
+    m = int(minutes_float)
+    s = round((minutes_float - m) * 60, 1)
+    return f"{d}° {m}′ {s}″"
+
+
+def _reduce_to_single_digit(num: int, keep_masters: bool = False) -> int:
+    if keep_masters and num in (11, 22, 33):
+        return num
+    while num > 9:
+        num = sum(int(d) for d in str(abs(num)))
+    return num
+
+
+def _get_varna(rashi_idx: int) -> Dict[str, Any]:
+    # Standard Rashi varna grouping.
+    if rashi_idx in (3, 7, 11):
+        return {"name": "Brahmin", "rank": 4}
+    if rashi_idx in (0, 4, 8):
+        return {"name": "Kshatriya", "rank": 3}
+    if rashi_idx in (1, 5, 9):
+        return {"name": "Vaishya", "rank": 2}
+    return {"name": "Shudra", "rank": 1}
+
+
+def _vashya_class(rashi_idx: int) -> str:
+    """
+    Conventional Rashi Vashya animal/human classes.
+
+    Note: Sagittarius is conventionally split by degree (first half
+    human, second half quadruped), so a sign-only classifier cannot be
+    perfectly accurate for Vashya. The detailed scorer below therefore
+    accepts the Moon/Lagna longitude when available.
+    """
+    classes = {
+        0: "Chatushpada",   # Aries
+        1: "Chatushpada",   # Taurus
+        2: "Manava",        # Gemini
+        3: "Jalachara",     # Cancer
+        4: "Vanachara",     # Leo
+        5: "Manava",        # Virgo
+        6: "Manava",        # Libra
+        7: "Keeta",         # Scorpio
+        8: "Chatushpada",   # Sagittarius (degree split handled separately)
+        9: "Chatushpada",   # Capricorn
+        10: "Manava",       # Aquarius
+        11: "Jalachara",    # Pisces
+    }
+    return classes[rashi_idx]
+
+
+def _vashya_class_from_longitude(longitude: float) -> str:
+    """Return the conventional Vashya class, including Sagittarius split."""
+    lon = _norm360(longitude)
+    sign = int(lon // 30)
+    deg = lon % 30
+    if sign == 8 and deg < 15.0:
+        return "Manava"
+    if sign == 8 and deg >= 15.0:
+        return "Chatushpada"
+    return _vashya_class(sign)
+
+
+def _validate_lat_lon(lat: float, lon: float):
+    if not -90 <= lat <= 90:
+        raise ValueError("latitude must be between -90 and 90")
+    if not -180 <= lon <= 180:
+        raise ValueError("longitude must be between -180 and 180")
+
+
+def _local_to_utc_jd(local_dt: datetime, timezone_name: str) -> Tuple[datetime, float]:
+    """Convert local civil time in an IANA timezone to UTC/JD(UT).
+
+    The conversion is intentionally timezone-database based rather than a
+    fixed numeric offset, because historical DST/offset changes matter.
+    For an ambiguous DST clock time, ``fold=0`` is used unless the caller
+    supplies a datetime with ``fold=1``. Non-existent local times are rejected.
+    """
+    try:
+        tz = ZoneInfo(timezone_name)
+    except ZoneInfoNotFoundError as exc:
+        raise ValueError(f"Invalid IANA timezone: {timezone_name}") from exc
+
+    if local_dt.tzinfo is None:
+        aware = local_dt.replace(tzinfo=tz, fold=getattr(local_dt, "fold", 0))
+    else:
+        aware = local_dt.astimezone(tz)
+
+    # Round-trip through UTC. If it does not reproduce the same local clock,
+    # the supplied local time falls inside a DST gap and is not a real instant.
+    utc_dt = aware.astimezone(timezone.utc)
+    roundtrip = utc_dt.astimezone(tz)
+    if roundtrip.replace(tzinfo=None) != local_dt.replace(tzinfo=None):
+        raise ValueError(
+            f"Birth time {local_dt.isoformat()} does not exist in timezone {timezone_name}"
+        )
+
+    hour_decimal = (
+        utc_dt.hour
+        + utc_dt.minute / 60.0
+        + utc_dt.second / 3600.0
+        + utc_dt.microsecond / 3_600_000_000.0
+    )
+    jd = swe.julday(utc_dt.year, utc_dt.month, utc_dt.day, hour_decimal, swe.GREG_CAL)
+    return utc_dt, jd
+
+
+def _parse_local_birth_datetime(date_str: str, time_str: str, tz_name: str) -> Tuple[datetime, float]:
+    time_str = time_str.strip()
+    if len(time_str) == 5:
+        time_str += ":00"
+
+    try:
+        local_naive = datetime.strptime(
+            f"{date_str.strip()} {time_str}", "%Y-%m-%d %H:%M:%S"
+        )
+    except ValueError as exc:
+        raise ValueError("birth date/time must be YYYY-MM-DD and HH:MM[:SS]") from exc
+
+    return _local_to_utc_jd(local_naive, tz_name)
+
+
+def _nakshatra_from_longitude(sidereal_longitude: float) -> Dict[str, Any]:
+    span = 360.0 / 27.0
+    pada_span = span / 4.0
+    idx = min(26, int(_norm360(sidereal_longitude) / span))
+    within = _norm360(sidereal_longitude) - idx * span
+    pada = min(4, int(within / pada_span) + 1)
+
+    n = NAKSHATRAS[idx]
+    return {
+        "index": idx,
+        "name": n["name"],
+        "lord": n["lord"],
+        "deity": n["deity"],
+        "pada": pada,
+        "degreesInNakshatra": round(within, 6),
+    }
+
+
+def _planet_object(pid: str, lon: float, speed: float, house: int) -> Dict[str, Any]:
+    sign_idx = int(_norm360(lon) // 30)
+    deg_in_sign = _norm360(lon) % 30.0
+    nak = _nakshatra_from_longitude(lon)
+    name, sanskrit, symbol = PLANET_META[pid]
+
+    return {
+        "id": pid,
+        "name": name,
+        "sanskritName": sanskrit,
+        "symbol": symbol,
+        "signIndex": sign_idx,
+        "signName": ZODIAC_SIGNS[sign_idx]["name"],
+        "signSanskrit": ZODIAC_SIGNS[sign_idx]["sanskrit"],
+        "degree": round(deg_in_sign, 6),
+        "degreeDMS": _format_dms(deg_in_sign),
+        "totalDegree": round(_norm360(lon), 6),
+        "longitudeSidereal": round(_norm360(lon), 6),
+        "speedLongitude": round(speed, 8),
+        "retrograde": speed < 0,
+        "house": int(house),
+        "nakshatra": nak["name"],
+        "nakshatraLord": nak["lord"],
+        "nakshatraDeity": nak["deity"],
+        "pada": nak["pada"],
+    }
+
+
+# ============================================================
+# VALIDATION / NORMALIZATION
+# ============================================================
+
+def validate_partner(partner: Any, partner_name: str = "partner") -> Optional[str]:
+    if not isinstance(partner, dict):
+        return f"{partner_name} must be a JSON object"
+
+    name = partner.get("name") or partner.get("fullName")
+    dob = partner.get("dob") or partner.get("birthDate")
+    time_val = partner.get("time") or partner.get("birthTime")
+    place = partner.get("place") or partner.get("birthPlace")
+
+    missing = []
+    if not str(name or "").strip():
+        missing.append("name/fullName")
+    if not str(dob or "").strip():
+        missing.append("dob/birthDate")
+    if not str(time_val or "").strip():
+        missing.append("time/birthTime")
+    if not str(place or "").strip():
+        missing.append("place/birthPlace")
+
+    if missing:
+        return f"{partner_name} missing field(s): " + ", ".join(missing)
+
+    try:
+        datetime.strptime(str(dob).strip(), "%Y-%m-%d")
+    except ValueError:
+        return f"{partner_name} DOB must be in YYYY-MM-DD format"
+
+    try:
+        t = str(time_val).strip()
+        if len(t) == 5:
+            datetime.strptime(t, "%H:%M")
+        else:
+            datetime.strptime(t, "%H:%M:%S")
+    except ValueError:
+        return f"{partner_name} time must be in HH:MM:SS or HH:MM format"
+
+    try:
+        float(partner.get("latitude"))
+        float(partner.get("longitude"))
+    except (TypeError, ValueError):
+        return f"{partner_name} must contain numeric latitude and longitude"
+
+    tz_name = partner.get("timezone") or partner.get("timeZone")
+    if not isinstance(tz_name, str) or "/" not in tz_name:
+        return (
+            f"{partner_name} timezone must be an IANA timezone such as "
+            f"'Asia/Kolkata' (do not use a fixed 5.5 offset for historical accuracy)"
+        )
+
+    try:
+        ZoneInfo(tz_name)
+    except Exception:
+        return f"{partner_name} has invalid IANA timezone: {tz_name}"
+
+    try:
+        _validate_lat_lon(float(partner["latitude"]), float(partner["longitude"]))
+    except ValueError as exc:
+        return f"{partner_name}: {exc}"
+
+    house_system = str(partner.get("houseSystem") or partner.get("house_system") or "W").upper()
+    if len(house_system) != 1 or not house_system.isalpha():
+        return f"{partner_name} houseSystem must be a single Swiss Ephemeris code"
+
+    node_type = str(partner.get("nodeType") or partner.get("node_type") or "true").lower()
+    if node_type not in {"true", "mean"}:
+        return f"{partner_name} nodeType must be 'true' or 'mean'"
+
+    return None
+
+
+def _normalize_partner(p: dict) -> dict:
+    """
+    Unlike the old implementation, this does NOT silently invent Delhi,
+    12:00, or an arbitrary timezone. Missing astronomical inputs remain errors.
+    """
+    tz_name = p.get("timezone") or p.get("timeZone")
+
+    return {
+        "id": p.get("id") or str(uuid.uuid4()),
+        "name": str(p.get("name") or p.get("fullName") or "").strip(),
+        "fullName": str(p.get("name") or p.get("fullName") or "").strip(),
+        "dob": str(p.get("dob") or p.get("birthDate") or "").strip(),
+        "birthDate": str(p.get("dob") or p.get("birthDate") or "").strip(),
+        "time": str(p.get("time") or p.get("birthTime") or "").strip(),
+        "birthTime": str(p.get("time") or p.get("birthTime") or "").strip(),
+        "place": str(p.get("place") or p.get("birthPlace") or "").strip(),
+        "birthPlace": str(p.get("place") or p.get("birthPlace") or "").strip(),
+        "latitude": float(p["latitude"]),
+        "longitude": float(p["longitude"]),
+        "timezone": tz_name,
+        "horoscopeSystem": p.get("horoscopeSystem", "vedic"),
+        "houseSystem": p.get("houseSystem") or p.get("house_system") or "W",
+        "nodeType": p.get("nodeType") or p.get("node_type") or "true",
+    }
+
+
+# ============================================================
+# ASTRONOMICAL KUNDLI
+# ============================================================
+
+def generate_kundli(partner: dict) -> dict:
+    """
+    Calculate a sidereal Vedic-style natal chart with Swiss Ephemeris.
+
+    Defaults:
+      * Lahiri ayanamsha
+      * geocentric positions
+      * True lunar node (Rahu); Ketu is exactly opposite Rahu
+      * Whole-sign houses (traditional Vedic-style default)
+
+    ``houseSystem`` may be ``"W"`` for Whole Sign or ``"P"`` for Placidus
+    (or another Swiss Ephemeris house-system code supported by your build).
+    ``nodeType`` may be ``"true"`` or ``"mean"``.
+    """
+    p = _normalize_partner(partner)
+    lat = p["latitude"]
+    lon = p["longitude"]
+    _validate_lat_lon(lat, lon)
+
+    _, jd_ut = _parse_local_birth_datetime(p["dob"], p["time"], p["timezone"])
+
+    swe.set_sid_mode(swe.SIDM_LAHIRI)
+
+    house_system = str(p.get("houseSystem") or p.get("house_system") or "W").upper()
+    if len(house_system) != 1:
+        raise ValueError("houseSystem must be a single Swiss Ephemeris house-system code")
+
+    node_type = str(p.get("nodeType") or p.get("node_type") or "true").lower()
+    if node_type not in {"true", "mean"}:
+        raise ValueError("nodeType must be 'true' or 'mean'")
+
+    flags = swe.FLG_SWIEPH | swe.FLG_SPEED | swe.FLG_SIDEREAL
+
+    try:
+        houses, ascmc = swe.houses_ex(
+            jd_ut, lat, lon, house_system.encode("ascii"), swe.FLG_SIDEREAL
+        )
+    except Exception as exc:
+        raise ValueError(
+            f"Swiss Ephemeris house calculation failed for houseSystem={house_system}: {exc}"
+        ) from exc
+
+    asc_sid = _norm360(float(ascmc[0]))
+    asc_sign_idx = int(asc_sid // 30)
+    asc_nak = _nakshatra_from_longitude(asc_sid)
+
+    node_swe_id = swe.TRUE_NODE if node_type == "true" else swe.MEAN_NODE
+    planet_ids = dict(PLANET_IDS)
+    planet_ids["rahu"] = node_swe_id
+
+    calculated_planets = []
+    planets_by_id = {}
+
+    for pid, swe_id in planet_ids.items():
+        try:
+            xx, retflag = swe.calc_ut(jd_ut, swe_id, flags)
+        except Exception as exc:
+            raise ValueError(f"Swiss Ephemeris failed for {pid}: {exc}") from exc
+        if not xx or len(xx) < 4:
+            raise ValueError(f"Swiss Ephemeris returned invalid data for {pid}")
+
+        sid_lon = _norm360(float(xx[0]))
+        speed = float(xx[3])
+        house = _house_from_cusps(sid_lon, houses)
+        obj = _planet_object(pid, sid_lon, speed, house)
+        obj["ephemerisReturnFlag"] = int(retflag)
+        calculated_planets.append(obj)
+        planets_by_id[pid] = obj
+
+    rahu = planets_by_id["rahu"]
+    ketu_lon = _norm360(rahu["totalDegree"] + 180.0)
+    ketu_house = _house_from_cusps(ketu_lon, houses)
+    ketu = _planet_object("ketu", ketu_lon, -rahu["speedLongitude"], ketu_house)
+    ketu["ephemerisReturnFlag"] = rahu.get("ephemerisReturnFlag", 0)
+    planets_by_id["ketu"] = ketu
+    calculated_planets.append(ketu)
+
+    house_cusps = []
+    for i, cusp in enumerate(houses, start=1):
+        c = _norm360(float(cusp))
+        house_cusps.append({
+            "house": i,
+            "longitudeSidereal": round(c, 6),
+            "signIndex": int(c // 30),
+            "signName": ZODIAC_SIGNS[int(c // 30)]["name"],
+            "degree": round(c % 30, 6),
+        })
+
+    return {
+        "calculation": {
+            "engine": "Swiss Ephemeris / pyswisseph",
+            "zodiac": "Sidereal",
+            "ayanamsha": "Lahiri",
+            "ephemerisFlags": flags,
+            "julianDayUT": jd_ut,
+            "latitude": lat,
+            "longitude": lon,
+            "timezone": p["timezone"],
+            "houseSystem": house_system,
+            "nodeType": node_type,
+            "coordinateFrame": "Geocentric",
+        },
+        "ascendant": {
+            "longitudeSidereal": round(asc_sid, 6),
+            "signIndex": asc_sign_idx,
+            "degree": round(asc_sid % 30, 6),
+            "degreeDMS": _format_dms(asc_sid),
+            "signName": ZODIAC_SIGNS[asc_sign_idx]["name"],
+            "signSanskrit": ZODIAC_SIGNS[asc_sign_idx]["sanskrit"],
+            "nakshatra": asc_nak["name"],
+            "nakshatraLord": asc_nak["lord"],
+            "pada": asc_nak["pada"],
+        },
+        "houseCusps": house_cusps,
+        "planets": calculated_planets,
+        "planetsById": planets_by_id,
+        "partner": p,
+    }
+
+
+def _house_from_cusps(longitude: float, cusps) -> int:
+    """
+    Find the house in a circular list of 12 cusps.
+    """
+    lon = _norm360(longitude)
+    c = [_norm360(float(x)) for x in cusps]
+
+    for i in range(12):
+        start = c[i]
+        end = c[(i + 1) % 12]
+
+        if start <= end:
+            inside = start <= lon < end
+        else:
+            inside = lon >= start or lon < end
+
+        if inside:
+            return i + 1
+
+    return 12
+
+
+# ============================================================
+# NUMEROLOGY – OPTIONAL, NOT PART OF ASHTA KOOTA
+# ============================================================
 
 CHALDEAN_VALUES = {
     "A": 1, "I": 1, "J": 1, "Q": 1, "Y": 1,
@@ -142,826 +684,336 @@ PYTHAGOREAN_VALUES = {
 }
 
 
-# ============================================================
-# HELPER & ERROR UTILITIES
-# ============================================================
-
-def _error(message: str, code: str, http_status: int = 400):
-    return jsonify({
-        "status": "error",
-        "message": message,
-        "error_code": code
-    }), http_status
-
-
-def _reduce_to_single_digit(num: int, keep_masters: bool = False) -> int:
-    if keep_masters and num in (11, 22, 33):
-        return num
-    while num > 9:
-        num = sum(int(d) for d in str(num))
-    return num
-
-
-def _get_varna(rashi_idx: int) -> Dict[str, Any]:
-    if rashi_idx in (3, 7, 11):
-        return {"name": "Brahmin (Spiritual / Intellectual)", "rank": 4}
-    if rashi_idx in (0, 4, 8):
-        return {"name": "Kshatriya (Leadership / Valor)", "rank": 3}
-    if rashi_idx in (1, 5, 9):
-        return {"name": "Vaishya (Commercial / Pragmatic)", "rank": 2}
-    return {"name": "Shudra (Service / Artisan)", "rank": 1}
-
-
-def _get_vashya(rashi_idx: int) -> str:
-    if rashi_idx in (0, 1):
-        return "Chatushpada (Quadruped)"
-    if rashi_idx in (2, 5, 6, 10):
-        return "Manava (Human / Biped)"
-    if rashi_idx in (3, 7, 11):
-        return "Jalachara (Water / Aquatic)"
-    if rashi_idx == 4:
-        return "Vanachara (Wild / Lion)"
-    return "Keeta (Insect / Scorpio-Makara)"
-
-
-# ============================================================
-# VALIDATE PARTNER
-# ============================================================
-
-def validate_partner(partner: Any, partner_name: str = "partner") -> Optional[str]:
-    """
-    Validates a partner dict. Accepts both standard frontend and backend keys:
-    - name or fullName
-    - dob or birthDate (YYYY-MM-DD)
-    - time or birthTime (HH:MM:SS or HH:MM)
-    - place or birthPlace
-    """
-    if not isinstance(partner, dict):
-        return f"{partner_name} must be a JSON object"
-
-    name = partner.get("name") or partner.get("fullName")
-    dob = partner.get("dob") or partner.get("birthDate")
-    time_val = partner.get("time") or partner.get("birthTime")
-    place = partner.get("place") or partner.get("birthPlace")
-
-    missing = []
-    if not name or not str(name).strip():
-        missing.append("name/fullName")
-    if not dob or not str(dob).strip():
-        missing.append("dob/birthDate")
-    if not time_val or not str(time_val).strip():
-        missing.append("time/birthTime")
-    if not place or not str(place).strip():
-        missing.append("place/birthPlace")
-
-    if missing:
-        return f"{partner_name} missing field(s): " + ", ".join(missing)
-
-    # Validate DOB
-    try:
-        datetime.strptime(str(dob).strip(), "%Y-%m-%d")
-    except ValueError:
-        return f"{partner_name} DOB must be in YYYY-MM-DD format"
-
-    # Validate time
-    time_clean = str(time_val).strip()
-    valid_time = False
-    for fmt in ("%H:%M:%S", "%H:%M"):
-        try:
-            datetime.strptime(time_clean, fmt)
-            valid_time = True
-            break
-        except ValueError:
-            pass
-
-    if not valid_time:
-        return f"{partner_name} time must be in HH:MM:SS or HH:MM format"
-
-    return None
-
-
-def _normalize_partner(p: dict) -> dict:
-    """Normalizes partner dictionary keys for consistent calculations."""
-    name = str(p.get("name") or p.get("fullName") or "Partner").strip()
-    dob = str(p.get("dob") or p.get("birthDate") or "1995-01-01").strip()
-    time_str = str(p.get("time") or p.get("birthTime") or "12:00:00").strip()
-    place = str(p.get("place") or p.get("birthPlace") or "New Delhi, India").strip()
-    gender = str(p.get("gender") or "unspecified").strip().lower()
-
-    lat = p.get("latitude")
-    lon = p.get("longitude")
-    try:
-        lat = float(lat) if lat is not None else 28.6139
-    except (ValueError, TypeError):
-        lat = 28.6139
-
-    try:
-        lon = float(lon) if lon is not None else 77.2090
-    except (ValueError, TypeError):
-        lon = 77.2090
-
-    if len(time_str) == 5:
-        time_str += ":00"
-
-    return {
-        "id": p.get("id") or str(uuid.uuid4()),
-        "name": name,
-        "fullName": name,
-        "dob": dob,
-        "birthDate": dob,
-        "time": time_str,
-        "birthTime": time_str[:5],
-        "place": place,
-        "birthPlace": place,
-        "gender": gender,
-        "latitude": lat,
-        "longitude": lon,
-        "timezone": p.get("timezone", 5.5),
-        "horoscopeSystem": p.get("horoscopeSystem", "vedic"),
-    }
-
-
-# ============================================================
-# DYNAMIC KUNDLI & CHART GENERATION
-# ============================================================
-
-def generate_kundli(partner: dict) -> dict:
-    """
-    Computes dynamic Vedic Sidereal planetary positions, Ascendant,
-    and house occupancy from birth date, time, and coordinates.
-    """
-    p = _normalize_partner(partner)
-    b_date_str = p["dob"]
-    b_time_str = p["time"]
-
-    try:
-        b_dt = datetime.strptime(f"{b_date_str} {b_time_str}", "%Y-%m-%d %H:%M:%S")
-    except ValueError:
-        b_dt = datetime.strptime(f"{b_date_str} {b_time_str[:5]}", "%Y-%m-%d %H:%M")
-
-    day_of_year = (b_dt - datetime(b_dt.year, 1, 1)).days + 1
-    birth_hours = b_dt.hour + b_dt.minute / 60.0 + b_dt.second / 3600.0
-
-    lat = p["latitude"]
-    lon = p["longitude"]
-
-    # Deterministic astronomical seed calculation
-    seed = (b_dt.year * 365 + day_of_year) * 24 + birth_hours + lat * 0.5 + lon * 0.2
-
-    # Ascendant (Lagna)
-    total_lagna_deg = (math.floor(seed * 1.618 + (lon / 15.0) * 30.0 + birth_hours * 15.0)) % 360.0
-    if total_lagna_deg < 0:
-        total_lagna_deg += 360.0
-
-    lagna_sign_index = int(total_lagna_deg // 30)
-    lagna_deg = round(total_lagna_deg % 30, 2)
-    lagna_nak_idx = int(total_lagna_deg // 13.333333) % 27
-
-    planet_configs = [
-        {"id": "sun", "name": "Sun", "sanskrit": "Surya (सूर्य)", "symbol": "☉", "baseRate": 0.9856, "offset": 280},
-        {"id": "moon", "name": "Moon", "sanskrit": "Chandra (चन्द्र)", "symbol": "☽", "baseRate": 13.176, "offset": 45},
-        {"id": "mars", "name": "Mars", "sanskrit": "Mangal (मंगल)", "symbol": "♂", "baseRate": 0.524, "offset": 120},
-        {"id": "mercury", "name": "Mercury", "sanskrit": "Budha (बुध)", "symbol": "☿", "baseRate": 1.2, "offset": 310},
-        {"id": "jupiter", "name": "Jupiter", "sanskrit": "Guru (गुरु)", "symbol": "♃", "baseRate": 0.083, "offset": 190},
-        {"id": "venus", "name": "Venus", "sanskrit": "Shukra (शुक्र)", "symbol": "♀", "baseRate": 1.15, "offset": 70},
-        {"id": "saturn", "name": "Saturn", "sanskrit": "Shani (शनि)", "symbol": "♄", "baseRate": 0.033, "offset": 240},
-        {"id": "rahu", "name": "Rahu", "sanskrit": "Rahu (राहु)", "symbol": "☊", "baseRate": -0.052, "offset": 15},
-        {"id": "ketu", "name": "Ketu", "sanskrit": "Ketu (केतु)", "symbol": "☋", "baseRate": -0.052, "offset": 195},
-    ]
-
-    calculated_planets = []
-    planets_by_id = {}
-
-    for idx, cfg in enumerate(planet_configs):
-        tot_deg = (cfg["offset"] + (seed * cfg["baseRate"] * 0.1) + idx * 23.5) % 360.0
-        if tot_deg < 0:
-            tot_deg += 360.0
-
-        sign_idx = int(tot_deg // 30)
-        deg_in_sign = round(tot_deg % 30, 2)
-        nak_idx = int(tot_deg // 13.333333) % 27
-        pada = int((tot_deg % 13.333333) // 3.333333) + 1
-        house = ((sign_idx - lagna_sign_index + 12) % 12) + 1
-
-        p_obj = {
-            "id": cfg["id"],
-            "name": cfg["name"],
-            "sanskritName": cfg["sanskrit"],
-            "symbol": cfg["symbol"],
-            "signIndex": sign_idx,
-            "signName": ZODIAC_SIGNS[sign_idx]["name"],
-            "signSanskrit": ZODIAC_SIGNS[sign_idx]["sanskrit"],
-            "degree": deg_in_sign,
-            "totalDegree": round(tot_deg, 2),
-            "house": house,
-            "nakshatra": NAKSHATRAS[nak_idx]["name"],
-            "nakshatraLord": NAKSHATRAS[nak_idx]["lord"],
-            "pada": pada,
-        }
-        calculated_planets.append(p_obj)
-        planets_by_id[cfg["id"]] = p_obj
-
-    return {
-        "ascendant": {
-            "signIndex": lagna_sign_index,
-            "degree": lagna_deg,
-            "signName": ZODIAC_SIGNS[lagna_sign_index]["name"],
-            "signSanskrit": ZODIAC_SIGNS[lagna_sign_index]["sanskrit"],
-            "nakshatra": NAKSHATRAS[lagna_nak_idx]["name"],
-        },
-        "planets": calculated_planets,
-        "planetsById": planets_by_id,
-        "partner": p,
-    }
-
-
-# ============================================================
-# DYNAMIC NUMEROLOGY CALCULATION
-# ============================================================
-
 def calculate_numerology(name: str, dob_str: str) -> dict:
-    parts = dob_str.split("-")
-    day_num = int(parts[2]) if len(parts) > 2 else 1
-    mulank = _reduce_to_single_digit(day_num)
+    day = int(dob_str.split("-")[2])
+    mulank = _reduce_to_single_digit(day)
+    bhagyank = _reduce_to_single_digit(sum(int(d) for d in dob_str if d.isdigit()))
 
-    # Bhagyank (Full birth date sum)
-    dob_digits = [int(d) for d in dob_str if d.isdigit()]
-    bhagyank = _reduce_to_single_digit(sum(dob_digits))
-
-    # Namank (Chaldean & Pythagorean)
-    upper_name = name.upper()
-    chaldean_sum = sum(CHALDEAN_VALUES.get(char, 0) for char in upper_name if char.isalpha())
-    namank_chaldean = _reduce_to_single_digit(chaldean_sum)
-
-    pythagorean_sum = sum(PYTHAGOREAN_VALUES.get(char, 0) for char in upper_name if char.isalpha())
-    namank_pythagorean = _reduce_to_single_digit(pythagorean_sum)
-
-    mulank_planets = {
-        1: "Sun (Surya)", 2: "Moon (Chandra)", 3: "Jupiter (Guru)",
-        4: "Rahu (Dragon's Head)", 5: "Mercury (Budha)", 6: "Venus (Shukra)",
-        7: "Ketu (Dragon's Tail)", 8: "Saturn (Shani)", 9: "Mars (Mangal)"
-    }
+    upper = name.upper()
+    chaldean_sum = sum(CHALDEAN_VALUES.get(c, 0) for c in upper if c.isalpha())
+    pythagorean_sum = sum(PYTHAGOREAN_VALUES.get(c, 0) for c in upper if c.isalpha())
 
     return {
         "mulank": mulank,
         "bhagyank": bhagyank,
-        "namankChaldean": namank_chaldean,
-        "namankPythagorean": namank_pythagorean,
-        "mulankPlanet": mulank_planets.get(mulank, "Sun (Surya)")
+        "namankChaldean": _reduce_to_single_digit(chaldean_sum),
+        "namankPythagorean": _reduce_to_single_digit(pythagorean_sum),
     }
 
 
 # ============================================================
-# DYNAMIC ASHTA KOOTA MILAN CALCULATION (36 GUNAS)
+# ASHTA KOOTA – 36 GUNA
 # ============================================================
+
+def _tara_points(nak1_idx: int, nak2_idx: int) -> Tuple[float, int, int]:
+    # Count inclusive from each birth star; reduce modulo 9.
+    t12 = ((nak2_idx - nak1_idx) % 27) + 1
+    t21 = ((nak1_idx - nak2_idx) % 27) + 1
+
+    tara1 = ((t12 - 1) % 9) + 1
+    tara2 = ((t21 - 1) % 9) + 1
+
+    good = {1, 2, 4, 6, 8, 9}
+    score = (1.5 if tara1 in good else 0.0) + (1.5 if tara2 in good else 0.0)
+    return score, tara1, tara2
+
+
+def _yoni_score(y1: str, y2: str) -> float:
+    pair = frozenset((y1, y2))
+    if y1 == y2:
+        return 4.0
+    if pair in YONI_ENEMIES:
+        return 0.0
+    if pair in YONI_FRIENDS:
+        return 3.0
+    return 2.0
+
+
+def _graha_maitri_score(lord1: str, lord2: str) -> float:
+    if lord1 == lord2:
+        return 5.0
+
+    r1 = GRAHA_REL[lord1]
+    r2 = GRAHA_REL[lord2]
+
+    def rel(a, b):
+        if b in GRAHA_REL[a]["friends"]:
+            return "friend"
+        if b in GRAHA_REL[a]["enemies"]:
+            return "enemy"
+        return "neutral"
+
+    a = rel(lord1, lord2)
+    b = rel(lord2, lord1)
+
+    if a == "friend" and b == "friend":
+        return 5.0
+    if (a == "friend" and b == "neutral") or (a == "neutral" and b == "friend"):
+        return 4.0
+    if a == "neutral" and b == "neutral":
+        return 3.0
+    if (a == "enemy" and b == "neutral") or (a == "neutral" and b == "enemy"):
+        return 1.0
+    return 0.0
+
+
+def _gana_score(g1: str, g2: str) -> float:
+    if g1 == g2:
+        return 6.0
+    if {g1, g2} == {"Deva", "Manushya"}:
+        return 5.0
+    if {g1, g2} == {"Manushya", "Rakshasa"}:
+        return 0.0
+    return 1.0
+
+
+def _vashya_score_from_classes(c1: str, c2: str) -> float:
+    if c1 == c2:
+        return 2.0
+    cross = {
+        frozenset(("Manava", "Chatushpada")): 1.0,
+        frozenset(("Manava", "Jalachara")): 1.0,
+        frozenset(("Manava", "Keeta")): 0.5,
+        frozenset(("Manava", "Vanachara")): 1.0,
+        frozenset(("Chatushpada", "Jalachara")): 0.5,
+        frozenset(("Chatushpada", "Keeta")): 0.0,
+        frozenset(("Chatushpada", "Vanachara")): 1.0,
+        frozenset(("Jalachara", "Keeta")): 1.0,
+        frozenset(("Jalachara", "Vanachara")): 0.0,
+        frozenset(("Keeta", "Vanachara")): 0.0,
+    }
+    return cross.get(frozenset((c1, c2)), 0.0)
+
+
+def _vashya_score(r1: int, r2: int, lon1: float | None = None, lon2: float | None = None) -> float:
+    c1 = _vashya_class_from_longitude(lon1) if lon1 is not None else _vashya_class(r1)
+    c2 = _vashya_class_from_longitude(lon2) if lon2 is not None else _vashya_class(r2)
+    return _vashya_score_from_classes(c1, c2)
+
+
+def _bhakoot_relation(r1: int, r2: int) -> str:
+    """Return the conventional Rashi relation label."""
+    d = (r2 - r1) % 12
+    labels = {
+        0: "1/1",
+        1: "2/12", 11: "2/12",
+        2: "3/11", 10: "3/11",
+        3: "4/10", 9: "4/10",
+        4: "5/9", 8: "5/9",
+        5: "6/8", 7: "6/8",
+        6: "7/7",
+    }
+    return labels[d]
+
 
 def calculate_ashta_koota(chart1: dict, chart2: dict) -> Tuple[List[dict], Dict[str, dict], float, float]:
-    moon1 = chart1["planetsById"].get("moon") or chart1["planets"][1]
-    moon2 = chart2["planetsById"].get("moon") or chart2["planets"][1]
+    moon1 = chart1["planetsById"]["moon"]
+    moon2 = chart2["planetsById"]["moon"]
 
-    nak1_name = moon1["nakshatra"]
-    nak2_name = moon2["nakshatra"]
+    nak1 = NAKSHATRA_ATTRIBUTES[moon1["nakshatra"]]
+    nak2 = NAKSHATRA_ATTRIBUTES[moon2["nakshatra"]]
+    r1 = moon1["signIndex"]
+    r2 = moon2["signIndex"]
+    lord1 = ZODIAC_SIGNS[r1]["lord"]
+    lord2 = ZODIAC_SIGNS[r2]["lord"]
 
-    nak1 = NAKSHATRA_ATTRIBUTES.get(nak1_name, NAKSHATRA_ATTRIBUTES["Ashwini"])
-    nak2 = NAKSHATRA_ATTRIBUTES.get(nak2_name, NAKSHATRA_ATTRIBUTES["Rohini"])
+    v1 = _get_varna(r1)
+    v2 = _get_varna(r2)
+    varna_score = 1.0 if v1["rank"] >= v2["rank"] else 0.0
 
-    rashi1_idx = moon1["signIndex"]
-    rashi2_idx = moon2["signIndex"]
-
-    rashi1_lord = ZODIAC_SIGNS[rashi1_idx]["lord"]
-    rashi2_lord = ZODIAC_SIGNS[rashi2_idx]["lord"]
-
-    # 1. VARNA KOOTA (Max 1 point)
-    varna1 = _get_varna(rashi1_idx)
-    varna2 = _get_varna(rashi2_idx)
-    varna_points = 1.0 if varna1["rank"] >= varna2["rank"] else 0.0
-
-    varna_koota = {
-        "id": "varna",
-        "name": "Varna Koota",
-        "sanskritName": "वर्ण कूट",
-        "maxPoints": 1.0,
-        "maxScore": 1.0,
-        "obtainedPoints": varna_points,
-        "score": varna_points,
-        "p1Value": varna1["name"].split(" ")[0],
-        "p2Value": varna2["name"].split(" ")[0],
-        "area": "Spiritual Ego & Work Harmony",
-        "description": "Measures spiritual alignment, intellectual ego balance, and vocational mutual respect.",
-        "verdict": "Excellent" if varna_points == 1.0 else "Challenging",
-        "status": "good" if varna_points == 1.0 else "average",
-        "details": (
-            "Harmonious spiritual polarity; both individuals share mutual respect for core vocational ethics."
-            if varna_points == 1.0
-            else "Slight ego dissonance in vocational authority; remedied through clear communication of personal boundaries."
-        )
-    }
-
-    # 2. VASHYA KOOTA (Max 2 points)
-    vashya1 = _get_vashya(rashi1_idx)
-    vashya2 = _get_vashya(rashi2_idx)
-    vashya_points = 0.0
-
-    if vashya1 == vashya2:
-        vashya_points = 2.0
-    elif ("Manava" in vashya1 and "Chatushpada" in vashya2) or ("Manava" in vashya2 and "Chatushpada" in vashya1):
-        vashya_points = 1.0
-    elif ("Jalachara" in vashya1 and "Manava" in vashya2) or ("Jalachara" in vashya2 and "Manava" in vashya1):
-        vashya_points = 1.5
-    elif "Vanachara" in vashya1 or "Vanachara" in vashya2:
-        vashya_points = 0.5
-    else:
-        vashya_points = 1.0
-
-    vashya_koota = {
-        "id": "vashya",
-        "name": "Vashya Koota",
-        "sanskritName": "वश्य कूट",
-        "maxPoints": 2.0,
-        "maxScore": 2.0,
-        "obtainedPoints": vashya_points,
-        "score": vashya_points,
-        "p1Value": vashya1.split(" ")[0],
-        "p2Value": vashya2.split(" ")[0],
-        "area": "Dominance & Magnetic Attraction",
-        "description": "Assesses interpersonal power balance, natural magnetic influence, and mutual receptivity.",
-        "verdict": "Excellent" if vashya_points >= 1.5 else ("Good" if vashya_points >= 1.0 else "Average"),
-        "status": "good" if vashya_points >= 1.5 else "average",
-        "details": (
-            "Strong mutual attraction and natural willingness to support each other without power struggles."
-            if vashya_points >= 1.5
-            else "Balanced interpersonal dynamic; occasional need for collaborative consensus in decision making."
-        )
-    }
-
-    # 3. TARA KOOTA (Max 3 points)
-    tara1to2 = ((nak2["index"] - nak1["index"] + 27) % 9) + 1
-    tara2to1 = ((nak1["index"] - nak2["index"] + 27) % 9) + 1
-    auspicious_taras = [1, 2, 4, 6, 8, 9]
-    tara_points = 0.0
-    if tara1to2 in auspicious_taras:
-        tara_points += 1.5
-    if tara2to1 in auspicious_taras:
-        tara_points += 1.5
-
-    tara_koota = {
-        "id": "tara",
-        "name": "Tara Koota",
-        "sanskritName": "तारा कूट",
-        "maxPoints": 3.0,
-        "maxScore": 3.0,
-        "obtainedPoints": tara_points,
-        "score": tara_points,
-        "p1Value": f"Tara {tara1to2}/9 ({nak1['lord']})",
-        "p2Value": f"Tara {tara2to1}/9 ({nak2['lord']})",
-        "area": "Destiny, Health & Longevity Accord",
-        "description": "Evaluates cosmic fortune, health protection, longevity, and mutual auspicious timing.",
-        "verdict": "Excellent" if tara_points == 3.0 else ("Good" if tara_points >= 1.5 else "Challenging"),
-        "status": "good" if tara_points >= 1.5 else "critical",
-        "details": (
-            "Exceptionally auspicious planetary star concordance; brings protection, mutual longevity, and prosperity."
-            if tara_points == 3.0
-            else ("Beneficial star alignment with solid overall life protection." if tara_points >= 1.5 else "Challenging Tara cycle; recommended to recite Maha Mrityunjaya Mantra together for health vitality.")
-        )
-    }
-
-    # 4. YONI KOOTA (Max 4 points)
-    yoni1 = nak1["yoni"]
-    yoni2 = nak2["yoni"]
-    yoni_points = 0.0
-
-    if yoni1 == yoni2:
-        yoni_points = 4.0
-    elif YONI_ENEMIES.get(yoni1) == yoni2 or YONI_ENEMIES.get(yoni2) == yoni1:
-        yoni_points = 0.0
-    else:
-        is_friendly = (
-            ("Gaja" in yoni1 and "Gau" in yoni2) or ("Gau" in yoni1 and "Gaja" in yoni2) or
-            ("Ashwa" in yoni1 and "Mriga" in yoni2) or ("Mriga" in yoni1 and "Ashwa" in yoni2) or
-            ("Vanara" in yoni1 and "Marjara" in yoni2) or ("Marjara" in yoni1 and "Vanara" in yoni2)
-        )
-        yoni_points = 3.0 if is_friendly else 2.0
-
-    yoni_koota = {
-        "id": "yoni",
-        "name": "Yoni Koota",
-        "sanskritName": "योनि कूट",
-        "maxPoints": 4.0,
-        "maxScore": 4.0,
-        "obtainedPoints": yoni_points,
-        "score": yoni_points,
-        "p1Value": yoni1.split(" ")[0],
-        "p2Value": yoni2.split(" ")[0],
-        "area": "Physical & Biological Compatibility",
-        "description": "Measures instinctual affinity, physical comfort, intimate satisfaction, and biological sync.",
-        "verdict": "Excellent" if yoni_points == 4.0 else ("Good" if yoni_points >= 2.0 else "Critical"),
-        "status": "good" if yoni_points >= 2.0 else "critical",
-        "details": (
-            "Same Yoni animal archetype; perfect instinctual harmony, mutual physical fondness, and deep bonding."
-            if yoni_points == 4.0
-            else ("Harmonious physical compatibility with great mutual understanding of intimacy needs." if yoni_points >= 2.0 else "Inimical Yoni pairing; requires patience, conscious tenderness, and emotional communication.")
-        )
-    }
-
-    # 5. GRAHA MAITRI (Max 5 points)
-    lord1 = rashi1_lord
-    lord2 = rashi2_lord
-    graha_points = 0.0
-
-    if lord1 == lord2:
-        graha_points = 5.0
-    else:
-        p1_to_p2_friend = lord2 in GRAHA_FRIENDSHIPS.get(lord1, {}).get("friends", [])
-        p1_to_p2_neutral = lord2 in GRAHA_FRIENDSHIPS.get(lord1, {}).get("neutrals", [])
-        p2_to_p1_friend = lord1 in GRAHA_FRIENDSHIPS.get(lord2, {}).get("friends", [])
-        p2_to_p1_neutral = lord1 in GRAHA_FRIENDSHIPS.get(lord2, {}).get("neutrals", [])
-
-        if p1_to_p2_friend and p2_to_p1_friend:
-            graha_points = 5.0
-        elif (p1_to_p2_friend and p2_to_p1_neutral) or (p2_to_p1_friend and p1_to_p2_neutral):
-            graha_points = 4.0
-        elif p1_to_p2_neutral and p2_to_p1_neutral:
-            graha_points = 3.0
-        elif p1_to_p2_friend or p2_to_p1_friend:
-            graha_points = 1.0
-        else:
-            graha_points = 0.5
-
-    graha_koota = {
-        "id": "graha_maitri",
-        "name": "Graha Maitri Koota",
-        "sanskritName": "ग्रह मैत्री कूट",
-        "maxPoints": 5.0,
-        "maxScore": 5.0,
-        "obtainedPoints": graha_points,
-        "score": graha_points,
-        "p1Value": f"{ZODIAC_SIGNS[rashi1_idx]['name']} ({lord1})",
-        "p2Value": f"{ZODIAC_SIGNS[rashi2_idx]['name']} ({lord2})",
-        "area": "Mental Harmony & Friendship",
-        "description": "Governs intellectual camaraderie, shared worldview, emotional rapport, and friendship.",
-        "verdict": "Excellent" if graha_points >= 4.0 else ("Good" if graha_points >= 3.0 else "Average"),
-        "status": "good" if graha_points >= 3.0 else "average",
-        "details": (
-            "Moon sign lords are mutual friends; deep intellectual wavelength, emotional transparency, and laughter."
-            if graha_points >= 4.0
-            else ("Neutral planetary lords; mutual respect and functional communication thrive with common goals." if graha_points >= 3.0 else "Incompatible Moon sign lords; intellectual views differ, encouraging personal patience and growth.")
-        )
-    }
-
-    # 6. GANA KOOTA (Max 6 points)
-    gana1 = nak1["gana"]
-    gana2 = nak2["gana"]
-    gana_points = 0.0
-
-    if gana1 == gana2:
-        gana_points = 6.0
-    elif (gana1 == "Deva" and gana2 == "Manushya") or (gana1 == "Manushya" and gana2 == "Deva"):
-        gana_points = 5.0
-    elif (gana1 == "Deva" and gana2 == "Rakshasa") or (gana1 == "Rakshasa" and gana2 == "Deva"):
-        gana_points = 1.0
-    else:
-        gana_points = 0.0
-
-    gana_koota = {
-        "id": "gana",
-        "name": "Gana Koota",
-        "sanskritName": "गण कूट",
-        "maxPoints": 6.0,
-        "maxScore": 6.0,
-        "obtainedPoints": gana_points,
-        "score": gana_points,
-        "p1Value": f"{gana1} Gana",
-        "p2Value": f"{gana2} Gana",
-        "area": "Temperament & Psychological Constitution",
-        "description": "Evaluates emotional temperament, lifestyle expectations, stress tolerance, and social persona.",
-        "verdict": "Excellent" if gana_points >= 5.0 else ("Average" if gana_points >= 1.0 else "Critical"),
-        "status": "good" if gana_points >= 5.0 else "critical",
-        "details": (
-            "Compatible psychological constitution; harmonious emotional reactions, conflict resolution, and lifestyle pace."
-            if gana_points >= 5.0
-            else "Temperamental contrast (e.g. Divine/Human vs Fierce); remedied through conscious emotional empathy and space."
-        )
-    }
-
-    # 7. BHAKOOT KOOTA (Max 7 points)
-    rashi_diff = ((rashi2_idx - rashi1_idx + 12) % 12) + 1
-    alt_diff = 14 - rashi_diff
-    is_bhakoot_inauspicious = (
-        (rashi_diff in (2, 12) and alt_diff in (2, 12)) or
-        (rashi_diff in (6, 8) and alt_diff in (6, 8)) or
-        (rashi_diff in (5, 9) and alt_diff in (5, 9) and lord1 != lord2)
+    vashya_score = _vashya_score(
+        r1, r2, moon1["longitudeSidereal"], moon2["longitudeSidereal"]
     )
-    is_bhakoot_cancelled = is_bhakoot_inauspicious and (lord1 == lord2 or graha_points >= 4.0)
+    vashya_c1 = _vashya_class_from_longitude(moon1["longitudeSidereal"])
+    vashya_c2 = _vashya_class_from_longitude(moon2["longitudeSidereal"])
 
-    bhakoot_points = 7.0 if (not is_bhakoot_inauspicious or is_bhakoot_cancelled) else 0.0
+    tara_score, tara12, tara21 = _tara_points(nak1["index"], nak2["index"])
+    yoni_score = _yoni_score(nak1["yoni"], nak2["yoni"])
+    graha_score = _graha_maitri_score(lord1, lord2)
+    gana_score = _gana_score(nak1["gana"], nak2["gana"])
 
-    bhakoot_koota = {
-        "id": "bhakoot",
-        "name": "Bhakoot Koota",
-        "sanskritName": "भकूट कूट",
-        "maxPoints": 7.0,
-        "maxScore": 7.0,
-        "obtainedPoints": bhakoot_points,
-        "score": bhakoot_points,
-        "p1Value": f"{ZODIAC_SIGNS[rashi1_idx]['name']} ({rashi1_idx + 1})",
-        "p2Value": f"{ZODIAC_SIGNS[rashi2_idx]['name']} ({rashi2_idx + 1})",
-        "area": "Emotional Connection & Family Welfare",
-        "description": "Governs marital longevity, joint financial accumulation, emotional flow, and progeny prosperity.",
-        "verdict": "Excellent" if bhakoot_points == 7.0 else "Critical",
-        "status": "good" if bhakoot_points == 7.0 else "critical",
-        "details": (
-            (
-                "Bhakoot Dosha cancelled due to shared/friendly planetary lordship; auspicious family abundance."
-                if is_bhakoot_cancelled
-                else "Auspicious Rashi angular disposition; grants joy, family harmony, and sustained financial growth."
-            )
-            if bhakoot_points == 7.0
-            else f"Challenging {rashi_diff}/{alt_diff} Rashi disposition (Bhakoot Dosha); requires joint charitable offerings and Shiva-Parvati worship."
-        )
-    }
+    # IMPORTANT: with zero-based Rashi indexes, the traditional Bhakoot
+    # dosha relations are 2/12, 5/9 and 6/8. Their offsets are:
+    # {1, 11}, {4, 8}, {5, 7}.
+    d12 = (r2 - r1) % 12
+    bhakoot_relation = _bhakoot_relation(r1, r2)
+    bhakoot_dosha = d12 in {1, 4, 5, 7, 8, 11}
+    bhakoot_score = 0.0 if bhakoot_dosha else 7.0
 
-    # 8. NADI KOOTA (Max 8 points)
-    nadi1 = nak1["nadi"]
-    nadi2 = nak2["nadi"]
-    is_same_nadi = (nadi1 == nadi2)
-    is_nadi_cancelled = is_same_nadi and (nak1["index"] != nak2["index"] or rashi1_idx != rashi2_idx)
-
-    nadi_points = 8.0 if (not is_same_nadi or is_nadi_cancelled) else 0.0
-
-    nadi_koota = {
-        "id": "nadi",
-        "name": "Nadi Koota",
-        "sanskritName": "नाड़ी कूट",
-        "maxPoints": 8.0,
-        "maxScore": 8.0,
-        "obtainedPoints": nadi_points,
-        "score": nadi_points,
-        "p1Value": f"{nadi1} Nadi",
-        "p2Value": f"{nadi2} Nadi",
-        "area": "Genetic Compatibility & Progeny Energy",
-        "description": "Highest-weighted Koota; ensures genetic vitality, nervous-system resonance, and healthy progeny.",
-        "verdict": "Excellent" if nadi_points == 8.0 else "Critical",
-        "status": "good" if nadi_points == 8.0 else "critical",
-        "details": (
-            (
-                "Same Nadi cancelled through auspicious nakshatra/rashi variance; ensures genetic vigor and vitality."
-                if is_nadi_cancelled
-                else "Different Nadis (Vata/Pitta/Kapha balance); ideal bio-magnetic sync and strong hereditary longevity."
-            )
-            if nadi_points == 8.0
-            else f"Nadi Dosha detected ({nadi1} Nadi for both); recommended to perform Maha Mrityunjaya Japa & gold/cow charity."
-        )
-    }
+    same_nadi = nak1["nadi"] == nak2["nadi"]
+    nadi_score = 0.0 if same_nadi else 8.0
 
     kootas = [
-        varna_koota,
-        vashya_koota,
-        tara_koota,
-        yoni_koota,
-        graha_koota,
-        gana_koota,
-        bhakoot_koota,
-        nadi_koota,
+        _koota("varna", "Varna Koota", "वर्ण कूट", 1, varna_score,
+               v1["name"], v2["name"], "Traditional Varna compatibility"),
+        _koota("vashya", "Vashya Koota", "वश्य कूट", 2, vashya_score,
+               vashya_c1, vashya_c2, "Mutual influence and receptivity"),
+        _koota("tara", "Tara Koota", "तारा कूट", 3, tara_score,
+               f"Tara {tara12}", f"Tara {tara21}", "Birth-star compatibility"),
+        _koota("yoni", "Yoni Koota", "योनि कूट", 4, yoni_score,
+               nak1["yoni"], nak2["yoni"], "Instinctual/physical compatibility"),
+        _koota("graha_maitri", "Graha Maitri Koota", "ग्रह मैत्री कूट", 5, graha_score,
+               lord1, lord2, "Moon-sign lord compatibility"),
+        _koota("gana", "Gana Koota", "गण कूट", 6, gana_score,
+               nak1["gana"], nak2["gana"], "Temperament compatibility"),
+        _koota("bhakoot", "Bhakoot Koota", "भकूट कूट", 7, bhakoot_score,
+               ZODIAC_SIGNS[r1]["name"], ZODIAC_SIGNS[r2]["name"], "Rashi relationship"),
+        _koota("nadi", "Nadi Koota", "नाड़ी कूट", 8, nadi_score,
+               nak1["nadi"], nak2["nadi"], "Nadi compatibility"),
     ]
 
-    ashta_koota_dict = {
-        "varna": {"score": varna_points, "maxScore": 1.0, "obtainedPoints": varna_points, "maxPoints": 1.0},
-        "vashya": {"score": vashya_points, "maxScore": 2.0, "obtainedPoints": vashya_points, "maxPoints": 2.0},
-        "tara": {"score": tara_points, "maxScore": 3.0, "obtainedPoints": tara_points, "maxPoints": 3.0},
-        "yoni": {"score": yoni_points, "maxScore": 4.0, "obtainedPoints": yoni_points, "maxPoints": 4.0},
-        "grahaMaitri": {"score": graha_points, "maxScore": 5.0, "obtainedPoints": graha_points, "maxPoints": 5.0},
-        "gana": {"score": gana_points, "maxScore": 6.0, "obtainedPoints": gana_points, "maxPoints": 6.0},
-        "bhakoot": {"score": bhakoot_points, "maxScore": 7.0, "obtainedPoints": bhakoot_points, "maxPoints": 7.0},
-        "nadi": {"score": nadi_points, "maxScore": 8.0, "obtainedPoints": nadi_points, "maxPoints": 8.0},
-    }
-
-    total_score = sum(k["obtainedPoints"] for k in kootas)
+    total = round(sum(x["obtainedPoints"] for x in kootas), 2)
     max_score = 36.0
 
-    return kootas, ashta_koota_dict, total_score, max_score
+    ashta = {
+        "varna": {"score": varna_score, "maxScore": 1},
+        "vashya": {"score": vashya_score, "maxScore": 2,
+                   "class1": vashya_c1, "class2": vashya_c2},
+        "tara": {"score": tara_score, "maxScore": 3,
+                 "tara1": tara12, "tara2": tara21},
+        "yoni": {"score": yoni_score, "maxScore": 4,
+                 "yoni1": nak1["yoni"], "yoni2": nak2["yoni"]},
+        "grahaMaitri": {"score": graha_score, "maxScore": 5,
+                        "lord1": lord1, "lord2": lord2},
+        "gana": {"score": gana_score, "maxScore": 6},
+        "bhakoot": {
+            "score": bhakoot_score,
+            "maxScore": 7,
+            "dosha": bhakoot_dosha,
+            "relation": bhakoot_relation,
+            "offsetZeroBased": d12,
+            "cancellationApplied": False,
+            "note": "Cancellation rules vary by Jyotish tradition; raw score is retained conservatively.",
+        },
+        "nadi": {
+            "score": nadi_score,
+            "maxScore": 8,
+            "sameNadi": same_nadi,
+            "cancellationApplied": False,
+            "note": "Nadi cancellation rules vary by tradition; raw score is retained conservatively.",
+        },
+    }
+
+    return kootas, ashta, total, max_score
 
 
-# ============================================================
-# DYNAMIC MANGLIK (KUJA DOSHA) ANALYSIS
-# ============================================================
-
-def calculate_manglik_dosha(chart1: dict, chart2: dict) -> dict:
-    mars1 = chart1["planetsById"].get("mars") or chart1["planets"][2]
-    mars2 = chart2["planetsById"].get("mars") or chart2["planets"][2]
-
-    p1 = chart1["partner"]
-    p2 = chart2["partner"]
-
-    manglik_houses = (1, 2, 4, 7, 8, 12)
-    is_p1_manglik = mars1["house"] in manglik_houses
-    is_p2_manglik = mars2["house"] in manglik_houses
-
-    p1_severity = "None"
-    if is_p1_manglik:
-        p1_severity = "High (Purna Manglik)" if mars1["house"] in (7, 8) else "Moderate"
-
-    p2_severity = "None"
-    if is_p2_manglik:
-        p2_severity = "High (Purna Manglik)" if mars2["house"] in (7, 8) else "Moderate"
-
-    p1_cancelled = is_p1_manglik and mars1["signName"] in ("Aries", "Scorpio", "Capricorn")
-    p2_cancelled = is_p2_manglik and mars2["signName"] in ("Aries", "Scorpio", "Capricorn")
-
-    is_neutralized = (is_p1_manglik and is_p2_manglik) or (not is_p1_manglik and not is_p2_manglik)
-
-    if is_neutralized:
-        if is_p1_manglik and is_p2_manglik:
-            manglik_status = "Both Manglik (Neutralized)"
-            verdict_text = "Both Partners Manglik (Perfect Mutual Neutralization)"
-            explanation = "Kuja Dosha intensity is completely neutralized between both horoscopes, ensuring marital peace and vitality."
-        else:
-            manglik_status = "Both Non-Manglik"
-            verdict_text = "Neither Partner Manglik (Clean Planetary Axis)"
-            explanation = "Clean astrological axis with no Kuja Dosha constraints in either horoscope."
-    elif is_p1_manglik:
-        manglik_status = f"{p1['name']} Manglik"
-        verdict_text = f"One Partner Manglik ({p1['name']})"
-        explanation = f"{p1['name']} has active Kuja Dosha (Mars in house {mars1['house']}). Performing Kumbh Vivah or Hanuman Chalisa remedies ensures full protection."
-    else:
-        manglik_status = f"{p2['name']} Manglik"
-        verdict_text = f"One Partner Manglik ({p2['name']})"
-        explanation = f"{p2['name']} has active Kuja Dosha (Mars in house {mars2['house']}). Performing Kumbh Vivah or Hanuman Chalisa remedies ensures full protection."
-
+def _koota(kid, name, sanskrit, max_points, score, p1, p2, area):
     return {
-        "partner1": {
-            "name": p1["name"],
-            "isManglik": is_p1_manglik,
-            "severity": p1_severity,
-            "marsHouse": mars1["house"],
-            "cancellation": "Cancelled by Mars Own/Exalted Sign" if p1_cancelled else ("Active" if is_p1_manglik else "No Dosha")
-        },
-        "partner2": {
-            "name": p2["name"],
-            "isManglik": is_p2_manglik,
-            "severity": p2_severity,
-            "marsHouse": mars2["house"],
-            "cancellation": "Cancelled by Mars Own/Exalted Sign" if p2_cancelled else ("Active" if is_p2_manglik else "No Dosha")
-        },
-        "status": manglik_status,
-        "verdict": verdict_text,
-        "isNeutralized": is_neutralized,
-        "explanation": explanation
+        "id": kid,
+        "name": name,
+        "sanskritName": sanskrit,
+        "maxPoints": float(max_points),
+        "maxScore": float(max_points),
+        "obtainedPoints": float(score),
+        "score": float(score),
+        "p1Value": p1,
+        "p2Value": p2,
+        "area": area,
+        "verdict": (
+            "Excellent" if score == max_points
+            else "Good" if score >= max_points * 0.5
+            else "Challenging"
+        ),
     }
 
 
 # ============================================================
-# COMPREHENSIVE KUNDLI MILAN CALCULATION
+# MANGLIK / KUJA DOSHA
+# ============================================================
+
+def _mars_manglik_from_house(house: int) -> bool:
+    return house in {1, 2, 4, 7, 8, 12}
+
+
+def _manglik_reference(chart: dict, reference: str) -> dict:
+    """Evaluate Mars from Lagna, Moon or Venus when requested."""
+    ref = reference.lower()
+    if ref == "lagna":
+        house = chart["planetsById"]["mars"]["house"]
+    elif ref in {"moon", "venus"}:
+        ref_sign = chart["planetsById"][ref]["signIndex"]
+        mars_sign = chart["planetsById"]["mars"]["signIndex"]
+        house = ((mars_sign - ref_sign) % 12) + 1
+    else:
+        raise ValueError("Manglik reference must be Lagna, Moon or Venus")
+    return {"reference": reference, "house": house, "isManglik": _mars_manglik_from_house(house)}
+
+
+def calculate_manglik_dosha(chart1: dict, chart2: dict) -> dict:
+    """
+    Report the common Mars-house criterion from Lagna and also the optional
+    Moon/Venus reference checks. This does NOT silently apply every regional
+    cancellation rule because those rules differ across Jyotish traditions.
+    """
+    checks = {}
+    for key, chart in (("partner1", chart1), ("partner2", chart2)):
+        refs = {r: _manglik_reference(chart, r) for r in ("Lagna", "Moon", "Venus")}
+        checks[key] = {
+            "name": chart["partner"]["name"],
+            "marsSign": chart["planetsById"]["mars"]["signName"],
+            "marsHouseFromLagna": chart["planetsById"]["mars"]["house"],
+            "fromLagna": refs["Lagna"],
+            "fromMoon": refs["Moon"],
+            "fromVenus": refs["Venus"],
+        }
+
+    m1 = checks["partner1"]["fromLagna"]["isManglik"]
+    m2 = checks["partner2"]["fromLagna"]["isManglik"]
+    both_lagna_manglik = m1 and m2
+
+    return {
+        "partner1": checks["partner1"],
+        "partner2": checks["partner2"],
+        "isNeutralized": both_lagna_manglik,
+        "bothManglikFromLagna": both_lagna_manglik,
+        "status": (
+            "Both Manglik from Lagna" if both_lagna_manglik
+            else "Both Non-Manglik from Lagna" if not m1 and not m2
+            else "One Partner Manglik from Lagna"
+        ),
+        "method": "Mars in houses 1,2,4,7,8,12; evaluated from Lagna, Moon and Venus",
+        "cancellation": {
+            "automaticallyApplied": False,
+            "note": "Full Kuja Dosha cancellation depends on the selected Jyotish tradition and additional chart factors.",
+        },
+    }
+
+
+# ============================================================
+# COMPLETE MILAN
 # ============================================================
 
 def calculate_kundli_milan(partner1: dict, partner2: dict) -> dict:
-    """
-    Computes complete, authentic Ashta Koota Kundli Milan match report
-    dynamically for two partners.
-    """
+    err1 = validate_partner(partner1, "partner1")
+    if err1:
+        raise ValueError(err1)
+    err2 = validate_partner(partner2, "partner2")
+    if err2:
+        raise ValueError(err2)
+
     p1 = _normalize_partner(partner1)
     p2 = _normalize_partner(partner2)
 
     chart1 = generate_kundli(p1)
     chart2 = generate_kundli(p2)
 
-    num1 = calculate_numerology(p1["name"], p1["dob"])
-    num2 = calculate_numerology(p2["name"], p2["dob"])
+    kootas, ashta, total_score, max_score = calculate_ashta_koota(chart1, chart2)
+    manglik = calculate_manglik_dosha(chart1, chart2)
 
-    kootas, ashta_koota_dict, total_score, max_score = calculate_ashta_koota(chart1, chart2)
-    manglik_analysis = calculate_manglik_dosha(chart1, chart2)
+    percentage = round(total_score / max_score * 100.0, 2)
 
-    percentage = round((total_score / max_score) * 100, 2)
-
-    # Verdict Evaluation
     if total_score >= 28:
-        verdict_title = "Uttam Milan • Highly Auspicious Match"
-        verdict_color = "#C9A050"
-        summary = f"Exceptional compatibility with {total_score:g}/36 Gunas ({percentage}%). This sacred union promises profound emotional resonance, marital bliss, financial prosperity, and mutual spiritual evolution."
-    elif total_score >= 21:
-        verdict_title = "Madhyam Shubh • Very Good Match"
-        verdict_color = "#7EBC89"
-        summary = f"Strong compatibility with {total_score:g}/36 Gunas ({percentage}%). The couple possesses high harmony across major life domains. Minor remedial recommendations ensure enduring companionship."
+        verdict = "Excellent"
+    elif total_score >= 24:
+        verdict = "Very Good"
     elif total_score >= 18:
-        verdict_title = "Samanya • Average Match (Recommended with Remedies)"
-        verdict_color = "#E6A15C"
-        summary = f"Acceptable compatibility with {total_score:g}/36 Gunas ({percentage}%). Crosses the classical 18-point threshold. Practicing suggested astrological remedies harmonizes specific difference areas."
+        verdict = "Acceptable / Moderate"
     else:
-        verdict_title = "Alpa Milan • Challenging Match (Strict Remedies Needed)"
-        verdict_color = "#E06C75"
-        summary = f"Compatibility score is {total_score:g}/36 Gunas ({percentage}%). While individual karmic bonds can overcome astrological scores, dedicated remedial pujas and mature communication are essential."
+        verdict = "Challenging"
 
-    # Moon sign indices
-    moon1 = chart1["planetsById"].get("moon") or chart1["planets"][1]
-    moon2 = chart2["planetsById"].get("moon") or chart2["planets"][1]
-    r1_idx = moon1["signIndex"]
-    r2_idx = moon2["signIndex"]
+    moon1 = chart1["planetsById"]["moon"]
+    moon2 = chart2["planetsById"]["moon"]
 
-    # Elemental balance
-    elem1 = ZODIAC_SIGNS[r1_idx]["element"]
-    elem2 = ZODIAC_SIGNS[r2_idx]["element"]
-    if elem1 == elem2:
-        elem_score = 95
-        elem_synergy = f"Twin {elem1} Connection (Deep Instinctual Kinship)"
-    elif (elem1 == "Fire" and elem2 == "Air") or (elem1 == "Air" and elem2 == "Fire"):
-        elem_score = 92
-        elem_synergy = "Fire & Air (Inspirational, Creative & Expansive)"
-    elif (elem1 == "Earth" and elem2 == "Water") or (elem1 == "Water" and elem2 == "Earth"):
-        elem_score = 90
-        elem_synergy = "Earth & Water (Grounded, Fertile & Emotionally Rich)"
-    else:
-        elem_score = 70
-        elem_synergy = f"{elem1} & {elem2} Balance (Dynamic Growth Through Diversity)"
-
-    elemental_balance = {
-        "partner1Element": elem1,
-        "partner2Element": elem2,
-        "synergy": elem_synergy,
-        "score": elem_score
-    }
-
-    # Western Synastry Aspects
-    sun1 = chart1["planetsById"].get("sun") or chart1["planets"][0]
-    sun2 = chart2["planetsById"].get("sun") or chart2["planets"][0]
-    venus1 = chart1["planetsById"].get("venus") or chart1["planets"][5]
-    venus2 = chart2["planetsById"].get("venus") or chart2["planets"][5]
-    mars2 = chart2["planetsById"].get("mars") or chart2["planets"][2]
-
-    synastry = [
-        {
-            "title": "Sun-Moon Core Synergy",
-            "planets": f"{sun1['signName']} Sun ⚹ {moon2['signName']} Moon",
-            "harmonyScore": min(98, int(70 + ashta_koota_dict['grahaMaitri']['score'] * 5)),
-            "verdict": "Deep Soul Understanding",
-            "description": "Ego consciousness aligns effortlessly with emotional vulnerability, creating a nurturing safe harbor."
-        },
-        {
-            "title": "Venus-Mars Romantic Magnetism",
-            "planets": f"{venus1['signName']} Venus ☌ {mars2['signName']} Mars",
-            "harmonyScore": min(95, int(65 + ashta_koota_dict['yoni']['score'] * 7)),
-            "verdict": "Passionate Vitality",
-            "description": "Sensory appreciation and passionate devotion stimulate ongoing romantic sparks and mutual affection."
-        },
-        {
-            "title": "Mercury-Jupiter Intellectual Growth",
-            "planets": "Mercury ⚹ Jupiter Cross-Trine",
-            "harmonyScore": 88,
-            "verdict": "Philosophical Alignment",
-            "description": "Enriches conversations, shared business acumen, collaborative investments, and travel aspirations."
-        }
-    ]
-
-    # Numerology Milan
-    mulank_diff = abs(num1["mulank"] - num2["mulank"])
-    if num1["mulank"] == num2["mulank"]:
-        num_score = 95
-    elif mulank_diff in (1, 3, 5):
-        num_score = 90
-    elif mulank_diff in (2, 4):
-        num_score = 75
-    else:
-        num_score = 80
-
-    numerology_milan = {
-        "partner1Mulank": num1["mulank"],
-        "partner2Mulank": num2["mulank"],
-        "partner1Bhagyank": num1["bhagyank"],
-        "partner2Bhagyank": num2["bhagyank"],
-        "harmonyScore": num_score,
-        "description": f"Mulank {num1['mulank']} ({num1['mulankPlanet'].split('(')[0].strip()}) and Mulank {num2['mulank']} ({num2['mulankPlanet'].split('(')[0].strip()}) share an intuitive numerical frequency for cooperative success."
-    }
-
-    # Personalized Dynamic Vedic Remedies
-    remedies = []
-    p1_name = p1["name"]
-    p2_name = p2["name"]
-    r1_name = ZODIAC_SIGNS[r1_idx]["name"]
-    r2_name = ZODIAC_SIGNS[r2_idx]["name"]
-    lord1 = ZODIAC_SIGNS[r1_idx]["lord"]
-    lord2 = ZODIAC_SIGNS[r2_idx]["lord"]
-
-    if not manglik_analysis["isNeutralized"] and (manglik_analysis["partner1"]["isManglik"] or manglik_analysis["partner2"]["isManglik"]):
-        m_names = [p1_name if manglik_analysis["partner1"]["isManglik"] else "", p2_name if manglik_analysis["partner2"]["isManglik"] else ""]
-        m_names_str = " and ".join(filter(None, m_names))
-        remedies.append(f"Kuja Shanti Upaya: {m_names_str} should recite Hanuman Chalisa on Tuesdays, light a sesame/mustard oil lamp, and donate red lentils or copper to pacify Mars intensity.")
-
-    if ashta_koota_dict["nadi"]["score"] == 0 and not ashta_koota_dict["nadi"].get("isCancelled", False):
-        remedies.append(f"Nadi Dosha Nivaran: As both {p1_name} and {p2_name} share the same Nadi, perform Maha Mrityunjaya Japa (108 chants) and donate warm clothing, grain, or a token to a deserving priest on auspicious constellation days.")
-
-    if ashta_koota_dict["bhakoot"]["score"] == 0 and not ashta_koota_dict["bhakoot"].get("isCancelled", False):
-        remedies.append(f"Bhakoot Shanti: To balance the {r1_name} ↔ {r2_name} rashi disposition, recite Vishnu Sahasranama together every Thursday and offer yellow flowers to Lord Brihaspati.")
-
-    if ashta_koota_dict["grahaMaitri"]["score"] < 3:
-        remedies.append(f"Graha Maitri Harmony: Rashi rulers {lord1} ({p1_name}) & {lord2} ({p2_name}) benefit from joint Archana at Shiva-Parvati or Radha-Krishna temples on Shukla Paksha Mondays.")
-
-    remedies.append(f"Shukra & Preeti Mantra: {p1_name} & {p2_name} should chant 'Om Shum Shukraya Namaha' (21 times) every Friday to invoke enduring romantic sweetness and Venusian grace.")
-    remedies.append("Ishanya Vastu Remedy: Place energized Rose Quartz crystals or a sacred silver coin in the Northeast (Ishanya) corner of your home to attract marital tranquility and financial growth.")
-    remedies.append("Deep Daan: Light a pure cow ghee lamp facing East during sunset on Thursdays to foster family tranquility and sustained fortune.")
-
-    nak1_name = moon1.get("nakshatra", "Nakshatra")
-    nak2_name = moon2.get("nakshatra", "Nakshatra")
-    muhurat_advice = f"Personalized Vivaha Muhurat for {p1_name} ({nak1_name}, {r1_name}) & {p2_name} ({nak2_name}, {r2_name}): Ideal wedding & auspicious partnership dates occur during Shukla Paksha under Rohini, Mrigashira, Magha, Uttara Phalguni, Hasta, Swati, Anuradha, or Revati Nakshatras during Venus (Shukra) or Jupiter (Guru) Hora, avoiding Rikta Tithis (4th, 9th, 14th) and Rahu Kaal."
-
-    # Detailed report object
     report = {
         "partner1": p1,
         "partner2": p2,
@@ -971,119 +1023,152 @@ def calculate_kundli_milan(partner1: dict, partner2: dict) -> dict:
                 "dob": p1["dob"],
                 "time": p1["time"],
                 "place": p1["place"],
-                "rashi": ZODIAC_SIGNS[r1_idx]["name"],
-                "nakshatra": moon1["nakshatra"]
+                "rashi": moon1["signName"],
+                "nakshatra": moon1["nakshatra"],
+                "nakshatraPada": moon1["pada"],
             },
             "partner2": {
                 "name": p2["name"],
                 "dob": p2["dob"],
                 "time": p2["time"],
                 "place": p2["place"],
-                "rashi": ZODIAC_SIGNS[r2_idx]["name"],
-                "nakshatra": moon2["nakshatra"]
-            }
+                "rashi": moon2["signName"],
+                "nakshatra": moon2["nakshatra"],
+                "nakshatraPada": moon2["pada"],
+            },
         },
-        "calculatedAt": datetime.utcnow().isoformat(),
+        "calculatedAt": datetime.now(timezone.utc).isoformat(),
+        "calculationEngine": "Swiss Ephemeris",
+        "ayanamsha": "Lahiri",
+        "zodiac": "Sidereal",
         "totalScore": total_score,
         "totalPoints": total_score,
         "maxScore": max_score,
         "maxPoints": max_score,
         "percentage": percentage,
-        "verdictTitle": verdict_title,
-        "verdictColor": verdict_color,
+        "verdictTitle": f"{verdict} Match",
         "summary": {
             "totalScore": total_score,
             "maxScore": max_score,
             "percentage": percentage,
-            "verdictTitle": verdict_title,
-            "description": summary
+            "verdictTitle": f"{verdict} Match",
+            "description": (
+                f"Ashta Koota score is {total_score:g}/{max_score:g} "
+                f"({percentage}%). This score is based on traditional "
+                f"Moon Nakshatra/Rashi matching."
+            ),
+        },
+        "charts": {
+            "partner1": chart1,
+            "partner2": chart2,
         },
         "kootas": kootas,
-        "ashtaKoota": ashta_koota_dict,
-        "manglik": manglik_analysis,
-        "synastry": synastry,
-        "numerologyMilan": numerology_milan,
-        "elementalBalance": elemental_balance,
-        "remedies": remedies,
-        "auspiciousMuhuratAdvice": muhurat_advice
+        "ashtaKoota": ashta,
+        "manglik": manglik,
+        "numerologyMilan": {
+            "note": "Optional/non-Ashta-Koota system",
+            "partner1": calculate_numerology(p1["name"], p1["dob"]),
+            "partner2": calculate_numerology(p2["name"], p2["dob"]),
+        },
+        "methodNotes": [
+            "Planetary longitudes are calculated from Swiss Ephemeris.",
+            "Sidereal zodiac uses Lahiri ayanamsha.",
+            "Birth time is converted from the supplied IANA timezone to UTC using the IANA tz database.",
+            "Default house system is Whole Sign; Placidus can be selected explicitly with houseSystem='P'.",
+            "Rahu defaults to True Node; Mean Node can be selected with nodeType='mean'.",
+            "Ashta Koota uses Moon Rashi and Nakshatra.",
+            "Manglik reports Mars from Lagna, Moon and Venus without silently applying tradition-specific cancellation rules.",
+            "Nadi/Bhakoot cancellation is intentionally conservative; a complete traditional cancellation analysis is separate.",
+            "Western synastry is not mixed into the 36-Guna score.",
+        ],
     }
 
     return {
         "totalScore": total_score,
         "maxScore": max_score,
-        "manglikStatus": manglik_analysis["status"],
-        "report": report
+        "manglikStatus": manglik["status"],
+        "report": report,
     }
 
 
 # ============================================================
-# DATABASE HELPERS & ROW SERIALIZATION
+# DATABASE SERIALIZATION
 # ============================================================
 
 def _row_to_summary(row: dict) -> dict:
     return {
         "id": row["id"],
         "partner1Name": row["partner1_name"],
-        "partner1BirthDate": row["partner1_birth_date"].isoformat() if hasattr(row["partner1_birth_date"], "isoformat") else str(row["partner1_birth_date"]),
+        "partner1BirthDate": row["partner1_birth_date"].isoformat()
+        if hasattr(row["partner1_birth_date"], "isoformat")
+        else str(row["partner1_birth_date"]),
         "partner2Name": row["partner2_name"],
-        "partner2BirthDate": row["partner2_birth_date"].isoformat() if hasattr(row["partner2_birth_date"], "isoformat") else str(row["partner2_birth_date"]),
+        "partner2BirthDate": row["partner2_birth_date"].isoformat()
+        if hasattr(row["partner2_birth_date"], "isoformat")
+        else str(row["partner2_birth_date"]),
         "totalScore": float(row["total_score"]),
         "maxScore": float(row["max_score"]),
         "manglikStatus": row.get("manglik_status"),
-        "createdAt": row["created_at"].isoformat() if hasattr(row.get("created_at"), "isoformat") else row.get("created_at"),
+        "createdAt": row["created_at"].isoformat()
+        if hasattr(row.get("created_at"), "isoformat")
+        else row.get("created_at"),
     }
 
 
 def _row_to_full(row: dict) -> dict:
-    summary = _row_to_summary(row)
+    result = _row_to_summary(row)
     report_json = row.get("report_json")
     if isinstance(report_json, str):
         try:
             report_json = json.loads(report_json)
         except Exception:
             pass
-    summary["report"] = report_json
-    return summary
+    result["report"] = report_json
+    return result
 
 
 # ============================================================
 # CONTROLLER ENDPOINTS
 # ============================================================
+
 def create_match_report(user_id: str):
-    """
-    Creates and persists a Kundli Milan match report.
-    Accepts:
-    1) Dynamic partner inputs (Nested):
-       { "partner1": {...}, "partner2": {...} }
-    2) Dynamic partner inputs (Flat):
-       { "partner1Name": "...", "partner1BirthDate": "...", "partner1BirthTime": "...", "partner1BirthPlace": "...", ... }
-    """
     body = request.get_json(silent=True)
     if not isinstance(body, dict):
         return _error("Request body must be valid JSON", "INVALID_JSON")
 
     partner1 = body.get("partner1")
     partner2 = body.get("partner2")
-    report = body.get("report")
+    supplied_report = body.get("report")
 
-    # Construct partner objects from flat keys if nested objects aren't provided
     if not partner1:
         partner1 = {
             "name": body.get("partner1Name"),
             "dob": body.get("partner1BirthDate"),
-            "time": body.get("partner1BirthTime") or "12:00:00",
-            "place": body.get("partner1BirthPlace") or body.get("partner1Place") or "New Delhi, India",
+            "time": body.get("partner1BirthTime"),
+            "place": body.get("partner1BirthPlace") or body.get("partner1Place"),
+            "houseSystem": body.get("partner1HouseSystem", "W"),
+            "nodeType": body.get("partner1NodeType", "true"),
         }
+
     if not partner2:
         partner2 = {
             "name": body.get("partner2Name"),
             "dob": body.get("partner2BirthDate"),
-            "time": body.get("partner2BirthTime") or "12:00:00",
-            "place": body.get("partner2BirthPlace") or body.get("partner2Place") or "New Delhi, India",
+            "time": body.get("partner2BirthTime"),
+            "place": body.get("partner2BirthPlace") or body.get("partner2Place"),
+            "houseSystem": body.get("partner2HouseSystem", "W"),
+            "nodeType": body.get("partner2NodeType", "true"),
         }
 
-    # If "report" is not sent, we FORCE dynamic computation (Mode 1)
-    if not report:
+    # Resolve coordinates/timezone automatically from the human-readable birthplace.
+    try:
+        partner1 = prepare_partner(partner1)
+        partner2 = prepare_partner(partner2)
+    except Exception as exc:
+        return _error(str(exc), "BIRTH_PLACE_RESOLUTION_ERROR")
+
+    # Always calculate on the backend when dynamic inputs are supplied.
+    if not supplied_report:
         err1 = validate_partner(partner1, "partner1")
         if err1:
             return _error(err1, "VALIDATION_ERROR")
@@ -1093,60 +1178,45 @@ def create_match_report(user_id: str):
             return _error(err2, "VALIDATION_ERROR")
 
         try:
-            # Backend-এ ডায়নামিক কুন্ডলী মিলনের সমস্ত লজিক কল করা হচ্ছে
-            calc_result = calculate_kundli_milan(partner1, partner2)
+            result = calculate_kundli_milan(partner1, partner2)
         except Exception as exc:
             return _error(f"Failed to calculate Kundli Milan: {exc}", "CALCULATION_ERROR", 500)
 
-        total_score = float(calc_result["totalScore"])
-        max_score = float(calc_result["maxScore"])
-        manglik_status = calc_result["manglikStatus"]
-        report = calc_result["report"]
+        report = result["report"]
+        total_score = float(result["totalScore"])
+        max_score = float(result["maxScore"])
+        manglik_status = result["manglikStatus"]
 
-        p1_norm = _normalize_partner(partner1)
-        p2_norm = _normalize_partner(partner2)
-        p1_name = p1_norm["name"]
-        p1_dob = p1_norm["dob"]
-        p2_name = p2_norm["name"]
-        p2_dob = p2_norm["dob"]
+        p1 = _normalize_partner(partner1)
+        p2 = _normalize_partner(partner2)
 
-    # Mode 2: Precomputed payload from frontend (if report was already provided)
+        p1_name, p1_dob = p1["name"], p1["dob"]
+        p2_name, p2_dob = p2["name"], p2["dob"]
+
     else:
+        # Kept only for backward compatibility with old frontend payloads.
+        # For astronomical integrity, dynamic calculation is recommended.
+        report = supplied_report
         p1_name = body.get("partner1Name") or partner1.get("name")
         p1_dob = body.get("partner1BirthDate") or partner1.get("dob")
         p2_name = body.get("partner2Name") or partner2.get("name")
         p2_dob = body.get("partner2BirthDate") or partner2.get("dob")
-        total_score_val = body.get("totalScore")
-
-        required_missing = [
-            field for field, val in [
-                ("partner1Name", p1_name),
-                ("partner1BirthDate", p1_dob),
-                ("partner2Name", p2_name),
-                ("partner2BirthDate", p2_dob),
-                ("totalScore", total_score_val),
-            ] if not val
-        ]
-        if required_missing or not isinstance(report, dict):
-            return _error(f"Missing required field(s): {', '.join(required_missing) or 'report'}", "VALIDATION_ERROR")
 
         try:
-            total_score = float(total_score_val)
-            max_score = float(body.get("maxScore", 36.0))
-        except (TypeError, ValueError):
-            return _error("totalScore and maxScore must be numeric", "VALIDATION_ERROR")
+            total_score = float(body["totalScore"])
+            max_score = float(body.get("maxScore", 36))
+        except (KeyError, TypeError, ValueError):
+            return _error("totalScore/maxScore must be numeric", "VALIDATION_ERROR")
 
-        manglik_status = body.get("manglikStatus") or "Non-Manglik"
+        manglik_status = body.get("manglikStatus", "Unknown")
 
-    # MySQL ডেটাবেসে রিপোর্ট সেভ করার লজিক
     report_id = str(uuid.uuid4())
     report_json_str = json.dumps(report, ensure_ascii=False)
 
     try:
         rows = call_procedure(
-            "sp_matchmaking_ops",
+            "sp_create_match_report",
             [
-                "create",
                 report_id,
                 user_id,
                 p1_name,
@@ -1156,8 +1226,8 @@ def create_match_report(user_id: str):
                 total_score,
                 max_score,
                 manglik_status,
-                report_json_str
-            ]
+                report_json_str,
+            ],
         )
     except Exception as exc:
         return _error(f"Database error while saving report: {exc}", "DATABASE_ERROR", 500)
@@ -1167,343 +1237,345 @@ def create_match_report(user_id: str):
 
     return jsonify({
         "status": "success",
-        "message": "Kundli Milan report generated and saved successfully",
-        "data": _row_to_full(rows[0])
+        "message": "Astronomical Kundli Milan report generated and saved successfully",
+        "data": _row_to_full(rows[0]),
     }), 201
 
+
 def list_match_reports(user_id: str):
-    """Lists saved matchmaking reports for the current user."""
     try:
-        rows = call_procedure("sp_matchmaking_ops", ['get_all', '', user_id, '', '2000-01-01', '', '2000-01-01', 0, 0, '', '[]'])
+        rows = call_procedure("sp_get_match_reports", [user_id])
         return jsonify({
             "status": "success",
-            "data": [_row_to_summary(r) for r in rows]
+            "data": [_row_to_summary(r) for r in rows],
         })
     except Exception as exc:
         return _error(f"Database error while fetching reports: {exc}", "DATABASE_ERROR", 500)
 
 
 def get_match_report(user_id: str, report_id: str):
-    """Retrieves full matchmaking report details by ID."""
     try:
-        rows = call_procedure("sp_matchmaking_ops", ['get_one', report_id, user_id, '', '2000-01-01', '', '2000-01-01', 0, 0, '', '[]'])
+        rows = call_procedure("sp_get_match_report", [report_id, user_id])
         if not rows:
             return _error("Match report not found", "NOT_FOUND", 404)
 
         return jsonify({
             "status": "success",
-            "data": _row_to_full(rows[0])
+            "data": _row_to_full(rows[0]),
         })
     except Exception as exc:
         return _error(f"Database error while fetching report: {exc}", "DATABASE_ERROR", 500)
 
 
 def download_match_report_pdf(user_id: str, report_id: str):
-    """Generates and downloads PDF Kundli Milan match report."""
     try:
-        rows = call_procedure("sp_matchmaking_ops", ['get_one', report_id, user_id, '', '2000-01-01', '', '2000-01-01', 0, 0, '', '[]'])
+        rows = call_procedure("sp_get_match_report", [report_id, user_id])
         if not rows:
             return _error("Match report not found", "NOT_FOUND", 404)
 
         row = dict(rows[0])
         report_json = row.get("report_json")
+
         if isinstance(report_json, str):
-            try:
-                report_json = json.loads(report_json)
-            except Exception:
-                pass
+            report_json = json.loads(report_json)
+
         row["report_json"] = report_json
-
         pdf_bytes = generate_match_report_pdf(row)
+
         filename = f"jyotishveda-kundli-milan-{report_id[:8]}.pdf"
+
         return Response(
             pdf_bytes,
             mimetype="application/pdf",
-            headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+            headers={
+                "Content-Disposition": f'attachment; filename="{filename}"'
+            },
         )
     except Exception as exc:
         return _error(f"Error generating PDF: {exc}", "PDF_ERROR", 500)
 
 
-def generate_direct_pdf():
-    """Generates a PDF from the posted matchmaking data directly and streams it back."""
-    try:
-        body = request.get_json() or {}
-        p1_name = body.get("partner1_name") or body.get("partner1Name", "Partner 1")
-        p2_name = body.get("partner2_name") or body.get("partner2Name", "Partner 2")
-        p1_dob = body.get("partner1_birth_date") or body.get("partner1BirthDate", "")
-        p2_dob = body.get("partner2_birth_date") or body.get("partner2BirthDate", "")
-        total_score = body.get("total_score") or body.get("totalScore", 0)
-        max_score = body.get("max_score") or body.get("maxScore", 36)
-        manglik_status = body.get("manglik_status") or body.get("manglikStatus", "Non-Manglik")
-        report_json = body.get("report_json") or body.get("reportJson") or body.get("report", {})
+# ============================================================
+# AI SYNTHESIS
+# ============================================================
 
-        report_payload = {
-            "partner1_name": p1_name,
-            "partner1_birth_date": p1_dob,
-            "partner2_name": p2_name,
-            "partner2_birth_date": p2_dob,
-            "total_score": total_score,
-            "max_score": max_score,
-            "manglik_status": manglik_status,
-            "report_json": report_json,
-        }
+# def generate_ai_synthesis(user_id: str):
+#     body = request.get_json(silent=True) or {}
 
-        pdf_bytes = generate_match_report_pdf(report_payload)
-        clean_p1 = str(p1_name).strip().replace(" ", "_")
-        clean_p2 = str(p2_name).strip().replace(" ", "_")
-        filename = f"Kundli_Milan_{clean_p1}_and_{clean_p2}.pdf"
+  
 
-        return Response(
-            pdf_bytes,
-            mimetype="application/pdf",
-            headers={"Content-Disposition": f'attachment; filename="{filename}"'}
-        )
-    except Exception as exc:
-        return _error(f"Error generating PDF: {exc}", "PDF_ERROR", 500)
+#     data = body.get("data", {})
+#     report = data.get("report", {})
 
+#     partner1 = report.get("partner1", {})
+#     partner2 = report.get("partner2", {})
+#     ashtaKoota = report.get("ashtaKoota", {})
 
-def _generate_fallback_synthesis(partner1: dict, partner2: dict, match_result: dict) -> dict:
-    p1_name = partner1.get("fullName") or partner1.get("name") or "Partner 1"
-    p2_name = partner2.get("fullName") or partner2.get("name") or "Partner 2"
-    score = match_result.get("totalPoints", 26)
-    max_score = match_result.get("maxPoints", 36)
-    percentage = match_result.get("percentage", 72)
-    verdict = match_result.get("verdictTitle", "Auspicious Match (Uttam Milan)")
+#     # ---------------------------------------------------------
+#     # Partner names
+#     # ---------------------------------------------------------
 
-    manglik = match_result.get("manglik", {})
-    is_neutralized = manglik.get("isNeutralized", True)
-    is_p1_manglik = manglik.get("partner1", {}).get("isManglik", False)
-    is_p2_manglik = manglik.get("partner2", {}).get("isManglik", False)
-    p1_mars_house = manglik.get("partner1", {}).get("marsHouse", "")
-    p2_mars_house = manglik.get("partner2", {}).get("marsHouse", "")
+#     p1_name = (
+#         partner1.get("fullName")
+#         or partner1.get("name")
+#         or data.get("partner1Name")
+#         or "Partner 1"
+#     )
 
-    nadi = match_result.get("nadiDosha", {})
-    nadi_has_dosha = nadi.get("hasDosha", False)
-    nadi_is_cancelled = nadi.get("isCancelled", False)
-    nadi_reason = nadi.get("reason") or "Bio-magnetic energy frequencies balance Vata, Pitta, and Kapha doshas."
+#     p2_name = (
+#         partner2.get("fullName")
+#         or partner2.get("name")
+#         or data.get("partner2Name")
+#         or "Partner 2"
+#     )
 
-    bhakoot = match_result.get("bhakootDosha", {})
-    bhakoot_has_dosha = bhakoot.get("hasDosha", False)
-    bhakoot_reason = bhakoot.get("reason") or "Rashi placement dynamics support mutual affection, longevity, and family welfare."
+#     # ---------------------------------------------------------
+#     # Total Ashta Koota score
+#     # ---------------------------------------------------------
 
-    kootas = match_result.get("kootas", [])
-    yoni_koota = next((k for k in kootas if k.get("id") == "yoni"), {})
-    graha_koota = next((k for k in kootas if k.get("id") == "graha_maitri"), {})
-    gana_koota = next((k for k in kootas if k.get("id") == "gana"), {})
-    tara_koota = next((k for k in kootas if k.get("id") == "tara"), {})
+#     score = ashtaKoota.get(
+#         "totalPoints",
+#         ashtaKoota.get(
+#             "totalScore",
+#             report.get("totalScore", "Unknown")
+#         )
+#     )
 
-    # 1. Overall Compatibility - Clean, non-repetitive, elegant synthesis
-    if score >= 28:
-        overall_core = f"The celestial synastry between {p1_name} and {p2_name} yields an exceptional Ashta Koota compatibility score of {score}/{max_score} Gunas ({percentage}%), classified as {verdict}. This sacred union indicates profound spiritual harmony, enduring emotional bonding, and great shared prosperity."
-    elif score >= 21:
-        overall_core = f"The astrological synastry between {p1_name} and {p2_name} yields a very favorable Ashta Koota score of {score}/{max_score} Gunas ({percentage}%), classified as {verdict}. The couple exhibits strong psychological and elemental accord across major life domains."
-    elif score >= 18:
-        overall_core = f"The astrological synastry between {p1_name} and {p2_name} scores {score}/{max_score} Gunas ({percentage}%), classified as {verdict}. Crossing the classical 18-point threshold, this relationship establishes a viable foundation supported by understanding and shared values."
-    else:
-        overall_core = f"The astrological synastry between {p1_name} and {p2_name} reflects a challenging score of {score}/{max_score} Gunas ({percentage}%), classified as {verdict}. Dedicating time to mutual understanding, patience, and remedial pujas will be essential to harmonize key differences."
+#     # ---------------------------------------------------------
+#     # System prompt
+#     # ---------------------------------------------------------
 
-    if not is_neutralized:
-        active_m = p1_name if is_p1_manglik else p2_name
-        house_str = f" in house {p1_mars_house if is_p1_manglik else p2_mars_house}" if (p1_mars_house or p2_mars_house) else ""
-        overall_core += f" Because {active_m} has active Kuja Dosha{house_str}, traditional pacification upayas (such as Kumbh Vivah or Mangal Shanti) are advised before proceeding to ensure marital longevity."
-    elif is_p1_manglik and is_p2_manglik:
-        overall_core += " Both partners carry Manglik alignment, creating a natural mutual cancellation and balanced dynamic energy."
+#     system_prompt = """
+# You are an AI assistant for a Vedic astrology application.
 
-    # 2. Guna Milan
-    guna_text = f"With {score} out of {max_score} Gunas matched ({percentage}%), the celestial matrix confirms {'excellent' if score >= 28 else 'substantial' if score >= 21 else 'moderate'} harmony across biological, psychological, and spiritual dimensions."
+# Use ONLY the astrology data supplied in the request.
+# Do not invent planetary positions, Nakshatra, Rashi, Dosha or scores.
+# Explain that Ashta Koota is a traditional Jyotish matching framework,
+# not a scientific guarantee of relationship outcome.
 
-    # 3. Psychological Affinity
-    graha_pts = graha_koota.get("obtainedPoints", 3)
-    if graha_pts >= 4:
-        psych_text = f"{p1_name} and {p2_name} enjoy natural mental rapport and intellectual alignment, allowing transparent communication and effortless mutual respect."
-    else:
-        psych_text = f"{p1_name} and {p2_name} bring complementary worldviews to the partnership, thriving when both practice active listening and collaborative problem-solving."
+# Return ONLY valid JSON. No Markdown.
+# Required keys:
+# overall_compatibility,
+# guna_milan,
+# psychological_affinity,
+# emotional_resonance,
+# karmic_bond,
+# physical_harmonization,
+# manglik_dosha,
+# nadi_analysis,
+# bhakoot_analysis,
+# family_and_married_life,
+# wealth_and_prosperity,
+# major_strengths,
+# major_challenges,
+# conflict_resolution,
+# vedic_remedies,
+# final_assessment
+# """
 
-    # 4. Emotional Resonance
-    if not bhakoot_has_dosha or bhakoot.get("isCancelled"):
-        emot_text = f"A harmonious Moon-Rashi alignment allows {p1_name} and {p2_name} to empathize deeply with each other's emotional rhythms and de-escalate tension with warmth."
-    else:
-        emot_text = f"{p1_name} and {p2_name} possess distinct emotional processing styles, which mature into deep intimacy through intentional daily affection and patience."
+#     prompt = f"""
+# PARTNER 1:
+# {json.dumps(partner1, ensure_ascii=False, indent=2)}
 
-    # 5. Karmic Bond
-    tara_pts = tara_koota.get("obtainedPoints", 1.5)
-    if tara_pts >= 2.5:
-        karmic_text = f"This alliance between {p1_name} and {p2_name} reflects auspicious karmic merit (Purva Punya), bestowing instinctive loyalty and protective life timing."
-    else:
-        karmic_text = f"The connection between {p1_name} and {p2_name} serves as a sacred vehicle for personal evolution, strengthening commitment through shared responsibilities."
+# PARTNER 2:
+# {json.dumps(partner2, ensure_ascii=False, indent=2)}
 
-    # 6. Physical Harmonization
-    yoni_pts = yoni_koota.get("obtainedPoints", 2)
-    yoni_p1 = yoni_koota.get("p1Value", "Yoni 1")
-    yoni_p2 = yoni_koota.get("p2Value", "Yoni 2")
-    if yoni_pts >= 3:
-        phys_text = f"The biological Yoni matrix ({yoni_p1} & {yoni_p2}) indicates instinctual warmth, comforting physical closeness, and natural mutual affection."
-    else:
-        phys_text = f"The instinctual Yoni pairing ({yoni_p1} & {yoni_p2}) flourishes through conscious tenderness, gentle physical reassurance, and mutual appreciation."
+# KUNDLI MILAN:
+# {json.dumps(ashtaKoota, ensure_ascii=False, indent=2)}
 
-    # 7. Manglik Dosha
-    if is_neutralized:
-        if is_p1_manglik and is_p2_manglik:
-            mang_text = f"Both {p1_name} and {p2_name} are Manglik, resulting in complete mutual neutralization of Kuja Dosha with balanced marital vitality."
-        else:
-            mang_text = f"Neither partner carries adverse Kuja Dosha, ensuring a peaceful and unhindered marital axis."
-    else:
-        active_m = p1_name if is_p1_manglik else p2_name
-        mang_text = f"{active_m} has active Manglik Dosha. Performing Hanuman Chalisa chanting, Mangal Gayatri, or Kumbh Vivah provides powerful spiritual pacification."
+# TOTAL ASHTA KOOTA SCORE: {score}/36
 
-    # 8. Nadi Analysis
-    if not nadi_has_dosha or nadi_is_cancelled:
-        nadi_text = f"{nadi_reason}. Pranic vitality and genetic energies flow smoothly, supporting vitality, mental calmness, and healthy progeny."
-    else:
-        nadi_text = f"{nadi_reason}. Recommended to perform Maha Mrityunjaya Japa and donate gold or clothes to harmonize genetic prana."
+# Provide a cautious Vedic-Jyotish-oriented synthesis for
+# {p1_name} and {p2_name}. Do not add astrology facts that are absent.
+# """
 
-    # 9. Bhakoot Analysis
-    if not bhakoot_has_dosha:
-        bhak_text = f"{bhakoot_reason}. The planetary angular disposition between Moon signs fosters enduring mutual affection and family welfare."
-    else:
-        bhak_text = f"{bhakoot_reason}. Regular joint prayers to Lord Shiva and Maa Parvati foster domestic tranquility and emotional bonding."
+#     try:
+#         synthesis = get_ai_response(
+#             system_prompt,
+#             [{"role": "user", "content": prompt}],
+#         )
 
-    # 10. Family & Married Life
-    gana_pts = gana_koota.get("obtainedPoints", 3)
-    if gana_pts >= 5:
-        fam_text = f"The union between {p1_name} and {p2_name} is blessed with strong domestic harmony, shared moral values, and respectful collaboration between both families."
-    else:
-        fam_text = f"The marriage between {p1_name} and {p2_name} flourishes as both partners cultivate healthy family boundaries and honor each other's lifestyle traditions."
+#         synthesis = synthesis.strip()
+#         if synthesis.startswith("```"):
+#             synthesis = re.sub(r"^```(?:json)?\s*", "", synthesis)
+#             synthesis = re.sub(r"\s*```$", "", synthesis)
 
-    # 11. Wealth & Prosperity
-    if score >= 21:
-        wealth_text = f"Planetary 2nd, 7th, and 11th house synergy suggests joint financial accumulation, steady property gains, and progressive career advancement following marriage."
-    else:
-        wealth_text = f"Financial success for {p1_name} and {p2_name} will grow steadily through prudent joint budgeting, shared goals, and collaborative investments."
+#         data = json.loads(synthesis)
 
-    # 12. Major Strengths
-    strengths = [
-        f"Harmonious mental rapport and mutual respect between {p1_name} and {p2_name}",
-        "Balanced life outlook with genuine dedication to long-term companionship"
-    ]
-    if score >= 21:
-        strengths.append(f"Favorable Ashta Koota score of {score}/36 supporting domestic happiness")
-    if is_neutralized:
-        strengths.append("Clean or mutually neutralized Manglik axis ensuring peaceful companionship")
-    if not nadi_has_dosha or nadi_is_cancelled:
-        strengths.append("Auspicious Nadi bio-energy alignment supporting health and vitality")
+#         return jsonify({
+#             "success": True,
+#             "synthesis": data,
+#         })
+#     except Exception as exc:
+#         return _error(f"LLM Error: {exc}", "LLM_FAILED", 500)
 
-    # 13. Major Challenges
-    challenges = []
-    if not is_neutralized:
-        challenges.append("Managing Mars energy disparities during moments of hasty decision-making")
-    if bhakoot_has_dosha:
-        challenges.append("Navigating different emotional pacing and domestic expectation cycles")
-    if nadi_has_dosha and not nadi_is_cancelled:
-        challenges.append("Attending to mutual health vitality and energetic wellness routines")
-    if len(challenges) < 2:
-        challenges.append("Balancing individual career ambitions with shared household time")
-        challenges.append("Maintaining open communication during busy professional cycles")
-
-    # 14. Conflict Resolution
-    resolutions = [
-        "Practice daily transparent dialogue before finalizing major lifestyle or financial choices",
-        "Set aside device-free quality time each week for emotional connection and relaxation"
-    ]
-    if not is_neutralized or bhakoot_has_dosha:
-        resolutions.append("Pause and de-escalate discussions during tense moments, revisiting topics with calm perspective")
-
-    # 15. Vedic Remedies
-    remedies = [
-        "Perform joint archana to Lord Shiva and Goddess Parvati on Shukla Paksha Mondays",
-        "Recite the sacred mantra 'Om Lakshmi-Narayanaya Namaha' together 21 times on Fridays"
-    ]
-    if not is_neutralized:
-        remedies.append("Chant Hanuman Chalisa on Tuesdays and offer red flowers or jaggery in charity")
-    elif nadi_has_dosha:
-        remedies.append("Recite Maha Mrityunjaya Mantra together for health protection and bio-pranic harmony")
-
-    # 16. Final Assessment
-    final_assess = f"A promising Vedic Kundli Milan for {p1_name} and {p2_name}. By honoring mutual individuality, maintaining open dialogue, and following suggested Vedic upayas, both partners will experience a deeply fulfilling, prosperous, and enduring marriage."
-
-    return {
-        "overall_compatibility": overall_core,
-        "guna_milan": guna_text,
-        "psychological_affinity": psych_text,
-        "emotional_resonance": emot_text,
-        "karmic_bond": karmic_text,
-        "physical_harmonization": phys_text,
-        "manglik_dosha": mang_text,
-        "nadi_analysis": nadi_text,
-        "bhakoot_analysis": bhak_text,
-        "family_and_married_life": fam_text,
-        "wealth_and_prosperity": wealth_text,
-        "major_strengths": strengths[:4],
-        "major_challenges": challenges[:3],
-        "conflict_resolution": resolutions[:3],
-        "vedic_remedies": remedies[:3],
-        "final_assessment": final_assess,
-    }
-
-
-_SYNTHESIS_CACHE = {}
 
 
 def generate_ai_synthesis(user_id: str):
     body = request.get_json(silent=True) or {}
 
-    partner1 = body.get("partner1", {})
-    partner2 = body.get("partner2", {})
-    match_result = body.get("matchResult", {})
+    data = body.get("data", {})
+    report = data.get("report", {})
 
-    p1_name = partner1.get("fullName") or partner1.get("name") or "Partner 1"
-    p2_name = partner2.get("fullName") or partner2.get("name") or "Partner 2"
-    p1_dob = partner1.get("birthDate") or partner1.get("dob") or ""
-    p2_dob = partner2.get("birthDate") or partner2.get("dob") or ""
-    score = match_result.get("totalPoints", "Unknown")
-    verdict = match_result.get("verdictTitle", "Match Result")
-    manglik_info = match_result.get("manglik", {})
-    nadi_info = match_result.get("nadiDosha", {})
-    bhakoot_info = match_result.get("bhakootDosha", {})
+    partner1 = report.get("partner1", {})
+    partner2 = report.get("partner2", {})
+    ashtaKoota = report.get("ashtaKoota", {})
 
-    force = bool(body.get("force", False))
-    cache_key = f"{p1_name}_{p1_dob}_{p2_name}_{p2_dob}_{score}"
-    if not force and cache_key in _SYNTHESIS_CACHE:
-        return jsonify({
-            "status": "success",
-            "success": True,
-            "synthesis": _SYNTHESIS_CACHE[cache_key]
-        })
+    # ---------------------------------------------------------
+    # Partner names
+    # ---------------------------------------------------------
 
-    system_prompt = """You are the AI Daivajna Vedic Astrologer. Provide concise, high-speed Deep Relationship Synthesis JSON for Kundli Milan.
-Return ONLY valid JSON. Do not wrap in markdown.
-JSON format:
-{
-    "overall_compatibility": "1-2 crisp analytical sentences",
-    "guna_milan": "1-2 sentences on Guna score",
-    "psychological_affinity": "1 sentence on mental rapport",
-    "emotional_resonance": "1 sentence on empathy",
-    "karmic_bond": "1 sentence on soul connection",
-    "physical_harmonization": "1 sentence on physical harmony",
-    "manglik_dosha": "1 sentence on Manglik status",
-    "nadi_analysis": "1 sentence on Nadi health",
-    "bhakoot_analysis": "1 sentence on Bhakoot rhythm",
-    "family_and_married_life": "1 sentence on family bliss",
-    "wealth_and_prosperity": "1 sentence on prosperity",
-    "major_strengths": ["Strength 1", "Strength 2", "Strength 3"],
-    "major_challenges": ["Challenge 1", "Challenge 2"],
-    "conflict_resolution": ["Resolution 1", "Resolution 2"],
-    "vedic_remedies": ["Remedy 1", "Remedy 2"],
-    "final_assessment": "1-2 blessing sentences"
-}"""
+    p1_name = (
+        partner1.get("fullName")
+        or partner1.get("name")
+        or data.get("partner1Name")
+        or "Partner 1"
+    )
 
-    prompt = f"""Vedic Kundli Milan Analysis for:
-- Partner 1: {p1_name} (DOB: {p1_dob})
-- Partner 2: {p2_name} (DOB: {p2_dob})
-- Score: {score}/36 ({verdict})
-- Manglik: {manglik_info.get('verdict', 'Evaluated')}
-- Nadi: {nadi_info.get('reason', 'Nadi Balanced')}
-- Bhakoot: {bhakoot_info.get('reason', 'Bhakoot Harmony')}
+    p2_name = (
+        partner2.get("fullName")
+        or partner2.get("name")
+        or data.get("partner2Name")
+        or "Partner 2"
+    )
 
-Output valid JSON now."""
+    # ---------------------------------------------------------
+    # Total Ashta Koota score
+    # ---------------------------------------------------------
+
+    score = ashtaKoota.get("totalPoints")
+
+    if score is None:
+        score = ashtaKoota.get("totalScore")
+
+    if score is None:
+        score = report.get("totalScore")
+
+    if score is None:
+        score = data.get("totalScore", "Unknown")
+
+    # ---------------------------------------------------------
+    # Manglik Status
+    #
+    # IMPORTANT:
+    # Manglik status directly comes from data.manglikStatus
+    # ---------------------------------------------------------
+
+    manglik_status = data.get("manglikStatus", "")
+
+    # ---------------------------------------------------------
+    # Check whether Manglik is present
+    # ---------------------------------------------------------
+
+    manglik_present = (
+        "manglik" in str(manglik_status).lower()
+    )
+
+    # ---------------------------------------------------------
+    # System Prompt
+    # ---------------------------------------------------------
+
+    system_prompt = """
+You are an AI assistant for a Vedic astrology application.
+
+IMPORTANT RULES:
+
+1. Use ONLY the astrology data supplied in the request.
+
+2. Do NOT invent planetary positions, Nakshatra, Rashi,
+   Dosha, Ashta Koota scores or Manglik information.
+
+3. The Ashta Koota and Manglik calculations have already
+   been performed by the astrology calculation engine.
+
+4. DO NOT recalculate Manglik Dosha.
+
+5. Use the supplied Manglik status exactly as provided.
+
+6. Do not invent Manglik cancellation or neutralization rules.
+
+7. Ashta Koota is a traditional Jyotish matching framework,
+   not a scientifically proven guarantee of relationship outcome.
+
+8. If information is missing, clearly say that it is unavailable.
+
+9. Return ONLY valid JSON.
+
+10. Do NOT return Markdown or ```json code fences.
+
+Required keys:
+
+overall_compatibility,
+guna_milan,
+psychological_affinity,
+emotional_resonance,
+karmic_bond,
+physical_harmonization,
+manglik_dosha,
+nadi_analysis,
+bhakoot_analysis,
+family_and_married_life,
+wealth_and_prosperity,
+major_strengths,
+major_challenges,
+conflict_resolution,
+vedic_remedies,
+final_assessment
+"""
+
+    # ---------------------------------------------------------
+    # User Prompt
+    # ---------------------------------------------------------
+
+    prompt = f"""
+PARTNER 1:
+{json.dumps(partner1, ensure_ascii=False, indent=2)}
+
+PARTNER 2:
+{json.dumps(partner2, ensure_ascii=False, indent=2)}
+
+ASHTA KOOTA:
+{json.dumps(ashtaKoota, ensure_ascii=False, indent=2)}
+
+TOTAL ASHTA KOOTA SCORE:
+{score}/36
+
+MANGALIK STATUS:
+{manglik_status}
+
+MANGALIK DOSHA PRESENT:
+{manglik_present}
+
+PARTNER 1 NAME:
+{p1_name}
+
+PARTNER 2 NAME:
+{p2_name}
+
+Provide a cautious Vedic-Jyotish-oriented synthesis for
+{p1_name} and {p2_name}.
+
+Use ONLY the supplied astrology data.
+
+DO NOT recalculate Manglik Dosha.
+
+DO NOT recalculate or modify the Ashta Koota score.
+
+Use the supplied Manglik status exactly as provided.
+
+If Manglik status indicates that one or both partners are
+Manglik, describe the Manglik condition accordingly.
+
+If Manglik status indicates that there is no Manglik Dosha,
+do not claim that Manglik Dosha exists.
+"""
 
     try:
+
+        # -----------------------------------------------------
+        # Generate Main AI Synthesis
+        # -----------------------------------------------------
+
         synthesis = get_ai_response(
             system_prompt,
             [
@@ -1512,41 +1584,213 @@ Output valid JSON now."""
                     "content": prompt
                 }
             ],
-            timeout=18,
-            max_tokens=650
         )
 
-        # LLM যদি ```json পাঠায়, সেটা remove করবে
         synthesis = synthesis.strip()
 
+        # -----------------------------------------------------
+        # Remove Markdown code fence
+        # -----------------------------------------------------
+
         if synthesis.startswith("```"):
+
             synthesis = re.sub(
                 r"^```(?:json)?\s*",
                 "",
                 synthesis
             )
+
             synthesis = re.sub(
                 r"\s*```$",
                 "",
                 synthesis
             )
 
-        # String → JSON object
-        synthesis_json = json.loads(synthesis)
-        _SYNTHESIS_CACHE[cache_key] = synthesis_json
+        # -----------------------------------------------------
+        # Parse AI JSON
+        # -----------------------------------------------------
+
+        synthesis_data = json.loads(synthesis)
+
+        # -----------------------------------------------------
+        # Force actual Manglik status into final response
+        # -----------------------------------------------------
+
+        synthesis_data["manglik_dosha"] = {
+            "present": manglik_present,
+            "status": manglik_status
+        }
+
+        # -----------------------------------------------------
+        # MANGALIK REMEDIES
+        #
+        # If Manglik status exists:
+        # AI will generate minimum 3 remedies.
+        # -----------------------------------------------------
+
+        if manglik_present:
+
+            manglik_remedies = (
+                generate_manglik_remedies_with_ai(
+                    manglik_status
+                )
+            )
+
+            if not isinstance(manglik_remedies, list):
+                raise RuntimeError(
+                    "Manglik remedies must be a list"
+                )
+
+            if len(manglik_remedies) < 3:
+                raise RuntimeError(
+                    "AI returned fewer than 3 Manglik remedies"
+                )
+
+            synthesis_data["vedic_remedies"] = (
+                manglik_remedies
+            )
+
+        else:
+
+            synthesis_data["vedic_remedies"] = []
+
+        # -----------------------------------------------------
+        # Final Response
+        # -----------------------------------------------------
 
         return jsonify({
-            "status": "success",
             "success": True,
-            "synthesis": synthesis_json
+            "synthesis": synthesis_data
         })
 
-    except Exception as e:
-        print(f"LLM Error or timeout during synthesis: {e}. Generating fallback synthesis.")
-        fallback = _generate_fallback_synthesis(partner1, partner2, match_result)
-        _SYNTHESIS_CACHE[cache_key] = fallback
-        return jsonify({
-            "status": "success",
-            "success": True,
-            "synthesis": fallback
-        })
+    except json.JSONDecodeError as exc:
+
+        return _error(
+            f"AI returned invalid JSON: {exc}",
+            "INVALID_AI_JSON",
+            500
+        )
+
+    except RuntimeError as exc:
+
+        return _error(
+            str(exc),
+            "MANGALIK_REMEDY_FAILED",
+            500
+        )
+
+    except Exception as exc:
+
+        return _error(
+            f"LLM Error: {exc}",
+            "LLM_FAILED",
+            500
+        )
+
+
+def generate_manglik_remedies_with_ai(manglik_status: str) -> list:
+
+    prompt = f"""
+You are a traditional Vedic Jyotish assistant.
+
+The astrology calculation engine has already calculated
+the Manglik status.
+
+Manglik Status:
+{manglik_status}
+
+DO NOT calculate Manglik Dosha again.
+
+Generate AT LEAST 3 DISTINCT traditional Vedic Jyotish
+remedies for this Manglik condition.
+
+Rules:
+
+1. Remedies must be generated dynamically by AI.
+2. Minimum 3 remedies are required.
+3. Remedies must be related to Manglik / Kuja Dosha.
+4. Do not invent planetary positions.
+5. Do not invent cancellation rules.
+6. Do not claim that a remedy guarantees removal or
+   cancellation of Manglik Dosha.
+7. Keep remedies traditional and practical.
+8. Return ONLY valid JSON.
+
+Required format:
+
+{{
+    "remedies": [
+        "Remedy 1",
+        "Remedy 2",
+        "Remedy 3"
+    ]
+}}
+"""
+
+    response = get_ai_response(
+        """
+You are a Vedic Jyotish remedy assistant.
+
+Generate Manglik remedies dynamically from the
+supplied Manglik status.
+
+Return ONLY valid JSON.
+""",
+        [
+            {
+                "role": "user",
+                "content": prompt
+            }
+        ]
+    )
+
+    response = response.strip()
+
+    # ---------------------------------------------------------
+    # Remove Markdown code fence
+    # ---------------------------------------------------------
+
+    if response.startswith("```"):
+
+        response = re.sub(
+            r"^```(?:json)?\s*",
+            "",
+            response
+        )
+
+        response = re.sub(
+            r"\s*```$",
+            "",
+            response
+        )
+
+    # ---------------------------------------------------------
+    # Parse JSON
+    # ---------------------------------------------------------
+
+    result = json.loads(response)
+
+    remedies = result.get("remedies", [])
+
+    if not isinstance(remedies, list):
+        raise RuntimeError(
+            "AI remedies must be a list"
+        )
+
+    remedies = [
+        remedy.strip()
+        for remedy in remedies
+        if isinstance(remedy, str)
+        and remedy.strip()
+    ]
+
+    # ---------------------------------------------------------
+    # Minimum 3 remedies
+    # ---------------------------------------------------------
+
+    if len(remedies) < 3:
+        raise RuntimeError(
+            "AI returned fewer than 3 Manglik remedies"
+        )
+
+    return remedies
