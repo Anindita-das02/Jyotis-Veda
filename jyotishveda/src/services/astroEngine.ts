@@ -669,9 +669,48 @@ export function calculateVedicChart(profile?: UserProfile, ephemerisData?: any):
       }
     } : undefined,
     aspects: ephemerisData?.aspects || [],
-    gemstones: ephemerisData?.gemstones || [],
+    gemstones: (ephemerisData?.gemstones && ephemerisData.gemstones.length > 0)
+      ? ephemerisData.gemstones
+      : getLagnaGemstones(lagnaSignIndex),
     kpSystem: ephemerisData?.kpSystem
   };
+}
+
+export function getLagnaGemstones(lagnaSignIndex: number) {
+  const safeIdx = (lagnaSignIndex >= 0 && lagnaSignIndex < 12) ? lagnaSignIndex : 0;
+  const lord1 = ZODIAC_SIGNS[safeIdx]?.lord || 'Jupiter';
+  const lord5 = ZODIAC_SIGNS[(safeIdx + 4) % 12]?.lord || 'Moon';
+  const lord9 = ZODIAC_SIGNS[(safeIdx + 8) % 12]?.lord || 'Mars';
+
+  const PLANET_GEMS: Record<string, string> = {
+    Sun: 'Ruby (Manikya)',
+    Moon: 'Pearl (Moti)',
+    Mars: 'Red Coral (Moonga)',
+    Mercury: 'Emerald (Panna)',
+    Jupiter: 'Yellow Sapphire (Pukhraj)',
+    Venus: 'Diamond (Heera) / White Opal',
+    Saturn: 'Blue Sapphire (Neelam)',
+    Rahu: 'Hessonite (Gomed)',
+    Ketu: "Cat's Eye (Lehsunia)",
+  };
+
+  return [
+    {
+      gem: PLANET_GEMS[lord1] || 'Yellow Sapphire (Pukhraj)',
+      planet: lord1.toUpperCase(),
+      purpose: 'Life Force & Health (Lagna Lord)',
+    },
+    {
+      gem: PLANET_GEMS[lord5] || 'Pearl (Moti)',
+      planet: lord5.toUpperCase(),
+      purpose: 'Intelligence & Luck (5th Lord)',
+    },
+    {
+      gem: PLANET_GEMS[lord9] || 'Red Coral (Moonga)',
+      planet: lord9.toUpperCase(),
+      purpose: 'Fortune & Dharma (9th Lord)',
+    },
+  ];
 }
 
 // Calculate Indian & Vedic Numerology Report

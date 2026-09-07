@@ -211,6 +211,12 @@ samp {
   background-color: #DFD9CC !important;
 }
 
+.light .bg-\[\#2A2A2E\]\/50,
+.light .bg-\[\#2A2A2E\]\/60,
+.light .bg-\[\#2A2A2E\]\/80 {
+  background-color: rgba(223, 217, 204, 0.6) !important;
+}
+
 .light .hover\:bg-\[\#1A1A1E\]:hover,
 .light .hover\:bg-\[\#1C1C22\]:hover,
 .light .hover\:bg-\[\#1E1E24\]:hover,

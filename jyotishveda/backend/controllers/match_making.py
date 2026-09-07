@@ -1332,8 +1332,9 @@ def generate_ai_synthesis(user_id: str):
     nadi_info = match_result.get("nadiDosha", {})
     bhakoot_info = match_result.get("bhakootDosha", {})
 
+    force = bool(body.get("force", False))
     cache_key = f"{p1_name}_{p1_dob}_{p2_name}_{p2_dob}_{score}"
-    if cache_key in _SYNTHESIS_CACHE:
+    if not force and cache_key in _SYNTHESIS_CACHE:
         return jsonify({
             "status": "success",
             "success": True,

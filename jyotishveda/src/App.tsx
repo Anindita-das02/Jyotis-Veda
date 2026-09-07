@@ -663,6 +663,7 @@ export function App() {
                 chartData={chartData}
                 numerology={numerology}
                 language={language}
+                theme={theme}
               />
             )}
 

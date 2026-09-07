@@ -96,6 +96,7 @@ interface HoroscopeTraditionsViewProps {
 
   numerology: NumerologyReport;
   language?: string;
+  theme?: 'light' | 'dark';
 }
 
 export const HoroscopeTraditionsView: React.FC<
@@ -107,7 +108,9 @@ export const HoroscopeTraditionsView: React.FC<
   chartData,
   numerology,
   language = 'en',
+  theme = 'light',
 }) => {
+  const isDark = theme === 'dark';
   const [chartStyle, setChartStyle] =
     useState<ChartStyle>('north_indian');
 
@@ -766,7 +769,7 @@ export const HoroscopeTraditionsView: React.FC<
       {/* HEADER */}
 
       <div className="bg-[#141418] border border-[#2A2A2E] rounded-xl p-6 text-[#E5E1D8] shadow-xl">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-5 border-b border-[#2A2A2E]">
+        <div className="pb-5 border-b border-[#2A2A2E]">
           <div>
             <div className="flex items-center space-x-2 text-xs font-sans font-semibold tracking-widest text-[#C9A050] uppercase mb-1">
               <Compass className="w-4 h-4" />
@@ -795,53 +798,6 @@ export const HoroscopeTraditionsView: React.FC<
               across Parashari, Jaimini, Lal Kitab, KP
               System, and Bhrigu Nadi methodologies.
             </p>
-          </div>
-
-          {/* CHART STYLE */}
-
-          <div className="flex items-center space-x-1.5 bg-[#1A1A1E] p-1 rounded-xl border border-[#2A2A2E] self-start md:self-auto">
-            <span className="text-[11px] text-[#9E9A90] px-2 font-medium">
-              Chart Style:
-            </span>
-
-            <button
-              onClick={() =>
-                setChartStyle('north_indian')
-              }
-              className={`px-3 py-1.5 rounded-lg text-xs font-sans font-semibold transition cursor-pointer ${
-                chartStyle === 'north_indian'
-                  ? 'bg-[#C9A050] text-[#0D0D0F] shadow'
-                  : 'text-[#9E9A90] hover:text-white'
-              }`}
-            >
-              North Indian
-            </button>
-
-            <button
-              onClick={() =>
-                setChartStyle('south_indian')
-              }
-              className={`px-3 py-1.5 rounded-lg text-xs font-sans font-semibold transition cursor-pointer ${
-                chartStyle === 'south_indian'
-                  ? 'bg-[#C9A050] text-[#0D0D0F] shadow'
-                  : 'text-[#9E9A90] hover:text-white'
-              }`}
-            >
-              South Indian
-            </button>
-
-            <button
-              onClick={() =>
-                setChartStyle('east_indian')
-              }
-              className={`px-3 py-1.5 rounded-lg text-xs font-sans font-semibold transition cursor-pointer ${
-                chartStyle === 'east_indian'
-                  ? 'bg-[#C9A050] text-[#0D0D0F] shadow'
-                  : 'text-[#9E9A90] hover:text-white'
-              }`}
-            >
-              East Indian
-            </button>
           </div>
         </div>
 
@@ -900,19 +856,69 @@ export const HoroscopeTraditionsView: React.FC<
         {/* LEFT COLUMN */}
         <div className="md:col-span-5 space-y-6">
           <div className="bg-[#141418] border border-[#2A2A2E] rounded-xl p-5 text-[#E5E1D8] shadow-xl flex flex-col items-center">
-            <div className="w-full flex items-center justify-between pb-3 mb-3 border-b border-[#2A2A2E] text-xs">
-              <span className="font-serif font-semibold text-[#C9A050] flex items-center space-x-1.5">
-                <Layers className="w-4 h-4" />
+            <div className="w-full pb-3 mb-3 border-b border-[#2A2A2E] space-y-2.5">
+              <div className="flex items-center justify-between text-xs">
+                <span className="font-serif font-semibold text-[#C9A050] flex items-center space-x-1.5">
+                  <Layers className="w-4 h-4" />
 
-                <span>
-                  Click any House to inspect
+                  <span>
+                    Click any House to inspect
+                  </span>
                 </span>
-              </span>
 
-              <span className="text-[#9E9A90]">
-                Lagna: {chartData.ascendant.signName} (
-                {chartData.ascendant.degree}°)
-              </span>
+                <span className="text-[#9E9A90]">
+                  Lagna: {chartData.ascendant.signName} (
+                  {chartData.ascendant.degree}°)
+                </span>
+              </div>
+
+              {/* CHART STYLE */}
+              <div className="flex items-center justify-between bg-[#1A1A1E] p-1 rounded-xl border border-[#2A2A2E]">
+                <span className="text-[11px] text-[#9E9A90] px-2 font-medium">
+                  Chart Style:
+                </span>
+
+                <div className="flex items-center space-x-1">
+                  <button
+                    onClick={() =>
+                      setChartStyle('north_indian')
+                    }
+                    className={`px-3 py-1.5 rounded-lg text-xs font-sans font-semibold transition cursor-pointer ${
+                      chartStyle === 'north_indian'
+                        ? 'bg-[#C9A050] text-[#0D0D0F] shadow'
+                        : 'text-[#9E9A90] hover:text-white'
+                    }`}
+                  >
+                    North Indian
+                  </button>
+
+                  <button
+                    onClick={() =>
+                      setChartStyle('south_indian')
+                    }
+                    className={`px-3 py-1.5 rounded-lg text-xs font-sans font-semibold transition cursor-pointer ${
+                      chartStyle === 'south_indian'
+                        ? 'bg-[#C9A050] text-[#0D0D0F] shadow'
+                        : 'text-[#9E9A90] hover:text-white'
+                    }`}
+                  >
+                    South Indian
+                  </button>
+
+                  <button
+                    onClick={() =>
+                      setChartStyle('east_indian')
+                    }
+                    className={`px-3 py-1.5 rounded-lg text-xs font-sans font-semibold transition cursor-pointer ${
+                      chartStyle === 'east_indian'
+                        ? 'bg-[#C9A050] text-[#0D0D0F] shadow'
+                        : 'text-[#9E9A90] hover:text-white'
+                    }`}
+                  >
+                    East Indian
+                  </button>
+                </div>
+              </div>
             </div>
 
             {chartStyle === 'north_indian' &&
@@ -1119,33 +1125,10 @@ export const HoroscopeTraditionsView: React.FC<
                 </div>
                 <div className="space-y-2">
                   {chartData.aspects.map((asp, idx) => (
-                    <div key={idx} className="p-2 bg-[#1A1A1E] rounded-lg border border-[#2A2A2E] flex items-center justify-between">
-                      <span className="text-[11px] text-[#E5E1D8] font-semibold uppercase">{asp.aspectingPlanet}</span>
-                      <span className="text-[9px] text-[#9E9A90] bg-[#2A2A2E]/50 px-2 rounded-full">{asp.aspectType}</span>
-                      <span className="text-[11px] text-[#C9A050] font-semibold uppercase">{asp.aspectedPlanet}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* GEMSTONES */}
-            {chartData.gemstones && chartData.gemstones.length > 0 && (
-              <div className="bg-[#141418] border border-[#2A2A2E] rounded-xl p-5 text-[#E5E1D8] shadow-xl space-y-3">
-                <div className="flex items-center space-x-2 text-[#C9A050] font-serif font-bold text-xs pb-2 border-b border-[#2A2A2E]">
-                  <Layers className="w-4 h-4" />
-                  <span>
-                    Favorable Gemstones (Lagna Based)
-                  </span>
-                </div>
-                <div className="space-y-2">
-                  {chartData.gemstones.map((g, idx) => (
-                    <div key={idx} className="p-3 bg-[#1A1A1E] rounded-lg border border-[#2A2A2E] flex flex-col">
-                      <div className="flex justify-between items-center mb-1">
-                        <span className="text-[12px] font-bold text-[#F0ECE1]">{g.gem}</span>
-                        <span className="text-[10px] text-[#C9A050] uppercase tracking-wide">{g.planet}</span>
-                      </div>
-                      <span className="text-[10px] text-[#9E9A90]">{g.purpose}</span>
+                    <div key={idx} className="p-2.5 bg-[#1A1A1E] rounded-lg border border-[#2A2A2E] grid grid-cols-3 items-center">
+                      <span className="text-[11px] text-[#E5E1D8] font-semibold uppercase text-left truncate">{asp.aspectingPlanet}</span>
+                      <span className="text-[9.5px] font-semibold text-[#C9A050] bg-[#C9A050]/15 border border-[#C9A050]/30 px-2.5 py-0.5 rounded-full justify-self-center text-center whitespace-nowrap">{asp.aspectType}</span>
+                      <span className="text-[11px] text-[#C9A050] font-semibold uppercase text-right truncate">{asp.aspectedPlanet}</span>
                     </div>
                   ))}
                 </div>
@@ -1348,6 +1331,63 @@ export const HoroscopeTraditionsView: React.FC<
               ))}
             </div>
           </div>
+
+          {/* GEMSTONES (Favorable Gemstones placed in right column to balance layout) */}
+          {chartData.gemstones && chartData.gemstones.length > 0 && (
+            <div className={`${
+              isDark
+                ? 'bg-[#141418] border-[#2A2A2E] text-[#E5E1D8]'
+                : 'bg-[#FFFDF7] border-[#DECFA6] text-[#1E1B15]'
+            } border rounded-2xl p-6 shadow-md space-y-4`}>
+              <div className={`flex items-center justify-between pb-3 border-b ${
+                isDark ? 'border-[#2A2A2E]' : 'border-[#DECFA6]/60'
+              }`}>
+                <div className="flex items-center space-x-2">
+                  <Layers className="w-5 h-5 text-[#C9A050]" />
+                  <h3 className={`text-sm sm:text-base font-serif font-bold ${
+                    isDark ? 'text-[#F0ECE1]' : 'text-[#8C6D23]'
+                  }`}>
+                    Favorable Gemstones (Lagna Based)
+                  </h3>
+                </div>
+                <span className={`text-[10px] px-2.5 py-0.5 rounded-full font-mono font-semibold ${
+                  isDark ? 'bg-[#C9A050]/15 text-[#C9A050] border border-[#C9A050]/30' : 'bg-[#FAF4E4] text-[#8C6D23] border border-[#DFC896]'
+                }`}>
+                  Trikona Vedic Upayas
+                </span>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+                {chartData.gemstones.map((g, idx) => (
+                  <div
+                    key={idx}
+                    className={`p-4 rounded-xl border flex flex-col justify-between transition hover:scale-[1.01] ${
+                      isDark
+                        ? 'bg-[#1A1A1E] border-[#2A2A2E]'
+                        : 'bg-[#FAF7F0] border-[#DECFA6]'
+                    }`}
+                  >
+                    <div className="space-y-1">
+                      <div className="flex justify-between items-start gap-1">
+                        <span className={`text-xs sm:text-[13px] font-bold ${
+                          isDark ? 'text-[#F0ECE1]' : 'text-[#1E1B15]'
+                        }`}>
+                          {g.gem}
+                        </span>
+                        <span className="text-[10px] font-bold text-[#C9A050] uppercase tracking-wider shrink-0 bg-[#C9A050]/10 px-1.5 py-0.5 rounded">
+                          {g.planet}
+                        </span>
+                      </div>
+                      <p className={`text-[11px] leading-relaxed pt-1 ${
+                        isDark ? 'text-[#9E9A90]' : 'text-[#6E6452]'
+                      }`}>
+                        {g.purpose}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </div>
 

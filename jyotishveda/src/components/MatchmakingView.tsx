@@ -40,7 +40,7 @@ import ReactMarkdown from 'react-markdown';
 import { UserProfile, AshtaKootaMilanResult, KootaItem } from '../types';
 import { VedicDatePicker } from './VedicDatePicker';
 import { VedicTimePicker } from './VedicTimePicker';
-import { calculateKundliMilan, PRESET_MATCHMAKING_COUPLES, calculateVedicChart, calculateNumerology } from '../services/astroEngine';
+import { calculateKundliMilan, PRESET_MATCHMAKING_COUPLES, calculateVedicChart, calculateNumerology, getLagnaGemstones } from '../services/astroEngine';
 import { MatchReportSummary, MatchReportFull, saveMatchReport, listMatchReports, fetchMatchReport, getMatchReportPdfUrl } from '../services/matchmakingApi';
 import { getTranslation } from '../services/translations';
 import { API_ENDPOINTS } from '../config/api_config';
@@ -336,12 +336,20 @@ export const MatchmakingView: React.FC<MatchmakingViewProps> = ({
 
   // Generate AI deep synthesis
   const handleGenerateAISynthesis = async (
-    customResult?: AshtaKootaMilanResult | null,
+    customResult?: AshtaKootaMilanResult | null | any,
     p1: UserProfile = partner1,
-    p2: UserProfile = partner2
+    p2: UserProfile = partner2,
+    forceRefresh: boolean = false
   ) => {
-    const resToUse = customResult || matchResult;
-    if (!resToUse || !p1.birthDate || !p2.birthDate) return;
+    // Sanitize customResult so React SyntheticMouseEvent is never passed as matchResult
+    const validResult = (customResult && typeof customResult === 'object' && 'totalPoints' in customResult)
+      ? customResult
+      : matchResult;
+
+    if (!validResult || !p1.birthDate || !p2.birthDate) {
+      console.warn('Cannot generate AI synthesis without valid matchResult and partner birthDates');
+      return;
+    }
 
     setIsGeneratingAI(true);
     try {
@@ -351,8 +359,9 @@ export const MatchmakingView: React.FC<MatchmakingViewProps> = ({
         body: JSON.stringify({
           partner1: p1,
           partner2: p2,
-          matchResult: resToUse,
+          matchResult: validResult,
           language,
+          force: forceRefresh,
         }),
       });
       const data = await response.json();
@@ -1899,7 +1908,7 @@ Issued by JyotishVeda AI Daivajna Astrological Intelligence Engine
               )}
 
               <button
-                onClick={handleGenerateAISynthesis}
+                onClick={() => handleGenerateAISynthesis(matchResult, partner1, partner2, true)}
                 disabled={isGeneratingAI}
                 className="flex items-center space-x-2 px-5 py-2.5 rounded-xl bg-[#C9A050] hover:bg-[#D4AF37] disabled:opacity-50 text-[#0D0D0F] font-bold text-xs shadow-lg shadow-[#C9A050]/20 transition cursor-pointer"
               >
@@ -2181,9 +2190,16 @@ Issued by JyotishVeda AI Daivajna Astrological Intelligence Engine
               <p className={`text-sm font-serif ${theme === 'dark' ? 'text-[#E5E1D8]' : 'text-[#1E1B15]'}`}>
                 Generate an exhaustive AI consultation covering psychological affinity, wealth generation, marital timing, and conflict resolution.
               </p>
-              <p className={`text-xs ${theme === 'dark' ? 'text-[#9E9A90]' : 'text-[#6E6452]'}`}>
-                Click the button above to synthesize charts using AI Daivajna intelligence.
-              </p>
+              <div>
+                <button
+                  onClick={() => handleGenerateAISynthesis(matchResult, partner1, partner2, true)}
+                  disabled={isGeneratingAI}
+                  className="mt-2 inline-flex items-center space-x-2 px-6 py-2.5 rounded-xl bg-[#C9A050] hover:bg-[#D4AF37] disabled:opacity-50 text-[#0D0D0F] font-bold text-xs shadow-lg shadow-[#C9A050]/20 transition cursor-pointer hover:scale-[1.02] active:scale-95"
+                >
+                  <Sparkles className="w-4 h-4" />
+                  <span>Generate Full AI Counsel</span>
+                </button>
+              </div>
             </div>
           )}
         </div>
@@ -2256,6 +2272,72 @@ Issued by JyotishVeda AI Daivajna Astrological Intelligence Engine
               {matchResult.auspiciousMuhuratAdvice}
             </p>
           </div>
+
+          {/* Couple Favorable Gemstones Cards */}
+          {(() => {
+            const p1Chart = partner1.birthDate ? calculateVedicChart(partner1) : null;
+            const p2Chart = partner2.birthDate ? calculateVedicChart(partner2) : null;
+            const p1Gems = p1Chart?.gemstones && p1Chart.gemstones.length > 0 ? p1Chart.gemstones : getLagnaGemstones(p1Chart?.ascendant?.signIndex ?? 11);
+            const p2Gems = p2Chart?.gemstones && p2Chart.gemstones.length > 0 ? p2Chart.gemstones : getLagnaGemstones(p2Chart?.ascendant?.signIndex ?? 3);
+
+            return (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Partner 1 Gemstones */}
+                <div className={`${
+                  theme === 'dark' 
+                    ? 'bg-[#141418] border-[#2A2A2E]' 
+                    : 'bg-[#FFFDF7] border-[#DECFA6]'
+                } border rounded-2xl p-6 shadow-md space-y-4`}>
+                  <div className="flex items-center space-x-2 font-serif font-bold text-xs pb-2 border-b border-[#DFC896]/40">
+                    <Layers className="w-4 h-4 text-[#C9A050]" />
+                    <span className={theme === 'dark' ? 'text-[#F0ECE1]' : 'text-[#8C6D23]'}>
+                      Favorable Gemstones (Lagna Based) • {partner1.fullName || 'Partner 1'}
+                    </span>
+                  </div>
+                  <div className="space-y-2.5">
+                    {p1Gems.map((g: any, idx: number) => (
+                      <div key={idx} className={`p-3.5 rounded-xl border flex flex-col ${
+                        theme === 'dark' ? 'bg-[#0D0D0F] border-[#2A2A2E]' : 'bg-[#FAF7F0] border-[#DECFA6]'
+                      }`}>
+                        <div className="flex justify-between items-center mb-1">
+                          <span className={`text-[13px] font-bold ${theme === 'dark' ? 'text-[#F0ECE1]' : 'text-[#1E1B15]'}`}>{g.gem}</span>
+                          <span className="text-[10px] font-bold text-[#C9A050] uppercase tracking-wider">{g.planet}</span>
+                        </div>
+                        <span className={`text-[11px] ${theme === 'dark' ? 'text-[#9E9A90]' : 'text-[#6E6452]'}`}>{g.purpose}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Partner 2 Gemstones */}
+                <div className={`${
+                  theme === 'dark' 
+                    ? 'bg-[#141418] border-[#2A2A2E]' 
+                    : 'bg-[#FFFDF7] border-[#DECFA6]'
+                } border rounded-2xl p-6 shadow-md space-y-4`}>
+                  <div className="flex items-center space-x-2 font-serif font-bold text-xs pb-2 border-b border-[#DFC896]/40">
+                    <Layers className="w-4 h-4 text-[#C9A050]" />
+                    <span className={theme === 'dark' ? 'text-[#F0ECE1]' : 'text-[#8C6D23]'}>
+                      Favorable Gemstones (Lagna Based) • {partner2.fullName || 'Partner 2'}
+                    </span>
+                  </div>
+                  <div className="space-y-2.5">
+                    {p2Gems.map((g: any, idx: number) => (
+                      <div key={idx} className={`p-3.5 rounded-xl border flex flex-col ${
+                        theme === 'dark' ? 'bg-[#0D0D0F] border-[#2A2A2E]' : 'bg-[#FAF7F0] border-[#DECFA6]'
+                      }`}>
+                        <div className="flex justify-between items-center mb-1">
+                          <span className={`text-[13px] font-bold ${theme === 'dark' ? 'text-[#F0ECE1]' : 'text-[#1E1B15]'}`}>{g.gem}</span>
+                          <span className="text-[10px] font-bold text-[#C9A050] uppercase tracking-wider">{g.planet}</span>
+                        </div>
+                        <span className={`text-[11px] ${theme === 'dark' ? 'text-[#9E9A90]' : 'text-[#6E6452]'}`}>{g.purpose}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
         </div>
       )}
 

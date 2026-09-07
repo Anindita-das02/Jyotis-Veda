@@ -21,15 +21,15 @@ TEXT_MUTED = colors.HexColor("#5A554C")
 def _styles():
     styles = getSampleStyleSheet()
     styles.add(ParagraphStyle(
-        name="JVBrand", fontSize=22, leading=26, alignment=0,
+        name="JVBrand", fontSize=21, leading=25, alignment=0,
         fontName="Helvetica-Bold",
     ))
     styles.add(ParagraphStyle(
-        name="JVSubtitle", fontSize=9, leading=12, alignment=0,
+        name="JVSubtitle", fontSize=9.5, leading=13, alignment=0,
         textColor=GOLD_DARK, fontName="Helvetica-Bold",
     ))
     styles.add(ParagraphStyle(
-        name="JVCitation", fontSize=7.5, leading=10, alignment=0,
+        name="JVCitation", fontSize=7.5, leading=10.5, alignment=0,
         textColor=colors.HexColor("#6B655B"), fontName="Helvetica-Oblique",
     ))
     styles.add(ParagraphStyle(
@@ -37,33 +37,33 @@ def _styles():
         spaceAfter=3, textColor=GOLD_DARK, fontName="Helvetica-Bold",
     ))
     styles.add(ParagraphStyle(
-        name="JVBody", fontSize=8.5, leading=11.5, textColor=TEXT_DARK,
+        name="JVBody", fontSize=8.5, leading=12, textColor=TEXT_DARK,
     ))
     styles.add(ParagraphStyle(
-        name="JVBodyBold", fontSize=9, leading=12, textColor=TEXT_DARK,
+        name="JVBodyBold", fontSize=9, leading=12.5, textColor=TEXT_DARK,
         fontName="Helvetica-Bold",
     ))
     styles.add(ParagraphStyle(
-        name="JVBodyMuted", fontSize=8, leading=10.5, textColor=TEXT_MUTED,
+        name="JVBodyMuted", fontSize=8, leading=11, textColor=TEXT_MUTED,
     ))
     styles.add(ParagraphStyle(
-        name="JVTableHead", fontSize=8.5, leading=11, textColor=GOLD_DARK,
+        name="JVTableHead", fontSize=8.5, leading=11.5, textColor=GOLD_DARK,
         fontName="Helvetica-Bold", alignment=0,
     ))
     styles.add(ParagraphStyle(
-        name="JVTableHeadCenter", fontSize=8.5, leading=11, textColor=GOLD_DARK,
+        name="JVTableHeadCenter", fontSize=8.5, leading=11.5, textColor=GOLD_DARK,
         fontName="Helvetica-Bold", alignment=1,
     ))
     styles.add(ParagraphStyle(
-        name="JVTableHeadRight", fontSize=8.5, leading=11, textColor=GOLD_DARK,
+        name="JVTableHeadRight", fontSize=8.5, leading=11.5, textColor=GOLD_DARK,
         fontName="Helvetica-Bold", alignment=2,
     ))
     styles.add(ParagraphStyle(
-        name="JVTableCellCenter", fontSize=8.5, leading=11, textColor=TEXT_DARK,
+        name="JVTableCellCenter", fontSize=8.5, leading=11.5, textColor=TEXT_DARK,
         alignment=1,
     ))
     styles.add(ParagraphStyle(
-        name="JVTableCellRight", fontSize=8.5, leading=11, textColor=TEXT_DARK,
+        name="JVTableCellRight", fontSize=8.5, leading=11.5, textColor=TEXT_DARK,
         alignment=2, fontName="Helvetica-Bold",
     ))
     styles.add(ParagraphStyle(
@@ -80,8 +80,8 @@ def generate_match_report_pdf(report: dict) -> bytes:
     doc = SimpleDocTemplate(
         buffer,
         pagesize=A4,
-        topMargin=12 * mm,
-        bottomMargin=22 * mm,
+        topMargin=10 * mm,
+        bottomMargin=18 * mm,
         leftMargin=13 * mm,
         rightMargin=13 * mm,
         title="JyotishVeda Kundli Milan Report",
@@ -89,7 +89,7 @@ def generate_match_report_pdf(report: dict) -> bytes:
 
     story = []
 
-    # 1. Header Title & Brand with Logo Icon (matching Image 2)
+    # 1. Header Title & Brand with Logo Icon
     logo_candidates = [
         os.path.abspath(os.path.join(os.path.dirname(__file__), "jyotishveda_logo.png")),
         os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "public", "jyotishveda_logo.png")),
@@ -99,15 +99,15 @@ def generate_match_report_pdf(report: dict) -> bytes:
     logo_path = next((p for p in logo_candidates if os.path.exists(p)), None)
 
     brand_html = (
-        '<b><font size="20" color="#111111">JYOTISH</font><font size="20" color="#B58328">VEDA</font></b><br/>'
-        '<font size="8.5" color="#7E5F18"><b>VEDIC KUNDLI MILAN &amp; ASHTA KOOTA COMPATIBILITY CERTIFICATE</b></font><br/>'
-        '<font size="7" color="#666666"><i>Calculated in accordance with Brihat Parashara Hora Shastra &amp; Classical Jyotish Sutras</i></font>'
+        '<b><font size="19" color="#111111">JYOTISH</font><font size="19" color="#B58328">VEDA</font></b><br/>'
+        '<font size="9" color="#7E5F18"><b>VEDIC KUNDLI MILAN &amp; ASHTA KOOTA COMPATIBILITY CERTIFICATE</b></font><br/>'
+        '<font size="7.5" color="#666666"><i>Calculated in accordance with Brihat Parashara Hora Shastra &amp; Classical Jyotish Sutras</i></font>'
     )
     brand_p = Paragraph(brand_html, ParagraphStyle(
         name="JVHeaderBlock",
         fontName="Helvetica-Bold",
-        fontSize=18,
-        leading=16,
+        fontSize=17,
+        leading=15,
         alignment=0,
     ))
 
@@ -125,7 +125,7 @@ def generate_match_report_pdf(report: dict) -> bytes:
     else:
         story.append(brand_p)
 
-    story.append(Spacer(1, 4 * mm))
+    story.append(Spacer(1, 4.5 * mm))
 
     # 2. Couple Information Box (Partner 1 & Partner 2)
     p1_name = str(report.get("partner1_name", "Partner 1"))
@@ -171,10 +171,10 @@ def generate_match_report_pdf(report: dict) -> bytes:
     score_data = [
         [
             Paragraph(
-                f"<font size=9 color='#7E5F18'><b>TOTAL COMPATIBILITY SCORE</b></font><br/>"
-                f"<font size=18.5 color='#7E5F18'><b>{total:g} / {max_score:g} Gunas ({pct:.0f}%)</b></font><br/>"
-                f"<font size=10.5 color='#1A1A1E'><b>{verdict_title.upper()}</b></font><br/>"
-                f"<font size=8 color='#555555'><i>\"{summary_text[:190]}\"</i></font>",
+                f"<font size=8.5 color='#7E5F18'><b>TOTAL COMPATIBILITY SCORE</b></font><br/>"
+                f"<font size=18 color='#7E5F18'><b>{total:g} / {max_score:g} Gunas ({pct:.0f}%)</b></font><br/>"
+                f"<font size=10 color='#1A1A1E'><b>{verdict_title.upper()}</b></font><br/>"
+                f"<font size=8.2 color='#555555'><i>\"{summary_text[:190]}\"</i></font>",
                 styles["ScoreCenter"]
             )
         ]
@@ -186,8 +186,8 @@ def generate_match_report_pdf(report: dict) -> bytes:
         ("ALIGN", (0, 0), (-1, -1), "CENTER"),
         ("TOPPADDING", (0, 0), (-1, -1), 8),
         ("BOTTOMPADDING", (0, 0), (-1, -1), 8),
-        ("LEFTPADDING", (0, 0), (-1, -1), 8),
-        ("RIGHTPADDING", (0, 0), (-1, -1), 8),
+        ("LEFTPADDING", (0, 0), (-1, -1), 10),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 10),
     ]))
     story.append(score_table)
     story.append(Spacer(1, 4.5 * mm))
@@ -233,10 +233,10 @@ def generate_match_report_pdf(report: dict) -> bytes:
         ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#F3ECDA")),
         ("LINEBELOW", (0, 0), (-1, -1), 0.4, colors.HexColor("#E5DCBE")),
         ("BOX", (0, 0), (-1, -1), 0.6, GOLD_BORDER),
-        ("TOPPADDING", (0, 0), (-1, -1), 6),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
-        ("LEFTPADDING", (0, 0), (-1, -1), 6),
-        ("RIGHTPADDING", (0, 0), (-1, -1), 6),
+        ("TOPPADDING", (0, 0), (-1, -1), 5.5),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 5.5),
+        ("LEFTPADDING", (0, 0), (-1, -1), 7),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 7),
         ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
     ]
     for r_i in range(1, len(rows)):
@@ -269,8 +269,8 @@ def generate_match_report_pdf(report: dict) -> bytes:
         ("LINEBEFORE", (1, 0), (1, -1), 0.6, GOLD_BORDER),
         ("TOPPADDING", (0, 0), (-1, -1), 7),
         ("BOTTOMPADDING", (0, 0), (-1, -1), 7),
-        ("LEFTPADDING", (0, 0), (-1, -1), 8),
-        ("RIGHTPADDING", (0, 0), (-1, -1), 8),
+        ("LEFTPADDING", (0, 0), (-1, -1), 9),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 9),
         ("VALIGN", (0, 0), (-1, -1), "TOP"),
     ]))
     story.append(dosha_table)
@@ -288,20 +288,20 @@ def generate_match_report_pdf(report: dict) -> bytes:
     rem_style = ParagraphStyle(
         name="JVRemedies",
         parent=styles["JVBody"],
-        fontSize=8,
-        leading=11.5,
+        fontSize=8.2,
+        leading=12,
         textColor=colors.HexColor("#3A3A3C"),
     )
     rem_table = Table([[
-        Paragraph(f"<font size=8.5 color='#7E5F18'><b>AUSPICIOUS VEDIC REMEDIES &amp; MUHURAT</b></font><br/>{rem_lines}<br/><font size=7.5 color='#666666'><b>Muhurat Guidance:</b> {muhurat_str[:150]}</font>", rem_style)
+        Paragraph(f"<font size=9 color='#7E5F18'><b>AUSPICIOUS VEDIC REMEDIES &amp; MUHURAT</b></font><br/>{rem_lines}<br/><font size=7.8 color='#666666'><b>Muhurat Guidance:</b> {muhurat_str[:150]}</font>", rem_style)
     ]], colWidths=[184 * mm])
     rem_table.setStyle(TableStyle([
         ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#FEFCF7")),
         ("BOX", (0, 0), (-1, -1), 0.6, GOLD_MAIN),
-        ("TOPPADDING", (0, 0), (-1, -1), 6),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
-        ("LEFTPADDING", (0, 0), (-1, -1), 8),
-        ("RIGHTPADDING", (0, 0), (-1, -1), 8),
+        ("TOPPADDING", (0, 0), (-1, -1), 7),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 7),
+        ("LEFTPADDING", (0, 0), (-1, -1), 9),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 9),
     ]))
     story.append(rem_table)
 
@@ -319,16 +319,7 @@ def generate_match_report_pdf(report: dict) -> bytes:
             ai_synth = {}
 
     story.append(PageBreak())
-
-    # Page 2 Header
-    p2_hdr = Paragraph(
-        '<b><font size="14" color="#111111">JYOTISH</font><font size="14" color="#B58328">VEDA</font></b> '
-        '<font size="10" color="#7E5F18"><b>• WESTERN SYNASTRY, ELEMENTS &amp; AI COUNSEL</b></font><br/>'
-        f'<font size=8 color="#555555">Comprehensive Cosmic Alignment Dossier for {p1_name} &amp; {p2_name}</font>',
-        styles["ScoreCenter"]
-    )
-    story.append(p2_hdr)
-    story.append(Spacer(1, 3.5 * mm))
+    story.append(Spacer(1, 3 * mm))
 
     # Western Synastry & Elements Section
     story.append(Paragraph("WESTERN SYNASTRY &amp; COSMIC ELEMENTS", styles["JVSection"]))
@@ -343,12 +334,12 @@ def generate_match_report_pdf(report: dict) -> bytes:
             s_desc = s.get("description", "")
             syn_rows.append(Paragraph(
                 f"<b>{s_title} ({s_planets}):</b> <font color='#7E5F18'><b>{s_score}% • {s_verdict}</b></font><br/>"
-                f"<font size=7.5 color='#555555'>{s_desc[:120]}</font>",
+                f"<font size=8.5 color='#555555'>{s_desc[:150]}</font>",
                 styles["JVBody"]
             ))
 
-    elem_text = f"<b>Elemental Synergy ({elem_balance.get('score', 80)}%):</b> {elem_balance.get('synergy', 'Harmonious elemental polarity')}."
-    num_text = f"<b>Numerology Harmony ({num_milan.get('harmonyScore', 85)}%):</b> {num_milan.get('description', 'Favorable psychic numbers')[:120]}."
+    elem_text = f"<b>Elemental Synergy ({elem_balance.get('score', 80)}%):</b><br/><font size=8.5 color='#555555'>{elem_balance.get('synergy', 'Harmonious elemental polarity')}.</font>"
+    num_text = f"<b>Numerology Harmony ({num_milan.get('harmonyScore', 85)}%):</b><br/><font size=8.5 color='#555555'>{num_milan.get('description', 'Favorable psychic numbers')[:150]}</font>"
 
     syn_table_data = [
         [
@@ -366,45 +357,50 @@ def generate_match_report_pdf(report: dict) -> bytes:
         ("BOX", (0, 0), (-1, -1), 0.6, GOLD_BORDER),
         ("LINEBEFORE", (1, 0), (1, -1), 0.6, GOLD_BORDER),
         ("LINEBELOW", (0, 0), (-1, 0), 0.6, GOLD_BORDER),
-        ("TOPPADDING", (0, 0), (-1, -1), 5),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
-        ("LEFTPADDING", (0, 0), (-1, -1), 7),
-        ("RIGHTPADDING", (0, 0), (-1, -1), 7),
+        ("TOPPADDING", (0, 0), (-1, -1), 9.5),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 9.5),
+        ("LEFTPADDING", (0, 0), (-1, -1), 10),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 10),
     ]))
     story.append(syn_table)
-    story.append(Spacer(1, 3.5 * mm))
+    story.append(Spacer(1, 7 * mm))
 
     # AI Daivajna Relationship Synthesis Section
     story.append(Paragraph("AI DAIVAJNA DEEP RELATIONSHIP SYNTHESIS", styles["JVSection"]))
     
-    ai_overall = ai_synth.get("overall_compatibility") or "Harmonious celestial resonance across emotional and material domains."
-    ai_psych = ai_synth.get("psychological_affinity") or "Strong intellectual rapport and fluid communication."
-    ai_emot = ai_synth.get("emotional_resonance") or "Emotionally supportive dynamic with high mutual respect."
-    ai_karmic = ai_synth.get("karmic_bond") or "Favorable karmic alignment supporting longevity and shared destiny."
-    ai_phys = ai_synth.get("physical_harmonization") or "Harmonious physical vitality and mutual instinctual care."
-    ai_wealth = ai_synth.get("wealth_and_prosperity") or "Planetary trines indicate joint prosperity and domestic bliss."
-    ai_final = ai_synth.get("final_assessment") or f"A promising Vedic Kundli Milan. {p1_name} and {p2_name} will enjoy a flourishing and prosperous companionship."
+    ai_overall = ai_synth.get("overall_compatibility") or "Harmonious celestial resonance across emotional, spiritual, and material domains."
+    ai_psych = ai_synth.get("psychological_affinity") or "Strong intellectual rapport, fluid communication, and high mutual respect."
+    ai_emot = ai_synth.get("emotional_resonance") or "Emotionally supportive dynamic with tender intuition and shared sensitivity."
+    ai_karmic = ai_synth.get("karmic_bond") or "Favorable karmic alignment supporting longevity, spiritual growth, and shared destiny."
+    ai_phys = ai_synth.get("physical_harmonization") or "Harmonious physical vitality, natural biological accord, and mutual fondness."
+    ai_family = ai_synth.get("family_and_married_life") or "Auspicious planetary indicators for lasting domestic peace and family integration."
+    ai_wealth = ai_synth.get("wealth_and_prosperity") or "Planetary trines indicate joint financial prosperity, abundance, and domestic bliss."
+    ai_final = ai_synth.get("final_assessment") or f"A promising Vedic Kundli Milan for {p1_name} and {p2_name}. Practicing traditional remedies ensures enduring joy, prosperity, and blissful companionship."
 
-    ai_strengths = ai_synth.get("major_strengths") or ["High mutual respect & commitment", "Strong emotional alignment"]
+    ai_strengths = ai_synth.get("major_strengths") or ["High mutual respect & commitment", "Strong emotional alignment", "Shared life vision"]
     ai_challenges = ai_synth.get("major_challenges") or ["Balancing communication during stressful cycles"]
     ai_conflict = ai_synth.get("conflict_resolution") or ["Practice open dialogue before major decisions"]
 
-    str_bullets = "<br/>".join([f"• {s[:100]}" for s in ai_strengths[:3]])
-    ch_bullets = "<br/>".join([f"• {c[:100]}" for c in ai_challenges[:2]])
-    cr_bullets = "<br/>".join([f"• {r[:100]}" for r in ai_conflict[:2]])
+    str_bullets = "<br/>".join([f"• {s[:110]}" for s in ai_strengths[:3]])
+    ch_bullets = "<br/>".join([f"• {c[:110]}" for c in ai_challenges[:2]])
+    cr_bullets = "<br/>".join([f"• {r[:110]}" for r in ai_conflict[:2]])
 
     ai_grid_data = [
         [
-            Paragraph(f"<b>Overall Compatibility:</b><br/><font size=7.8 color='#555555'>{ai_overall[:160]}</font>", styles["JVBody"]),
-            Paragraph(f"<b>Psychological Affinity:</b><br/><font size=7.8 color='#555555'>{ai_psych[:160]}</font>", styles["JVBody"]),
+            Paragraph(f"<b>Overall Compatibility:</b><br/><font size=8.5 color='#444444'>{ai_overall[:180]}</font>", styles["JVBody"]),
+            Paragraph(f"<b>Psychological Affinity:</b><br/><font size=8.5 color='#444444'>{ai_psych[:180]}</font>", styles["JVBody"]),
         ],
         [
-            Paragraph(f"<b>Emotional Resonance:</b><br/><font size=7.8 color='#555555'>{ai_emot[:160]}</font>", styles["JVBody"]),
-            Paragraph(f"<b>Karmic Bond &amp; Destiny:</b><br/><font size=7.8 color='#555555'>{ai_karmic[:160]}</font>", styles["JVBody"]),
+            Paragraph(f"<b>Emotional Resonance:</b><br/><font size=8.5 color='#444444'>{ai_emot[:180]}</font>", styles["JVBody"]),
+            Paragraph(f"<b>Karmic Bond &amp; Destiny:</b><br/><font size=8.5 color='#444444'>{ai_karmic[:180]}</font>", styles["JVBody"]),
         ],
         [
-            Paragraph(f"<font color='#1B7A43'><b>Major Relationship Strengths:</b></font><br/><font size=7.5 color='#333333'>{str_bullets}</font>", styles["JVBody"]),
-            Paragraph(f"<font color='#B56A00'><b>Challenges &amp; Conflict Resolution:</b></font><br/><font size=7.5 color='#333333'>{ch_bullets}<br/>{cr_bullets}</font>", styles["JVBody"]),
+            Paragraph(f"<b>Physical &amp; Bio Harmony:</b><br/><font size=8.5 color='#444444'>{ai_phys[:180]}</font>", styles["JVBody"]),
+            Paragraph(f"<b>Family &amp; Wealth Prosperity:</b><br/><font size=8.5 color='#444444'>{ai_wealth[:180]}</font>", styles["JVBody"]),
+        ],
+        [
+            Paragraph(f"<font color='#7E5F18'><b>Major Relationship Strengths:</b></font><br/><font size=8.2 color='#333333'>{str_bullets}</font>", styles["JVBody"]),
+            Paragraph(f"<font color='#7E5F18'><b>Challenges &amp; Conflict Resolution:</b></font><br/><font size=8.2 color='#333333'>{ch_bullets}<br/>{cr_bullets}</font>", styles["JVBody"]),
         ],
     ]
 
@@ -414,30 +410,30 @@ def generate_match_report_pdf(report: dict) -> bytes:
         ("BOX", (0, 0), (-1, -1), 0.6, GOLD_MAIN),
         ("LINEBELOW", (0, 0), (-1, -2), 0.4, GOLD_BORDER),
         ("LINEBEFORE", (1, 0), (1, -1), 0.4, GOLD_BORDER),
-        ("TOPPADDING", (0, 0), (-1, -1), 4.5),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 4.5),
-        ("LEFTPADDING", (0, 0), (-1, -1), 7),
-        ("RIGHTPADDING", (0, 0), (-1, -1), 7),
+        ("TOPPADDING", (0, 0), (-1, -1), 9),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 9),
+        ("LEFTPADDING", (0, 0), (-1, -1), 10),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 10),
         ("VALIGN", (0, 0), (-1, -1), "TOP"),
     ]))
     story.append(ai_table)
-    story.append(Spacer(1, 3.5 * mm))
+    story.append(Spacer(1, 7 * mm))
 
     # AI Final Assessment Box
     final_box = Table([[
         Paragraph(
-            f"<font size=8.5 color='#7E5F18'><b>AI DAIVAJNA FINAL ASSESSMENT &amp; BLESSINGS</b></font><br/>"
-            f"<font size=7.8 color='#222222'><i>\"{ai_final[:220]}\"</i></font>",
+            f"<font size=10 color='#7E5F18'><b>AI DAIVAJNA FINAL ASSESSMENT &amp; BLESSINGS</b></font><br/>"
+            f"<font size=9 color='#222222'><i>\"{ai_final[:280]}\"</i></font>",
             styles["ScoreCenter"]
         )
     ]], colWidths=[184 * mm])
     final_box.setStyle(TableStyle([
         ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#FDF7E7")),
         ("BOX", (0, 0), (-1, -1), 0.7, GOLD_DARK),
-        ("TOPPADDING", (0, 0), (-1, -1), 5),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
-        ("LEFTPADDING", (0, 0), (-1, -1), 8),
-        ("RIGHTPADDING", (0, 0), (-1, -1), 8),
+        ("TOPPADDING", (0, 0), (-1, -1), 12),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 12),
+        ("LEFTPADDING", (0, 0), (-1, -1), 12),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 12),
     ]))
     story.append(final_box)
 
