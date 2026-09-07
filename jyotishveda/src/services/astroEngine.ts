@@ -11,6 +11,7 @@ import {
   KootaItem,
   ManglikAnalysis,
   SynastryAspect,
+  LifeMilestone,
 } from '../types';
 
 export const ZODIAC_SIGNS = [
@@ -1131,6 +1132,7 @@ export const DEFAULT_CONSULTATION_TIERS = [
 ];
 
 export const DEFAULT_ROADMAP = [
+  // --- 0-5 YEARS (ALL OPEN) ---
   {
     id: 'ms-1',
     timeframe: '0-5 Years',
@@ -1153,35 +1155,163 @@ export const DEFAULT_ROADMAP = [
   },
   {
     id: 'ms-3',
-    timeframe: '5-10 Years',
+    timeframe: '0-5 Years',
     category: 'Relationships',
-    title: 'Harmonious Partnership & Family Auspiciousness',
-    guidance: 'Darakaraka planet activation fosters emotional stability and auspicious family events. A peaceful spiritual journey strengthens marital bonds.',
-    favorableTransits: 'Jupiter aspecting 7th house of marriage',
-    remedialAction: 'Perform Gauri-Shankar Puja on Shukla Paksha Mondays.',
-    status: 'Pending' as const,
+    title: 'Harmonious Bonding & Family Expansion',
+    guidance: 'Benefic aspects on the 5th and 7th houses foster mutual understanding, emotional closeness, and celebrations at home.',
+    favorableTransits: 'Jupiter aspecting Venus & 7th Lord',
+    remedialAction: 'Light a pure ghee lamp before Radha-Krishna on Fridays.',
+    status: 'In-Progress' as const,
   },
   {
     id: 'ms-4',
-    timeframe: '10-15 Years',
+    timeframe: '0-5 Years',
     category: 'Health',
-    title: 'Vitality Preservation & Mind-Body Rejuvenation',
-    guidance: 'Sustained holistic wellness through Ayurvedic dinacharya, regular yoga, and balanced mental rest.',
-    favorableTransits: 'Saturnian transit encourages disciplined daily wellness habits.',
-    remedialAction: 'Wear natural rudraksha and chant Mahamrityunjaya Mantra on Mondays.',
-    status: 'Pending' as const,
+    title: 'Immunity Enhancement & Lifestyle Rhythm',
+    guidance: 'Align your circadian cycle with Ayurvedic Dinacharya principles. Morning Surya Namaskar preserves radiant vitality and mental clarity.',
+    favorableTransits: 'Sun-Mars trine vitality boost in Lagna',
+    remedialAction: 'Drink warm water from a copper vessel every morning.',
+    status: 'In-Progress' as const,
   },
   {
     id: 'ms-5',
+    timeframe: '0-5 Years',
+    category: 'Spirituality',
+    title: 'Mantra Sadhana & Daily Spiritual Foundation',
+    guidance: 'Establishing regular meditation and Gayatri Japa awakens deep intuition, inner serenity, and karmic clarity.',
+    favorableTransits: 'Jupiter-Ketu auspicious 9th house connection',
+    remedialAction: 'Chant Gayatri Mantra 108 times at sunrise daily.',
+    status: 'In-Progress' as const,
+  },
+
+  // --- 5-10 YEARS (Career, Spirituality, Health OPEN; Wealth & Relationships LOCKED) ---
+  {
+    id: 'ms-6',
+    timeframe: '5-10 Years',
+    category: 'Career',
+    title: 'Enterprise Scaling & Executive Board Elevation',
+    guidance: 'Major Saturn-Jupiter mutual aspect activates the 10th and 11th houses, conferring institutional status and global professional credibility.',
+    favorableTransits: 'Saturn transit in 11th house of massive gains',
+    remedialAction: 'Feed black cows or dogs on Saturdays for Saturnian blessings.',
+    status: 'Pending' as const,
+  },
+  {
+    id: 'ms-7',
+    timeframe: '5-10 Years',
+    category: 'Health',
+    title: 'Mind-Body Longevity & Stress Resilience',
+    guidance: 'Targeted yogic pranayama and seasonal Panchakarma practices maintain high energetic frequency and metabolic balance.',
+    favorableTransits: 'Guru Gochara blessing the 6th house of wellness',
+    remedialAction: 'Chant Mahamrityunjaya Mantra on Monday evenings.',
+    status: 'Pending' as const,
+  },
+  {
+    id: 'ms-8',
+    timeframe: '5-10 Years',
+    category: 'Spirituality',
+    title: 'Sacred Pilgrimage & Vedantic Wisdom Integration',
+    guidance: 'Karmic shifts inspire sacred Himalayan / Teertha yatras and deep philosophical scriptural study under an enlightened Guru.',
+    favorableTransits: '9th Lord transit in exaltation over natal Jupiter',
+    remedialAction: 'Sponsor food distribution (Annadanam) at ancient sacred shrines.',
+    status: 'Pending' as const,
+  },
+  {
+    id: 'ms-9',
+    timeframe: '5-10 Years',
+    category: 'Wealth',
+    title: 'Generational Wealth Structuring & Land Acquisition',
+    guidance: 'Strategic long-term asset accumulation, commercial property investments, and multi-asset wealth compounding.',
+    favorableTransits: 'Jupiter & Rahu dhana-yoga alignment in 2nd/11th axes',
+    remedialAction: 'Perform Lakshmi Kubera Homa on Dhanteras / Akshaya Tritiya.',
+    status: 'Pending' as const,
+  },
+  {
+    id: 'ms-10',
+    timeframe: '5-10 Years',
+    category: 'Relationships',
+    title: 'Darakaraka Auspiciousness & Marital Milestone',
+    guidance: 'Deepening marital companionship and auspicious milestone celebrations with children and extended family lineages.',
+    favorableTransits: 'Jupiter transiting natal 7th house cusp',
+    remedialAction: 'Offer scented white flowers at a Shiva-Parvati temple on Mondays.',
+    status: 'Pending' as const,
+  },
+
+  // --- 10-15 YEARS (Career, Spirituality OPEN; Health, Wealth & Relationships LOCKED) ---
+  {
+    id: 'ms-11',
+    timeframe: '10-15 Years',
+    category: 'Career',
+    title: 'Industry Authority, Mentorship & Public Impact',
+    guidance: 'Transition from active execution to advisory stewardship, mentoring emerging leaders and creating timeless institutional legacy.',
+    favorableTransits: 'Sun-Jupiter Rajya Yoga activation',
+    remedialAction: 'Support underprivileged students with books and education.',
+    status: 'Pending' as const,
+  },
+  {
+    id: 'ms-12',
     timeframe: '10-15 Years',
     category: 'Spirituality',
-    title: 'Spiritual Dharma Mastery & Philanthropic Legacy',
-    guidance: 'Ketu transit activating 9th house triggers profound philosophical inquiry, pilgrimage, and institutional philanthropy.',
-    favorableTransits: 'Ketu in 9th house of Dharma',
-    remedialAction: 'Daily recitation of Vishnu Sahasranama and feeding street animals.',
+    title: 'Spiritual Dharma Mastery & Philanthropic Foundation',
+    guidance: 'Attainment of higher consciousness and establishing enduring humanitarian, spiritual, and charitable foundations.',
+    favorableTransits: 'Ketu transit in 12th house of Moksha & spiritual liberation',
+    remedialAction: 'Establish an ongoing charitable trust or temple seva endowment.',
+    status: 'Pending' as const,
+  },
+  {
+    id: 'ms-13',
+    timeframe: '10-15 Years',
+    category: 'Health',
+    title: 'Vitality Preservation & Yogic Rejuvenation',
+    guidance: 'Sustained cellular regeneration and inner calm through advanced yogic kriya and tranquil natural living.',
+    favorableTransits: 'Saturnian harmony in 6th/8th house protection',
+    remedialAction: 'Wear natural 5-Mukhi Rudraksha and practice daily silence (Mauna).',
+    status: 'Pending' as const,
+  },
+  {
+    id: 'ms-14',
+    timeframe: '10-15 Years',
+    category: 'Wealth',
+    title: 'Sovereign Asset Holdings & Multi-Generational Trust',
+    guidance: 'Consolidation of sovereign wealth portfolios, family trusts, and enduring estate preservation for future generations.',
+    favorableTransits: '2nd/9th/11th Lords forming Rajadhiraja Dhana Yoga',
+    remedialAction: 'Donate gold/silver or sacred items to Vedic gurukuls.',
+    status: 'Pending' as const,
+  },
+  {
+    id: 'ms-15',
+    timeframe: '10-15 Years',
+    category: 'Relationships',
+    title: 'Family Dynasty Harmony & Golden Lineage Blessings',
+    guidance: 'Enjoying deep contentment surrounded by growing generations, children’s prosperity, and peaceful domestic harmony.',
+    favorableTransits: 'Jupiter aspect on 4th (Sukha) and 9th (Bhagya) houses',
+    remedialAction: 'Perform annual Kuladevata Puja and family havan.',
     status: 'Pending' as const,
   },
 ];
+
+export const generateCustomRoadmap = (profile?: any, chartData?: any): LifeMilestone[] => {
+  const ascSign = chartData?.ascendant?.signName || chartData?.ascendant?.signSanskrit || 'Vedic Ascendant';
+  const currDasha = chartData?.dashaPeriods?.find((d: any) => d.isCurrent)?.planet || chartData?.currentDasha?.mahadasha || 'Vimshottari';
+  
+  return DEFAULT_ROADMAP.map((item) => {
+    let personalizedGuidance = item.guidance;
+    let personalizedTransits = item.favorableTransits;
+    
+    if (item.category === 'Career' && item.timeframe === '0-5 Years') {
+      personalizedGuidance = `Under the active ${currDasha} Mahadasha and ${ascSign} lagna, Jupiter transit over your 10th house stimulates executive authority and strategic visibility.`;
+      personalizedTransits = `Auspicious Jupiter transit trines your ${ascSign} Ascendant`;
+    } else if (item.category === 'Career' && item.timeframe === '5-10 Years') {
+      personalizedGuidance = `Major Saturn-Jupiter mutual aspect activates your 10th and 11th houses, conferring institutional status and global credibility for ${ascSign} natives.`;
+    }
+    
+    return {
+      ...item,
+      guidance: personalizedGuidance,
+      favorableTransits: personalizedTransits,
+      status: item.timeframe === '0-5 Years' ? ('In-Progress' as const) : ('Pending' as const),
+    };
+  });
+};
 
 // ==========================================
 // ASHTA KOOTA MATCHMAKING & KUNDLI MILAN ENGINE
