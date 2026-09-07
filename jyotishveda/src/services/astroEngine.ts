@@ -1676,28 +1676,103 @@ export function calculateKundliMilan(partner1: UserProfile, partner2: UserProfil
   const sun2 = chart2.planets.find((p) => p.name === 'Sun') || chart2.planets[0];
   const venus1 = chart1.planets.find((p) => p.name === 'Venus') || chart1.planets[5];
   const venus2 = chart2.planets.find((p) => p.name === 'Venus') || chart2.planets[5];
+  const mercury1 = chart1.planets.find((p) => p.name === 'Mercury') || chart1.planets[2];
+  const jupiter2 = chart2.planets.find((p) => p.name === 'Jupiter') || chart2.planets[4];
+
+  // Helper to compute Western synastry aspect geometry between two planets
+  const getAspectData = (p1: PlanetPosition, p2: PlanetPosition) => {
+    const diff = ((p2.signIndex - p1.signIndex + 12) % 12);
+    if (diff === 0) return { symbol: '☌', name: 'Conjunction', diff, score: 94 };
+    if (diff === 4 || diff === 8) return { symbol: '△', name: 'Trine', diff, score: 96 };
+    if (diff === 2 || diff === 10) return { symbol: '⚹', name: 'Sextile', diff, score: 88 };
+    if (diff === 6) return { symbol: '☍', name: 'Opposition', diff, score: 85 };
+    if (diff === 3 || diff === 9) return { symbol: '□', name: 'Square', diff, score: 72 };
+    if (diff === 5 || diff === 7) return { symbol: '⚻', name: 'Quincunx', diff, score: 76 };
+    return { symbol: '⚺', name: 'Semi-Sextile', diff, score: 80 };
+  };
+
+  const sunMoonAspect = getAspectData(sun1, moon2);
+  const venusMarsAspect = getAspectData(venus1, mars2);
+  const mercJupAspect = getAspectData(mercury1, jupiter2);
+
+  // 1. Dynamic Sun-Moon Description
+  const sunMoonScore = Math.min(98, Math.max(65, Math.round((sunMoonAspect.score * 0.6) + (grahaPoints * 8))));
+  let sunMoonDesc = '';
+  if (sunMoonAspect.diff === 0) {
+    sunMoonDesc = `${sun1.signName} Sun and ${moon2.signName} Moon share identical zodiac space, creating instantaneous emotional empathy where core purpose feels like home.`;
+  } else if (sunMoonAspect.diff === 4 || sunMoonAspect.diff === 8) {
+    sunMoonDesc = `${sun1.signName} Sun effortlessly harmonizes with ${moon2.signName} Moon (${sun1.element} & ${moon2.element} resonance), allowing ego consciousness to nurture deep emotional vulnerability without defensive barriers.`;
+  } else if (sunMoonAspect.diff === 2 || sunMoonAspect.diff === 10) {
+    sunMoonDesc = `${sun1.signName} Sun vitality provides uplifting encouragement to ${moon2.signName} Moon instinctual needs, fostering cheerful communication and enduring emotional safety.`;
+  } else if (sunMoonAspect.diff === 6) {
+    sunMoonDesc = `${sun1.signName} Sun and ${moon2.signName} Moon form a powerful polarity axis, bridging outward vision with intuitive empathy through magnetic, complementary balance.`;
+  } else if (sunMoonAspect.diff === 3 || sunMoonAspect.diff === 9) {
+    sunMoonDesc = `${sun1.signName} Sun expressive drive and ${moon2.signName} Moon emotional rhythm generate dynamic growth, motivating both to expand beyond comfort zones through conscious mutual validation.`;
+  } else if (sunMoonAspect.diff === 5 || sunMoonAspect.diff === 7) {
+    sunMoonDesc = `${sun1.signName} Sun willpower and ${moon2.signName} Moon sensitivities invite sacred karmic learning, deepening intimacy as both celebrate their different approaches to life.`;
+  } else {
+    sunMoonDesc = `${sun1.signName} Sun steadfast purpose and ${moon2.signName} Moon adaptive moods steadily align through daily appreciation, building a calm and supportive sanctuary.`;
+  }
+
+  // 2. Dynamic Venus-Mars Description
+  const venusMarsScore = Math.min(97, Math.max(62, Math.round((venusMarsAspect.score * 0.55) + (yoniPoints * 10))));
+  let venusMarsDesc = '';
+  if (venusMarsAspect.diff === 0) {
+    venusMarsDesc = `${venus1.signName} Venus aesthetic grace merges directly with ${mars2.signName} Mars passionate fire, igniting instant romantic electricity, tactile warmth, and continuous mutual adoration.`;
+  } else if (venusMarsAspect.diff === 4 || venusMarsAspect.diff === 8) {
+    venusMarsDesc = `${venus1.signName} Venus sensory appreciation aligns with ${mars2.signName} Mars romantic initiative (${venus1.element}-${mars2.element} flow), sustaining effortless affection, passionate companionship, and shared delight.`;
+  } else if (venusMarsAspect.diff === 2 || venusMarsAspect.diff === 10) {
+    venusMarsDesc = `${venus1.signName} Venus gentleness inspires ${mars2.signName} Mars protective passion, keeping the relationship playful, romantically stimulating, and full of mutual gestures of love.`;
+  } else if (venusMarsAspect.diff === 6) {
+    venusMarsDesc = `${venus1.signName} Venus and ${mars2.signName} Mars create intense yin-yang attraction, where romantic differences fuel irresistible chemistry and deep mutual fascination.`;
+  } else if (venusMarsAspect.diff === 3 || venusMarsAspect.diff === 9) {
+    venusMarsDesc = `${venus1.signName} Venus refined tastes and ${mars2.signName} Mars assertive drive generate spirited romantic sparks, keeping passion lively when channeled through shared adventures.`;
+  } else if (venusMarsAspect.diff === 5 || venusMarsAspect.diff === 7) {
+    venusMarsDesc = `${venus1.signName} Venus affectionate nature and ${mars2.signName} Mars physical vitality balance distinct love languages, deepening devotion through mindful emotional attunement.`;
+  } else {
+    venusMarsDesc = `${venus1.signName} Venus loyalty and ${mars2.signName} Mars focused drive build romantic tenderness progressively, anchoring passionate commitment in steady daily affection.`;
+  }
+
+  // 3. Dynamic Mercury-Jupiter Description
+  const mercJupScore = Math.min(98, Math.max(68, Math.round(mercJupAspect.score)));
+  let mercJupDesc = '';
+  if (mercJupAspect.diff === 0) {
+    mercJupDesc = `${mercury1.signName} Mercury sharp intellect unites with ${jupiter2.signName} Jupiter expansive wisdom in the same sign, creating an intellectual powerhouse for joint financial ventures, travel, and shared philosophy.`;
+  } else if (mercJupAspect.diff === 4 || mercJupAspect.diff === 8) {
+    mercJupDesc = `${mercury1.signName} Mercury agile thinking is magnified by ${jupiter2.signName} Jupiter benevolence (${mercury1.element}-${jupiter2.element} harmony), enriching conversations, wealth building, and spiritual exploration.`;
+  } else if (mercJupAspect.diff === 2 || mercJupAspect.diff === 10) {
+    mercJupDesc = `${mercury1.signName} Mercury curious mind constantly finds inspiration in ${jupiter2.signName} Jupiter optimistic guidance, fostering effortless problem-solving and mutual mentorship.`;
+  } else if (mercJupAspect.diff === 6) {
+    mercJupDesc = `${mercury1.signName} Mercury analytical precision balances ${jupiter2.signName} Jupiter broad visionary scope, enabling the couple to turn ambitious dreams into detailed, executable reality.`;
+  } else if (mercJupAspect.diff === 3 || mercJupAspect.diff === 9) {
+    mercJupDesc = `${mercury1.signName} Mercury tactical focus and ${jupiter2.signName} Jupiter expansive ambitions challenge and refine each other's ideas, elevating decision-making through healthy intellectual debate.`;
+  } else if (mercJupAspect.diff === 5 || mercJupAspect.diff === 7) {
+    mercJupDesc = `${mercury1.signName} Mercury everyday problem-solving and ${jupiter2.signName} Jupiter overarching ideals blend progressively, cultivating patient wisdom and broad-minded understanding.`;
+  } else {
+    mercJupDesc = `${mercury1.signName} Mercury clear communication pairs with ${jupiter2.signName} Jupiter ethical clarity, laying a solid foundation for financial security and shared life goals.`;
+  }
 
   const synastry: SynastryAspect[] = [
     {
       title: 'Sun-Moon Core Synergy',
-      planets: `${sun1.signName} Sun ⚹ ${moon2.signName} Moon`,
-      harmonyScore: Math.min(98, 70 + (grahaPoints * 5)),
-      verdict: 'Deep Soul Understanding',
-      description: 'Ego consciousness aligns effortlessly with emotional vulnerability, creating a nurturing safe harbor.',
+      planets: `${sun1.signName} Sun ${sunMoonAspect.symbol} ${moon2.signName} Moon (${sunMoonAspect.name})`,
+      harmonyScore: sunMoonScore,
+      verdict: sunMoonScore >= 90 ? 'Deep Soul Understanding' : sunMoonScore >= 80 ? 'Flowing Emotional Harmony' : 'Complementary Polarity',
+      description: sunMoonDesc,
     },
     {
       title: 'Venus-Mars Romantic Magnetism',
-      planets: `${venus1.signName} Venus ☌ ${mars2.signName} Mars`,
-      harmonyScore: Math.min(95, 65 + (yoniPoints * 7)),
-      verdict: 'Passionate Vitality',
-      description: 'Sensory appreciation and passionate devotion stimulate ongoing romantic sparks and mutual affection.',
+      planets: `${venus1.signName} Venus ${venusMarsAspect.symbol} ${mars2.signName} Mars (${venusMarsAspect.name})`,
+      harmonyScore: venusMarsScore,
+      verdict: venusMarsScore >= 90 ? 'Passionate Vitality' : venusMarsScore >= 80 ? 'Sensual Devotion' : 'Dynamic Romantic Spark',
+      description: venusMarsDesc,
     },
     {
       title: 'Mercury-Jupiter Intellectual Growth',
-      planets: `Mercury ⚹ Jupiter Cross-Trine`,
-      harmonyScore: 88,
-      verdict: 'Philosophical Alignment',
-      description: 'Enriches conversations, shared business acumen, collaborative investments, and travel aspirations.',
+      planets: `${mercury1.signName} Mercury ${mercJupAspect.symbol} ${jupiter2.signName} Jupiter (${mercJupAspect.name})`,
+      harmonyScore: mercJupScore,
+      verdict: mercJupScore >= 90 ? 'Philosophical Alignment' : mercJupScore >= 80 ? 'Expansive Wisdom Synergy' : 'Constructive Teamwork',
+      description: mercJupDesc,
     },
   ];
 

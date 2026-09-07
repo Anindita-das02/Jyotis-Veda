@@ -145,6 +145,10 @@ export const MatchmakingView: React.FC<MatchmakingViewProps> = ({
   const [saveError, setSaveError] = useState<string | null>(null);
   const [savedReportId, setSavedReportId] = useState<string | null>(null);
 
+  // Live Auto-Refresh State
+  const [isAutoRefreshing, setIsAutoRefreshing] = useState<boolean>(false);
+  const [lastAutoRefreshedAt, setLastAutoRefreshedAt] = useState<Date | null>(null);
+
   // Saved Matches History Modal & List
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
   const [savedMatches, setSavedMatches] = useState<any[]>(() => {
@@ -164,6 +168,7 @@ export const MatchmakingView: React.FC<MatchmakingViewProps> = ({
     setIsP2Saved(false);
     setMatchResult(null);
     setAiSynthesis(null);
+    setLastAutoRefreshedAt(null);
 
     try {
       const rawHist = localStorage.getItem(historyKey);
@@ -172,6 +177,46 @@ export const MatchmakingView: React.FC<MatchmakingViewProps> = ({
       setSavedMatches([]);
     }
   }, [profileId, historyKey]);
+
+  // Real-time automatic recalculation & refresh whenever partner data is entered or edited
+  useEffect(() => {
+    // Both partners must have a birthDate for Kundli Milan
+    if (!partner1.birthDate || !partner2.birthDate) {
+      return;
+    }
+
+    setIsAutoRefreshing(true);
+    const debounceTimer = setTimeout(() => {
+      try {
+        const result = calculateKundliMilan(partner1, partner2);
+        setMatchResult(result);
+        setLastAutoRefreshedAt(new Date());
+        saveToHistoryList(result, partner1, partner2);
+
+        // If AI Counsel tab is active or AI synthesis already exists, refresh AI synthesis in background
+        if (activeTab === 'ai_counsel' || aiSynthesis) {
+          handleGenerateAISynthesis(result, partner1, partner2);
+        }
+      } catch (err) {
+        console.error('Error auto-refreshing Kundli Milan calculation:', err);
+      } finally {
+        setIsAutoRefreshing(false);
+      }
+    }, 300);
+
+    return () => clearTimeout(debounceTimer);
+  }, [
+    partner1.fullName,
+    partner1.birthDate,
+    partner1.birthTime,
+    partner1.birthPlace,
+    partner1.gender,
+    partner2.fullName,
+    partner2.birthDate,
+    partner2.birthTime,
+    partner2.birthPlace,
+    partner2.gender,
+  ]);
 
   // Auto-scroll down smoothly to the Generate button when both partners are saved
   useEffect(() => {
@@ -228,6 +273,7 @@ export const MatchmakingView: React.FC<MatchmakingViewProps> = ({
     setIsP2Saved(false);
     setMatchResult(null);
     setAiSynthesis(null);
+    setLastAutoRefreshedAt(null);
   };
 
   // Load a match from history into the UI with full-page cosmic loader & auto-scroll
@@ -1358,12 +1404,25 @@ Issued by JyotishVeda AI Daivajna Astrological Intelligence Engine
             </div>
 
             <div>
-              <span className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full text-xs font-bold bg-[#C9A050]/20 text-[#C9A050] border border-[#C9A050]/40 mb-2">
-                <Award className="w-3.5 h-3.5" />
-                <span>{matchResult.verdictTitle}</span>
-              </span>
+              <div className="flex flex-wrap items-center gap-2 mb-2">
+                <span className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full text-xs font-bold bg-[#C9A050]/20 text-[#C9A050] border border-[#C9A050]/40">
+                  <Award className="w-3.5 h-3.5" />
+                  <span>{matchResult.verdictTitle}</span>
+                </span>
+                {isAutoRefreshing ? (
+                  <span className="inline-flex items-center space-x-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-amber-500/20 text-amber-700 dark:text-amber-400 border border-amber-500/30 animate-pulse">
+                    <RefreshCw className="w-3 h-3 animate-spin text-amber-600 dark:text-amber-400" />
+                    <span>Auto-refreshing...</span>
+                  </span>
+                ) : lastAutoRefreshedAt ? (
+                  <span className="inline-flex items-center space-x-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30">
+                    <Sparkles className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
+                    <span>Live Auto-Updated</span>
+                  </span>
+                ) : null}
+              </div>
               <h2 className={`text-xl sm:text-2xl font-serif font-bold ${theme === 'dark' ? 'text-[#F0ECE1]' : 'text-[#1E1B15]'}`}>
-                {partner1.fullName} &amp; {partner2.fullName}
+                {partner1.fullName || 'Partner 1'} &amp; {partner2.fullName || 'Partner 2'}
               </h2>
               <p className={`text-xs sm:text-sm ${theme === 'dark' ? 'text-[#9E9A90]' : 'text-[#6E6452]'} mt-2 max-w-xl leading-relaxed`}>
                 {matchResult.summary}

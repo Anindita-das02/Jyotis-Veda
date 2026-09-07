@@ -1270,45 +1270,175 @@ def _generate_fallback_synthesis(partner1: dict, partner2: dict, match_result: d
     max_score = match_result.get("maxPoints", 36)
     percentage = match_result.get("percentage", 72)
     verdict = match_result.get("verdictTitle", "Auspicious Match (Uttam Milan)")
-    summary = match_result.get("summary", "")
-    manglik_exp = match_result.get("manglik", {}).get("explanation") or f"Planetary energies of Mars are harmoniously balanced between {p1_name} and {p2_name}."
-    nadi_reason = match_result.get("nadiDosha", {}).get("reason") or "Bio-magnetic energy frequencies balance Vata, Pitta, and Kapha doshas."
-    bhakoot_reason = match_result.get("bhakootDosha", {}).get("reason") or "Rashi placement dynamics support mutual affection, longevity, and family welfare."
+
+    manglik = match_result.get("manglik", {})
+    is_neutralized = manglik.get("isNeutralized", True)
+    is_p1_manglik = manglik.get("partner1", {}).get("isManglik", False)
+    is_p2_manglik = manglik.get("partner2", {}).get("isManglik", False)
+    p1_mars_house = manglik.get("partner1", {}).get("marsHouse", "")
+    p2_mars_house = manglik.get("partner2", {}).get("marsHouse", "")
+
+    nadi = match_result.get("nadiDosha", {})
+    nadi_has_dosha = nadi.get("hasDosha", False)
+    nadi_is_cancelled = nadi.get("isCancelled", False)
+    nadi_reason = nadi.get("reason") or "Bio-magnetic energy frequencies balance Vata, Pitta, and Kapha doshas."
+
+    bhakoot = match_result.get("bhakootDosha", {})
+    bhakoot_has_dosha = bhakoot.get("hasDosha", False)
+    bhakoot_reason = bhakoot.get("reason") or "Rashi placement dynamics support mutual affection, longevity, and family welfare."
+
+    kootas = match_result.get("kootas", [])
+    yoni_koota = next((k for k in kootas if k.get("id") == "yoni"), {})
+    graha_koota = next((k for k in kootas if k.get("id") == "graha_maitri"), {})
+    gana_koota = next((k for k in kootas if k.get("id") == "gana"), {})
+    tara_koota = next((k for k in kootas if k.get("id") == "tara"), {})
+
+    # 1. Overall Compatibility - Clean, non-repetitive, elegant synthesis
+    if score >= 28:
+        overall_core = f"The celestial synastry between {p1_name} and {p2_name} yields an exceptional Ashta Koota compatibility score of {score}/{max_score} Gunas ({percentage}%), classified as {verdict}. This sacred union indicates profound spiritual harmony, enduring emotional bonding, and great shared prosperity."
+    elif score >= 21:
+        overall_core = f"The astrological synastry between {p1_name} and {p2_name} yields a very favorable Ashta Koota score of {score}/{max_score} Gunas ({percentage}%), classified as {verdict}. The couple exhibits strong psychological and elemental accord across major life domains."
+    elif score >= 18:
+        overall_core = f"The astrological synastry between {p1_name} and {p2_name} scores {score}/{max_score} Gunas ({percentage}%), classified as {verdict}. Crossing the classical 18-point threshold, this relationship establishes a viable foundation supported by understanding and shared values."
+    else:
+        overall_core = f"The astrological synastry between {p1_name} and {p2_name} reflects a challenging score of {score}/{max_score} Gunas ({percentage}%), classified as {verdict}. Dedicating time to mutual understanding, patience, and remedial pujas will be essential to harmonize key differences."
+
+    if not is_neutralized:
+        active_m = p1_name if is_p1_manglik else p2_name
+        house_str = f" in house {p1_mars_house if is_p1_manglik else p2_mars_house}" if (p1_mars_house or p2_mars_house) else ""
+        overall_core += f" Because {active_m} has active Kuja Dosha{house_str}, traditional pacification upayas (such as Kumbh Vivah or Mangal Shanti) are advised before proceeding to ensure marital longevity."
+    elif is_p1_manglik and is_p2_manglik:
+        overall_core += " Both partners carry Manglik alignment, creating a natural mutual cancellation and balanced dynamic energy."
+
+    # 2. Guna Milan
+    guna_text = f"With {score} out of {max_score} Gunas matched ({percentage}%), the celestial matrix confirms {'excellent' if score >= 28 else 'substantial' if score >= 21 else 'moderate'} harmony across biological, psychological, and spiritual dimensions."
+
+    # 3. Psychological Affinity
+    graha_pts = graha_koota.get("obtainedPoints", 3)
+    if graha_pts >= 4:
+        psych_text = f"{p1_name} and {p2_name} enjoy natural mental rapport and intellectual alignment, allowing transparent communication and effortless mutual respect."
+    else:
+        psych_text = f"{p1_name} and {p2_name} bring complementary worldviews to the partnership, thriving when both practice active listening and collaborative problem-solving."
+
+    # 4. Emotional Resonance
+    if not bhakoot_has_dosha or bhakoot.get("isCancelled"):
+        emot_text = f"A harmonious Moon-Rashi alignment allows {p1_name} and {p2_name} to empathize deeply with each other's emotional rhythms and de-escalate tension with warmth."
+    else:
+        emot_text = f"{p1_name} and {p2_name} possess distinct emotional processing styles, which mature into deep intimacy through intentional daily affection and patience."
+
+    # 5. Karmic Bond
+    tara_pts = tara_koota.get("obtainedPoints", 1.5)
+    if tara_pts >= 2.5:
+        karmic_text = f"This alliance between {p1_name} and {p2_name} reflects auspicious karmic merit (Purva Punya), bestowing instinctive loyalty and protective life timing."
+    else:
+        karmic_text = f"The connection between {p1_name} and {p2_name} serves as a sacred vehicle for personal evolution, strengthening commitment through shared responsibilities."
+
+    # 6. Physical Harmonization
+    yoni_pts = yoni_koota.get("obtainedPoints", 2)
+    yoni_p1 = yoni_koota.get("p1Value", "Yoni 1")
+    yoni_p2 = yoni_koota.get("p2Value", "Yoni 2")
+    if yoni_pts >= 3:
+        phys_text = f"The biological Yoni matrix ({yoni_p1} & {yoni_p2}) indicates instinctual warmth, comforting physical closeness, and natural mutual affection."
+    else:
+        phys_text = f"The instinctual Yoni pairing ({yoni_p1} & {yoni_p2}) flourishes through conscious tenderness, gentle physical reassurance, and mutual appreciation."
+
+    # 7. Manglik Dosha
+    if is_neutralized:
+        if is_p1_manglik and is_p2_manglik:
+            mang_text = f"Both {p1_name} and {p2_name} are Manglik, resulting in complete mutual neutralization of Kuja Dosha with balanced marital vitality."
+        else:
+            mang_text = f"Neither partner carries adverse Kuja Dosha, ensuring a peaceful and unhindered marital axis."
+    else:
+        active_m = p1_name if is_p1_manglik else p2_name
+        mang_text = f"{active_m} has active Manglik Dosha. Performing Hanuman Chalisa chanting, Mangal Gayatri, or Kumbh Vivah provides powerful spiritual pacification."
+
+    # 8. Nadi Analysis
+    if not nadi_has_dosha or nadi_is_cancelled:
+        nadi_text = f"{nadi_reason}. Pranic vitality and genetic energies flow smoothly, supporting vitality, mental calmness, and healthy progeny."
+    else:
+        nadi_text = f"{nadi_reason}. Recommended to perform Maha Mrityunjaya Japa and donate gold or clothes to harmonize genetic prana."
+
+    # 9. Bhakoot Analysis
+    if not bhakoot_has_dosha:
+        bhak_text = f"{bhakoot_reason}. The planetary angular disposition between Moon signs fosters enduring mutual affection and family welfare."
+    else:
+        bhak_text = f"{bhakoot_reason}. Regular joint prayers to Lord Shiva and Maa Parvati foster domestic tranquility and emotional bonding."
+
+    # 10. Family & Married Life
+    gana_pts = gana_koota.get("obtainedPoints", 3)
+    if gana_pts >= 5:
+        fam_text = f"The union between {p1_name} and {p2_name} is blessed with strong domestic harmony, shared moral values, and respectful collaboration between both families."
+    else:
+        fam_text = f"The marriage between {p1_name} and {p2_name} flourishes as both partners cultivate healthy family boundaries and honor each other's lifestyle traditions."
+
+    # 11. Wealth & Prosperity
+    if score >= 21:
+        wealth_text = f"Planetary 2nd, 7th, and 11th house synergy suggests joint financial accumulation, steady property gains, and progressive career advancement following marriage."
+    else:
+        wealth_text = f"Financial success for {p1_name} and {p2_name} will grow steadily through prudent joint budgeting, shared goals, and collaborative investments."
+
+    # 12. Major Strengths
+    strengths = [
+        f"Harmonious mental rapport and mutual respect between {p1_name} and {p2_name}",
+        "Balanced life outlook with genuine dedication to long-term companionship"
+    ]
+    if score >= 21:
+        strengths.append(f"Favorable Ashta Koota score of {score}/36 supporting domestic happiness")
+    if is_neutralized:
+        strengths.append("Clean or mutually neutralized Manglik axis ensuring peaceful companionship")
+    if not nadi_has_dosha or nadi_is_cancelled:
+        strengths.append("Auspicious Nadi bio-energy alignment supporting health and vitality")
+
+    # 13. Major Challenges
+    challenges = []
+    if not is_neutralized:
+        challenges.append("Managing Mars energy disparities during moments of hasty decision-making")
+    if bhakoot_has_dosha:
+        challenges.append("Navigating different emotional pacing and domestic expectation cycles")
+    if nadi_has_dosha and not nadi_is_cancelled:
+        challenges.append("Attending to mutual health vitality and energetic wellness routines")
+    if len(challenges) < 2:
+        challenges.append("Balancing individual career ambitions with shared household time")
+        challenges.append("Maintaining open communication during busy professional cycles")
+
+    # 14. Conflict Resolution
+    resolutions = [
+        "Practice daily transparent dialogue before finalizing major lifestyle or financial choices",
+        "Set aside device-free quality time each week for emotional connection and relaxation"
+    ]
+    if not is_neutralized or bhakoot_has_dosha:
+        resolutions.append("Pause and de-escalate discussions during tense moments, revisiting topics with calm perspective")
+
+    # 15. Vedic Remedies
+    remedies = [
+        "Perform joint archana to Lord Shiva and Goddess Parvati on Shukla Paksha Mondays",
+        "Recite the sacred mantra 'Om Lakshmi-Narayanaya Namaha' together 21 times on Fridays"
+    ]
+    if not is_neutralized:
+        remedies.append("Chant Hanuman Chalisa on Tuesdays and offer red flowers or jaggery in charity")
+    elif nadi_has_dosha:
+        remedies.append("Recite Maha Mrityunjaya Mantra together for health protection and bio-pranic harmony")
+
+    # 16. Final Assessment
+    final_assess = f"A promising Vedic Kundli Milan for {p1_name} and {p2_name}. By honoring mutual individuality, maintaining open dialogue, and following suggested Vedic upayas, both partners will experience a deeply fulfilling, prosperous, and enduring marriage."
 
     return {
-        "overall_compatibility": f"The astrological synastry between {p1_name} and {p2_name} yields an Ashta Koota compatibility score of {score}/{max_score} Gunas ({percentage}%), classified as {verdict}. {summary}",
-        "guna_milan": f"With {score} out of 36 points obtained, the alignment indicates strong celestial harmony across mental, biological, and spiritual domains.",
-        "psychological_affinity": f"{p1_name} and {p2_name} share complementary psychological inclinations, enabling fluid communication, mutual respect, and shared vision for life.",
-        "emotional_resonance": "Both partners share an emotionally supportive dynamic, allowing them to de-escalate tension effortlessly with patience and empathy.",
-        "karmic_bond": f"This alliance between {p1_name} and {p2_name} reflects auspicious karmic merit (Purva Punya), bringing natural companionship and enduring loyalty.",
-        "physical_harmonization": "The physiological and instinctual matrix (Yoni Koota) signals genuine warmth, comforting intimacy, and mutual care.",
-        "manglik_dosha": f"{manglik_exp} Recommended remedies ensure marital tranquility and protection against impulsive friction.",
-        "nadi_analysis": f"{nadi_reason}. The pranic flow fosters physiological harmony, hereditary vitality, and supportive health dynamics.",
-        "bhakoot_analysis": f"{bhakoot_reason}. The planetary angular configuration supports emotional closeness, affection, and sustained domestic prosperity.",
-        "family_and_married_life": f"The union between {p1_name} and {p2_name} promises profound domestic bliss, family harmony, and respectful collaboration between both families.",
-        "wealth_and_prosperity": "Planetary 2nd, 7th, and 11th house alignments indicate joint prosperity, real estate stability, and progressive financial growth after marriage.",
-        "major_strengths": [
-            f"Strong emotional and mental alignment between {p1_name} and {p2_name}",
-            "High mutual respect, loyalty, and enduring commitment to shared goals",
-            "Favorable joint financial prospects and domestic tranquility",
-            "Harmonious physiological compatibility and spiritual accord"
-        ],
-        "major_challenges": [
-            "Differing stress-response styles during fast-paced decision making",
-            "Occasional communication delays during heavy professional cycles",
-            "Need for balanced boundary setting with extended family obligations"
-        ],
-        "conflict_resolution": [
-            "Practice open and empathetic dialogue before making major financial or lifestyle decisions",
-            "Dedicate daily quality time without digital distractions for mutual bonding",
-            "Seek guidance during stressful transits with patience and mutual understanding"
-        ],
-        "vedic_remedies": [
-            "Perform a joint Shiva-Parvati or Gauri-Shankar archana on Shukla Paksha Mondays",
-            "Recite 'Om Lakshmi Narayanaya Namaha' 21 times together each Friday",
-            "Place a pair of loving Rose Quartz figurines or sacred silver coin in the Northeast (Ishanya) corner"
-        ],
-        "final_assessment": f"A promising Vedic Kundli Milan for {p1_name} and {p2_name}. By honoring individual karmic paths and practicing the suggested Vedic remedies, both partners will enjoy a flourishing, prosperous, and blissful companionship."
+        "overall_compatibility": overall_core,
+        "guna_milan": guna_text,
+        "psychological_affinity": psych_text,
+        "emotional_resonance": emot_text,
+        "karmic_bond": karmic_text,
+        "physical_harmonization": phys_text,
+        "manglik_dosha": mang_text,
+        "nadi_analysis": nadi_text,
+        "bhakoot_analysis": bhak_text,
+        "family_and_married_life": fam_text,
+        "wealth_and_prosperity": wealth_text,
+        "major_strengths": strengths[:4],
+        "major_challenges": challenges[:3],
+        "conflict_resolution": resolutions[:3],
+        "vedic_remedies": remedies[:3],
+        "final_assessment": final_assess,
     }
 
 
