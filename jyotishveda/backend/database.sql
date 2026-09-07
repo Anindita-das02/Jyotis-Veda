@@ -20,6 +20,9 @@ CREATE TABLE IF NOT EXISTS users (
   full_name     VARCHAR(150)  NOT NULL,
   role          ENUM('user','admin') NOT NULL DEFAULT 'user',
   is_active     TINYINT(1)    NOT NULL DEFAULT 1,
+  address       VARCHAR(255)  NULL,
+  latitude      DECIMAL(9,6)  NULL,
+  longitude     DECIMAL(9,6)  NULL,
   created_at    TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at    TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   INDEX idx_users_email (email)
@@ -161,19 +164,23 @@ CREATE PROCEDURE IF NOT EXISTS sp_user_ops(
     IN p_id CHAR(36), 
     IN p_email VARCHAR(255), 
     IN p_password_hash VARCHAR(255), 
-    IN p_full_name VARCHAR(150)
+    IN p_full_name VARCHAR(150),
+    IN p_address VARCHAR(255),
+    IN p_latitude DECIMAL(9,6),
+    IN p_longitude DECIMAL(9,6)
 )
 BEGIN
     IF p_action = 'create' THEN
-        INSERT INTO users (id, email, password_hash, full_name) VALUES (p_id, p_email, p_password_hash, p_full_name);
-        SELECT id, email, full_name, role, created_at FROM users WHERE id = p_id;
+        INSERT INTO users (id, email, password_hash, full_name, address, latitude, longitude) 
+        VALUES (p_id, p_email, p_password_hash, p_full_name, p_address, p_latitude, p_longitude);
+        SELECT id, email, full_name, role, address, latitude, longitude, created_at FROM users WHERE id = p_id;
     ELSEIF p_action = 'get_by_email' THEN
-        SELECT id, email, password_hash, full_name, role, is_active FROM users WHERE email = p_email;
+        SELECT id, email, password_hash, full_name, role, is_active, address, latitude, longitude FROM users WHERE email = p_email;
     ELSEIF p_action = 'get_by_id' THEN
-        SELECT id, email, full_name, role, is_active, created_at FROM users WHERE id = p_id;
+        SELECT id, email, full_name, role, is_active, address, latitude, longitude, created_at FROM users WHERE id = p_id;
     ELSEIF p_action = 'update' THEN
         UPDATE users SET full_name = p_full_name WHERE id = p_id;
-        SELECT id, email, full_name, role, created_at FROM users WHERE id = p_id;
+        SELECT id, email, full_name, role, address, latitude, longitude, created_at FROM users WHERE id = p_id;
     END IF;
 END //
 
@@ -378,6 +385,7 @@ CREATE TABLE IF NOT EXISTS zodiac_signs (
 
 DELIMITER //
 
+DROP PROCEDURE IF EXISTS sp_zodiac_ops;
 CREATE PROCEDURE sp_zodiac_ops(
     IN p_action VARCHAR(50),
     IN p_id VARCHAR(20)
@@ -431,7 +439,7 @@ CREATE TABLE IF NOT EXISTS relationships (
 -- Make sure this column is added:
 -- ALTER TABLE nodes ADD COLUMN properties JSON NULL;
 
-DELIMITER 
+DELIMITER //
 CREATE PROCEDURE IF NOT EXISTS sp_get_nodes(
     IN p_type VARCHAR(30),
     IN p_search VARCHAR(255)
@@ -445,10 +453,10 @@ BEGIN
         AND
         (p_search IS NULL OR p_search = '' OR LOWER(title) LIKE CONCAT('%', LOWER(p_search), '%') OR LOWER(title_native) LIKE CONCAT('%', LOWER(p_search), '%'))
     ORDER BY title;
-END
+END //
 DELIMITER ;
 
-DELIMITER 
+DELIMITER //
 CREATE PROCEDURE IF NOT EXISTS sp_get_node(
     IN p_node_id VARCHAR(50)
 )
@@ -456,10 +464,10 @@ BEGIN
     SELECT id, type, title, title_native, description, created_at, updated_at, properties
     FROM nodes
     WHERE id = p_node_id;
-END
+END //
 DELIMITER ;
 
-DELIMITER 
+DELIMITER //
 CREATE PROCEDURE IF NOT EXISTS sp_get_node_relationships(
     IN p_node_id VARCHAR(50)
 )
@@ -470,14 +478,14 @@ BEGIN
     JOIN nodes n ON n.id = r.target_id
     WHERE r.source_id = p_node_id
     ORDER BY r.id;
-END
+END //
 DELIMITER ;
 
-DELIMITER 
+DELIMITER //
 CREATE PROCEDURE IF NOT EXISTS sp_get_stats()
 BEGIN
     SELECT
         (SELECT COUNT(*) FROM nodes) AS nodes,
         (SELECT COUNT(*) FROM relationships) AS relationships;
-END
+END //
 DELIMITER ;

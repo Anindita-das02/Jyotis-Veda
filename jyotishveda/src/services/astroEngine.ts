@@ -1039,7 +1039,7 @@ export function getDailyPanchang(dateOrLat?: Date | number, lng?: number, apiDat
     nakshatraEnd: 'Backend IST',
     yoga: yoga,
     karana: karana,
-    solarSign: ZODIAC_SIGNS[(Math.floor(dayOfYear / 30.5) + 4) % 12].sanskrit,
+    solarSign: apiData && apiData.sunLongitude !== undefined ? ZODIAC_SIGNS[Math.floor(apiData.sunLongitude / 30) % 12].sanskrit : ZODIAC_SIGNS[(Math.floor(dayOfYear / 30.5) + 4) % 12].sanskrit,
     lunarSign: ZODIAC_SIGNS[lunarSignIdx].sanskrit,
     sunrise: sunriseStr,
     sunset: sunsetStr,

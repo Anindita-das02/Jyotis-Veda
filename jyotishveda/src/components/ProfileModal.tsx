@@ -84,15 +84,28 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
   const handleLocationSearch = async (query: string) => {
     if (!query.trim()) return;
     setIsSearchingLocation(true);
+    
+    // Split the query by commas so we can progressively shorten it if Nominatim fails
+    let parts = query.split(',').map(p => p.trim()).filter(Boolean);
+    
     try {
-      const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=1`);
-      const data = await res.json();
-      if (data && data.length > 0) {
-        setLatitude(parseFloat(data[0].lat));
-        setLongitude(parseFloat(data[0].lon));
-      } else {
-        alert("Location not found. Please try adding more details (e.g., 'Nandigram, West Bengal').");
+      while (parts.length > 0) {
+        const currentQuery = parts.join(', ');
+        const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(currentQuery)}&format=json&limit=1`);
+        const data = await res.json();
+        
+        if (data && data.length > 0) {
+          setLatitude(parseFloat(data[0].lat));
+          setLongitude(parseFloat(data[0].lon));
+          return; // Success, exit
+        }
+        
+        // If not found, remove the most specific part (the first part) and try again
+        parts.shift();
       }
+      
+      // If we exhausted all parts and still nothing
+      alert("Location not found. Please try providing just the city and state (e.g., 'Kolkata, West Bengal').");
     } catch (err) {
       console.error('Failed to fetch location coordinates', err);
     } finally {

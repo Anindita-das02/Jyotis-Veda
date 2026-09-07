@@ -3,6 +3,7 @@ import re
 from flask import request, jsonify
 from mysql.connector import IntegrityError
 
+from geopy.geocoders import Nominatim
 from database.db_connection import call_procedure
 from utils.security import hash_password, verify_password, issue_token
 
@@ -18,6 +19,7 @@ def register():
     email = (body.get("email") or "").strip().lower()
     password = body.get("password") or ""
     full_name = (body.get("fullName") or "").strip()
+    address = (body.get("address") or "").strip()
 
     if not EMAIL_RE.match(email):
         return _error("A valid email is required", "INVALID_EMAIL")
@@ -25,12 +27,35 @@ def register():
         return _error("Password must be at least 8 characters", "WEAK_PASSWORD")
     if not full_name:
         return _error("Full name is required", "INVALID_NAME")
+    if not address:
+        return _error("Full address is required", "INVALID_ADDRESS")
+
+    # Geocode address
+    latitude = None
+    longitude = None
+    try:
+        geolocator = Nominatim(user_agent="jyotishveda-app")
+        parts = [p.strip() for p in address.split(',') if p.strip()]
+        
+        while parts:
+            current_query = ', '.join(parts)
+            location = geolocator.geocode(current_query)
+            if location:
+                latitude = location.latitude
+                longitude = location.longitude
+                break
+            # If not found, remove the most specific part (the first part) and try again
+            parts.pop(0)
+    except Exception as e:
+        print("Geocoding error:", e)
+        # We can either fail registration or proceed with None coordinates.
+        # Requirements imply coords are used later. If it fails, we keep it None.
 
     user_id = str(uuid.uuid4())
     password_hash = hash_password(password)
 
     try:
-        rows = call_procedure("sp_user_ops", ['create', user_id, email, password_hash, full_name])
+        rows = call_procedure("sp_user_ops", ['create', user_id, email, password_hash, full_name, address, latitude, longitude])
     except IntegrityError:
         return _error("An account with this email already exists", "EMAIL_TAKEN", 409)
 
@@ -49,6 +74,9 @@ def register():
                 "email": email,
                 "fullName": user["full_name"],
                 "role": user["role"],
+                "address": user.get("address"),
+                "latitude": float(user["latitude"]) if user.get("latitude") is not None else None,
+                "longitude": float(user["longitude"]) if user.get("longitude") is not None else None,
             },
         },
     }), 201
@@ -59,7 +87,7 @@ def login():
     email = (body.get("email") or "").strip().lower()
     password = body.get("password") or ""
 
-    rows = call_procedure("sp_user_ops", ['get_by_email', '', email, '', ''])
+    rows = call_procedure("sp_user_ops", ['get_by_email', '', email, '', '', '', None, None])
     if not rows:
         return _error("Invalid email or password", "INVALID_CREDENTIALS", 401)
 
@@ -80,13 +108,16 @@ def login():
                 "email": user["email"],
                 "fullName": user["full_name"],
                 "role": user["role"],
+                "address": user.get("address"),
+                "latitude": float(user["latitude"]) if user.get("latitude") is not None else None,
+                "longitude": float(user["longitude"]) if user.get("longitude") is not None else None,
             },
         },
     })
 
 
 def me(user_id):
-    rows = call_procedure("sp_user_ops", ['get_by_id', user_id, '', '', ''])
+    rows = call_procedure("sp_user_ops", ['get_by_id', user_id, '', '', '', '', None, None])
     if not rows:
         return _error("User not found", "NOT_FOUND", 404)
 
@@ -98,6 +129,9 @@ def me(user_id):
             "email": user["email"],
             "fullName": user["full_name"],
             "role": user["role"],
+            "address": user.get("address"),
+            "latitude": float(user["latitude"]) if user.get("latitude") is not None else None,
+            "longitude": float(user["longitude"]) if user.get("longitude") is not None else None,
             "createdAt": user["created_at"].isoformat() if user.get("created_at") else None,
         },
     })

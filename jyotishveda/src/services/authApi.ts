@@ -6,6 +6,9 @@ export interface AuthUser {
   email: string;
   fullName: string;
   role: 'user' | 'admin';
+  address?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
 }
 
 interface AuthResponse {
@@ -17,11 +20,13 @@ export async function register(
   email: string,
   password: string,
   fullName: string,
+  address: string,
 ): Promise<AuthUser> {
   const data = await api.post<AuthResponse>(API_ENDPOINTS.AUTH.REGISTER, {
     email,
     password,
     fullName,
+    address,
   });
   // Token is only set upon explicit login
   return data.user;

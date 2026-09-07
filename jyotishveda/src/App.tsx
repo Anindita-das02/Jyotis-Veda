@@ -489,10 +489,10 @@ export function App() {
         gender: (registrationDetails.gender as any) || 'male',
         birthDate: registrationDetails.birthDate || '2000-06-15',
         birthTime: registrationDetails.birthTime || '',
-        birthPlace: registrationDetails.birthPlace || 'Kolkata, West Bengal, India',
-        latitude: cityMatch?.lat || DEFAULT_PROFILES[0].latitude,
-        longitude: cityMatch?.lng || DEFAULT_PROFILES[0].longitude,
-        timezone: cityMatch?.tz || DEFAULT_PROFILES[0].timezone,
+        birthPlace: registrationDetails.birthPlace || user.address || 'Kolkata, West Bengal, India',
+        latitude: user.latitude ?? cityMatch?.lat ?? DEFAULT_PROFILES[0].latitude,
+        longitude: user.longitude ?? cityMatch?.lng ?? DEFAULT_PROFILES[0].longitude,
+        timezone: cityMatch?.tz ?? DEFAULT_PROFILES[0].timezone,
         createdAt: new Date().toISOString(),
       };
       

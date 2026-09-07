@@ -314,7 +314,7 @@ export function AuthGate({
     try {
       if (mode === 'register') {
         // 1. Only create/register the account in DB
-        await register(email, password, fullName);
+        await register(email, password, fullName, birthPlace);
         setSuccessMessage('Account created successfully! Please enter your password to log in.');
         setJustRegistered(true);
         setMode('login');
@@ -632,11 +632,11 @@ export function AuthGate({
                     </div>
                   </div>
 
-                  {/* Birth Place Manual Input */}
+                  {/* Birth Place / Address Manual Input */}
                   <div>
                     <label className={`block text-[10px] font-bold mb-0.5 flex items-center space-x-1 ${isDark ? 'text-[#C9A050]' : 'text-[#8C6B28]'}`}>
                       <MapPin className="w-3 h-3" />
-                      <span>Birth Place</span>
+                      <span>Birth Place / Full Address</span>
                     </label>
                     <div className="relative">
                       <MapPin className="absolute left-2.5 top-2 w-3.5 h-3.5 text-gray-400" />
@@ -645,7 +645,7 @@ export function AuthGate({
                         required
                         value={birthPlace}
                         onChange={(e) => setBirthPlace(e.target.value)}
-                        placeholder="e.g. Kolkata, West Bengal, India"
+                        placeholder="e.g. 123 Main St, New Delhi, India"
                         className={`w-full pl-8 pr-2.5 py-1.5 border rounded-xl text-xs font-medium focus:outline-none focus:border-[#C9A050] ${
                           isDark
                             ? 'bg-[#1A1A1E] border-[#2A2A2E] text-white placeholder-gray-500'
