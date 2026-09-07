@@ -2,6 +2,7 @@ import os
 import requests
 import json
 import concurrent.futures
+from datetime import datetime
 
 
 class LLMError(Exception):
@@ -773,14 +774,33 @@ def get_interpret_response(
     dashas = chart_data.get("dashas", [])
     maha_dasha = "Unknown"
     antar_dasha = "Unknown"
+    today_str = datetime.now().strftime("%Y-%m-%d")
+
     for d in dashas:
-        if d.get("isCurrent"):
+        start_str = str(d.get("startDate", ""))[:10]
+        end_str   = str(d.get("endDate", ""))[:10]
+        is_current_md = d.get("isCurrent") or (start_str and end_str and start_str <= today_str <= end_str)
+
+        if is_current_md:
             maha_dasha = d.get("planet", "Unknown")
-            for sub in d.get("subPeriods", []):
-                if sub.get("isCurrent"):
+            sub_list = d.get("subPeriods") or d.get("antardashas") or []
+            for sub in sub_list:
+                s_start = str(sub.get("startDate", ""))[:10]
+                s_end   = str(sub.get("endDate", ""))[:10]
+                is_current_ad = sub.get("isCurrent") or (s_start and s_end and s_start <= today_str <= s_end)
+                if is_current_ad:
                     antar_dasha = sub.get("planet", "Unknown")
                     break
+            if antar_dasha == "Unknown" and sub_list:
+                antar_dasha = sub_list[0].get("planet", "Unknown")
             break
+
+    # If still not found and dashas exist, fallback to the first active period
+    if maha_dasha == "Unknown" and dashas:
+        maha_dasha = dashas[0].get("planet", "Unknown")
+        sub_list = dashas[0].get("subPeriods") or dashas[0].get("antardashas") or []
+        if sub_list:
+            antar_dasha = sub_list[0].get("planet", "Unknown")
     
     def fetch_part(system_prompt):
         history = [{"role": "user", "content": f"Analyze my chart using {tradition}."}]

@@ -274,6 +274,19 @@ export function calculateVedicChart(profile?: UserProfile, ephemerisData?: any):
       dignity,
       gemstone: p.gemstone,
       element: p.element,
+      // KP Sub-Lord: derived from the fractional position within the nakshatra (13°20' span)
+      // The 9 KP sub-lords divide each nakshatra in Vimshottari dasha sequence order
+      kpSubLord: (() => {
+        const KP_SEQ = ['Ketu','Venus','Sun','Moon','Mars','Rahu','Jupiter','Saturn','Mercury'];
+        const lordStartIdx: Record<string, number> = {
+          'Ketu':0,'Venus':1,'Sun':2,'Moon':3,'Mars':4,'Rahu':5,'Jupiter':6,'Saturn':7,'Mercury':8
+        };
+        const NAK_SPAN = 360 / 27; // 13.333...°
+        const posInNak = totDeg % NAK_SPAN;  // 0 to 13.333
+        const subLordIdx = Math.floor((posInNak / NAK_SPAN) * 9) % 9;
+        const startIdx = lordStartIdx[NAKSHATRAS[nakIdx].lord] ?? 0;
+        return KP_SEQ[(startIdx + subLordIdx) % 9];
+      })(),
     };
   });
 

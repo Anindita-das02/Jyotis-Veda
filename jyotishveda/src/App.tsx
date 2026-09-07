@@ -260,33 +260,24 @@ export function App() {
 
         const data = await response.json();
 
-        if (
-          data &&
-          data.status === 'success' &&
-          active
-        ) {
-          const fullChart = calculateVedicChart(
-            currentProfile,
-            data.data
-          );
-
-          setChartData(fullChart);
+        if (data && data.status === 'success' && active) {
+          // Backend now returns a FULLY ASSEMBLED chart (planets, houses, dashas, etc.)
+          // No frontend mapping needed — use it directly.
+          setChartData(data.data);
         }
       } catch (err) {
         console.error(
-          'Failed to load real ephemeris data',
+          'Failed to load chart from backend, using frontend fallback',
           err
         );
-
+        // Offline / server-down fallback only
         if (active) {
-          setChartData(
-            calculateVedicChart(currentProfile)
-          );
+          setChartData(calculateVedicChart(currentProfile));
         }
       }
     };
 
-    // Set immediate fallback on profile change, then fetch
+    // Immediate local fallback while the API call is in-flight
     setChartData(calculateVedicChart(currentProfile));
     loadRealChart();
 

@@ -36,6 +36,7 @@ export interface PlanetPosition {
   pada: number; // 1 to 4
   dignity: 'Exalted' | 'Moolatrikona' | 'Own' | 'Friendly' | 'Neutral' | 'Enemy' | 'Debilitated';
   karaka?: string; // Jaimini Chara Karaka (AK, AmK, BK, MK, PK, GK, DK)
+  kpSubLord?: string; // KP System Sub-Lord
   gemstone: string;
   element: string;
 }

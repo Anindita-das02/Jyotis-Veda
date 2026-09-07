@@ -713,53 +713,108 @@ export const HoroscopeTraditionsView: React.FC<
   };
 
   // --------------------------------------------------
-  // EAST INDIAN CHART
+  // --------------------------------------------------
+  // EAST INDIAN CHART (12-Box Perimeter Layout / Surya Chakra)
   // --------------------------------------------------
 
   const renderEastIndianChart = () => {
-    return (
-      <div className="w-full max-w-[380px] aspect-square mx-auto bg-[#08080A] rounded-xl border border-[#C9A050]/40 p-3 shadow-2xl flex flex-col items-center justify-center select-none text-center">
-        <div className="text-xs font-serif font-bold text-[#C9A050] mb-2">
-          East Indian (Rashi Chakra) Layout
-        </div>
+    // Standard East Indian (Surya Chakra / Bengali style):
+    // 12 outer boxes along the perimeter with a 2x2 center.
+    // Fixed Rashis running Counter-Clockwise starting from Aries (Mesha, 0) at top:
+    // Row 0: Taurus (1), Aries (0), Pisces (11), Aquarius (10)
+    // Row 1: Gemini (2), [Center], [Center], Capricorn (9)
+    // Row 2: Cancer (3), [Center], [Center], Sagittarius (8)
+    // Row 3: Leo (4), Virgo (5), Libra (6), Scorpio (7)
+    const eastGridSignIndices = [
+      [1, 0, 11, 10],
+      [2, -1, -1, 9],
+      [3, -1, -1, 8],
+      [4, 5, 6, 7],
+    ];
 
-        <div className="grid grid-cols-3 gap-2 w-full h-[85%]">
-          {chartData.houses
-            .slice(0, 9)
-            .map((h) => (
+    return (
+      <div className="w-full max-w-[380px] aspect-square mx-auto bg-[#08080A] rounded-xl border border-[#C9A050]/40 p-2 shadow-2xl grid grid-cols-4 grid-rows-4 gap-1 select-none">
+        {eastGridSignIndices.map((row, rIdx) =>
+          row.map((signIdx, cIdx) => {
+            if (signIdx === -1) {
+              if (rIdx === 1 && cIdx === 1) {
+                return (
+                  <div
+                    key={`${rIdx}-${cIdx}`}
+                    className="col-span-2 row-span-2 bg-[#141418] border border-[#C9A050]/30 rounded-lg flex flex-col items-center justify-center p-2 text-center"
+                  >
+                    <span className="text-[#C9A050] font-serif font-bold text-xs">
+                      East Indian Kundli
+                    </span>
+                    <span className="text-[10px] text-[#9E9A90] mt-1">
+                      Lagna: {chartData.ascendant.signName} (H1)
+                    </span>
+                    <span className="text-[9px] text-[#C9A050]/80 mt-1 font-mono">
+                      12 Fixed Rashis (Anti-Clockwise)
+                    </span>
+                  </div>
+                );
+              }
+              return null;
+            }
+
+            const houseMatchingSign = chartData.houses.find(
+              (h) => h.signIndex === signIdx
+            );
+
+            const isLagnaSign =
+              chartData.ascendant.signIndex === signIdx;
+
+            const planetsInSign = chartData.planets.filter(
+              (p) => p.signIndex === signIdx
+            );
+
+            const isSelected =
+              selectedHouse?.signIndex === signIdx;
+
+            return (
               <div
-                key={h.houseNumber}
-                onClick={() => setSelectedHouse(h)}
-                className={`p-2 border rounded-lg flex flex-col justify-between cursor-pointer text-xs ${
-                  selectedHouse?.houseNumber ===
-                  h.houseNumber
+                key={`${rIdx}-${cIdx}`}
+                onClick={() =>
+                  houseMatchingSign && setSelectedHouse(houseMatchingSign)
+                }
+                className={`border rounded p-1 flex flex-col justify-between cursor-pointer transition ${
+                  isSelected
                     ? 'border-[#C9A050] bg-[#C9A050]/15'
-                    : 'border-[#2A2A2E] bg-[#141418] hover:bg-[#1A1A1E]'
+                    : isLagnaSign
+                    ? 'border-[#C9A050]/60 bg-[#C9A050]/10'
+                    : 'border-[#2A2A2E] bg-[#141418]/60 hover:bg-[#1A1A1E]'
                 }`}
               >
-                <div className="flex justify-between text-[10px] font-bold">
-                  <span className="text-[#C9A050] font-serif">
-                    Bhava {h.houseNumber}
+                <div className="flex justify-between items-center text-[9px] font-bold">
+                  <span
+                    className={
+                      isLagnaSign ? 'text-[#C9A050]' : 'text-[#9E9A90]'
+                    }
+                  >
+                    {isLagnaSign
+                      ? 'ASC/L'
+                      : `H${houseMatchingSign?.houseNumber || ''}`}
                   </span>
 
-                  <span className="text-[#9E9A90]">
-                    {h.signName.slice(0, 3)}
+                  <span className="text-[#C9A050]/80 font-mono text-[8.5px]">
+                    {signIdx + 1}
                   </span>
                 </div>
 
-                <div className="flex flex-wrap gap-1 justify-center my-1">
-                  {h.planets.map((p) => (
-                    <span
+                <div className="flex flex-wrap gap-0.5 justify-center py-0.5">
+                  {planetsInSign.map((p) => (
+                    <PlanetBadge
                       key={p.id}
-                      className="text-[10px] font-bold text-[#E5E1D8] bg-[#1A1A1E] px-1 rounded border border-[#C9A050]/30"
-                    >
-                      {p.name.slice(0, 2)}
-                    </span>
+                      p={p}
+                      isDiamond
+                    />
                   ))}
                 </div>
               </div>
-            ))}
-        </div>
+            );
+          })
+        )}
       </div>
     );
   };
@@ -1172,6 +1227,12 @@ export const HoroscopeTraditionsView: React.FC<
                   {tradition === 'jaimini' && (
                     <th className="pb-2.5 px-2">Chara Karaka</th>
                   )}
+                  {tradition === 'kp_system' && (
+                    <>
+                      <th className="pb-2.5 px-2 text-[#C9A050]">Star Lord</th>
+                      <th className="pb-2.5 px-2 text-[#9E9A90]">Sub-Lord</th>
+                    </>
+                  )}
                   <th className="pb-2.5 pr-3 pl-2">Gemstone</th>
                 </tr>
               </thead>
@@ -1233,6 +1294,21 @@ export const HoroscopeTraditionsView: React.FC<
                         <td className="py-2.5 px-2 text-[#C9A050] font-medium font-serif whitespace-nowrap">
                           {p.karaka || '-'}
                         </td>
+                      )}
+
+                      {tradition === 'kp_system' && (
+                        <>
+                          <td className="py-2.5 px-2 whitespace-nowrap">
+                            <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-[#C9A050]/15 text-[#C9A050] border border-[#C9A050]/30">
+                              {p.nakshatraLord}
+                            </span>
+                          </td>
+                          <td className="py-2.5 px-2 whitespace-nowrap">
+                            <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-[#9E9A90]/10 text-[#9E9A90] border border-[#9E9A90]/30">
+                              {p.kpSubLord || '-'}
+                            </span>
+                          </td>
+                        </>
                       )}
 
                       <td className="py-2.5 pr-3 pl-2 text-[11px] text-[#9E9A90] whitespace-nowrap">
