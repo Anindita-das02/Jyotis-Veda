@@ -6,8 +6,12 @@ from datetime import datetime, timezone
 from typing import Any, Dict, Optional, Tuple, List
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
-from geopy.geocoders import Nominatim
-from timezonefinder import TimezoneFinder
+try:
+    from geopy.geocoders import Nominatim
+    from timezonefinder import TimezoneFinder
+except ImportError:
+    Nominatim = None
+    TimezoneFinder = None
 
 import swisseph as swe
 from flask import request, jsonify, Response
