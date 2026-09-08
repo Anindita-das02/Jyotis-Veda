@@ -536,7 +536,7 @@ export function App() {
     setAuthUser(user);
   };
 
-  if (!authUser) {
+  if (!authUser || activeTab === 'landing' || activeTab === 'home') {
     return (
       <>
         <LandingPage
@@ -545,6 +545,8 @@ export function App() {
           onOpenDisclaimer={() => setIsDisclaimerModalOpen(true)}
           theme={theme}
           toggleTheme={toggleTheme}
+          authUser={authUser}
+          onGoToDashboard={() => setActiveTab(authUser?.role === 'admin' ? 'admin_dashboard' : 'daily')}
         />
         <AuthGate
           isOpen={showAuthGate}
@@ -593,7 +595,7 @@ export function App() {
       />
 
       {/* Main Container */}
-      <main className="flex-1 w-full px-3 sm:px-6 lg:px-8 py-5 sm:py-8 pb-24 md:pb-8 overflow-x-hidden">
+      <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 pb-24 md:pb-12 overflow-x-hidden">
         <AnimatePresence mode="wait">
           <motion.div
             key={activeTab}

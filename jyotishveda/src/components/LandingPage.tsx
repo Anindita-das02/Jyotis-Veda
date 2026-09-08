@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, MessageSquareText, X, Send, Bot, Lock, Compass, Hash, Milestone, ShieldAlert, Sun, Moon, Home, Globe, Calendar, Play, BookOpen, RotateCcw } from 'lucide-react';
+import { Sparkles, MessageSquareText, X, Send, Bot, Lock, Compass, Hash, Milestone, ShieldAlert, Sun, Moon, Home, Globe, Calendar, Play, BookOpen, RotateCcw, ArrowRight } from 'lucide-react';
 import { useZodiacData } from '../hooks/useZodiacData';
 import { StarfieldBackground } from './StarfieldBackground';
 import { GlobalZodiacView } from './GlobalZodiacView';
@@ -18,9 +18,19 @@ interface LandingPageProps {
   onOpenDisclaimer: () => void;
   theme: 'light' | 'dark';
   toggleTheme: () => void;
+  authUser?: any;
+  onGoToDashboard?: () => void;
 }
 
-export function LandingPage({ onLoginClick, onRegisterClick, onOpenDisclaimer, theme, toggleTheme }: LandingPageProps) {
+export function LandingPage({
+  onLoginClick,
+  onRegisterClick,
+  onOpenDisclaimer,
+  theme,
+  toggleTheme,
+  authUser,
+  onGoToDashboard,
+}: LandingPageProps) {
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [messages, setMessages] = useState<{ role: 'user' | 'assistant', content: string }[]>(() => {
     try {
@@ -290,7 +300,7 @@ export function LandingPage({ onLoginClick, onRegisterClick, onOpenDisclaimer, t
 
       {/* Navigation Bar */}
       <nav className={`sticky top-0 z-50 backdrop-blur-2xl transition-all duration-300 border-b ${theme === 'dark' ? 'bg-[#0D0D0F]/80 border-[#2A2A2E]/50' : 'bg-[#F9F7F1]/80 border-[#E5E1D8]/80'} shadow-sm`}>
-        <div className="w-full px-4 sm:px-6 lg:px-8 max-w-screen-2xl mx-auto">
+        <div className="w-full px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-20">
             {/* Logo */}
             <div
@@ -388,21 +398,33 @@ export function LandingPage({ onLoginClick, onRegisterClick, onOpenDisclaimer, t
                 Blogs
               </button>
 
-              <button
-                onClick={onLoginClick}
-                className={`hidden sm:block px-5 py-2.5 rounded-full font-bold text-[13px] transition-all cursor-pointer border shadow-sm ${theme === 'dark'
-                    ? 'bg-[#141418] border-[#2A2A2E] text-[#E5E1D8] hover:text-[#C9A050] hover:border-[#C9A050]/50'
-                    : 'bg-white border-gray-200 text-[#0D0D0F] hover:text-[#8C6B28] hover:border-[#C9A050]/50'
-                  }`}
-              >
-                Log In
-              </button>
-              <button
-                onClick={onRegisterClick}
-                className="px-6 py-2.5 rounded-full bg-gradient-to-r from-[#C9A050] to-[#8C6B28] text-white font-bold text-[13px] hover:from-[#D4AF37] hover:to-[#A37B2F] transition-all cursor-pointer shadow-[0_0_15px_rgba(201,160,80,0.3)] hover:shadow-[0_0_20px_rgba(201,160,80,0.5)] hover:-translate-y-0.5"
-              >
-                Get Started
-              </button>
+              {authUser ? (
+                <button
+                  onClick={onGoToDashboard}
+                  className="px-5 py-2.5 rounded-full bg-gradient-to-r from-[#C9A050] to-[#8C6B28] text-white font-bold text-[13px] hover:from-[#D4AF37] hover:to-[#A37B2F] transition-all cursor-pointer shadow-[0_0_15px_rgba(201,160,80,0.3)] hover:shadow-[0_0_20px_rgba(201,160,80,0.5)] hover:-translate-y-0.5 flex items-center space-x-1.5"
+                >
+                  <span>Dashboard</span>
+                  <ArrowRight className="w-4 h-4" />
+                </button>
+              ) : (
+                <>
+                  <button
+                    onClick={onLoginClick}
+                    className={`hidden sm:block px-5 py-2.5 rounded-full font-bold text-[13px] transition-all cursor-pointer border shadow-sm ${theme === 'dark'
+                        ? 'bg-[#141418] border-[#2A2A2E] text-[#E5E1D8] hover:text-[#C9A050] hover:border-[#C9A050]/50'
+                        : 'bg-white border-gray-200 text-[#0D0D0F] hover:text-[#8C6B28] hover:border-[#C9A050]/50'
+                      }`}
+                  >
+                    Log In
+                  </button>
+                  <button
+                    onClick={onRegisterClick}
+                    className="px-6 py-2.5 rounded-full bg-gradient-to-r from-[#C9A050] to-[#8C6B28] text-white font-bold text-[13px] hover:from-[#D4AF37] hover:to-[#A37B2F] transition-all cursor-pointer shadow-[0_0_15px_rgba(201,160,80,0.3)] hover:shadow-[0_0_20px_rgba(201,160,80,0.5)] hover:-translate-y-0.5"
+                  >
+                    Get Started
+                  </button>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -472,8 +494,11 @@ export function LandingPage({ onLoginClick, onRegisterClick, onOpenDisclaimer, t
               </p>
 
               <div className="flex flex-col sm:flex-row items-center w-full sm:w-auto space-y-4 sm:space-y-0 sm:space-x-4">
-                <button onClick={onRegisterClick} className="w-full sm:w-auto flex items-center justify-center space-x-2 px-8 py-4 rounded-xl bg-gradient-to-r from-[#C9A050] to-[#8C6B28] text-white font-bold text-base hover:from-[#D4AF37] hover:to-[#A37B2F] transition-all cursor-pointer shadow-[0_0_20px_rgba(201,160,80,0.4)] hover:shadow-[0_0_30px_rgba(201,160,80,0.6)] hover:-translate-y-1">
-                  <span>Unlock Your Future</span>
+                <button
+                  onClick={authUser ? onGoToDashboard : onRegisterClick}
+                  className="w-full sm:w-auto flex items-center justify-center space-x-2 px-8 py-4 rounded-xl bg-gradient-to-r from-[#C9A050] to-[#8C6B28] text-white font-bold text-base hover:from-[#D4AF37] hover:to-[#A37B2F] transition-all cursor-pointer shadow-[0_0_20px_rgba(201,160,80,0.4)] hover:shadow-[0_0_30px_rgba(201,160,80,0.6)] hover:-translate-y-1"
+                >
+                  <span>{authUser ? 'Go to Your Kundli Dashboard' : 'Unlock Your Future'}</span>
                   <Sparkles className="w-4 h-4" />
                 </button>
               </div>
@@ -638,11 +663,19 @@ export function LandingPage({ onLoginClick, onRegisterClick, onOpenDisclaimer, t
         onClose={() => setSelectedFeatureForPreview(null)}
         onLoginClick={() => {
           setSelectedFeatureForPreview(null);
-          onLoginClick();
+          if (authUser && onGoToDashboard) {
+            onGoToDashboard();
+          } else {
+            onLoginClick();
+          }
         }}
         onRegisterClick={() => {
           setSelectedFeatureForPreview(null);
-          onRegisterClick();
+          if (authUser && onGoToDashboard) {
+            onGoToDashboard();
+          } else {
+            onRegisterClick();
+          }
         }}
         theme={theme}
       />
@@ -693,11 +726,15 @@ export function LandingPage({ onLoginClick, onRegisterClick, onOpenDisclaimer, t
                             <button
                               onClick={() => {
                                 setIsChatOpen(false);
-                                onLoginClick();
+                                if (authUser && onGoToDashboard) {
+                                  onGoToDashboard();
+                                } else {
+                                  onLoginClick();
+                                }
                               }}
                               className="mt-1 py-1.5 px-3 rounded-lg bg-[#C9A050] hover:bg-[#D4AF37] text-[#0D0D0F] font-bold text-xs transition shadow-sm cursor-pointer flex items-center justify-center space-x-1"
                             >
-                              <span>Log In to Continue</span>
+                              <span>{authUser ? 'Go to Kundli Dashboard' : 'Log In to Continue'}</span>
                             </button>
                           )}
                         </div>

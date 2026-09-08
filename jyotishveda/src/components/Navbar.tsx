@@ -27,6 +27,7 @@ import {
   Menu,
   X,
   Shield,
+  Home,
 } from 'lucide-react';
 import { UserProfile, HoroscopeTradition } from '../types';
 import { AncientTraditionLogo } from './AncientTraditionLogo';
@@ -146,12 +147,13 @@ export const Navbar: React.FC<NavbarProps> = ({
         }`}
       >
         {/* Main Header Row */}
-        <div className="w-full px-3 sm:px-6 lg:px-8 py-2">
+        <div className="w-full px-4 sm:px-6 lg:px-8 py-2">
           <div className="flex items-center justify-between h-14 sm:h-16">
             {/* Logo & Brand */}
             <div
               className="flex items-center space-x-2.5 sm:space-x-3 cursor-pointer select-none"
-              onClick={() => setActiveTab(isAdmin ? 'admin_dashboard' : 'daily')}
+              onClick={() => setActiveTab('landing')}
+              title={t('tab.home') || 'Home'}
             >
               <AncientTraditionLogo size="sm" isLight={theme === 'light'} />
               <div>
@@ -175,8 +177,25 @@ export const Navbar: React.FC<NavbarProps> = ({
               </div>
             </div>
 
-            {/* Controls: Language Selector, Theme Toggle, Profile Switcher & Mobile Menu Button */}
+            {/* Controls: Home Button, Language Selector, Theme Toggle, Profile Switcher & Mobile Menu Button */}
             <div className="flex items-center space-x-1.5 sm:space-x-2.5">
+              {/* Home Navigation Button */}
+              <button
+                onClick={() => setActiveTab('landing')}
+                title={t('tab.home') || 'Home'}
+                className={`flex items-center space-x-1.5 px-2.5 py-1.5 rounded-lg border text-xs font-semibold transition cursor-pointer shadow-sm ${
+                  activeTab === 'landing' || activeTab === 'home'
+                    ? 'bg-[#C9A050]/20 text-[#C9A050] border-[#C9A050]'
+                    : theme === 'dark'
+                    ? 'bg-[#141418] border-[#2A2A2E] text-[#E5E1D8] hover:border-[#C9A050]/50 hover:bg-[#1A1A1E]'
+                    : 'bg-[#FAF3DF] border-[#DFC896] text-[#2C2825] hover:border-[#C9A050] hover:bg-[#F5E8C8]'
+                }`}
+                aria-label="Home"
+              >
+                <Home className="w-3.5 h-3.5 text-[#C9A050]" />
+                <span className="hidden sm:inline font-semibold">{t('tab.home') || 'Home'}</span>
+              </button>
+
               {/* Multi-Language Selector Dropdown */}
               <div className="relative" ref={langMenuRef}>
                 <button
@@ -369,7 +388,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             theme === 'dark' ? 'border-[#2A2A2E]/60' : 'border-[#DFC896]/50'
           } bg-transparent`}
         >
-          <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2">
+          <div className="w-full px-4 sm:px-6 lg:px-8 py-2">
             <nav
               className="flex items-center justify-center flex-wrap gap-2.5 sm:gap-3"
               aria-label="Secondary Tabs Navigation"

@@ -47,6 +47,7 @@ export const TRANSLATIONS: Record<string, Record<string, string>> = {
     'header.theme_dark': 'Dark Mode',
 
     // Navigation Tabs
+    'tab.home': 'Home',
     'tab.daily': 'Daily Insights',
     'tab.zodiac': 'Global Zodiac & Diaspora',
     'tab.horoscope': 'Birth Chart & Traditions',
@@ -342,6 +343,7 @@ export const TRANSLATIONS: Record<string, Record<string, string>> = {
     'header.theme_dark': 'डार्क मोड',
 
     // Navigation Tabs
+    'tab.home': 'होम',
     'tab.daily': 'दैनिक पंचांग व अंतर्दृष्टि',
     'tab.zodiac': 'वैश्विक राशियां एवं होरोस्कोप',
     'tab.horoscope': 'जन्म कुंडली एवं परंपराएं',
@@ -552,6 +554,7 @@ export const TRANSLATIONS: Record<string, Record<string, string>> = {
     'header.theme_light': 'লাইট মোড',
     'header.theme_dark': 'ডার্ক মোড',
 
+    'tab.home': 'হোম',
     'tab.daily': 'দৈনিক পঞ্জিকা',
     'tab.zodiac': 'গ্লোবাল রাশিফল',
     'tab.horoscope': 'জন্ম কুণ্ডলী ও ধারা',

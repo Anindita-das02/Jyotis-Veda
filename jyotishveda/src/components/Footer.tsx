@@ -23,7 +23,7 @@ export const Footer: React.FC<FooterProps> = ({
           : 'bg-[#060608] text-[#9E9A90]'
       }`}
     >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-4">
+      <div className="w-full px-4 sm:px-6 lg:px-8 space-y-4">
         <div className="flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center space-x-4 text-center md:text-left">
             <AncientTraditionLogo size="md" isLight={theme === 'light'} />

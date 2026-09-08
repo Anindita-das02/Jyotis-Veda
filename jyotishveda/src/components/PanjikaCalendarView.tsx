@@ -320,7 +320,7 @@ export const PanjikaCalendarView: React.FC<PanjikaCalendarViewProps> = ({ theme 
 
   return (
     <div className={`w-full transition-colors duration-300 ${isDark ? 'text-[#E5E1D8]' : 'text-[#0D0D0F]'}`}>
-      <div className="max-w-5xl mx-auto space-y-4">
+      <div className="w-full space-y-4">
         
         {/* Top Control Bar: Compact & Clean */}
         <div className={`p-3 sm:p-4 rounded-2xl border backdrop-blur-xl shadow-md transition-all ${

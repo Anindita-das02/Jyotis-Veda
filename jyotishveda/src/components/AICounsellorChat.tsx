@@ -383,7 +383,7 @@ export const AICounsellorChat: React.FC<AICounsellorChatProps> = ({
   };
 
   return (
-    <div className="space-y-4 max-w-5xl mx-auto font-sans">
+    <div className="space-y-4 w-full font-sans">
       {/* Top Banner */}
       <div className="bg-[#141418] border border-[#2A2A2E] rounded-xl p-5 text-[#E5E1D8] shadow-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center space-x-3.5">
