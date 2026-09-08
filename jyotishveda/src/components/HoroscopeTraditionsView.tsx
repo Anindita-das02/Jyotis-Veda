@@ -6,7 +6,11 @@ import {
   CheckCircle,
   Flame,
   Volume2,
+  Download,
+  FileText,
+  Loader2,
 } from 'lucide-react';
+import { jsPDF } from 'jspdf';
 
 import {
   UserProfile,
@@ -126,6 +130,32 @@ export const HoroscopeTraditionsView: React.FC<
   const [isLoadingAi, setIsLoadingAi] = useState(false);
 
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
+
+  const loadImageBase64 = (url: string): Promise<string | null> => {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.crossOrigin = 'Anonymous';
+      img.onload = () => {
+        try {
+          const canvas = document.createElement('canvas');
+          canvas.width = img.naturalWidth || img.width || 400;
+          canvas.height = img.naturalHeight || img.height || 400;
+          const ctx = canvas.getContext('2d');
+          if (ctx) {
+            ctx.drawImage(img, 0, 0);
+            resolve(canvas.toDataURL('image/jpeg', 0.85));
+            return;
+          }
+        } catch {
+          // Ignore canvas security errors
+        }
+        resolve(null);
+      };
+      img.onerror = () => resolve(null);
+      img.src = url;
+    });
+  };
 
   const t = (key: string) =>
     getTranslation(key, language);
@@ -215,6 +245,471 @@ export const HoroscopeTraditionsView: React.FC<
     setIsPlayingAudio(true);
 
     window.speechSynthesis.speak(utterance);
+  };
+
+  // Comprehensive 5 Vedic Traditions & Birth Chart PDF Report Generator
+  const handleDownloadTraditionsPdf = async () => {
+    setIsGeneratingPdf(true);
+    try {
+      const doc = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4',
+      });
+
+      const pageWidth = doc.internal.pageSize.getWidth(); // 210mm
+      const pageHeight = doc.internal.pageSize.getHeight(); // 297mm
+
+      // Load background assets
+      const bgBase64 = await loadImageBase64('/astrologer_bg.jpg');
+      const logoBase64 = await loadImageBase64('/jyotishveda_logo.png');
+
+      const ascSign = chartData.ascendant?.signName || 'Aries';
+      const ascDeg = chartData.ascendant?.degree !== undefined ? chartData.ascendant.degree.toFixed(2) : '0.00';
+      const ascNak = chartData.ascendant?.nakshatra || 'Ashwini';
+      const moonPlanet = chartData.planets?.find((p) => p.id === 'moon' || p.name?.toLowerCase() === 'moon');
+      const moonSign = moonPlanet?.signName || 'Moon Sign';
+      const moonNak = moonPlanet?.nakshatra ? `${moonPlanet.nakshatra} (Pada ${moonPlanet.pada || 1})` : 'Nakshatra';
+
+      const traditionNames: Record<string, string> = {
+        parashari: 'Parashari Jyotish (Brihat Parashara Hora Shastra)',
+        jaimini: 'Jaimini Sutras (Chara Karaka & Sign Aspects)',
+        lal_kitab: 'Lal Kitab (Palmistry & Planetary Debts)',
+        kp_system: 'KP System (Krishnamurti Padhdhati Placidus Cusps)',
+        bhrigu_nadi: 'Bhrigu Nadi (Nandi Nadi Planetary Combinations)',
+      };
+      const activeTraditionTitle = traditionNames[tradition] || 'Vedic Multi-Tradition Synthesis';
+
+      // --- PAGE 1: NATAL PARTICULARS, PLANETARY EPHEMERIS & 12 HOUSES ---
+      let yPos = 33;
+
+      // 1. Client & Natal Coordinates Box
+      doc.setFillColor(252, 249, 242);
+      doc.setDrawColor(226, 211, 176);
+      doc.setLineWidth(0.4);
+      doc.roundedRect(13, yPos, pageWidth - 26, 24, 2, 2, 'FD');
+      doc.line(pageWidth / 2, yPos, pageWidth / 2, yPos + 24);
+
+      // Left Column
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(7.5);
+      doc.setTextColor(126, 95, 24);
+      doc.text('CLIENT & BIRTH PARTICULARS', 17, yPos + 5.5);
+
+      doc.setFontSize(10);
+      doc.setTextColor(26, 26, 30);
+      doc.text(profile.fullName || 'Vedic Seeker', 17, yPos + 10.5);
+
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(7.2);
+      doc.setTextColor(80, 80, 80);
+      const birthDetails = `Born: ${profile.birthDate || 'N/A'}${profile.birthTime ? ` at ${profile.birthTime}` : ''} | ${profile.birthPlace || 'Global'}`;
+      doc.text(doc.splitTextToSize(birthDetails, (pageWidth - 36) / 2)[0] || '', 17, yPos + 15);
+      doc.text(`System: ${profile.horoscopeSystem === 'western' ? 'Western Tropical (Sayana)' : 'Vedic Sidereal (Nirayana - Lahiri)'}`, 17, yPos + 19.5);
+
+      // Right Column
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(7.5);
+      doc.setTextColor(126, 95, 24);
+      doc.text('CELESTIAL & TRADITION COORDINATES', pageWidth / 2 + 5, yPos + 5.5);
+
+      doc.setFontSize(8.5);
+      doc.setTextColor(26, 26, 30);
+      doc.text(`Lagna: ${ascSign} (${ascDeg}°)  |  Moon: ${moonSign}`, pageWidth / 2 + 5, yPos + 10.5);
+
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(7.2);
+      doc.setTextColor(80, 80, 80);
+      doc.text(`Nakshatra: ${moonNak}  |  Asc: ${ascNak}`, pageWidth / 2 + 5, yPos + 15);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(181, 131, 40);
+      doc.text(`Active Tradition: ${activeTraditionTitle.split('(')[0].trim()}`, pageWidth / 2 + 5, yPos + 19.5);
+
+      yPos += 27;
+
+      // 2. Graha Ephemeris Positions (9 Planets Table)
+      doc.setFillColor(248, 245, 237);
+      doc.setDrawColor(201, 160, 80);
+      doc.setLineWidth(0.4);
+      doc.roundedRect(13, yPos, pageWidth - 26, 70, 1.5, 1.5, 'FD');
+
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(8);
+      doc.setTextColor(126, 95, 24);
+      doc.text('GRAHA EPHEMERIS POSITIONS (NINE PLANETARY COORDINATES)', 17, yPos + 5);
+
+      // Table Header Bar
+      const tableHeaders = ['Planet', 'Sanskrit', 'Sign / Rashi', 'Degree', 'Nakshatra', 'Pada', 'Dignity', 'Motion'];
+      const colWidths = [24, 22, 28, 20, 32, 14, 24, 20];
+      const startX = 13;
+      let headerY = yPos + 8;
+
+      doc.setFillColor(236, 227, 206);
+      doc.rect(startX, headerY, pageWidth - 26, 5.5, 'F');
+      doc.setFontSize(6.8);
+      doc.setTextColor(100, 75, 20);
+
+      let curX = startX + 2;
+      tableHeaders.forEach((th, i) => {
+        doc.text(th, curX, headerY + 3.8);
+        curX += colWidths[i];
+      });
+
+      // Planet Rows
+      doc.setFont('helvetica', 'normal');
+      let rowY = headerY + 5.5;
+      chartData.planets.slice(0, 9).forEach((p, idx) => {
+        if (idx % 2 === 1) {
+          doc.setFillColor(252, 250, 245);
+          doc.rect(startX, rowY, pageWidth - 26, 6, 'F');
+        }
+        doc.setFontSize(6.8);
+        doc.setTextColor(30, 30, 35);
+
+        let cellX = startX + 2;
+        doc.setFont('helvetica', 'bold');
+        doc.text(p.name, cellX, rowY + 4);
+        cellX += colWidths[0];
+
+        doc.setFont('helvetica', 'normal');
+        doc.text(p.sanskritName || p.name, cellX, rowY + 4);
+        cellX += colWidths[1];
+
+        doc.text(`${p.signName} (H${p.house || 1})`, cellX, rowY + 4);
+        cellX += colWidths[2];
+
+        doc.text(`${p.degree.toFixed(2)}°`, cellX, rowY + 4);
+        cellX += colWidths[3];
+
+        doc.text(p.nakshatra || '-', cellX, rowY + 4);
+        cellX += colWidths[4];
+
+        doc.text(`Pada ${p.pada || 1}`, cellX, rowY + 4);
+        cellX += colWidths[5];
+
+        // Dignity with color highlight
+        if (p.dignity?.toLowerCase().includes('exalt')) {
+          doc.setTextColor(34, 139, 34);
+        } else if (p.dignity?.toLowerCase().includes('debilit')) {
+          doc.setTextColor(178, 34, 34);
+        } else {
+          doc.setTextColor(181, 131, 40);
+        }
+        doc.text(p.dignity || 'Neutral', cellX, rowY + 4);
+        doc.setTextColor(30, 30, 35);
+        cellX += colWidths[6];
+
+        doc.text(p.isRetrograde ? 'Retrograde (R)' : 'Direct (D)', cellX, rowY + 4);
+
+        doc.setDrawColor(235, 225, 205);
+        doc.setLineWidth(0.15);
+        doc.line(startX, rowY + 6, pageWidth - 13, rowY + 6);
+
+        rowY += 6;
+      });
+
+      yPos += 74;
+
+      // 3. 12 Bhavas (Houses) Overview Grid
+      doc.setFillColor(252, 249, 242);
+      doc.setDrawColor(201, 160, 80);
+      doc.setLineWidth(0.4);
+      doc.roundedRect(13, yPos, pageWidth - 26, 92, 1.5, 1.5, 'FD');
+
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(8);
+      doc.setTextColor(126, 95, 24);
+      doc.text('TWELVE BHAVAS (HOUSE PARTICULARS & SIGNIFICANCES)', 17, yPos + 5);
+
+      const hHalfW = (pageWidth - 36) / 2;
+      chartData.houses.slice(0, 12).forEach((h, hIdx) => {
+        const isRightCol = hIdx >= 6;
+        const localIdx = isRightCol ? hIdx - 6 : hIdx;
+        const boxX = isRightCol ? pageWidth / 2 + 3 : 16;
+        const boxY = yPos + 8 + localIdx * 13.5;
+
+        doc.setFillColor(248, 244, 235);
+        doc.setDrawColor(226, 211, 176);
+        doc.setLineWidth(0.2);
+        doc.roundedRect(boxX, boxY, hHalfW, 12, 1, 1, 'FD');
+
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(6.8);
+        doc.setTextColor(126, 95, 24);
+        doc.text(`H${h.houseNumber}: ${h.sanskritName || `House ${h.houseNumber}`}`, boxX + 2.5, boxY + 3.8);
+
+        doc.setFontSize(6.5);
+        doc.setTextColor(26, 26, 30);
+        doc.text(`Sign: ${h.signName} (Lord: ${h.signLord})`, boxX + 2.5, boxY + 7.5);
+
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(6);
+        doc.setTextColor(80, 80, 80);
+        const occPlanets = h.planets?.map((p) => p.name).join(', ') || 'No Planets';
+        const subLordText = h.kpSubLord ? ` | Sub-Lord: ${h.kpSubLord}` : '';
+        doc.text(`Occupants: ${occPlanets}${subLordText}`, boxX + 2.5, boxY + 10.5);
+      });
+
+      // --- PAGE 2: YOGAS, DOSHAS, DASHA TIMELINE, AI SYNTHESIS & REMEDIES ---
+      doc.addPage();
+      yPos = 22;
+
+      // 4. Vedic Yogas Box
+      doc.setFillColor(254, 252, 247);
+      doc.setDrawColor(201, 160, 80);
+      doc.setLineWidth(0.4);
+      doc.roundedRect(13, yPos, pageWidth - 26, 42, 1.5, 1.5, 'FD');
+
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(8);
+      doc.setTextColor(126, 95, 24);
+      doc.text('AUSPICIOUS VEDIC YOGAS & CELESTIAL FORMATIONS', 17, yPos + 5);
+
+      if (chartData.yogas && chartData.yogas.length > 0) {
+        chartData.yogas.slice(0, 3).forEach((yoga, yIdx) => {
+          const yOff = yPos + 9 + yIdx * 10.5;
+          doc.setFont('helvetica', 'bold');
+          doc.setFontSize(7.2);
+          doc.setTextColor(181, 131, 40);
+          doc.text(`• ${yoga.name} (${yoga.sanskritName || yoga.name})`, 17, yOff);
+
+          doc.setFont('helvetica', 'normal');
+          doc.setFontSize(6.5);
+          doc.setTextColor(50, 50, 55);
+          const yogaDesc = doc.splitTextToSize(yoga.effects || yoga.description || 'Promotes auspicious spiritual and material elevation.', pageWidth - 40);
+          doc.text(yogaDesc[0] || '', 20, yOff + 4);
+        });
+      } else {
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(7);
+        doc.setTextColor(80, 80, 80);
+        doc.text('Harmonious planetary configurations active across Kendras and Trikonas.', 17, yPos + 12);
+      }
+
+      yPos += 46;
+
+      // 5. Vedic Doshas Box
+      doc.setFillColor(254, 252, 247);
+      doc.setDrawColor(201, 160, 80);
+      doc.setLineWidth(0.4);
+      doc.roundedRect(13, yPos, pageWidth - 26, 38, 1.5, 1.5, 'FD');
+
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(8);
+      doc.setTextColor(126, 95, 24);
+      doc.text('VEDIC DOSHAS & PLANETARY AFFLICTION EVALUATION', 17, yPos + 5);
+
+      if (chartData.doshas && chartData.doshas.length > 0) {
+        chartData.doshas.slice(0, 3).forEach((dosha, dIdx) => {
+          const dOff = yPos + 9 + dIdx * 9.5;
+          doc.setFont('helvetica', 'bold');
+          doc.setFontSize(7.2);
+          doc.setTextColor(dosha.present ? 178 : 34, dosha.present ? 34 : 139, 34);
+          doc.text(`• ${dosha.name}: ${dosha.present ? `Present (${dosha.intensity || 'Moderate'})` : 'Not Afflicted / Absent'}`, 17, dOff);
+
+          doc.setFont('helvetica', 'normal');
+          doc.setFontSize(6.5);
+          doc.setTextColor(60, 60, 65);
+          const doshaDesc = doc.splitTextToSize(dosha.remedies || dosha.description || 'Standard pacification practices recommended.', pageWidth - 40);
+          doc.text(doshaDesc[0] || '', 20, dOff + 3.8);
+        });
+      } else {
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(7);
+        doc.setTextColor(80, 80, 80);
+        doc.text('No severe planetary afflictions identified; standard daily Japa maintains equilibrium.', 17, yPos + 12);
+      }
+
+      yPos += 42;
+
+      // 6. Vimshottari Dasha Timeline Box
+      doc.setFillColor(252, 249, 242);
+      doc.setDrawColor(201, 160, 80);
+      doc.setLineWidth(0.4);
+      doc.roundedRect(13, yPos, pageWidth - 26, 36, 1.5, 1.5, 'FD');
+
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(8);
+      doc.setTextColor(126, 95, 24);
+      doc.text('VIMSHOTTARI DASHA CYCLES & ACTIVE MAHADASHAS', 17, yPos + 5);
+
+      const dashaW = (pageWidth - 36) / 3;
+      chartData.dashas.slice(0, 6).forEach((d, dIdx) => {
+        const col = dIdx % 3;
+        const row = Math.floor(dIdx / 3);
+        const dX = 17 + col * (dashaW + 2);
+        const dY = yPos + 9 + row * 12.5;
+
+        doc.setFillColor(d.isCurrent ? 245 : 255, d.isCurrent ? 236 : 255, d.isCurrent ? 215 : 255);
+        doc.setDrawColor(d.isCurrent ? 201 : 226, d.isCurrent ? 160 : 211, d.isCurrent ? 80 : 176);
+        doc.setLineWidth(d.isCurrent ? 0.4 : 0.2);
+        doc.roundedRect(dX, dY, dashaW, 11, 1, 1, 'FD');
+
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(6.8);
+        doc.setTextColor(d.isCurrent ? 181 : 30, d.isCurrent ? 131 : 30, d.isCurrent ? 40 : 35);
+        doc.text(`${d.planet} (${d.durationYears} Yrs)${d.isCurrent ? ' • ACTIVE' : ''}`, dX + 2.5, dY + 4);
+
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(6);
+        doc.setTextColor(90, 90, 90);
+        doc.text(`${d.startDate.slice(0, 4)} – ${d.endDate.slice(0, 4)}`, dX + 2.5, dY + 8);
+      });
+
+      yPos += 40;
+
+      // 7. AI Multi-Tradition Interpretation / Guidance
+      doc.setFillColor(254, 252, 247);
+      doc.setDrawColor(201, 160, 80);
+      doc.setLineWidth(0.4);
+      doc.roundedRect(13, yPos, pageWidth - 26, 44, 1.5, 1.5, 'FD');
+
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(8);
+      doc.setTextColor(126, 95, 24);
+      doc.text(`AI DEEP SYNTHESIS (${tradition.toUpperCase()} METHODOLOGY)`, 17, yPos + 5);
+
+      const aiText = aiInterpretation || `Planetary positions synthesized across ${activeTraditionTitle}. The ascendant ${ascSign} lord and active Vimshottari Mahadasha indicate key milestones in professional leadership, intellectual growth, and dharmic alignment. Maintain focus on planetary harmonization during transition periods.`;
+      const aiLines = doc.splitTextToSize(aiText.replace(/[#*`_>-]/g, ' '), pageWidth - 36);
+
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(6.8);
+      doc.setTextColor(40, 40, 45);
+      doc.text(aiLines.slice(0, 8), 17, yPos + 9.5);
+
+      yPos += 48;
+
+      // 8. Recommended Gemstones & Upayas
+      doc.setFillColor(250, 247, 240);
+      doc.setDrawColor(201, 160, 80);
+      doc.setLineWidth(0.4);
+      doc.roundedRect(13, yPos, pageWidth - 26, 26, 1.5, 1.5, 'FD');
+
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(8);
+      doc.setTextColor(126, 95, 24);
+      doc.text('RECOMMENDED TRIKONA GEMSTONES & VEDIC REMEDIES', 17, yPos + 5);
+
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(6.8);
+      doc.setTextColor(50, 50, 55);
+      if (chartData.gemstones && chartData.gemstones.length > 0) {
+        chartData.gemstones.slice(0, 3).forEach((g, gIdx) => {
+          doc.text(`• ${g.gem} (${g.planet}): ${g.purpose}`, 17, yPos + 9.5 + gIdx * 4.8);
+        });
+      } else {
+        doc.text('• Primary Gemstone: Yellow Sapphire (Jupiter) or Ruby (Sun) in Gold on Sunday/Thursday morning.', 17, yPos + 10);
+        doc.text('• Daily Upaya: Gayatri Mantra (108 Japa) during Brahma Muhurta and Surya Arghya.', 17, yPos + 15);
+      }
+
+      // --- PAGE DECORATIONS PASS ---
+      const totalPages = doc.getNumberOfPages();
+      for (let i = 1; i <= totalPages; i++) {
+        doc.setPage(i);
+
+        if (bgBase64) {
+          try {
+            if (typeof (doc as any).setGState === 'function' && (doc as any).GState) {
+              (doc as any).setGState(new (doc as any).GState({ opacity: 0.07 }));
+            }
+          } catch {}
+          doc.addImage(bgBase64, 'JPEG', 0, 0, pageWidth, pageHeight);
+          try {
+            if (typeof (doc as any).setGState === 'function' && (doc as any).GState) {
+              (doc as any).setGState(new (doc as any).GState({ opacity: 1.0 }));
+            }
+          } catch {}
+        }
+
+        // Outer Decorative Golden Double Border
+        doc.setDrawColor(201, 160, 80);
+        doc.setLineWidth(1.1);
+        doc.rect(8, 8, pageWidth - 16, pageHeight - 16);
+        doc.setLineWidth(0.35);
+        doc.rect(10, 10, pageWidth - 20, pageHeight - 20);
+
+        // Corner gold accents
+        doc.setFillColor(201, 160, 80);
+        doc.circle(10, 10, 1.2, 'F');
+        doc.circle(pageWidth - 10, 10, 1.2, 'F');
+        doc.circle(10, pageHeight - 10, 1.2, 'F');
+        doc.circle(pageWidth - 10, pageHeight - 10, 1.2, 'F');
+
+        if (i === 1) {
+          if (logoBase64) {
+            doc.addImage(logoBase64, 'PNG', 14, 13, 16, 16);
+          }
+
+          doc.setFont('helvetica', 'bold');
+          doc.setFontSize(18);
+          doc.setTextColor(20, 20, 24);
+          doc.text('JYOTISH', 33, 20);
+          doc.setTextColor(181, 131, 40);
+          doc.text('VEDA', 33 + doc.getTextWidth('JYOTISH') + 0.5, 20);
+
+          doc.setFontSize(8.5);
+          doc.setTextColor(126, 95, 24);
+          doc.text('5 VEDIC TRADITIONS & BIRTH CHART REPORT', 33, 24.5);
+
+          doc.setFont('helvetica', 'italic');
+          doc.setFontSize(7);
+          doc.setTextColor(110, 105, 95);
+          doc.text(
+            `Precision Astronomical Ephemeris • Parashari • Jaimini • Lal Kitab • KP • Nadi (${new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })})`,
+            33,
+            28
+          );
+        } else {
+          doc.setFont('helvetica', 'bold');
+          doc.setFontSize(8);
+          doc.setTextColor(126, 95, 24);
+          doc.text('JYOTISHVEDA • 5 VEDIC TRADITIONS & BIRTH CHART REPORT', 14, 14);
+          doc.setFont('helvetica', 'normal');
+          doc.setFontSize(7.5);
+          doc.setTextColor(100, 100, 100);
+          doc.text(
+            `Client: ${profile.fullName || 'Seeker'}  |  Lagna: ${ascSign}`,
+            pageWidth - 14,
+            14,
+            { align: 'right' }
+          );
+          doc.setDrawColor(226, 211, 176);
+          doc.setLineWidth(0.3);
+          doc.line(13, 16, pageWidth - 13, 16);
+        }
+
+        // Footer
+        const footerY = pageHeight - 18;
+        doc.setDrawColor(226, 211, 176);
+        doc.setLineWidth(0.4);
+        doc.line(13, footerY, pageWidth - 13, footerY);
+
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(7);
+        doc.setTextColor(110, 105, 95);
+        const certId = `JV-TRAD-${Date.now().toString(36).toUpperCase()}`;
+        doc.text(
+          `Document ID: ${certId}  |  Generated: ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}  |  Confidential`,
+          14,
+          footerY + 4
+        );
+        doc.text(
+          `Certified by JyotishVeda AI & Traditional Daivajna Ephemeris Engine  |  Page ${i} of ${totalPages}`,
+          pageWidth - 14,
+          footerY + 4,
+          { align: 'right' }
+        );
+      }
+
+      // Save PDF
+      const safeName = (profile.fullName || 'Seeker').replace(/[^a-zA-Z0-9]/g, '_');
+      const dateStr = new Date().toISOString().split('T')[0];
+      doc.save(`JyotishVeda_BirthChart_${tradition}_${safeName}_${dateStr}.pdf`);
+    } catch (err) {
+      console.error('Failed to generate birth chart traditions PDF:', err);
+    } finally {
+      setIsGeneratingPdf(false);
+    }
   };
 
   // --------------------------------------------------
@@ -824,15 +1319,16 @@ export const HoroscopeTraditionsView: React.FC<
       {/* HEADER */}
 
       <div className="bg-[#141418] border border-[#2A2A2E] rounded-xl p-6 text-[#E5E1D8] shadow-xl">
-        <div className="pb-5 border-b border-[#2A2A2E]">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-[#2A2A2E]">
           <div>
-            <div className="flex items-center space-x-2 text-xs font-sans font-semibold tracking-widest text-[#C9A050] uppercase mb-1">
-              <Compass className="w-4 h-4" />
-
-              <span>
-                {profile.horoscopeSystem === 'western'
-                  ? 'Western Tropical (Sayana) Horoscope Engine'
-                  : 'Vedic Sidereal (Nirayana) Jyotish Engine'}
+            <div className="flex flex-wrap items-center gap-2 text-xs font-semibold tracking-widest text-[#C9A050] uppercase mb-1">
+              <span className="flex items-center space-x-1.5">
+                <Compass className="w-4 h-4" />
+                <span>
+                  {profile.horoscopeSystem === 'western'
+                    ? 'Western Tropical (Sayana) Horoscope Engine'
+                    : 'Vedic Sidereal (Nirayana) Jyotish Engine'}
+                </span>
               </span>
 
               <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#1A1A1E] text-[#9E9A90] border border-[#2A2A2E] normal-case tracking-normal">
@@ -842,18 +1338,30 @@ export const HoroscopeTraditionsView: React.FC<
               </span>
             </div>
 
-            <h1 className="text-2xl sm:text-3xl font-serif font-bold text-[#F0ECE1]">
+            <h1 className="text-2xl sm:text-3xl font-bold text-[#F0ECE1]">
               {profile.horoscopeSystem === 'western'
                 ? 'Western & Multi-Tradition Astrological Synthesis'
                 : 'Vedic Birth Chart & Multi-Tradition Synthesis'}
             </h1>
 
-            <p className="text-xs font-sans text-[#9E9A90] mt-1 leading-relaxed">
-              Synthesizing {profile.fullName}&apos;s profile
-              across Parashari, Jaimini, Lal Kitab, KP
-              System, and Bhrigu Nadi methodologies.
+            <p className="text-xs text-[#9E9A90] mt-1 leading-relaxed">
+              Synthesizing {profile.fullName}&apos;s profile across Parashari, Jaimini, Lal Kitab, KP System, and Bhrigu Nadi methodologies.
             </p>
           </div>
+
+          <button
+            onClick={handleDownloadTraditionsPdf}
+            disabled={isGeneratingPdf}
+            className="flex items-center justify-center space-x-2 px-4 py-3 rounded-xl border text-xs font-bold transition shadow-lg cursor-pointer bg-gradient-to-r from-[#C9A050] to-[#A07828] hover:from-[#D4AF37] hover:to-[#B38730] text-[#0D0D0F] border-[#C9A050] shadow-[#C9A050]/20 shrink-0 disabled:opacity-50"
+            title="Download full birth chart traditions PDF report"
+          >
+            {isGeneratingPdf ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Download className="w-4 h-4" />
+            )}
+            <span>{isGeneratingPdf ? 'Generating PDF...' : 'Download Report (PDF)'}</span>
+          </button>
         </div>
 
         {/* TRADITIONS */}
@@ -1483,6 +1991,20 @@ export const HoroscopeTraditionsView: React.FC<
           </div>
 
           <div className="flex items-center space-x-2">
+            <button
+              onClick={handleDownloadTraditionsPdf}
+              disabled={isGeneratingPdf}
+              className="p-2 rounded-lg bg-[#1A1A1E] border border-[#2A2A2E] text-[#E5E1D8] hover:text-[#C9A050] transition cursor-pointer text-xs flex items-center space-x-1"
+              title="Download full birth chart traditions PDF report"
+            >
+              {isGeneratingPdf ? (
+                <Loader2 className="w-4 h-4 animate-spin text-[#C9A050]" />
+              ) : (
+                <Download className="w-4 h-4 text-[#C9A050]" />
+              )}
+              <span className="hidden sm:inline">{isGeneratingPdf ? 'Exporting...' : 'PDF'}</span>
+            </button>
+
             {aiInterpretation && (
               <button
                 onClick={() => handleSpeech(aiInterpretation)}

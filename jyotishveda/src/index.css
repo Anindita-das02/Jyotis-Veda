@@ -1,14 +1,5 @@
 @import "tailwindcss";
 
-@theme {
-  --font-sans: 'Outfit', sans-serif;
-  --font-serif: 'Cinzel', serif;
-  --font-mono: 'Outfit', sans-serif;
-  --font-display: 'Cinzel', serif;
-  --font-heading: 'Cinzel', serif;
-  --font-body: 'Outfit', sans-serif;
-}
-
 @layer base {
   :root {
     --bg-canvas: #0D0D0F;
@@ -54,17 +45,17 @@
   body {
     background-color: var(--bg-canvas);
     color: var(--text-secondary);
-    font-family: 'Outfit', sans-serif;
+    font-family: 'Nunito';
     letter-spacing: 0.01em;
     transition: background-color 0.25s ease, color 0.25s ease;
   }
 }
 
-/* Universal Strong Font Enforcement - Overrides all utility layers */
+/* Universal Clean Font Enforcement */
 *,
 *::before,
 *::after {
-  font-family: 'Outfit', sans-serif;
+  font-family: 'Nunito';
 }
 
 h1,
@@ -76,8 +67,8 @@ h6,
 .font-serif,
 .font-display,
 .font-heading {
-  font-family: 'Cinzel', serif !important;
-  letter-spacing: 0.035em;
+  font-family: 'Nunito';
+  letter-spacing: 0.01em;
 }
 
 body,
@@ -115,7 +106,7 @@ footer,
 main,
 .font-sans,
 .font-body {
-  font-family: 'Outfit', sans-serif !important;
+  font-family: 'Nunito';
 }
 
 .font-mono,
@@ -123,7 +114,7 @@ code,
 pre,
 kbd,
 samp {
-  font-family: 'Outfit', sans-serif !important;
+  font-family: 'Nunito';
   font-variant-numeric: tabular-nums;
 }
 

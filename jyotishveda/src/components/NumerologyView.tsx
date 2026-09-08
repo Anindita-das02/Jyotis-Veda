@@ -15,7 +15,10 @@ import {
   Flame,
   CloudUpload,
   Loader2,
+  Download,
+  FileText,
 } from 'lucide-react';
+import { jsPDF } from 'jspdf';
 import { UserProfile, NumerologyReport } from '../types';
 import { CHALDEAN_VALUES, reduceToSingleDigit } from '../services/astroEngine';
 import { saveNumerologyReport } from '../services/numerologyApi';
@@ -38,6 +41,32 @@ export const NumerologyView: React.FC<NumerologyViewProps> = ({
   const [backendData, setBackendData] = useState<NumerologyReport | null>(null);
   const [aiInsights, setAiInsights] = useState<any>(null);
   const [isAiLoading, setIsAiLoading] = useState(false);
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
+
+  const loadImageBase64 = (url: string): Promise<string | null> => {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.crossOrigin = 'Anonymous';
+      img.onload = () => {
+        try {
+          const canvas = document.createElement('canvas');
+          canvas.width = img.naturalWidth || img.width || 400;
+          canvas.height = img.naturalHeight || img.height || 400;
+          const ctx = canvas.getContext('2d');
+          if (ctx) {
+            ctx.drawImage(img, 0, 0);
+            resolve(canvas.toDataURL('image/jpeg', 0.85));
+            return;
+          }
+        } catch {
+          // Ignore canvas security errors
+        }
+        resolve(null);
+      };
+      img.onerror = () => resolve(null);
+      img.src = url;
+    });
+  };
 
   useEffect(() => {
     const fetchBackendData = async () => {
@@ -109,72 +138,529 @@ export const NumerologyView: React.FC<NumerologyViewProps> = ({
     [8, 1, 6],
   ];
 
+  // Comprehensive Sacred Numerology & Lo Shu Magic Grid PDF Report Generator
+  const handleDownloadNumerologyPdf = async () => {
+    setIsGeneratingPdf(true);
+    try {
+      const doc = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4',
+      });
+
+      const pageWidth = doc.internal.pageSize.getWidth(); // 210mm
+      const pageHeight = doc.internal.pageSize.getHeight(); // 297mm
+
+      // Load background assets
+      const bgBase64 = await loadImageBase64('/astrologer_bg.jpg');
+      const logoBase64 = await loadImageBase64('/jyotishveda_logo.png');
+
+      const mulank = activeNumerology.mulank;
+      const mulankPlanet = activeNumerology.mulankPlanet || 'Ruling Planet';
+      const bhagyank = activeNumerology.bhagyank;
+      const bhagyankPlanet = activeNumerology.bhagyankPlanet || 'Destiny Planet';
+      const namankChaldean = activeNumerology.namankChaldean;
+      const namankPythagorean = activeNumerology.namankPythagorean || activeNumerology.namankChaldean;
+
+      // --- PAGE 1: CORE MATRIX, LO SHU 3x3 GRID & 8 PLANES ---
+      let yPos = 33;
+
+      // 1. Client & Core Numerological Particulars Box
+      doc.setFillColor(252, 249, 242);
+      doc.setDrawColor(226, 211, 176);
+      doc.setLineWidth(0.4);
+      doc.roundedRect(13, yPos, pageWidth - 26, 24, 2, 2, 'FD');
+      doc.line(pageWidth / 2, yPos, pageWidth / 2, yPos + 24);
+
+      // Left Column
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(7.5);
+      doc.setTextColor(126, 95, 24);
+      doc.text('CLIENT & NUMEROLOGICAL PARTICULARS', 17, yPos + 5.5);
+
+      doc.setFontSize(10);
+      doc.setTextColor(26, 26, 30);
+      doc.text(profile.fullName || 'Vedic Seeker', 17, yPos + 10.5);
+
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(7.2);
+      doc.setTextColor(80, 80, 80);
+      const birthDetails = `Born: ${profile.birthDate || 'N/A'}${profile.birthTime ? ` at ${profile.birthTime}` : ''} | ${profile.birthPlace || 'Global'}`;
+      doc.text(doc.splitTextToSize(birthDetails, (pageWidth - 36) / 2)[0] || '', 17, yPos + 15);
+      doc.text(`Methodology: Vedic Sidereal & Chaldean Sacred Vibration Matrix`, 17, yPos + 19.5);
+
+      // Right Column
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(7.5);
+      doc.setTextColor(126, 95, 24);
+      doc.text('CORE NUMEROLOGY FREQUENCIES', pageWidth / 2 + 5, yPos + 5.5);
+
+      doc.setFontSize(8.5);
+      doc.setTextColor(26, 26, 30);
+      doc.text(`Mulank: ${mulank} (${mulankPlanet.split('(')[0].trim()})  |  Bhagyank: ${bhagyank}`, pageWidth / 2 + 5, yPos + 10.5);
+
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(7.2);
+      doc.setTextColor(80, 80, 80);
+      doc.text(`Namank: ${namankChaldean} (Chaldean) / ${namankPythagorean} (Pythagorean)`, pageWidth / 2 + 5, yPos + 15);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(181, 131, 40);
+      doc.text(`Name Harmony: ${activeNumerology.nameCompatibility || 'Harmonious Resonance'}`, pageWidth / 2 + 5, yPos + 19.5);
+
+      yPos += 27;
+
+      // 2. Core Numbers Analysis Cards (4 Columns)
+      const coreColW = (pageWidth - 26 - 9) / 4;
+      const coreCardH = 28;
+      const coreCards = [
+        {
+          title: 'MULANK (PSYCHIC)',
+          num: `${mulank}`,
+          sub: mulankPlanet,
+          desc: activeNumerology.mulankCharacteristics?.[0] || 'Inner personality, subconscious drive and mindset.'
+        },
+        {
+          title: 'BHAGYANK (DESTINY)',
+          num: `${bhagyank}`,
+          sub: bhagyankPlanet,
+          desc: activeNumerology.bhagyankMission || 'Life destiny path, career milestones & karmic purpose.'
+        },
+        {
+          title: 'NAMANK (CHALDEAN)',
+          num: `${namankChaldean}`,
+          sub: 'Name Frequency',
+          desc: 'Social projection, career success aura & commercial power.'
+        },
+        {
+          title: 'LUCKY VIBRATION',
+          num: `${activeNumerology.luckyNumbers?.[0] || mulank}`,
+          sub: 'Harmonic Prime',
+          desc: `Favorable days: ${activeNumerology.luckyDays?.slice(0, 2).join(', ') || 'Thursday, Sunday'}.`
+        }
+      ];
+
+      coreCards.forEach((c, idx) => {
+        const xPos = 13 + idx * (coreColW + 3);
+        doc.setFillColor(248, 245, 237);
+        doc.setDrawColor(226, 211, 176);
+        doc.setLineWidth(0.3);
+        doc.roundedRect(xPos, yPos, coreColW, coreCardH, 1.5, 1.5, 'FD');
+
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(6.2);
+        doc.setTextColor(126, 95, 24);
+        doc.text(c.title, xPos + 2.5, yPos + 4);
+
+        doc.setFontSize(11);
+        doc.setTextColor(181, 131, 40);
+        doc.text(c.num, xPos + 2.5, yPos + 9.5);
+
+        doc.setFontSize(6);
+        doc.setTextColor(90, 90, 95);
+        doc.text(doc.splitTextToSize(c.sub, coreColW - 4)[0] || '', xPos + 2.5, yPos + 13.5);
+
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(5.8);
+        doc.setTextColor(60, 60, 65);
+        const descLines = doc.splitTextToSize(c.desc, coreColW - 4);
+        doc.text(descLines.slice(0, 3), xPos + 2.5, yPos + 17.5);
+      });
+
+      yPos += coreCardH + 4;
+
+      // 3. Lo Shu 3x3 Magic Grid & 8 Planes Breakdown (Side-by-Side)
+      const halfW = (pageWidth - 26 - 4) / 2;
+      const loShuBoxH = 96;
+
+      // Left Box: Lo Shu 3x3 Magic Grid Drawing
+      doc.setFillColor(252, 249, 242);
+      doc.setDrawColor(201, 160, 80);
+      doc.setLineWidth(0.4);
+      doc.roundedRect(13, yPos, halfW, loShuBoxH, 1.5, 1.5, 'FD');
+
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(7.8);
+      doc.setTextColor(126, 95, 24);
+      doc.text('LO SHU SACRED 3x3 MAGIC GRID', 17, yPos + 5);
+
+      // Grid Rendering
+      const gridStartX = 17;
+      const gridStartY = yPos + 8.5;
+      const cellSize = (halfW - 8) / 3;
+
+      const loShuLayout = [
+        [4, 9, 2],
+        [3, 5, 7],
+        [8, 1, 6],
+      ];
+      const loShuElements: Record<number, string> = {
+        4: 'Wood / Wealth', 9: 'Fire / Fame', 2: 'Earth / Love',
+        3: 'Wood / Family', 5: 'Earth / Core', 7: 'Metal / Creativity',
+        8: 'Earth / Knowledge', 1: 'Water / Career', 6: 'Metal / Friends'
+      };
+
+      loShuLayout.forEach((row, rIdx) => {
+        row.forEach((num, cIdx) => {
+          const cellX = gridStartX + cIdx * cellSize;
+          const cellY = gridStartY + rIdx * (cellSize - 1);
+          const count = activeNumerology.loShuGrid?.[num] || 0;
+          const isPresent = count > 0;
+
+          doc.setFillColor(isPresent ? 245 : 255, isPresent ? 236 : 252, isPresent ? 215 : 248);
+          doc.setDrawColor(isPresent ? 201 : 230, isPresent ? 160 : 225, isPresent ? 80 : 215);
+          doc.setLineWidth(isPresent ? 0.4 : 0.2);
+          doc.roundedRect(cellX, cellY, cellSize - 1.5, cellSize - 2.5, 1, 1, 'FD');
+
+          doc.setFont('helvetica', 'bold');
+          doc.setFontSize(9);
+          doc.setTextColor(isPresent ? 181 : 160, isPresent ? 131 : 155, isPresent ? 40 : 150);
+          doc.text(`${num}`, cellX + 3, cellY + 5);
+
+          doc.setFontSize(6.5);
+          doc.setTextColor(isPresent ? 40 : 160, isPresent ? 40 : 160, isPresent ? 45 : 160);
+          doc.text(isPresent ? `${count}x present` : 'Missing', cellX + cellSize - 4, cellY + 5, { align: 'right' });
+
+          doc.setFont('helvetica', 'normal');
+          doc.setFontSize(5.2);
+          doc.setTextColor(90, 85, 80);
+          doc.text(loShuElements[num] || '', cellX + 3, cellY + 9.5);
+        });
+      });
+
+      doc.setFont('helvetica', 'italic');
+      doc.setFontSize(5.8);
+      doc.setTextColor(110, 105, 95);
+      doc.text('Calculated from birth day, month & year digits + Mulank & Bhagyank.', 17, yPos + loShuBoxH - 3.5);
+
+      // Right Box: 8 Lo Shu Planes Assessment
+      const rightBoxX = 13 + halfW + 4;
+      doc.setFillColor(252, 249, 242);
+      doc.setDrawColor(201, 160, 80);
+      doc.setLineWidth(0.4);
+      doc.roundedRect(rightBoxX, yPos, halfW, loShuBoxH, 1.5, 1.5, 'FD');
+
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(7.8);
+      doc.setTextColor(126, 95, 24);
+      doc.text('8 LO SHU PLANES & RAJ YOGAS', rightBoxX + 4, yPos + 5);
+
+      if (activeNumerology.loShuPlanes && activeNumerology.loShuPlanes.length > 0) {
+        activeNumerology.loShuPlanes.slice(0, 8).forEach((plane, pIdx) => {
+          const pY = yPos + 8.5 + pIdx * 10.4;
+          doc.setFillColor(248, 244, 235);
+          doc.setDrawColor(226, 211, 176);
+          doc.setLineWidth(0.15);
+          doc.roundedRect(rightBoxX + 3, pY, halfW - 6, 9.2, 0.8, 0.8, 'FD');
+
+          doc.setFont('helvetica', 'bold');
+          doc.setFontSize(6.2);
+          doc.setTextColor(126, 95, 24);
+          doc.text(plane.name, rightBoxX + 5, pY + 3.5);
+
+          // Status Badge
+          let statusCol = [181, 131, 40];
+          if (plane.status === 'Strong') statusCol = [34, 139, 34];
+          if (plane.status === 'Empty' || plane.status === 'Weak') statusCol = [178, 34, 34];
+
+          doc.setTextColor(statusCol[0], statusCol[1], statusCol[2]);
+          doc.setFontSize(5.8);
+          doc.text(`${plane.status} (${plane.strength}%)`, rightBoxX + halfW - 5, pY + 3.5, { align: 'right' });
+
+          doc.setFont('helvetica', 'normal');
+          doc.setFontSize(5.5);
+          doc.setTextColor(70, 70, 75);
+          const meaningLines = doc.splitTextToSize(plane.meaning, halfW - 10);
+          doc.text(meaningLines[0] || '', rightBoxX + 5, pY + 7);
+        });
+      }
+
+      // --- PAGE 2: MISSING NUMBERS REMEDIES, CHALDEAN CORRECTION & LUCKY ATTRIBUTES ---
+      doc.addPage();
+      yPos = 22;
+
+      // 4. Missing Numbers & Planetary Harmonization Table
+      doc.setFillColor(254, 252, 247);
+      doc.setDrawColor(201, 160, 80);
+      doc.setLineWidth(0.4);
+      doc.roundedRect(13, yPos, pageWidth - 26, 62, 1.5, 1.5, 'FD');
+
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(8);
+      doc.setTextColor(126, 95, 24);
+      doc.text('MISSING NUMBERS & VEDIC-ELEMENTAL REMEDIES', 17, yPos + 5);
+
+      const missingNums = [1, 2, 3, 4, 5, 6, 7, 8, 9].filter((n) => !activeNumerology.loShuGrid?.[n]);
+      const missingRemediesMap: Record<number, { element: string; upaya: string; gem: string }> = {
+        1: { element: 'Water (North)', upaya: 'Place a clear water fountain in North; chant Surya Gayatri.', gem: 'Ruby / Red Jasper' },
+        2: { element: 'Earth (South-West)', upaya: 'Keep rose quartz crystals; respect maternal figures.', gem: 'Pearl / Moonstone' },
+        3: { element: 'Wood (East)', upaya: 'Keep indoor plants / bamboo; chant Om Guruve Namaha.', gem: 'Yellow Sapphire' },
+        4: { element: 'Wood (South-East)', upaya: 'Wear green aventurine wristlet; avoid excessive clutter.', gem: 'Hessonite / Emerald' },
+        5: { element: 'Earth (Center / Brahmasthan)', upaya: 'Keep house center open & illuminated; worship Lord Ganesha.', gem: 'Emerald / Jade' },
+        6: { element: 'Metal (North-West)', upaya: 'Wear metal/silver watch; chant Om Shukraya Namaha.', gem: 'Diamond / Opal' },
+        7: { element: 'Metal (West)', upaya: 'Keep white flowers; practice spiritual meditation.', gem: 'Cat\'s Eye / Tiger Eye' },
+        8: { element: 'Earth (North-East)', upaya: 'Light mustard oil lamps on Saturdays; help underprivileged.', gem: 'Blue Sapphire / Amethyst' },
+        9: { element: 'Fire (South)', upaya: 'Light red diya in South; chant Hanuman Chalisa.', gem: 'Red Coral / Carnelian' },
+      };
+
+      if (missingNums.length > 0) {
+        doc.setFont('helvetica', 'normal');
+        missingNums.slice(0, 5).forEach((num, mIdx) => {
+          const mY = yPos + 9 + mIdx * 10;
+          const info = missingRemediesMap[num] || { element: 'Cosmic Harmonics', upaya: 'Practice daily Japa.', gem: 'Crystal Quartz' };
+
+          doc.setFont('helvetica', 'bold');
+          doc.setFontSize(7.2);
+          doc.setTextColor(178, 34, 34);
+          doc.text(`• Missing Number ${num} [${info.element}]:`, 17, mY);
+
+          doc.setFont('helvetica', 'normal');
+          doc.setFontSize(6.5);
+          doc.setTextColor(50, 50, 55);
+          doc.text(`Recommended Upaya: ${info.upaya}  |  Gemstone/Crystal: ${info.gem}`, 20, mY + 4);
+        });
+      } else {
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(7);
+        doc.setTextColor(34, 139, 34);
+        doc.text('All nine Lo Shu digits are activated in your birth blueprint. Golden vibrational harmony established.', 17, yPos + 12);
+      }
+
+      yPos += 66;
+
+      // 5. Chaldean Name Correction & Acoustic Vibration
+      doc.setFillColor(252, 249, 242);
+      doc.setDrawColor(201, 160, 80);
+      doc.setLineWidth(0.4);
+      doc.roundedRect(13, yPos, pageWidth - 26, 44, 1.5, 1.5, 'FD');
+
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(8);
+      doc.setTextColor(126, 95, 24);
+      doc.text('CHALDEAN NAME ACOUSTIC VIBRATION & CORRECTION ANALYSIS', 17, yPos + 5);
+
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(7);
+      doc.setTextColor(45, 45, 50);
+      doc.text(`Current Full Name: "${profile.fullName}"  |  Chaldean Compound Vibration: ${activeNumerology.namankChaldean}`, 17, yPos + 10);
+      doc.text(`Vibrational Resonance: ${activeNumerology.nameCompatibility || 'Highly Favorable for Career & Growth'}`, 17, yPos + 15);
+
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(6.8);
+      doc.setTextColor(126, 95, 24);
+      doc.text('Auspicious Master Compound Numbers for Name Correction / Business Branding:', 17, yPos + 21);
+
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(6.5);
+      doc.setTextColor(60, 60, 65);
+      doc.text('• Number 1 Series: 19 (Prince of Heaven - Fame & Victory), 37 (Courage & High Enterprise), 46 (Authority).', 17, yPos + 26);
+      doc.text('• Number 3 Series: 21 (Crown of the Magi - Total Success), 30 (Creative Intellect), 39 (Universal Renown).', 17, yPos + 31);
+      doc.text('• Number 5 & 6 Series: 14 (Magnetic Commerce), 23 (Royal Star of the Lion), 24 (Venusian Fortune), 32 (Strategic Victory).', 17, yPos + 36);
+
+      yPos += 48;
+
+      // 6. Auspicious Correspondences & Numerology Upayas
+      doc.setFillColor(254, 252, 247);
+      doc.setDrawColor(201, 160, 80);
+      doc.setLineWidth(0.4);
+      doc.roundedRect(13, yPos, pageWidth - 26, 36, 1.5, 1.5, 'FD');
+
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(8);
+      doc.setTextColor(126, 95, 24);
+      doc.text('SACRED NUMEROLOGICAL CORRESPONDENCES & AUSPICIOUS ATTRIBUTES', 17, yPos + 5);
+
+      const numGems = activeNumerology.luckyGemstones?.join(', ') || 'Yellow Sapphire, Emerald, Ruby';
+      const numColors = activeNumerology.luckyColors?.join(', ') || 'Gold, Saffron, Emerald Green, Royal Yellow';
+      const numDays = activeNumerology.luckyDays?.join(', ') || 'Thursday, Sunday, Wednesday';
+      const numLucky = activeNumerology.luckyNumbers?.join(', ') || `${mulank}, ${bhagyank}, 1, 3, 5, 9`;
+      const numUnfav = activeNumerology.unfavorableNumbers?.join(', ') || '8, 4 (Handle with caution on critical beginnings)';
+
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(6.8);
+      doc.setTextColor(50, 50, 55);
+      doc.text(`• Favorable Gemstones: ${numGems}`, 17, yPos + 10.5);
+      doc.text(`• Lucky Colors: ${numColors}`, 17, yPos + 15.5);
+      doc.text(`• Auspicious Days: ${numDays}  |  Lucky Numbers: ${numLucky}`, 17, yPos + 20.5);
+      doc.text(`• Numbers to Handle Carefully: ${numUnfav}`, 17, yPos + 25.5);
+      doc.text('• Daily Sadhana: Meditate upon your ruling planet Yantra at dawn; chant Om Gam Ganapataye Namaha.', 17, yPos + 30.5);
+
+      yPos += 40;
+
+      // 7. AI Life Blueprint Synthesis Reading
+      if (aiInsights && aiInsights.summary) {
+        doc.setFillColor(250, 247, 240);
+        doc.setDrawColor(201, 160, 80);
+        doc.setLineWidth(0.4);
+        doc.roundedRect(13, yPos, pageWidth - 26, 32, 1.5, 1.5, 'FD');
+
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(8);
+        doc.setTextColor(126, 95, 24);
+        doc.text('AI NUMEROLOGICAL LIFE BLUEPRINT & SUTRA SYNTHESIS', 17, yPos + 5);
+
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(6.8);
+        doc.setTextColor(40, 40, 45);
+        const aiLines = doc.splitTextToSize(aiInsights.summary.replace(/[#*`_>-]/g, ' '), pageWidth - 36);
+        doc.text(aiLines.slice(0, 5), 17, yPos + 10);
+      }
+
+      // --- PAGE DECORATIONS PASS ---
+      const totalPages = doc.getNumberOfPages();
+      for (let i = 1; i <= totalPages; i++) {
+        doc.setPage(i);
+
+        if (bgBase64) {
+          try {
+            if (typeof (doc as any).setGState === 'function' && (doc as any).GState) {
+              (doc as any).setGState(new (doc as any).GState({ opacity: 0.07 }));
+            }
+          } catch {}
+          doc.addImage(bgBase64, 'JPEG', 0, 0, pageWidth, pageHeight);
+          try {
+            if (typeof (doc as any).setGState === 'function' && (doc as any).GState) {
+              (doc as any).setGState(new (doc as any).GState({ opacity: 1.0 }));
+            }
+          } catch {}
+        }
+
+        // Outer Decorative Golden Double Border
+        doc.setDrawColor(201, 160, 80);
+        doc.setLineWidth(1.1);
+        doc.rect(8, 8, pageWidth - 16, pageHeight - 16);
+        doc.setLineWidth(0.35);
+        doc.rect(10, 10, pageWidth - 20, pageHeight - 20);
+
+        // Corner gold accents
+        doc.setFillColor(201, 160, 80);
+        doc.circle(10, 10, 1.2, 'F');
+        doc.circle(pageWidth - 10, 10, 1.2, 'F');
+        doc.circle(10, pageHeight - 10, 1.2, 'F');
+        doc.circle(pageWidth - 10, pageHeight - 10, 1.2, 'F');
+
+        if (i === 1) {
+          if (logoBase64) {
+            doc.addImage(logoBase64, 'PNG', 14, 13, 16, 16);
+          }
+
+          doc.setFont('helvetica', 'bold');
+          doc.setFontSize(18);
+          doc.setTextColor(20, 20, 24);
+          doc.text('JYOTISH', 33, 20);
+          doc.setTextColor(181, 131, 40);
+          doc.text('VEDA', 33 + doc.getTextWidth('JYOTISH') + 0.5, 20);
+
+          doc.setFontSize(8.5);
+          doc.setTextColor(126, 95, 24);
+          doc.text('SACRED NUMEROLOGY & LO SHU MAGIC GRID BLUEPRINT', 33, 24.5);
+
+          doc.setFont('helvetica', 'italic');
+          doc.setFontSize(7);
+          doc.setTextColor(110, 105, 95);
+          doc.text(
+            `Vedic Psyche & Destiny Codes • Lo Shu 3x3 Grid • Chaldean Name Harmonics (${new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })})`,
+            33,
+            28
+          );
+        } else {
+          doc.setFont('helvetica', 'bold');
+          doc.setFontSize(8);
+          doc.setTextColor(126, 95, 24);
+          doc.text('JYOTISHVEDA • SACRED NUMEROLOGY & LO SHU REPORT', 14, 14);
+          doc.setFont('helvetica', 'normal');
+          doc.setFontSize(7.5);
+          doc.setTextColor(100, 100, 100);
+          doc.text(
+            `Client: ${profile.fullName || 'Seeker'}  |  Mulank ${mulank} • Bhagyank ${bhagyank}`,
+            pageWidth - 14,
+            14,
+            { align: 'right' }
+          );
+          doc.setDrawColor(226, 211, 176);
+          doc.setLineWidth(0.3);
+          doc.line(13, 16, pageWidth - 13, 16);
+        }
+
+        // Footer
+        const footerY = pageHeight - 18;
+        doc.setDrawColor(226, 211, 176);
+        doc.setLineWidth(0.4);
+        doc.line(13, footerY, pageWidth - 13, footerY);
+
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(7);
+        doc.setTextColor(110, 105, 95);
+        const certId = `JV-NUM-${Date.now().toString(36).toUpperCase()}`;
+        doc.text(
+          `Document ID: ${certId}  |  Generated: ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}  |  Confidential`,
+          14,
+          footerY + 4
+        );
+        doc.text(
+          `Certified by JyotishVeda AI & Sacred Pythagorean-Chaldean Calculation Engine  |  Page ${i} of ${totalPages}`,
+          pageWidth - 14,
+          footerY + 4,
+          { align: 'right' }
+        );
+      }
+
+      // Save PDF
+      const safeName = (profile.fullName || 'Seeker').replace(/[^a-zA-Z0-9]/g, '_');
+      const dateStr = new Date().toISOString().split('T')[0];
+      doc.save(`JyotishVeda_Numerology_LoShu_${safeName}_${dateStr}.pdf`);
+    } catch (err) {
+      console.error('Failed to generate numerology PDF:', err);
+    } finally {
+      setIsGeneratingPdf(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Top Banner */}
       <div className="bg-[#141418] border border-[#2A2A2E] rounded-xl p-6 text-[#E5E1D8] shadow-xl">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-5 border-b border-[#2A2A2E]">
           <div>
-            <div className="flex items-center space-x-2 text-xs font-sans font-semibold tracking-widest text-[#C9A050] uppercase mb-1">
+            <div className="flex items-center space-x-2 text-xs font-semibold tracking-widest text-[#C9A050] uppercase mb-1">
               <Hash className="w-4 h-4" />
               <span>Vedic & Chaldean Numerology Matrix</span>
             </div>
-            <h1 className="text-2xl sm:text-3xl font-serif font-bold text-[#F0ECE1]">
+            <h1 className="text-2xl sm:text-3xl font-bold text-[#F0ECE1]">
               Sacred Numbers & Lo Shu Magic Grid
             </h1>
-            <p className="text-xs font-sans text-[#9E9A90] mt-1 leading-relaxed">
+            <p className="text-xs text-[#9E9A90] mt-1 leading-relaxed">
               Decode the planetary vibrational codes governing your psyche (Mulank), karmic destiny (Bhagyank), and name resonance (Namank).
             </p>
           </div>
 
-          {/* Core Numbers Badges */}
-          <div className="flex items-center space-x-3 shrink-0">
+          {/* Core Numbers Badges & Download Report Action */}
+          <div className="flex flex-wrap items-center gap-3 shrink-0">
             <div className="text-center bg-[#1A1A1E] border border-[#C9A050]/30 px-3.5 py-2 rounded-xl">
-              <div className="text-[9px] uppercase font-sans font-bold text-[#9E9A90] tracking-wider">Mulank (Psychic)</div>
-              <div className="text-2xl font-serif font-bold text-[#C9A050]">{activeNumerology.mulank}</div>
+              <div className="text-[9px] uppercase font-bold text-[#9E9A90] tracking-wider">Mulank</div>
+              <div className="text-xl font-bold text-[#C9A050]">{activeNumerology.mulank}</div>
             </div>
             <div className="text-center bg-[#1A1A1E] border border-[#C9A050]/30 px-3.5 py-2 rounded-xl">
-              <div className="text-[9px] uppercase font-sans font-bold text-[#9E9A90] tracking-wider">Bhagyank (Destiny)</div>
-              <div className="text-2xl font-serif font-bold text-[#C9A050]">{activeNumerology.bhagyank}</div>
+              <div className="text-[9px] uppercase font-bold text-[#9E9A90] tracking-wider">Bhagyank</div>
+              <div className="text-xl font-bold text-[#C9A050]">{activeNumerology.bhagyank}</div>
             </div>
             <div className="text-center bg-[#1A1A1E] border border-[#C9A050]/30 px-3.5 py-2 rounded-xl">
-              <div className="text-[9px] uppercase font-sans font-bold text-[#9E9A90] tracking-wider">Namank (Name)</div>
-              <div className="text-2xl font-serif font-bold text-[#C9A050]">{activeNumerology.namankChaldean}</div>
+              <div className="text-[9px] uppercase font-bold text-[#9E9A90] tracking-wider">Namank</div>
+              <div className="text-xl font-bold text-[#C9A050]">{activeNumerology.namankChaldean}</div>
             </div>
 
-            {isAuthenticated && (
-              <button
-                onClick={handleSaveReport}
-                disabled={saveState === 'saving'}
-                title={saveError || 'Save this report to your account'}
-                className={`flex items-center space-x-1.5 px-3 py-2 rounded-xl border text-xs font-semibold transition cursor-pointer shrink-0 ${
-                  saveState === 'saved'
-                    ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-400'
-                    : saveState === 'error'
-                    ? 'bg-rose-500/15 border-rose-500/40 text-rose-400'
-                    : 'bg-[#1A1A1E] border-[#2A2A2E] text-[#C9A050] hover:border-[#C9A050]/50'
-                }`}
-              >
-                {saveState === 'saving' ? (
-                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                ) : saveState === 'saved' ? (
-                  <CheckCircle2 className="w-3.5 h-3.5" />
-                ) : saveState === 'error' ? (
-                  <AlertCircle className="w-3.5 h-3.5" />
-                ) : (
-                  <CloudUpload className="w-3.5 h-3.5" />
-                )}
-                <span>
-                  {saveState === 'saving'
-                    ? 'Saving...'
-                    : saveState === 'saved'
-                    ? 'Saved'
-                    : saveState === 'error'
-                    ? 'Retry Save'
-                    : 'Save Report'}
-                </span>
-              </button>
-            )}
+            <button
+              onClick={handleDownloadNumerologyPdf}
+              disabled={isGeneratingPdf}
+              className="flex items-center justify-center space-x-2 px-4 py-2.5 rounded-xl border text-xs font-bold transition shadow-lg cursor-pointer bg-gradient-to-r from-[#C9A050] to-[#A07828] hover:from-[#D4AF37] hover:to-[#B38730] text-[#0D0D0F] border-[#C9A050] shadow-[#C9A050]/20 shrink-0 disabled:opacity-50"
+              title="Download full Numerology & Lo Shu magic grid PDF report"
+            >
+              {isGeneratingPdf ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Download className="w-4 h-4" />
+              )}
+              <span>{isGeneratingPdf ? 'Generating PDF...' : 'Download Report (PDF)'}</span>
+            </button>
           </div>
         </div>
 
@@ -376,8 +862,19 @@ export const NumerologyView: React.FC<NumerologyViewProps> = ({
           <div className="lg:col-span-7 space-y-4">
             <div className="bg-[#141418] border border-[#2A2A2E] rounded-xl p-6 text-[#E5E1D8] shadow-xl space-y-3">
               <div className="flex items-center justify-between pb-3 border-b border-[#2A2A2E]">
-                <h3 className="text-base font-serif font-bold text-[#F0ECE1]">Planes of Strength & Arrows of Destiny</h3>
-                <span className="text-xs text-[#C9A050] font-mono font-medium">8 Geometric Vectors</span>
+                <h3 className="text-base font-bold text-[#F0ECE1]">Planes of Strength & Arrows of Destiny</h3>
+                <div className="flex items-center space-x-2">
+                  <span className="text-xs text-[#C9A050] font-medium">8 Geometric Vectors</span>
+                  <button
+                    onClick={handleDownloadNumerologyPdf}
+                    disabled={isGeneratingPdf}
+                    className="p-1.5 rounded-lg bg-[#1A1A1E] border border-[#2A2A2E] text-[#E5E1D8] hover:text-[#C9A050] transition cursor-pointer text-xs flex items-center space-x-1"
+                    title="Download Lo Shu PDF Report"
+                  >
+                    {isGeneratingPdf ? <Loader2 className="w-3.5 h-3.5 animate-spin text-[#C9A050]" /> : <Download className="w-3.5 h-3.5 text-[#C9A050]" />}
+                    <span className="hidden sm:inline text-[11px]">{isGeneratingPdf ? 'Exporting...' : 'PDF'}</span>
+                  </button>
+                </div>
               </div>
 
               <div className="space-y-3 font-sans">

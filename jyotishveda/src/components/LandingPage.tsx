@@ -385,19 +385,6 @@ export function LandingPage({
                 {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
               </button>
 
-              <div className="hidden sm:block w-px h-6 bg-gray-300 dark:bg-gray-700 mx-1"></div>
-
-              <button
-                onClick={() => setCurrentView('blogs')}
-                className={`hidden sm:block px-4 py-2 rounded-full font-bold text-[13px] transition-all cursor-pointer ${
-                  currentView === 'blogs' 
-                    ? (theme === 'dark' ? 'text-[#C9A050] bg-white/5' : 'text-[#8C6B28] bg-black/5') 
-                    : (theme === 'dark' ? 'text-[#9E9A90] hover:text-[#E5E1D8]' : 'text-gray-600 hover:text-[#0D0D0F]')
-                }`}
-              >
-                Blogs
-              </button>
-
               {authUser ? (
                 <button
                   onClick={onGoToDashboard}
