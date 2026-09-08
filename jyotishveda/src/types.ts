@@ -328,9 +328,15 @@ export interface AshtaKootaMilanResult {
   totalPoints: number;
   maxPoints: number; // 36
   percentage: number;
-  verdictTitle: string;
-  verdictColor: string;
-  summary: string;
+  verdictTitle?: string;
+  verdictColor?: string;
+  summary: string | {
+    description?: string;
+    verdictTitle?: string;
+    totalScore?: number;
+    maxScore?: number;
+    percentage?: number;
+  };
   kootas: KootaItem[];
   manglik: ManglikAnalysis;
   nadiDosha: {

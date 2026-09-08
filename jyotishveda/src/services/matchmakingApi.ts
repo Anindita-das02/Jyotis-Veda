@@ -49,15 +49,41 @@ export async function fetchMatchReport(id: string): Promise<MatchReportFull> {
   return api.get<MatchReportFull>(`${API_ENDPOINTS.MATCHMAKING.REPORTS}/${id}`);
 }
 
-/**
- * Builds a direct-navigable URL for the PDF download endpoint. The PDF
- * route is opened via window.open (a real browser download), which can't
- * carry an Authorization header, so the JWT is passed as a query param
- * and validated server-side the same way.
- */
-export function getMatchReportPdfUrl(id: string): string {
-  const base: string =
-    (import.meta as any).env?.VITE_API_BASE_URL || 'http://localhost:5001';
-  const token = getToken() || '';
-  return `${base}${API_ENDPOINTS.MATCHMAKING.REPORTS}/${id}/pdf?token=${encodeURIComponent(token)}`;
+export async function calculateMatchReportBackend(
+  p1: any,
+  p2: any,
+): Promise<AshtaKootaMilanResult | null> {
+  try {
+    const res = await api.post<MatchReportFull>(API_ENDPOINTS.MATCHMAKING.REPORTS, {
+      partner1: {
+        name: p1.fullName || 'Partner 1',
+        dob: p1.birthDate || '2000-01-01',
+        time: p1.birthTime || '12:00',
+        place: p1.birthPlace || 'Delhi, India',
+        gender: p1.gender || 'male',
+      },
+      partner2: {
+        name: p2.fullName || 'Partner 2',
+        dob: p2.birthDate || '2000-01-01',
+        time: p2.birthTime || '12:00',
+        place: p2.birthPlace || 'Mumbai, India',
+        gender: p2.gender || 'female',
+      },
+      partner1Name: p1.fullName || 'Partner 1',
+      partner1BirthDate: p1.birthDate || '2000-01-01',
+      partner1BirthTime: p1.birthTime || '12:00',
+      partner1BirthPlace: p1.birthPlace || 'Delhi, India',
+      partner2Name: p2.fullName || 'Partner 2',
+      partner2BirthDate: p2.birthDate || '2000-01-01',
+      partner2BirthTime: p2.birthTime || '12:00',
+      partner2BirthPlace: p2.birthPlace || 'Mumbai, India',
+    });
+    if (res && res.report) {
+      return res.report;
+    }
+  } catch (err) {
+    console.warn('Backend API matchmaking calculation call error (using client engine):', err);
+  }
+  return null;
 }
+

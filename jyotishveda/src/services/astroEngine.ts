@@ -1745,20 +1745,18 @@ export function calculateKundliMilan(partner1: UserProfile, partner2: UserProfil
   if (totalPoints >= 28) {
     verdictTitle = 'Uttam Milan • Highly Auspicious Match';
     verdictColor = '#C9A050';
-    summary = `Exceptional compatibility with ${totalPoints}/36 Gunas (${percentage}%). This sacred union promises profound emotional resonance, marital bliss, financial prosperity, and mutual spiritual evolution.`;
   } else if (totalPoints >= 21) {
     verdictTitle = 'Madhyam Shubh • Very Good Match';
     verdictColor = '#7EBC89';
-    summary = `Strong compatibility with ${totalPoints}/36 Gunas (${percentage}%). The couple possesses high harmony across major life domains. Minor remedial recommendations ensure enduring companionship.`;
   } else if (totalPoints >= 18) {
     verdictTitle = 'Samanya • Average Match (Recommended with Remedies)';
     verdictColor = '#E6A15C';
-    summary = `Acceptable compatibility with ${totalPoints}/36 Gunas (${percentage}%). Crosses the classical 18-point threshold. Practicing suggested astrological remedies harmonizes specific difference areas.`;
   } else {
     verdictTitle = 'Alpa Milan • Challenging Match (Strict Remedies Needed)';
     verdictColor = '#E06C75';
-    summary = `Compatibility score is ${totalPoints}/36 Gunas (${percentage}%). While individual karmic bonds can overcome astrological scores, dedicated remedial pujas and mature communication are essential.`;
   }
+
+  summary = `Ashta Koota score is ${totalPoints}/36 (${percentage}%). This score is based on traditional Moon Nakshatra/Rashi matching.`;
 
   // MANGLIK (KUJA) DOSHA ANALYSIS
   const mars1 = chart1.planets.find((p) => p.name === 'Mars') || chart1.planets[3];
@@ -1780,12 +1778,9 @@ export function calculateKundliMilan(partner1: UserProfile, partner2: UserProfil
 
   const isNeutralized = (isP1Manglik && isP2Manglik) || (!isP1Manglik && !isP2Manglik);
 
-  if (!isNeutralized && totalPoints >= 18) {
-    summary += ' However, since one partner is Manglik and the other is not, strict Manglik pacification remedies (like Kumbh Vivah) are strongly advised before proceeding to ensure marital longevity.';
-    if (totalPoints >= 28) {
-        verdictTitle = 'Uttam Milan (with Manglik Caution)';
-        verdictColor = '#E6A15C';
-    }
+  if (!isNeutralized && totalPoints >= 28) {
+    verdictTitle = 'Uttam Milan (with Manglik Caution)';
+    verdictColor = '#E6A15C';
   }
 
   const manglikAnalysis: ManglikAnalysis = {
