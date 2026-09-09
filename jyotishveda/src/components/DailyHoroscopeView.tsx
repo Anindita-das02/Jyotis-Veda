@@ -563,14 +563,8 @@ export const DailyHoroscopeView: React.FC<DailyHoroscopeViewProps> = ({
         doc.setFont('helvetica', 'normal');
         doc.setFontSize(7);
         doc.setTextColor(110, 105, 95);
-        const certId = `JV-DAILY-${Date.now().toString(36).toUpperCase()}`;
         doc.text(
-          `Document ID: ${certId}  |  Generated: ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}  |  Confidential & Proprietary`,
-          14,
-          footerY + 4
-        );
-        doc.text(
-          `Certified by JyotishVeda AI & Traditional Daivajna Ephemeris Calculation Engine  |  Page ${i} of ${totalPages}`,
+          `Page ${i} of ${totalPages}`,
           pageWidth - 14,
           footerY + 4,
           { align: 'right' }
