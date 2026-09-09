@@ -251,6 +251,7 @@ export const HoroscopeTraditionsView: React.FC<
   const handleDownloadTraditionsPdf = async () => {
     setIsGeneratingPdf(true);
     try {
+      const sanitizePdfText = (txt?: string) => txt ? txt.replace(/[^\x00-\x7F]/g, "").replace(/\(\s*\)/g, "").trim() : "";
       const doc = new jsPDF({
         orientation: 'portrait',
         unit: 'mm',
@@ -325,7 +326,7 @@ export const HoroscopeTraditionsView: React.FC<
       doc.setTextColor(181, 131, 40);
       doc.text(`Active Tradition: ${activeTraditionTitle.split('(')[0].trim()}`, pageWidth / 2 + 5, yPos + 19.5);
 
-      yPos += 27;
+      yPos += 32; // Added more vertical spacing
 
       // 2. Graha Ephemeris Positions (9 Planets Table)
       doc.setFillColor(248, 245, 237);
@@ -372,7 +373,7 @@ export const HoroscopeTraditionsView: React.FC<
         cellX += colWidths[0];
 
         doc.setFont('helvetica', 'normal');
-        doc.text(p.sanskritName || p.name, cellX, rowY + 4);
+        doc.text(sanitizePdfText(p.sanskritName) || p.name, cellX, rowY + 4);
         cellX += colWidths[1];
 
         doc.text(`${p.signName} (H${p.house || 1})`, cellX, rowY + 4);
@@ -408,7 +409,7 @@ export const HoroscopeTraditionsView: React.FC<
         rowY += 6;
       });
 
-      yPos += 74;
+      yPos += 80; // Added more vertical spacing
 
       // 3. 12 Bhavas (Houses) Overview Grid
       doc.setFillColor(252, 249, 242);
@@ -436,7 +437,8 @@ export const HoroscopeTraditionsView: React.FC<
         doc.setFont('helvetica', 'bold');
         doc.setFontSize(6.8);
         doc.setTextColor(126, 95, 24);
-        doc.text(`H${h.houseNumber}: ${h.sanskritName || `House ${h.houseNumber}`}`, boxX + 2.5, boxY + 3.8);
+        const hSanskritSafe = sanitizePdfText(h.sanskritName);
+        doc.text(`H${h.houseNumber}: ${hSanskritSafe || `House ${h.houseNumber}`}`, boxX + 2.5, boxY + 3.8);
 
         doc.setFontSize(6.5);
         doc.setTextColor(26, 26, 30);
@@ -455,23 +457,27 @@ export const HoroscopeTraditionsView: React.FC<
       yPos = 22;
 
       // 4. Vedic Yogas Box
+      const numYogas = chartData.yogas ? Math.min(chartData.yogas.length, 5) : 0;
+      const yogaBoxHeight = numYogas > 0 ? (12 + numYogas * 10.5) : 24;
       doc.setFillColor(254, 252, 247);
       doc.setDrawColor(201, 160, 80);
       doc.setLineWidth(0.4);
-      doc.roundedRect(13, yPos, pageWidth - 26, 42, 1.5, 1.5, 'FD');
+      doc.roundedRect(13, yPos, pageWidth - 26, yogaBoxHeight, 1.5, 1.5, 'FD');
 
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(8);
       doc.setTextColor(126, 95, 24);
       doc.text('AUSPICIOUS VEDIC YOGAS & CELESTIAL FORMATIONS', 17, yPos + 5);
 
-      if (chartData.yogas && chartData.yogas.length > 0) {
-        chartData.yogas.slice(0, 3).forEach((yoga, yIdx) => {
-          const yOff = yPos + 9 + yIdx * 10.5;
+      if (numYogas > 0) {
+        chartData.yogas.slice(0, 5).forEach((yoga, yIdx) => {
+          const yOff = yPos + 9.5 + yIdx * 10.5;
           doc.setFont('helvetica', 'bold');
           doc.setFontSize(7.2);
           doc.setTextColor(181, 131, 40);
-          doc.text(`• ${yoga.name} (${yoga.sanskritName || yoga.name})`, 17, yOff);
+          const safeYogaSanskrit = sanitizePdfText(yoga.sanskritName);
+          const nameSuffix = safeYogaSanskrit && safeYogaSanskrit !== yoga.name ? `(${safeYogaSanskrit})` : '';
+          doc.text(`• ${yoga.name} ${nameSuffix}`.trim(), 17, yOff);
 
           doc.setFont('helvetica', 'normal');
           doc.setFontSize(6.5);
@@ -486,22 +492,24 @@ export const HoroscopeTraditionsView: React.FC<
         doc.text('Harmonious planetary configurations active across Kendras and Trikonas.', 17, yPos + 12);
       }
 
-      yPos += 46;
+      yPos += yogaBoxHeight + 8;
 
       // 5. Vedic Doshas Box
+      const numDoshas = chartData.doshas ? Math.min(chartData.doshas.length, 5) : 0;
+      const doshaBoxHeight = numDoshas > 0 ? (12 + numDoshas * 10) : 24;
       doc.setFillColor(254, 252, 247);
       doc.setDrawColor(201, 160, 80);
       doc.setLineWidth(0.4);
-      doc.roundedRect(13, yPos, pageWidth - 26, 38, 1.5, 1.5, 'FD');
+      doc.roundedRect(13, yPos, pageWidth - 26, doshaBoxHeight, 1.5, 1.5, 'FD');
 
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(8);
       doc.setTextColor(126, 95, 24);
       doc.text('VEDIC DOSHAS & PLANETARY AFFLICTION EVALUATION', 17, yPos + 5);
 
-      if (chartData.doshas && chartData.doshas.length > 0) {
-        chartData.doshas.slice(0, 3).forEach((dosha, dIdx) => {
-          const dOff = yPos + 9 + dIdx * 9.5;
+      if (numDoshas > 0) {
+        chartData.doshas.slice(0, 5).forEach((dosha, dIdx) => {
+          const dOff = yPos + 9.5 + dIdx * 10;
           doc.setFont('helvetica', 'bold');
           doc.setFontSize(7.2);
           doc.setTextColor(dosha.present ? 178 : 34, dosha.present ? 34 : 139, 34);
@@ -520,7 +528,7 @@ export const HoroscopeTraditionsView: React.FC<
         doc.text('No severe planetary afflictions identified; standard daily Japa maintains equilibrium.', 17, yPos + 12);
       }
 
-      yPos += 42;
+      yPos += doshaBoxHeight + 8;
 
       // 6. Vimshottari Dasha Timeline Box
       doc.setFillColor(252, 249, 242);
@@ -548,7 +556,11 @@ export const HoroscopeTraditionsView: React.FC<
         doc.setFont('helvetica', 'bold');
         doc.setFontSize(6.8);
         doc.setTextColor(d.isCurrent ? 181 : 30, d.isCurrent ? 131 : 30, d.isCurrent ? 40 : 35);
-        doc.text(`${d.planet} (${d.durationYears} Yrs)${d.isCurrent ? ' • ACTIVE' : ''}`, dX + 2.5, dY + 4);
+        const startY = parseInt(d.startDate.slice(0, 4)) || 0;
+        const endY = parseInt(d.endDate.slice(0, 4)) || 0;
+        const calcYears = endY - startY;
+        const durationStr = d.durationYears !== undefined ? d.durationYears : (calcYears > 0 ? calcYears : '?');
+        doc.text(`${d.planet} (${durationStr} Yrs)${d.isCurrent ? ' • ACTIVE' : ''}`, dX + 2.5, dY + 4);
 
         doc.setFont('helvetica', 'normal');
         doc.setFontSize(6);
@@ -559,31 +571,40 @@ export const HoroscopeTraditionsView: React.FC<
       yPos += 40;
 
       // 7. AI Multi-Tradition Interpretation / Guidance
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(7.5);
+
+      const aiText = aiInterpretation || `Planetary positions synthesized across ${activeTraditionTitle}. The ascendant ${ascSign} lord and active Vimshottari Mahadasha indicate key milestones in professional leadership, intellectual growth, and dharmic alignment. Maintain focus on planetary harmonization during transition periods.`;
+      const aiLines = doc.splitTextToSize(aiText.replace(/[#*`_>-]/g, ' '), pageWidth - 34);
+      
+      const maxAiLines = 15;
+      const visibleAiLines = aiLines.slice(0, maxAiLines);
+      const aiBoxHeight = 14 + (visibleAiLines.length * 4.0);
+      
       doc.setFillColor(254, 252, 247);
       doc.setDrawColor(201, 160, 80);
       doc.setLineWidth(0.4);
-      doc.roundedRect(13, yPos, pageWidth - 26, 44, 1.5, 1.5, 'FD');
+      doc.roundedRect(13, yPos, pageWidth - 26, aiBoxHeight, 1.5, 1.5, 'FD');
 
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(8);
       doc.setTextColor(126, 95, 24);
       doc.text(`AI DEEP SYNTHESIS (${tradition.toUpperCase()} METHODOLOGY)`, 17, yPos + 5);
 
-      const aiText = aiInterpretation || `Planetary positions synthesized across ${activeTraditionTitle}. The ascendant ${ascSign} lord and active Vimshottari Mahadasha indicate key milestones in professional leadership, intellectual growth, and dharmic alignment. Maintain focus on planetary harmonization during transition periods.`;
-      const aiLines = doc.splitTextToSize(aiText.replace(/[#*`_>-]/g, ' '), pageWidth - 36);
-
       doc.setFont('helvetica', 'normal');
-      doc.setFontSize(6.8);
+      doc.setFontSize(7.5);
       doc.setTextColor(40, 40, 45);
-      doc.text(aiLines.slice(0, 8), 17, yPos + 9.5);
+      doc.text(visibleAiLines, 17, yPos + 10);
 
-      yPos += 48;
+      yPos += aiBoxHeight + 8;
 
       // 8. Recommended Gemstones & Upayas
+      const numGems = chartData.gemstones ? Math.min(chartData.gemstones.length, 4) : 0;
+      const gemBoxHeight = numGems > 0 ? (12 + numGems * 5.5) : 22;
       doc.setFillColor(250, 247, 240);
       doc.setDrawColor(201, 160, 80);
       doc.setLineWidth(0.4);
-      doc.roundedRect(13, yPos, pageWidth - 26, 26, 1.5, 1.5, 'FD');
+      doc.roundedRect(13, yPos, pageWidth - 26, gemBoxHeight, 1.5, 1.5, 'FD');
 
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(8);
@@ -591,15 +612,15 @@ export const HoroscopeTraditionsView: React.FC<
       doc.text('RECOMMENDED TRIKONA GEMSTONES & VEDIC REMEDIES', 17, yPos + 5);
 
       doc.setFont('helvetica', 'normal');
-      doc.setFontSize(6.8);
+      doc.setFontSize(7);
       doc.setTextColor(50, 50, 55);
-      if (chartData.gemstones && chartData.gemstones.length > 0) {
-        chartData.gemstones.slice(0, 3).forEach((g, gIdx) => {
-          doc.text(`• ${g.gem} (${g.planet}): ${g.purpose}`, 17, yPos + 9.5 + gIdx * 4.8);
+      if (numGems > 0) {
+        chartData.gemstones.slice(0, 4).forEach((g, gIdx) => {
+          doc.text(`• ${g.gem} (${g.planet}): ${g.purpose}`, 17, yPos + 10.5 + gIdx * 5.5);
         });
       } else {
-        doc.text('• Primary Gemstone: Yellow Sapphire (Jupiter) or Ruby (Sun) in Gold on Sunday/Thursday morning.', 17, yPos + 10);
-        doc.text('• Daily Upaya: Gayatri Mantra (108 Japa) during Brahma Muhurta and Surya Arghya.', 17, yPos + 15);
+        doc.text('• Primary Gemstone: Yellow Sapphire (Jupiter) or Ruby (Sun) in Gold on Sunday/Thursday morning.', 17, yPos + 11);
+        doc.text('• Daily Upaya: Gayatri Mantra (108 Japa) during Brahma Muhurta and Surya Arghya.', 17, yPos + 16.5);
       }
 
       // --- PAGE DECORATIONS PASS ---
@@ -687,14 +708,8 @@ export const HoroscopeTraditionsView: React.FC<
         doc.setFont('helvetica', 'normal');
         doc.setFontSize(7);
         doc.setTextColor(110, 105, 95);
-        const certId = `JV-TRAD-${Date.now().toString(36).toUpperCase()}`;
         doc.text(
-          `Document ID: ${certId}  |  Generated: ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}  |  Confidential`,
-          14,
-          footerY + 4
-        );
-        doc.text(
-          `Certified by JyotishVeda AI & Traditional Daivajna Ephemeris Engine  |  Page ${i} of ${totalPages}`,
+          `Page ${i} of ${totalPages}`,
           pageWidth - 14,
           footerY + 4,
           { align: 'right' }

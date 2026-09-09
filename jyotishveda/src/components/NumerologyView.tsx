@@ -207,70 +207,84 @@ export const NumerologyView: React.FC<NumerologyViewProps> = ({
       doc.setTextColor(181, 131, 40);
       doc.text(`Name Harmony: ${activeNumerology.nameCompatibility || 'Harmonious Resonance'}`, pageWidth / 2 + 5, yPos + 19.5);
 
-      yPos += 27;
+      yPos += 32;
 
-      // 2. Core Numbers Analysis Cards (4 Columns)
-      const coreColW = (pageWidth - 26 - 9) / 4;
-      const coreCardH = 28;
-      const coreCards = [
-        {
-          title: 'MULANK (PSYCHIC)',
-          num: `${mulank}`,
-          sub: mulankPlanet,
-          desc: activeNumerology.mulankCharacteristics?.[0] || 'Inner personality, subconscious drive and mindset.'
-        },
-        {
-          title: 'BHAGYANK (DESTINY)',
-          num: `${bhagyank}`,
-          sub: bhagyankPlanet,
-          desc: activeNumerology.bhagyankMission || 'Life destiny path, career milestones & karmic purpose.'
-        },
-        {
-          title: 'NAMANK (CHALDEAN)',
-          num: `${namankChaldean}`,
-          sub: 'Name Frequency',
-          desc: 'Social projection, career success aura & commercial power.'
-        },
-        {
-          title: 'LUCKY VIBRATION',
-          num: `${activeNumerology.luckyNumbers?.[0] || mulank}`,
-          sub: 'Harmonic Prime',
-          desc: `Favorable days: ${activeNumerology.luckyDays?.slice(0, 2).join(', ') || 'Thursday, Sunday'}.`
-        }
-      ];
+      // 2. Mulank & Bhagyank Synthesis Deep Dive
+      doc.setFillColor(252, 249, 242);
+      doc.setDrawColor(201, 160, 80);
+      doc.setLineWidth(0.4);
 
-      coreCards.forEach((c, idx) => {
-        const xPos = 13 + idx * (coreColW + 3);
-        doc.setFillColor(248, 245, 237);
-        doc.setDrawColor(226, 211, 176);
-        doc.setLineWidth(0.3);
-        doc.roundedRect(xPos, yPos, coreColW, coreCardH, 1.5, 1.5, 'FD');
+      const traits = (aiInsights?.mulankCharacteristics || activeNumerology.mulankCharacteristics || []).join(' • ');
+      const instinctText = `Your Mulank reveals how you instinctively react to challenges, your personal desires, and your subconscious behavioral patterns. Ruled by ${mulankPlanet}, you radiate authority and strive for self-directed excellence.`;
+      const synergyText = `Your combination of Mulank ${activeNumerology.mulank} and Bhagyank ${activeNumerology.bhagyank} creates an energetic balance between daily execution and grand karmic accomplishments. Harness this alignment by scheduling critical launches on your auspicious dates.`;
 
-        doc.setFont('helvetica', 'bold');
-        doc.setFontSize(6.2);
-        doc.setTextColor(126, 95, 24);
-        doc.text(c.title, xPos + 2.5, yPos + 4);
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(6.5);
+      
+      const halfW2 = (pageWidth - 36) / 2;
+      const instinctLines = doc.splitTextToSize(instinctText, halfW2);
+      const missionLines = doc.splitTextToSize(activeNumerology.bhagyankMission || '', halfW2);
+      const synergyLines = doc.splitTextToSize(synergyText, halfW2);
 
-        doc.setFontSize(11);
-        doc.setTextColor(181, 131, 40);
-        doc.text(c.num, xPos + 2.5, yPos + 9.5);
+      const leftH = 26 + (instinctLines.length * 3.5);
+      const rightH = 14 + (missionLines.length * 3.5) + 8 + (synergyLines.length * 3.5);
+      const synthBoxHeight = Math.max(leftH, rightH) + 12;
 
-        doc.setFontSize(6);
-        doc.setTextColor(90, 90, 95);
-        doc.text(doc.splitTextToSize(c.sub, coreColW - 4)[0] || '', xPos + 2.5, yPos + 13.5);
+      doc.roundedRect(13, yPos, pageWidth - 26, synthBoxHeight, 1.5, 1.5, 'FD');
 
-        doc.setFont('helvetica', 'normal');
-        doc.setFontSize(5.8);
-        doc.setTextColor(60, 60, 65);
-        const descLines = doc.splitTextToSize(c.desc, coreColW - 4);
-        doc.text(descLines.slice(0, 3), xPos + 2.5, yPos + 17.5);
-      });
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(8);
+      doc.setTextColor(126, 95, 24);
+      doc.text('MULANK & BHAGYANK (PSYCHIC & DESTINY) DEEP SYNTHESIS', 17, yPos + 5);
 
-      yPos += coreCardH + 4;
+      const leftColX = 17;
+      const rightColX = 13 + halfW2 + 8;
+
+      // LEFT COL: MULANK
+      doc.setFontSize(7.2);
+      doc.setTextColor(181, 131, 40);
+      doc.text(`MULANK ${activeNumerology.mulank} - PSYCHOLOGICAL DRIVERS`, leftColX, yPos + 10);
+      
+      doc.setFont('helvetica', 'italic');
+      doc.setFontSize(6);
+      doc.setTextColor(100, 100, 105);
+      doc.text(doc.splitTextToSize(traits, halfW2).slice(0, 2), leftColX, yPos + 13.5);
+      
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(6.5);
+      doc.setTextColor(126, 95, 24);
+      doc.text('INSTINCTIVE NATURE:', leftColX, yPos + 21);
+      
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(50, 50, 55);
+      doc.text(instinctLines, leftColX, yPos + 24.5);
+
+      // RIGHT COL: BHAGYANK
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(7.2);
+      doc.setTextColor(181, 131, 40);
+      doc.text(`BHAGYANK ${activeNumerology.bhagyank} - KARMIC LIFE MISSION`, rightColX, yPos + 10);
+
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(6.5);
+      doc.setTextColor(50, 50, 55);
+      doc.text(missionLines, rightColX, yPos + 13.5);
+
+      let curRY = yPos + 13.5 + missionLines.length * 3.5 + 3;
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(6.5);
+      doc.setTextColor(126, 95, 24);
+      doc.text('MULANK-BHAGYANK SYNERGY:', rightColX, curRY);
+      
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(50, 50, 55);
+      doc.text(synergyLines, rightColX, curRY + 3.5);
+
+      yPos += synthBoxHeight + 16;
 
       // 3. Lo Shu 3x3 Magic Grid & 8 Planes Breakdown (Side-by-Side)
       const halfW = (pageWidth - 26 - 4) / 2;
-      const loShuBoxH = 96;
+      const loShuBoxH = 118;
 
       // Left Box: Lo Shu 3x3 Magic Grid Drawing
       doc.setFillColor(252, 249, 242);
@@ -285,7 +299,7 @@ export const NumerologyView: React.FC<NumerologyViewProps> = ({
 
       // Grid Rendering
       const gridStartX = 17;
-      const gridStartY = yPos + 8.5;
+      const gridStartY = yPos + 16;
       const cellSize = (halfW - 8) / 3;
 
       const loShuLayout = [
@@ -346,16 +360,16 @@ export const NumerologyView: React.FC<NumerologyViewProps> = ({
 
       if (activeNumerology.loShuPlanes && activeNumerology.loShuPlanes.length > 0) {
         activeNumerology.loShuPlanes.slice(0, 8).forEach((plane, pIdx) => {
-          const pY = yPos + 8.5 + pIdx * 10.4;
+          const pY = yPos + 8.5 + pIdx * 13.5;
           doc.setFillColor(248, 244, 235);
           doc.setDrawColor(226, 211, 176);
           doc.setLineWidth(0.15);
-          doc.roundedRect(rightBoxX + 3, pY, halfW - 6, 9.2, 0.8, 0.8, 'FD');
+          doc.roundedRect(rightBoxX + 3, pY, halfW - 6, 12.5, 0.8, 0.8, 'FD');
 
           doc.setFont('helvetica', 'bold');
           doc.setFontSize(6.2);
           doc.setTextColor(126, 95, 24);
-          doc.text(plane.name, rightBoxX + 5, pY + 3.5);
+          doc.text(plane.name, rightBoxX + 5, pY + 4);
 
           // Status Badge
           let statusCol = [181, 131, 40];
@@ -364,32 +378,34 @@ export const NumerologyView: React.FC<NumerologyViewProps> = ({
 
           doc.setTextColor(statusCol[0], statusCol[1], statusCol[2]);
           doc.setFontSize(5.8);
-          doc.text(`${plane.status} (${plane.strength}%)`, rightBoxX + halfW - 5, pY + 3.5, { align: 'right' });
+          doc.text(`${plane.status} (${Math.round(plane.strength)}%)`, rightBoxX + halfW - 5, pY + 4, { align: 'right' });
 
           doc.setFont('helvetica', 'normal');
           doc.setFontSize(5.5);
           doc.setTextColor(70, 70, 75);
           const meaningLines = doc.splitTextToSize(plane.meaning, halfW - 10);
-          doc.text(meaningLines[0] || '', rightBoxX + 5, pY + 7);
+          doc.text(meaningLines.slice(0, 2), rightBoxX + 5, pY + 7.5);
         });
       }
 
-      // --- PAGE 2: MISSING NUMBERS REMEDIES, CHALDEAN CORRECTION & LUCKY ATTRIBUTES ---
+      // --- PAGE 2: MISSING NUMBERS, CHALDEAN CORRECTION & LUCKY ATTRIBUTES ---
       doc.addPage();
       yPos = 22;
 
       // 4. Missing Numbers & Planetary Harmonization Table
+      const missingNums = [1, 2, 3, 4, 5, 6, 7, 8, 9].filter((n) => !activeNumerology.loShuGrid?.[n]);
+      const displayMissingNums = missingNums.length > 0 ? Math.min(missingNums.length, 5) : 0;
+      const missingBoxHeight = displayMissingNums > 0 ? (12 + displayMissingNums * 10) : 18;
+
       doc.setFillColor(254, 252, 247);
       doc.setDrawColor(201, 160, 80);
       doc.setLineWidth(0.4);
-      doc.roundedRect(13, yPos, pageWidth - 26, 62, 1.5, 1.5, 'FD');
+      doc.roundedRect(13, yPos, pageWidth - 26, missingBoxHeight, 1.5, 1.5, 'FD');
 
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(8);
       doc.setTextColor(126, 95, 24);
       doc.text('MISSING NUMBERS & VEDIC-ELEMENTAL REMEDIES', 17, yPos + 5);
-
-      const missingNums = [1, 2, 3, 4, 5, 6, 7, 8, 9].filter((n) => !activeNumerology.loShuGrid?.[n]);
       const missingRemediesMap: Record<number, { element: string; upaya: string; gem: string }> = {
         1: { element: 'Water (North)', upaya: 'Place a clear water fountain in North; chant Surya Gayatri.', gem: 'Ruby / Red Jasper' },
         2: { element: 'Earth (South-West)', upaya: 'Keep rose quartz crystals; respect maternal figures.', gem: 'Pearl / Moonstone' },
@@ -425,44 +441,129 @@ export const NumerologyView: React.FC<NumerologyViewProps> = ({
         doc.text('All nine Lo Shu digits are activated in your birth blueprint. Golden vibrational harmony established.', 17, yPos + 12);
       }
 
-      yPos += 66;
+      yPos += missingBoxHeight + 8;
 
-      // 5. Chaldean Name Correction & Acoustic Vibration
+      // 6. Chaldean Name Correction & Acoustic Vibration
+      const pdfTestName = profile.fullName || 'Seeker';
+      const pdfCleanName = pdfTestName.toUpperCase().replace(/[^A-Z]/g, '');
+      let pdfChaldeanSum = 0;
+      for (const ch of pdfCleanName) {
+        pdfChaldeanSum += CHALDEAN_VALUES[ch] || 0;
+      }
+      const pdfChaldeanSingleStr = reduceToSingleDigit(pdfChaldeanSum);
+      const chaldeanRecs = activeNumerology.nameCorrectionSuggestions || [];
+      
+      const lettersRows = Math.ceil(pdfCleanName.length / ((pageWidth - 34) / 7)) || 1;
+      const chaldeanBoxHeight = 40 + (lettersRows * 10) + (chaldeanRecs.length * 5);
+
       doc.setFillColor(252, 249, 242);
       doc.setDrawColor(201, 160, 80);
       doc.setLineWidth(0.4);
-      doc.roundedRect(13, yPos, pageWidth - 26, 44, 1.5, 1.5, 'FD');
+      doc.roundedRect(13, yPos, pageWidth - 26, chaldeanBoxHeight, 1.5, 1.5, 'FD');
 
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(8);
       doc.setTextColor(126, 95, 24);
-      doc.text('CHALDEAN NAME ACOUSTIC VIBRATION & CORRECTION ANALYSIS', 17, yPos + 5);
-
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(7);
-      doc.setTextColor(45, 45, 50);
-      doc.text(`Current Full Name: "${profile.fullName}"  |  Chaldean Compound Vibration: ${activeNumerology.namankChaldean}`, 17, yPos + 10);
-      doc.text(`Vibrational Resonance: ${activeNumerology.nameCompatibility || 'Highly Favorable for Career & Growth'}`, 17, yPos + 15);
+      doc.text('CHALDEAN & PYTHAGOREAN NAME SPELLING OPTIMIZER', 17, yPos + 5);
 
       doc.setFont('helvetica', 'bold');
-      doc.setFontSize(6.8);
-      doc.setTextColor(126, 95, 24);
-      doc.text('Auspicious Master Compound Numbers for Name Correction / Business Branding:', 17, yPos + 21);
+      doc.setFontSize(6);
+      doc.setTextColor(150, 145, 135);
+      doc.text('LETTER GEMATRIA VALUES', 17, yPos + 10);
+
+      let lx = 17;
+      let ly = yPos + 12;
+      let maxLy = ly;
+      pdfCleanName.split('').forEach((char) => {
+         if (lx > pageWidth - 26) {
+             lx = 17;
+             ly += 10;
+         }
+         doc.setFillColor(248, 245, 237);
+         doc.setDrawColor(226, 211, 176);
+         doc.setLineWidth(0.2);
+         doc.roundedRect(lx, ly, 6, 8, 0.5, 0.5, 'FD');
+         
+         doc.setFont('helvetica', 'bold');
+         doc.setFontSize(6.5);
+         doc.setTextColor(20, 20, 25);
+         doc.text(char, lx + 3, ly + 3.5, { align: 'center' });
+         
+         doc.setFont('helvetica', 'normal');
+         doc.setFontSize(5.5);
+         doc.setTextColor(181, 131, 40);
+         doc.text(`${CHALDEAN_VALUES[char] || 0}`, lx + 3, ly + 7, { align: 'center' });
+         
+         lx += 7;
+         maxLy = ly;
+      });
+
+      let nextY = maxLy + 13;
 
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(6.5);
-      doc.setTextColor(60, 60, 65);
-      doc.text('• Number 1 Series: 19 (Prince of Heaven - Fame & Victory), 37 (Courage & High Enterprise), 46 (Authority).', 17, yPos + 26);
-      doc.text('• Number 3 Series: 21 (Crown of the Magi - Total Success), 30 (Creative Intellect), 39 (Universal Renown).', 17, yPos + 31);
-      doc.text('• Number 5 & 6 Series: 14 (Magnetic Commerce), 23 (Royal Star of the Lion), 24 (Venusian Fortune), 32 (Strategic Victory).', 17, yPos + 36);
+      doc.setTextColor(100, 100, 105);
+      doc.text('Total Compound Vibration:', 17, nextY);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(8);
+      doc.setTextColor(181, 131, 40);
+      doc.text(`${pdfChaldeanSum}`, 55, nextY);
 
-      yPos += 48;
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(6.5);
+      doc.setTextColor(100, 100, 105);
+      doc.text('Single Digit Namank:', 80, nextY);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(10);
+      doc.setTextColor(181, 131, 40);
+      doc.text(`${pdfChaldeanSingleStr}`, 110, nextY);
+
+      nextY += 4;
+
+      const isFav = [1, 3, 5, 6].includes(Number(pdfChaldeanSingleStr));
+      const compatText = isFav 
+        ? `Highly favorable vibration ${pdfChaldeanSingleStr}. Resonates strongly with commercial prosperity, leadership respect, and smooth financial transactions.`
+        : `Vibration ${pdfChaldeanSingleStr} requires conscious balancing or a slight single-letter adjustment to align with Mercury (5) or Venus (6).`;
+
+      doc.setFillColor(248, 244, 235);
+      doc.setDrawColor(226, 211, 176);
+      doc.roundedRect(17, nextY, pageWidth - 34, 11, 1, 1, 'FD');
+      
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(6.5);
+      doc.setTextColor(181, 131, 40);
+      doc.text('Vibrational Compatibility:', 20, nextY + 4);
+      
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(6);
+      doc.setTextColor(80, 80, 85);
+      doc.text(doc.splitTextToSize(compatText, pageWidth - 40), 20, nextY + 7.5);
+
+      nextY += 15;
+
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(6);
+      doc.setTextColor(150, 145, 135);
+      doc.text('CLASSICAL RECOMMENDATIONS', 17, nextY);
+
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(6.5);
+      doc.setTextColor(80, 80, 85);
+      let recY = nextY + 4;
+      chaldeanRecs.forEach((rec) => {
+         const recLines = doc.splitTextToSize(`• ${rec}`, pageWidth - 34);
+         doc.text(recLines, 17, recY);
+         recY += recLines.length * 3.5;
+      });
+
+      yPos += chaldeanBoxHeight + 8;
 
       // 6. Auspicious Correspondences & Numerology Upayas
+      const correspondsBoxHeight = 34;
       doc.setFillColor(254, 252, 247);
       doc.setDrawColor(201, 160, 80);
       doc.setLineWidth(0.4);
-      doc.roundedRect(13, yPos, pageWidth - 26, 36, 1.5, 1.5, 'FD');
+      doc.roundedRect(13, yPos, pageWidth - 26, correspondsBoxHeight, 1.5, 1.5, 'FD');
 
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(8);
@@ -484,14 +585,20 @@ export const NumerologyView: React.FC<NumerologyViewProps> = ({
       doc.text(`• Numbers to Handle Carefully: ${numUnfav}`, 17, yPos + 25.5);
       doc.text('• Daily Sadhana: Meditate upon your ruling planet Yantra at dawn; chant Om Gam Ganapataye Namaha.', 17, yPos + 30.5);
 
-      yPos += 40;
+      yPos += correspondsBoxHeight + 8;
 
       // 7. AI Life Blueprint Synthesis Reading
       if (aiInsights && aiInsights.summary) {
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(7.5);
+        const aiLines = doc.splitTextToSize(aiInsights.summary.replace(/[#*`_>-]/g, ' '), pageWidth - 34);
+        const visibleAiLines = aiLines.slice(0, 15);
+        const aiBoxHeight = 14 + (visibleAiLines.length * 4.0);
+        
         doc.setFillColor(250, 247, 240);
         doc.setDrawColor(201, 160, 80);
         doc.setLineWidth(0.4);
-        doc.roundedRect(13, yPos, pageWidth - 26, 32, 1.5, 1.5, 'FD');
+        doc.roundedRect(13, yPos, pageWidth - 26, aiBoxHeight, 1.5, 1.5, 'FD');
 
         doc.setFont('helvetica', 'bold');
         doc.setFontSize(8);
@@ -499,10 +606,9 @@ export const NumerologyView: React.FC<NumerologyViewProps> = ({
         doc.text('AI NUMEROLOGICAL LIFE BLUEPRINT & SUTRA SYNTHESIS', 17, yPos + 5);
 
         doc.setFont('helvetica', 'normal');
-        doc.setFontSize(6.8);
+        doc.setFontSize(7.5);
         doc.setTextColor(40, 40, 45);
-        const aiLines = doc.splitTextToSize(aiInsights.summary.replace(/[#*`_>-]/g, ' '), pageWidth - 36);
-        doc.text(aiLines.slice(0, 5), 17, yPos + 10);
+        doc.text(visibleAiLines, 17, yPos + 10);
       }
 
       // --- PAGE DECORATIONS PASS ---
@@ -590,14 +696,8 @@ export const NumerologyView: React.FC<NumerologyViewProps> = ({
         doc.setFont('helvetica', 'normal');
         doc.setFontSize(7);
         doc.setTextColor(110, 105, 95);
-        const certId = `JV-NUM-${Date.now().toString(36).toUpperCase()}`;
         doc.text(
-          `Document ID: ${certId}  |  Generated: ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}  |  Confidential`,
-          14,
-          footerY + 4
-        );
-        doc.text(
-          `Certified by JyotishVeda AI & Sacred Pythagorean-Chaldean Calculation Engine  |  Page ${i} of ${totalPages}`,
+          `Page ${i} of ${totalPages}`,
           pageWidth - 14,
           footerY + 4,
           { align: 'right' }

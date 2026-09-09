@@ -985,7 +985,6 @@ export const DailyHoroscopeView: React.FC<DailyHoroscopeViewProps> = ({
         // Footer Details (Non-overlapping left and right)
         doc.setFont('helvetica', 'normal');
         doc.setFontSize(6.5);
-        doc.setTextColor(110, 105, 95);
         doc.text(`Document ID: ${certId}  |  Confidential & Proprietary`, 14, footerY + 4);
         doc.text(`Certified by JyotishVeda AI Engine  |  Page ${i} of ${totalPages}`, pageWidth - 14, footerY + 4, { align: 'right' });
       }

@@ -311,16 +311,24 @@ export const LifeRoadmapView: React.FC<LifeRoadmapViewProps> = ({
         doc.setFontSize(7.5);
         const guidanceLines = doc.splitTextToSize(
           m.guidance || 'Astrological dasha guidance and strategic timing.',
-          pageWidth - 36
+          pageWidth - 34
         );
         const guidanceHeight = guidanceLines.length * 3.5;
 
-        const transitText = `Transit Window: ${m.favorableTransits || 'Favorable transit alignment'}`;
-        const remedyText = `Upaya / Sadhana: ${m.remedialAction || 'Chant Maha Mrityunjaya Mantra & perform Guru Seva'}`;
-        const transitLines = doc.splitTextToSize(transitText, pageWidth - 42);
-        const remedyLines = doc.splitTextToSize(remedyText, pageWidth - 42);
+        const transitVal = m.favorableTransits || 'Favorable transit alignment';
+        const remedyVal = m.remedialAction || 'Chant Maha Mrityunjaya Mantra & perform Guru Seva';
 
-        const cardHeight = 12 + guidanceHeight + 2 + transitLines.length * 3.2 + remedyLines.length * 3.2 + 5;
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(7.2);
+        const transitLabelW = doc.getTextWidth('Astrological Transit Window: ');
+        const remedyLabelW = doc.getTextWidth('Recommended Upaya / Sadhana: ');
+
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(7.2);
+        const transitLines = doc.splitTextToSize(transitVal, pageWidth - 34 - transitLabelW);
+        const remedyLines = doc.splitTextToSize(remedyVal, pageWidth - 34 - remedyLabelW);
+
+        const cardHeight = 12 + guidanceHeight + 2 + transitLines.length * 3.4 + remedyLines.length * 3.4 + 5;
 
         // Check page overflow
         if (yPos + cardHeight > pageHeight - 22) {
@@ -379,7 +387,7 @@ export const LifeRoadmapView: React.FC<LifeRoadmapViewProps> = ({
         doc.setTextColor(50, 50, 50);
         let textY = yPos + 14.5;
         doc.text(guidanceLines, 17, textY);
-        textY += guidanceHeight + 1;
+        textY += guidanceHeight + 1.5;
 
         // Transit Window Row
         doc.setFont('helvetica', 'bold');
@@ -388,7 +396,7 @@ export const LifeRoadmapView: React.FC<LifeRoadmapViewProps> = ({
         doc.text('Astrological Transit Window: ', 17, textY);
         doc.setFont('helvetica', 'normal');
         doc.setTextColor(60, 60, 60);
-        doc.text(transitLines, 17 + doc.getTextWidth('Astrological Transit Window: '), textY);
+        doc.text(transitLines, 17 + transitLabelW, textY);
         textY += transitLines.length * 3.4;
 
         // Upaya / Sadhana Row
@@ -398,7 +406,7 @@ export const LifeRoadmapView: React.FC<LifeRoadmapViewProps> = ({
         doc.text('Recommended Upaya / Sadhana: ', 17, textY);
         doc.setFont('helvetica', 'normal');
         doc.setTextColor(60, 60, 60);
-        doc.text(remedyLines, 17 + doc.getTextWidth('Recommended Upaya / Sadhana: '), textY);
+        doc.text(remedyLines, 17 + remedyLabelW, textY);
 
         yPos += cardHeight + 4;
       });
@@ -536,17 +544,6 @@ export const LifeRoadmapView: React.FC<LifeRoadmapViewProps> = ({
         doc.setFont('helvetica', 'normal');
         doc.setFontSize(7);
         doc.setTextColor(110, 105, 95);
-        const certId = `JV-RM-${Date.now().toString(36).toUpperCase()}`;
-        doc.text(
-          `Document ID: ${certId}  |  Generated: ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}`,
-          14,
-          footerY + 4.5
-        );
-        doc.text(
-          'Certified via JyotishVeda Mathematical AstroEngine & Classical Parashari Hora Ephemeris',
-          14,
-          footerY + 8
-        );
 
         doc.setFont('helvetica', 'bold');
         doc.setFontSize(7.5);
