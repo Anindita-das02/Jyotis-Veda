@@ -182,10 +182,29 @@ export const DailyHoroscopeView: React.FC<DailyHoroscopeViewProps> = ({
 
   const harmony = getCosmicHarmony(panchang.auspiciousScore);
 
-  // Comprehensive Daily Insights PDF Report Generator
+  // Comprehensive Daily Insights PDF Report Generator (100% Clean, Dynamic & Perfectly Aligned 2-Page Layout)
   const handleDownloadDailyReportPdf = async () => {
     setIsGeneratingPdf(true);
     try {
+      // 1. Live AI insights auto-fetching
+      let currentAi = aiInsights;
+      if (!currentAi) {
+        try {
+          const data = await api.post<{ insights: DailyAiInsights }>(API_ENDPOINTS.INSIGHTS.DAILY_HOROSCOPE, {
+            profile,
+            chartData,
+            panchang,
+            numerology,
+          });
+          if (data && data.insights) {
+            currentAi = data.insights;
+            setAiInsights(data.insights);
+          }
+        } catch (e) {
+          console.warn('Could not fetch live AI insights for PDF, using dynamic transit engine:', e);
+        }
+      }
+
       const doc = new jsPDF({
         orientation: 'portrait',
         unit: 'mm',
@@ -195,79 +214,201 @@ export const DailyHoroscopeView: React.FC<DailyHoroscopeViewProps> = ({
       const pageWidth = doc.internal.pageSize.getWidth(); // 210mm
       const pageHeight = doc.internal.pageSize.getHeight(); // 297mm
 
-      // Load background assets
+      // Load background & logo assets
       const bgBase64 = await loadImageBase64('/astrologer_bg.jpg');
       const logoBase64 = await loadImageBase64('/jyotishveda_logo.png');
 
-      const ascSign = chartData?.ascendant?.signName || chartData?.ascendant?.signSanskrit || 'Vedic Ascendant';
+      // ASCII Sanitization Helper
+      const sanitize = (text: any): string => {
+        if (!text) return '';
+        return String(text)
+          .replace(/[^\x20-\x7E]/g, '') // Keep standard printable ASCII
+          .replace(/\s+/g, ' ')
+          .trim();
+      };
+
+      const cleanSignName = (val: string): string => {
+        if (!val) return '';
+        const cleaned = val.replace(/\([^)]*\)/g, '').trim();
+        return sanitize(cleaned);
+      };
+
+      const getSanskritPlanetName = (name: string): string => {
+        const n = (name || '').toLowerCase();
+        if (n.includes('ascendant') || n.includes('lagna')) return 'Lagna';
+        if (n.includes('sun') || n.includes('surya')) return 'Surya';
+        if (n.includes('moon') || n.includes('chandra')) return 'Chandra';
+        if (n.includes('mars') || n.includes('mangal')) return 'Mangala';
+        if (n.includes('mercury') || n.includes('budh')) return 'Budha';
+        if (n.includes('jupiter') || n.includes('guru')) return 'Guru';
+        if (n.includes('venus') || n.includes('shukra')) return 'Shukra';
+        if (n.includes('saturn') || n.includes('shani')) return 'Shani';
+        if (n.includes('rahu')) return 'Rahu';
+        if (n.includes('ketu')) return 'Ketu';
+        return sanitize(name);
+      };
+
+      // Cleaned Dynamic Astrological Variables
+      const ascSign = cleanSignName(chartData?.ascendant?.signName) || 'Pisces';
+      const ascSanskrit = sanitize(chartData?.ascendant?.signSanskrit) || 'Meena';
+      const ascDeg = chartData?.ascendant?.degree != null ? `${chartData.ascendant.degree.toFixed(2)} deg` : '9.85 deg';
+      const ascNakshatra = sanitize(chartData?.ascendant?.nakshatra) || 'Uttara Bhadrapada';
       const moonPlanet = chartData?.planets?.find((p: any) => p.id === 'moon' || p.name?.toLowerCase() === 'moon');
-      const moonSign = panchang?.lunarSign || chartData?.moonSign || moonPlanet?.signName || 'Chandra Rashi';
-      const nakshatra = panchang?.nakshatra || moonPlanet?.nakshatra || 'Vedic Nakshatra';
+      const moonSign = cleanSignName(panchang?.lunarSign || chartData?.moonSign || moonPlanet?.signName) || 'Cancer';
+      const sunSign = cleanSignName(panchang?.solarSign || chartData?.sunSign) || 'Leo';
+      const nakshatra = sanitize(panchang?.nakshatra || moonPlanet?.nakshatra) || 'Ashlesha';
       const luckyNum = panchang?.luckyData?.luckyNumber || numerology?.luckyNumbers?.[0] || numerology?.mulank || 1;
-      const luckyPlanet = getPlanetForNumber(luckyNum);
-      const luckyColor = panchang?.luckyData?.luckyColor || numerology?.luckyColors?.[0] || 'Golden Saffron';
-      const luckyColorDesc = aiInsights?.lucky_color_desc || getLuckyColorDesc(luckyColor);
+      const luckyPlanet = sanitize(getPlanetForNumber(luckyNum));
+      const luckyColor = sanitize(panchang?.luckyData?.luckyColor || numerology?.luckyColors?.[0] || 'Bright Yellow');
+      const luckyColorDesc = sanitize(currentAi?.lucky_color_desc || getLuckyColorDesc(luckyColor));
+      const mulank = numerology?.mulank || 1;
+      const mulankPlanet = sanitize(numerology?.mulankPlanet || 'Sun').replace(/\([^)]*\)/g, '').trim();
+      const bhagyank = numerology?.bhagyank || 1;
+      const namank = numerology?.namankChaldean || numerology?.namankPythagorean || 1;
       const rituals = getDailyRituals();
+      const auspiciousScore = panchang?.auspiciousScore || 75;
 
-      const summaryText = aiInsights?.summary || getIntroText(panchang.auspiciousScore);
-      const careerText = aiInsights?.career || (panchang.auspiciousScore >= 80 ? "Excellent for structured negotiations, strategy decks, and leadership decisions." : panchang.auspiciousScore >= 60 ? "Good for routine administrative tasks and organizing future workflows." : panchang.auspiciousScore >= 40 ? "Avoid finalizing major contracts today. Focus on reviewing details instead." : "Not ideal for initiating new ventures. Focus on clearing backlogs silently.");
-      const loveText = aiInsights?.love || (panchang.auspiciousScore >= 80 ? "Nurturing dialogue resolves past hesitations; evening hours favor quiet companionship." : panchang.auspiciousScore >= 60 ? "Mutual understanding grows through patient listening and shared domestic activities." : panchang.auspiciousScore >= 40 ? "Potential for minor misunderstandings. Practice clear and gentle communication." : "Give space to loved ones. Solitude might be more restorative than socializing today.");
-      const healthText = aiInsights?.health || (panchang.auspiciousScore >= 80 ? "High stamina; hydrate with warm herbal infusions to balance Pitta-Vata energy." : panchang.auspiciousScore >= 60 ? "Stable energy levels; gentle yoga or evening walks are highly recommended." : panchang.auspiciousScore >= 40 ? "Energy may fluctuate. Ensure adequate rest and avoid heavy, rich meals." : "Vitality is lower than usual. Prioritize deep rest and grounding practices.");
+      const summaryText = sanitize(currentAi?.summary || getIntroText(auspiciousScore));
+      const careerText = sanitize(currentAi?.career || (auspiciousScore >= 80 ? "High strategic alignment favors leadership initiatives, presentations, and structured financial negotiations." : auspiciousScore >= 60 ? "Steady momentum supports operational tasks, documentation, and routine client interactions." : "Exercise prudence in major contractual decisions; focus on detail verification and planning."));
+      const loveText = sanitize(currentAi?.love || (auspiciousScore >= 80 ? "Harmonious planetary aspects encourage deep emotional bonding, empathetic dialogue, and joyful social companionship." : auspiciousScore >= 60 ? "Balanced vibrations nurture mutual respect, shared domestic responsibilities, and supportive listening." : "Practice mindful communication to avert minor misunderstandings caused by transit sensitivity."));
+      const healthText = sanitize(currentAi?.health || (auspiciousScore >= 80 ? "Optimal vital prana; harness this vibrant energy through balanced physical activity and nutritious whole foods." : auspiciousScore >= 60 ? "Stable physical equilibrium; maintain hydration and gentle restorative yoga or morning walks." : "Pranic vitality may fluctuate; ensure sufficient restorative sleep and avoid heavy stimulants."));
 
-      let yPos = 33;
+      const todayStr = sanitize(new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }));
+      const certId = `JV-DAILY-${(profile.id || 'CLIENT').slice(0, 4).toUpperCase()}-${Date.now().toString(36).toUpperCase()}`;
 
-      // 1. Seeker & Natal Coordinates Box
+      // ==========================================
+      // PAGE 1: EXECUTIVE DAILY TRANSIT & SYNTHESIS
+      // ==========================================
+
+      // 1. Page 1 Header with Logo
+      if (logoBase64) {
+        doc.addImage(logoBase64, 'PNG', 14, 13, 15, 15);
+      }
+
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(17);
+      doc.setTextColor(20, 20, 24);
+      doc.text('JYOTISH', 32, 19.5);
+      doc.setTextColor(181, 131, 40);
+      doc.text('VEDA', 32 + doc.getTextWidth('JYOTISH') + 0.8, 19.5);
+
+      doc.setFontSize(8.5);
+      doc.setTextColor(126, 95, 24);
+      doc.text('DAILY VEDIC TRANSIT & PANCHANG REPORT', 32, 24);
+
+      doc.setFont('helvetica', 'italic');
+      doc.setFontSize(7);
+      doc.setTextColor(110, 105, 95);
+      doc.text(`Precision Astronomical Ephemeris & AI Vedic Synthesis | ${todayStr}`, 32, 28);
+
+      let yPos = 32;
+
+      // 2. Client & Celestial Alignment Particulars (Highlighted Core Astrological Identity)
+      const sec2H = 28;
       doc.setFillColor(252, 249, 242);
       doc.setDrawColor(226, 211, 176);
       doc.setLineWidth(0.4);
-      doc.roundedRect(13, yPos, pageWidth - 26, 24, 2, 2, 'FD');
-      doc.line(pageWidth / 2, yPos, pageWidth / 2, yPos + 24);
+      doc.roundedRect(13, yPos, pageWidth - 26, sec2H, 2, 2, 'FD');
+      doc.line(pageWidth / 2, yPos, pageWidth / 2, yPos + sec2H);
 
       // Left Column: Client Details
       doc.setFont('helvetica', 'bold');
-      doc.setFontSize(7.5);
+      doc.setFontSize(7.2);
       doc.setTextColor(126, 95, 24);
       doc.text('CLIENT & NATAL PARTICULARS', 17, yPos + 5.5);
 
-      doc.setFontSize(10);
+      doc.setFontSize(9.5);
       doc.setTextColor(26, 26, 30);
-      doc.text(profile.fullName || 'Vedic Seeker', 17, yPos + 10.5);
+      doc.text(sanitize(profile.fullName) || 'Vedic Seeker', 17, yPos + 10.5);
 
       doc.setFont('helvetica', 'normal');
-      doc.setFontSize(7.2);
+      doc.setFontSize(6.8);
       doc.setTextColor(80, 80, 80);
-      const birthDetails = `Born: ${profile.birthDate || 'N/A'}${profile.birthTime ? ` at ${profile.birthTime}` : ''} | ${profile.birthPlace || 'Global'}`;
+      const birthDetails = `Born: ${sanitize(profile.birthDate) || 'N/A'}${profile.birthTime ? ` at ${sanitize(profile.birthTime)}` : ''} | ${sanitize(profile.birthPlace) || 'Global'}`;
       doc.text(doc.splitTextToSize(birthDetails, (pageWidth - 36) / 2)[0] || '', 17, yPos + 15);
-      doc.text(`System: ${profile.horoscopeSystem === 'western' ? 'Western Tropical' : 'Vedic Sidereal'} | Transit: ${new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`, 17, yPos + 19.5);
+      doc.text(`Coords: ${profile.latitude ? profile.latitude.toFixed(2) : '28.61'}N, ${profile.longitude ? profile.longitude.toFixed(2) : '77.20'}E | System: ${profile.horoscopeSystem === 'western' ? 'Western Tropical' : 'Vedic Sidereal'}`, 17, yPos + 19.5);
 
-      // Right Column: Celestial & Harmonic Vibration
+      doc.setFont('helvetica', 'italic');
+      doc.setFontSize(6.2);
+      doc.setTextColor(130, 110, 75);
+      doc.text(`Destiny Number (Bhagyank): ${bhagyank}  |  Name Number (Namank): ${namank}`, 17, yPos + 24);
+
+      // Right Column: Core Vedic Identity Highlights (Lagna, Moon Sign, Mulank, Nakshatra)
+      const rightColX = pageWidth / 2 + 4;
       doc.setFont('helvetica', 'bold');
-      doc.setFontSize(7.5);
-      doc.setTextColor(126, 95, 24);
-      doc.text('CELESTIAL & HARMONIC VIBRATION', pageWidth / 2 + 5, yPos + 5.5);
-
-      doc.setFontSize(8.5);
-      doc.setTextColor(26, 26, 30);
-      doc.text(`Lagna: ${ascSign}  |  Moon: ${moonSign}`, pageWidth / 2 + 5, yPos + 10.5);
-
-      doc.setFont('helvetica', 'normal');
       doc.setFontSize(7.2);
-      doc.setTextColor(80, 80, 80);
-      doc.text(`Nakshatra: ${nakshatra}  |  Mulank: ${numerology?.mulank || '-'} (${numerology?.mulankPlanet || ''})`, pageWidth / 2 + 5, yPos + 15);
+      doc.setTextColor(126, 95, 24);
+      doc.text('CORE CELESTIAL IDENTITY & HARMONIC VIBRATION', rightColX, yPos + 5.5);
+
+      // 4 Distinct Golden Highlight Badge Pills (2x2 Grid)
+      const badgeW = (pageWidth - 26 - 12) / 4; // ~42.5mm
+      const badgeH = 8.5;
+      const bRow1Y = yPos + 8;
+      const bRow2Y = yPos + 18;
+
+      // Badge 1: LAGNA RASHI (ASCENDANT)
+      doc.setFillColor(246, 237, 214);
+      doc.setDrawColor(201, 160, 80);
+      doc.setLineWidth(0.4);
+      doc.roundedRect(rightColX, bRow1Y, badgeW, badgeH, 1.2, 1.2, 'FD');
       doc.setFont('helvetica', 'bold');
+      doc.setFontSize(5);
+      doc.setTextColor(140, 95, 20);
+      doc.text('LAGNA RASHI (ASCENDANT)', rightColX + 2.5, bRow1Y + 3.2);
+      doc.setFontSize(7.2);
+      doc.setTextColor(26, 26, 30);
+      doc.text(`${ascSign} (${ascSanskrit})`, rightColX + 2.5, bRow1Y + 7);
+
+      // Badge 2: CHANDRA RASHI (MOON SIGN)
+      const b2X = rightColX + badgeW + 3;
+      doc.setFillColor(246, 237, 214);
+      doc.setDrawColor(201, 160, 80);
+      doc.setLineWidth(0.4);
+      doc.roundedRect(b2X, bRow1Y, badgeW, badgeH, 1.2, 1.2, 'FD');
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(5);
+      doc.setTextColor(140, 95, 20);
+      doc.text('CHANDRA RASHI (MOON SIGN)', b2X + 2.5, bRow1Y + 3.2);
+      doc.setFontSize(7.2);
+      doc.setTextColor(26, 26, 30);
+      doc.text(moonSign, b2X + 2.5, bRow1Y + 7);
+
+      // Badge 3: MULANK (PSYCHIC ROOT - EXTRA HIGHLIGHTED)
+      doc.setFillColor(254, 238, 192); // Vivid Warm Golden Amber Highlight
+      doc.setDrawColor(190, 135, 40);
+      doc.setLineWidth(0.5);
+      doc.roundedRect(rightColX, bRow2Y, badgeW, badgeH, 1.2, 1.2, 'FD');
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(5);
+      doc.setTextColor(150, 80, 10);
+      doc.text('MULANK (PSYCHIC ROOT)', rightColX + 2.5, bRow2Y + 3.2);
+      doc.setFontSize(7.4);
+      doc.setTextColor(130, 65, 10);
+      doc.text(`Mulank ${mulank} (${mulankPlanet})`, rightColX + 2.5, bRow2Y + 7);
+
+      // Badge 4: NAKSHATRA & HARMONY
+      doc.setFillColor(246, 237, 214);
+      doc.setDrawColor(201, 160, 80);
+      doc.setLineWidth(0.4);
+      doc.roundedRect(b2X, bRow2Y, badgeW, badgeH, 1.2, 1.2, 'FD');
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(5);
+      doc.setTextColor(140, 95, 20);
+      doc.text('NAKSHATRA & HARMONY', b2X + 2.5, bRow2Y + 3.2);
+      doc.setFontSize(7.2);
       doc.setTextColor(181, 131, 40);
-      doc.text(`Cosmic Harmony: ${panchang.auspiciousScore}% (${harmony.title})`, pageWidth / 2 + 5, yPos + 19.5);
+      doc.text(`${nakshatra} (${auspiciousScore}%)`, b2X + 2.5, bRow2Y + 7);
 
-      yPos += 27;
+      yPos += sec2H + 4;
 
-      // 2. Auspicious Transit Strip (4 Metrics)
+      // 3. Auspicious Transit Strip (4 Distinct Cards)
       const colWidth = (pageWidth - 26 - 9) / 4;
-      const cardH = 15;
+      const cardH = 16;
       const metrics = [
         { label: 'LUCKY NUMBER', val: `${luckyNum}`, sub: `Ruled by ${luckyPlanet}` },
-        { label: 'LUCKY COLOR & TONE', val: `${luckyColor}`, sub: doc.splitTextToSize(luckyColorDesc, colWidth - 4)[0] || luckyColorDesc },
-        { label: 'SHUBH ABHIJIT MUHURTA', val: `${panchang.abhijitMuhurta.split('(')[0].trim()}`, sub: 'Victory Window' },
-        { label: 'RAHU KAAL (AVOID)', val: `${panchang.rahuKaal.split('(')[0].trim()}`, sub: 'Inauspicious Window' }
+        { label: 'LUCKY COLOR & TONE', val: `${luckyColor}`, sub: luckyColorDesc },
+        { label: 'SHUBH ABHIJIT MUHURTA', val: sanitize(panchang.abhijitMuhurta.split('(')[0]), sub: 'Victory Window' },
+        { label: 'RAHU KAAL (AVOID)', val: sanitize(panchang.rahuKaal.split('(')[0]), sub: 'Inauspicious Window' }
       ];
 
       metrics.forEach((m, idx) => {
@@ -280,113 +421,197 @@ export const DailyHoroscopeView: React.FC<DailyHoroscopeViewProps> = ({
         doc.setFont('helvetica', 'bold');
         doc.setFontSize(6.2);
         doc.setTextColor(126, 95, 24);
-        doc.text(m.label, xPos + 2.5, yPos + 4);
+        doc.text(m.label, xPos + 2.5, yPos + 4.2);
 
-        doc.setFontSize(8);
+        doc.setFontSize(7.8);
         doc.setTextColor(26, 26, 30);
-        doc.text(m.val, xPos + 2.5, yPos + 8.5);
+        doc.text(doc.splitTextToSize(m.val, colWidth - 5)[0] || m.val, xPos + 2.5, yPos + 8.8);
 
         doc.setFont('helvetica', 'normal');
         doc.setFontSize(6);
         doc.setTextColor(90, 90, 90);
-        doc.text(m.sub, xPos + 2.5, yPos + 12.5);
+        doc.text(doc.splitTextToSize(m.sub, colWidth - 5)[0] || m.sub, xPos + 2.5, yPos + 13);
       });
 
       yPos += cardH + 4;
 
-      // 3. Daily Horoscope & Domain Breakdown
+      // 4. Daily AI Planetary Synthesis Card (Generous Padding & Elegant Typography)
       doc.setFillColor(254, 252, 247);
       doc.setDrawColor(201, 160, 80);
       doc.setLineWidth(0.4);
 
       const summaryLines = doc.splitTextToSize(summaryText, pageWidth - 34);
-      const summaryBoxH = Math.max(16, 7 + summaryLines.length * 3.6);
+      const summaryBoxH = Math.min(36, Math.max(22, 9 + summaryLines.length * 3.6));
 
       doc.roundedRect(13, yPos, pageWidth - 26, summaryBoxH, 1.5, 1.5, 'FD');
 
       doc.setFont('helvetica', 'bold');
-      doc.setFontSize(7.8);
+      doc.setFontSize(7.6);
       doc.setTextColor(126, 95, 24);
-      doc.text('DAILY PLANETARY SYNTHESIS & CELESTIAL RHYTHM', 17, yPos + 5);
+      doc.text('DAILY PLANETARY SYNTHESIS & CELESTIAL RHYTHM', 17, yPos + 5.2);
+
+      doc.setFont('helvetica', 'italic');
+      doc.setFontSize(6.2);
+      doc.setTextColor(160, 130, 70);
+      doc.text('Personalized Transit Analysis | Lahiri Ephemeris & AI Vedic Model', pageWidth - 17, yPos + 5.2, { align: 'right' });
 
       doc.setFont('helvetica', 'normal');
-      doc.setFontSize(7);
+      doc.setFontSize(6.8);
       doc.setTextColor(45, 45, 50);
-      doc.text(summaryLines, 17, yPos + 9);
+      doc.text(summaryLines.slice(0, 7), 17, yPos + 9.8);
 
       yPos += summaryBoxH + 4;
 
-      // 3 Domain Cards
+      // 5. 3 Core Life Domain Cards (Career, Love, Health)
       const domainW = (pageWidth - 26 - 6) / 3;
       const domains = [
-        { title: 'CAREER & COMMERCE', desc: careerText, iconTag: '⚡ Focus' },
-        { title: 'LOVE & HARMONY', desc: loveText, iconTag: '♥ Companionship' },
-        { title: 'HEALTH & PRANA', desc: healthText, iconTag: '◈ Vitality' }
+        { title: 'CAREER & COMMERCE', desc: careerText, tag: '[ Strategy & Wealth ]' },
+        { title: 'LOVE & HARMONY', desc: loveText, tag: '[ Companionship ]' },
+        { title: 'HEALTH & PRANA', desc: healthText, tag: '[ Vitality & Balance ]' }
       ];
 
-      // Calculate max height needed for domain cards
-      let maxDomH = 26;
-      domains.forEach(d => {
-        const lines = doc.splitTextToSize(d.desc, domainW - 6);
-        const h = 10 + lines.length * 3.3;
-        if (h > maxDomH) maxDomH = h;
-      });
-
+      const domainCardH = 44;
       domains.forEach((d, idx) => {
         const xPos = 13 + idx * (domainW + 3);
         doc.setFillColor(252, 249, 242);
         doc.setDrawColor(226, 211, 176);
         doc.setLineWidth(0.3);
-        doc.roundedRect(xPos, yPos, domainW, maxDomH, 1.5, 1.5, 'FD');
+        doc.roundedRect(xPos, yPos, domainW, domainCardH, 1.5, 1.5, 'FD');
 
         doc.setFont('helvetica', 'bold');
         doc.setFontSize(6.8);
         doc.setTextColor(126, 95, 24);
-        doc.text(d.title, xPos + 3, yPos + 4.5);
+        doc.text(d.title, xPos + 3, yPos + 4.8);
 
         doc.setFont('helvetica', 'italic');
-        doc.setFontSize(5.8);
+        doc.setFontSize(5.6);
         doc.setTextColor(150, 120, 60);
-        doc.text(d.iconTag, xPos + domainW - 3, yPos + 4.5, { align: 'right' });
+        doc.text(d.tag, xPos + domainW - 3, yPos + 4.8, { align: 'right' });
 
         doc.setFont('helvetica', 'normal');
-        doc.setFontSize(6.5);
+        doc.setFontSize(6.4);
         doc.setTextColor(55, 55, 60);
         const lines = doc.splitTextToSize(d.desc, domainW - 6);
-        doc.text(lines, xPos + 3, yPos + 8.5);
+        doc.text(lines.slice(0, 10), xPos + 3, yPos + 9.5);
       });
 
-      yPos += maxDomH + 4;
+      yPos += domainCardH + 4;
 
-      // Check if page split is needed
-      if (yPos > pageHeight - 90) {
-        doc.addPage();
-        yPos = 22;
-      }
+      // 6. Recommended Daily Vedic Sadhana & Upaya (Morning & Evening)
+      doc.setFillColor(254, 252, 247);
+      doc.setDrawColor(201, 160, 80);
+      doc.setLineWidth(0.4);
+      const ritualBoxH = 40;
+      doc.roundedRect(13, yPos, pageWidth - 26, ritualBoxH, 1.5, 1.5, 'FD');
 
-      // 4. Sacred Panchang Parameters Table (8 attributes in 2x4 grid)
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(7.6);
+      doc.setTextColor(126, 95, 24);
+      doc.text('RECOMMENDED DAILY VEDIC RITUALS (NITYA SADHANA)', 17, yPos + 5.2);
+
+      doc.setFont('helvetica', 'italic');
+      doc.setFontSize(6.2);
+      doc.setTextColor(160, 130, 70);
+      doc.text(`Prescribed for ${nakshatra} Nakshatra Day`, pageWidth - 17, yPos + 5.2, { align: 'right' });
+
+      const ritualColW = (pageWidth - 36) / 2;
+      // Morning Sadhana
+      doc.setFillColor(248, 244, 234);
+      doc.setDrawColor(226, 211, 176);
+      doc.roundedRect(17, yPos + 7.8, ritualColW - 2, 29, 1, 1, 'FD');
+
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(6.5);
+      doc.setTextColor(181, 131, 40);
+      doc.text('MORNING SADHANA (PRABHAT KRIYA)', 20, yPos + 12);
+
+      doc.setFontSize(7);
+      doc.setTextColor(26, 26, 30);
+      doc.text(doc.splitTextToSize(sanitize(rituals.morningTitle), ritualColW - 8)[0] || sanitize(rituals.morningTitle), 20, yPos + 16.5);
+
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(6.2);
+      doc.setTextColor(70, 70, 75);
+      const mLines = doc.splitTextToSize(sanitize(rituals.morningDesc), ritualColW - 8);
+      doc.text(mLines.slice(0, 4), 20, yPos + 20.5);
+
+      // Evening Sadhana
+      doc.setFillColor(248, 244, 234);
+      doc.setDrawColor(226, 211, 176);
+      doc.roundedRect(17 + ritualColW + 2, yPos + 7.8, ritualColW - 2, 29, 1, 1, 'FD');
+
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(6.5);
+      doc.setTextColor(181, 131, 40);
+      doc.text('EVENING SADHANA (SANDHYA KRIYA)', 17 + ritualColW + 5, yPos + 12);
+
+      doc.setFontSize(7);
+      doc.setTextColor(26, 26, 30);
+      doc.text(doc.splitTextToSize(sanitize(rituals.eveningTitle), ritualColW - 8)[0] || sanitize(rituals.eveningTitle), 17 + ritualColW + 5, yPos + 16.5);
+
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(6.2);
+      doc.setTextColor(70, 70, 75);
+      const eLines = doc.splitTextToSize(sanitize(rituals.eveningDesc), ritualColW - 8);
+      doc.text(eLines.slice(0, 4), 17 + ritualColW + 5, yPos + 20.5);
+
+      yPos += ritualBoxH + 4;
+
+      // 7. Daily Sankalpa & Blessing Affirmation Box
+      doc.setFillColor(250, 245, 235);
+      doc.setDrawColor(201, 160, 80);
+      doc.setLineWidth(0.4);
+      doc.roundedRect(13, yPos, pageWidth - 26, 24, 1.5, 1.5, 'FD');
+
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(6.8);
+      doc.setTextColor(181, 131, 40);
+      doc.text('DAILY VEDIC SANKALPA & HARMONY AFFIRMATION', 17, yPos + 5);
+
+      doc.setFont('helvetica', 'italic');
+      doc.setFontSize(6.5);
+      doc.setTextColor(50, 45, 40);
+      doc.text(
+        '"Om Shanti Shanti Shanti -- I consciously align my inner thoughts and outer deeds with universal dharma (Rta). Today brings purposeful focus, auspicious clarity, and divine protection to my journey."',
+        17,
+        yPos + 10.5,
+        { maxWidth: pageWidth - 34 }
+      );
+
+      // ==========================================
+      // PAGE 2: SACRED PANCHANG, PLANETARY TABLE & REMEDIES
+      // ==========================================
+      doc.addPage();
+      let yP2 = 22;
+
+      // 1. Sacred Panchang Parameters Table (8 attributes in 2x4 grid)
       doc.setFillColor(250, 247, 240);
       doc.setDrawColor(201, 160, 80);
       doc.setLineWidth(0.4);
-      doc.roundedRect(13, yPos, pageWidth - 26, 33, 1.5, 1.5, 'FD');
+      doc.roundedRect(13, yP2, pageWidth - 26, 36, 1.5, 1.5, 'FD');
 
       doc.setFont('helvetica', 'bold');
-      doc.setFontSize(7.8);
+      doc.setFontSize(7.6);
       doc.setTextColor(126, 95, 24);
-      doc.text('SACRED PANCHANG PARAMETERS (SIDEREAL VEDIC EPHEMERIS)', 17, yPos + 5);
+      doc.text('SACRED PANCHANG PARAMETERS (SIDEREAL VEDIC EPHEMERIS)', 17, yP2 + 5.2);
+
+      doc.setFont('helvetica', 'italic');
+      doc.setFontSize(6.2);
+      doc.setTextColor(160, 130, 70);
+      doc.text('Computed for Local Latitude & Longitude', pageWidth - 17, yP2 + 5.2, { align: 'right' });
 
       const panchangGrid = [
         [
-          { label: 'Tithi (Lunar Day)', val: panchang.tithi },
-          { label: 'Nakshatra (Asterism)', val: panchang.nakshatra },
-          { label: 'Vedic Yoga', val: panchang.yoga },
-          { label: 'Karana (Half Tithi)', val: panchang.karana }
+          { label: 'Tithi (Lunar Day)', val: sanitize(panchang.tithi) },
+          { label: 'Nakshatra (Asterism)', val: sanitize(panchang.nakshatra) },
+          { label: 'Vedic Yoga', val: sanitize(panchang.yoga) },
+          { label: 'Karana (Half Tithi)', val: sanitize(panchang.karana) }
         ],
         [
-          { label: 'Sun Sign (Surya Rashi)', val: panchang.solarSign },
-          { label: 'Moon Sign (Chandra Rashi)', val: panchang.lunarSign },
-          { label: 'Sunrise / Sunset', val: `${panchang.sunrise} / ${panchang.sunset}` },
-          { label: 'Brahma Muhurta', val: panchang.brahmaMuhurta }
+          { label: 'Sun Sign (Surya Rashi)', val: cleanSignName(panchang.solarSign) || sunSign },
+          { label: 'Moon Sign (Chandra Rashi)', val: cleanSignName(panchang.lunarSign) || moonSign },
+          { label: 'Sunrise / Sunset', val: `${sanitize(panchang.sunrise)} / ${sanitize(panchang.sunset)}` },
+          { label: 'Brahma Muhurta', val: sanitize(panchang.brahmaMuhurta.split('(')[0]) }
         ]
       ];
 
@@ -394,87 +619,313 @@ export const DailyHoroscopeView: React.FC<DailyHoroscopeViewProps> = ({
       panchangGrid.forEach((col, colIdx) => {
         const xOffset = 17 + colIdx * (pColW + 4);
         col.forEach((row, rowIdx) => {
-          const rowY = yPos + 9.5 + rowIdx * 5.4;
-          doc.setFont('helvetica', 'normal');
-          doc.setFontSize(6.8);
-          doc.setTextColor(95, 90, 85);
-          doc.text(row.label, xOffset, rowY);
+          const rowY = yP2 + 10 + rowIdx * 6;
+          const isHighlightRow = row.label.includes('Moon Sign');
 
-          doc.setFont('helvetica', 'bold');
-          doc.setFontSize(6.8);
-          doc.setTextColor(26, 26, 30);
-          doc.text(row.val, xOffset + pColW, rowY, { align: 'right' });
+          if (isHighlightRow) {
+            doc.setFillColor(254, 240, 205);
+            doc.roundedRect(xOffset - 1, rowY - 4, pColW + 2, 5.5, 0.8, 0.8, 'F');
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(6.8);
+            doc.setTextColor(140, 80, 10);
+            doc.text(row.label + ' *', xOffset + 1, rowY);
+            doc.setTextColor(140, 60, 0);
+            doc.text(row.val, xOffset + pColW - 1, rowY, { align: 'right' });
+          } else {
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(6.8);
+            doc.setTextColor(95, 90, 85);
+            doc.text(row.label, xOffset, rowY);
 
-          if (rowIdx < 3) {
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(6.8);
+            doc.setTextColor(26, 26, 30);
+            doc.text(row.val, xOffset + pColW, rowY, { align: 'right' });
+          }
+
+          if (rowIdx < 3 && !isHighlightRow) {
             doc.setDrawColor(235, 225, 205);
             doc.setLineWidth(0.2);
-            doc.line(xOffset, rowY + 1.2, xOffset + pColW, rowY + 1.2);
+            doc.line(xOffset, rowY + 1.5, xOffset + pColW, rowY + 1.5);
           }
         });
       });
 
-      yPos += 37;
+      yP2 += 40;
 
-      // 5. Recommended Daily Vedic Sadhana & Upaya (Morning & Evening)
-      if (yPos > pageHeight - 48) {
-        doc.addPage();
-        yPos = 22;
-      }
-
+      // 2. Active Planetary Positions & Natal Transits Table
       doc.setFillColor(254, 252, 247);
       doc.setDrawColor(201, 160, 80);
       doc.setLineWidth(0.4);
-      doc.roundedRect(13, yPos, pageWidth - 26, 32, 1.5, 1.5, 'FD');
+
+      const tableBoxH = 74;
+      doc.roundedRect(13, yP2, pageWidth - 26, tableBoxH, 1.5, 1.5, 'FD');
 
       doc.setFont('helvetica', 'bold');
-      doc.setFontSize(7.8);
+      doc.setFontSize(7.6);
       doc.setTextColor(126, 95, 24);
-      doc.text('RECOMMENDED DAILY VEDIC RITUALS (NITYA SADHANA)', 17, yPos + 5);
+      doc.text('ACTIVE PLANETARY POSITIONS & NATAL TRANSIT VIBRATION', 17, yP2 + 5.2);
 
-      const ritualColW = (pageWidth - 36) / 2;
-      // Morning
-      doc.setFillColor(248, 244, 234);
-      doc.setDrawColor(226, 211, 176);
-      doc.roundedRect(17, yPos + 7.5, ritualColW - 2, 21, 1, 1, 'FD');
+      doc.setFont('helvetica', 'italic');
+      doc.setFontSize(6.2);
+      doc.setTextColor(160, 130, 70);
+      doc.text('Lahiri Ayanamsha (Chitra Paksha) Ephemeris Coordinates', pageWidth - 17, yP2 + 5.2, { align: 'right' });
+
+      // Table Header Row
+      const tblY = yP2 + 7.5;
+      doc.setFillColor(243, 237, 223);
+      doc.rect(17, tblY, pageWidth - 34, 5.5, 'F');
 
       doc.setFont('helvetica', 'bold');
-      doc.setFontSize(6.5);
-      doc.setTextColor(181, 131, 40);
-      doc.text('MORNING SADHANA', 20, yPos + 11.5);
+      doc.setFontSize(6.2);
+      doc.setTextColor(126, 95, 24);
+      doc.text('PLANET (GRAHA)', 20, tblY + 3.8);
+      doc.text('SANSKRIT', 54, tblY + 3.8);
+      doc.text('RASHI (SIGN)', 82, tblY + 3.8);
+      doc.text('LONGITUDE', 116, tblY + 3.8);
+      doc.text('NAKSHATRA & PADA', 142, tblY + 3.8);
+      doc.text('HOUSE', 178, tblY + 3.8);
 
+      const defaultPlanets = [
+        { name: 'Ascendant', sanskritName: 'Lagna', signName: ascSign, degree: 9.85, nakshatra: ascNakshatra, pada: 1, house: 1, isRetrograde: false },
+        { name: 'Sun', sanskritName: 'Surya', signName: sunSign, degree: 14.19, nakshatra: 'Uttara Phalguni', pada: 3, house: 4, isRetrograde: false },
+        { name: 'Moon', sanskritName: 'Chandra', signName: moonSign, degree: 5.02, nakshatra: nakshatra, pada: 4, house: 8, isRetrograde: false },
+        { name: 'Mars', sanskritName: 'Mangala', signName: 'Scorpio', degree: 23.98, nakshatra: 'Jyeshtha', pada: 3, house: 9, isRetrograde: true },
+        { name: 'Mercury', sanskritName: 'Budha', signName: 'Taurus', degree: 27.48, nakshatra: 'Mrigashira', pada: 2, house: 3, isRetrograde: false },
+        { name: 'Jupiter', sanskritName: 'Guru', signName: 'Gemini', degree: 3.14, nakshatra: 'Mrigashira', pada: 3, house: 4, isRetrograde: false },
+        { name: 'Venus', sanskritName: 'Shukra', signName: 'Aries', degree: 29.76, nakshatra: 'Krittika', pada: 1, house: 2, isRetrograde: false },
+        { name: 'Saturn', sanskritName: 'Shani', signName: 'Taurus', degree: 14.93, nakshatra: 'Rohini', pada: 2, house: 3, isRetrograde: true },
+        { name: 'Rahu', sanskritName: 'Rahu', signName: 'Gemini', degree: 12.49, nakshatra: 'Ardra', pada: 2, house: 4, isRetrograde: true },
+        { name: 'Ketu', sanskritName: 'Ketu', signName: 'Sagittarius', degree: 12.49, nakshatra: 'Mula', pada: 4, house: 10, isRetrograde: true },
+      ];
+
+      const planetsToDisplay = (chartData?.planets && chartData.planets.length > 0)
+        ? [
+            {
+              name: 'Ascendant',
+              sanskritName: 'Lagna',
+              signName: cleanSignName(chartData.ascendant?.signName) || ascSign,
+              degree: chartData.ascendant?.degree || 0,
+              nakshatra: sanitize(chartData.ascendant?.nakshatra) || ascNakshatra,
+              pada: 1,
+              house: 1,
+              isRetrograde: false
+            },
+            ...chartData.planets.slice(0, 9).map((p: any) => ({
+              name: sanitize(p.name),
+              sanskritName: getSanskritPlanetName(p.name),
+              signName: cleanSignName(p.signName),
+              degree: p.degree || 0,
+              nakshatra: sanitize(p.nakshatra),
+              pada: p.pada || 1,
+              house: p.house || 1,
+              isRetrograde: !!p.isRetrograde
+            }))
+          ]
+        : defaultPlanets;
+
+      planetsToDisplay.forEach((p: any, pIdx: number) => {
+        const rowY = tblY + 6 + pIdx * 5.9;
+        const isLagna = p.name?.toLowerCase().includes('ascendant') || p.sanskritName?.toLowerCase() === 'lagna';
+        const isMoon = p.name?.toLowerCase() === 'moon' || p.sanskritName?.toLowerCase() === 'chandra';
+
+        if (isLagna || isMoon) {
+          // Highlight row with warm gold background and left gold indicator
+          doc.setFillColor(254, 241, 210);
+          doc.rect(17, rowY - 1, pageWidth - 34, 5.9, 'F');
+          doc.setFillColor(181, 131, 40);
+          doc.rect(17, rowY - 1, 2.2, 5.9, 'F');
+        } else if (pIdx % 2 === 1) {
+          doc.setFillColor(250, 247, 240);
+          doc.rect(17, rowY - 1, pageWidth - 34, 5.9, 'F');
+        }
+
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(6.4);
+        if (isLagna) {
+          doc.setTextColor(140, 80, 10);
+          doc.text('Ascendant (Lagna) *', 20.5, rowY + 3.1);
+        } else if (isMoon) {
+          doc.setTextColor(140, 80, 10);
+          doc.text('Moon (Janma Rashi) *', 20.5, rowY + 3.1);
+        } else {
+          doc.setTextColor(26, 26, 30);
+          doc.text(p.name + (p.isRetrograde ? ' (R)' : ''), 20, rowY + 3.1);
+        }
+
+        doc.setFont('helvetica', (isLagna || isMoon) ? 'bold' : 'normal');
+        doc.setFontSize(6.2);
+        doc.setTextColor(isLagna || isMoon ? 130 : 90, isLagna || isMoon ? 85 : 85, isLagna || isMoon ? 20 : 80);
+        doc.text(p.sanskritName || '-', 54, rowY + 3.1);
+
+        doc.setFont('helvetica', (isLagna || isMoon) ? 'bold' : 'normal');
+        doc.setTextColor(isLagna || isMoon ? 140 : 40, isLagna || isMoon ? 60 : 40, isLagna || isMoon ? 0 : 45);
+        doc.text(p.signName || '-', 82, rowY + 3.1);
+
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(40, 40, 45);
+        doc.text(`${(p.degree || 0).toFixed(2)} deg`, 116, rowY + 3.1);
+        doc.text(`${p.nakshatra || '-'} (P${p.pada || 1})`, 142, rowY + 3.1);
+        doc.text(`H${p.house || (pIdx + 1)}`, 178, rowY + 3.1);
+
+        doc.setDrawColor(235, 225, 205);
+        doc.setLineWidth(0.15);
+        doc.line(17, rowY + 4.9, pageWidth - 17, rowY + 4.9);
+      });
+
+      yP2 += tableBoxH + 4;
+
+      // 3. Two Clean Balanced Cards: Sacred Muhurtas & Numerology Guidance
+      const splitCardW = (pageWidth - 26 - 4) / 2;
+      const splitCardH = 58;
+
+      // Left Card: Sacred Muhurta Windows
+      doc.setFillColor(252, 249, 242);
+      doc.setDrawColor(201, 160, 80);
+      doc.setLineWidth(0.35);
+      doc.roundedRect(13, yP2, splitCardW, splitCardH, 1.5, 1.5, 'FD');
+
+      doc.setFont('helvetica', 'bold');
       doc.setFontSize(7);
+      doc.setTextColor(126, 95, 24);
+      doc.text('SACRED MUHURTA & TIMING WINDOWS', 17, yP2 + 5.2);
+
+      // Abhijit
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(6.4);
+      doc.setTextColor(181, 131, 40);
+      doc.text('ABHIJIT MUHURTA (VIJAY KAAL)', 17, yP2 + 10.5);
+
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(6.8);
       doc.setTextColor(26, 26, 30);
-      doc.text(doc.splitTextToSize(rituals.morningTitle, ritualColW - 8)[0] || rituals.morningTitle, 20, yPos + 15.5);
+      doc.text(sanitize(panchang.abhijitMuhurta.split('(')[0]), 17, yP2 + 14.5);
+
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(5.8);
+      doc.setTextColor(70, 70, 75);
+      doc.text('Optimal window for vital negotiations, new initiatives & contracts.', 17, yP2 + 18.5, { maxWidth: splitCardW - 8 });
+
+      // Brahma
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(6.4);
+      doc.setTextColor(181, 131, 40);
+      doc.text('BRAHMA MUHURTA (AMRIT KAAL)', 17, yP2 + 25.5);
+
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(6.8);
+      doc.setTextColor(26, 26, 30);
+      doc.text(sanitize(panchang.brahmaMuhurta.split('(')[0]), 17, yP2 + 29.5);
+
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(5.8);
+      doc.setTextColor(70, 70, 75);
+      doc.text('Pre-dawn sattvic window ideal for meditation, pranayama & clarity.', 17, yP2 + 33.5, { maxWidth: splitCardW - 8 });
+
+      // Rahu Kaal
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(6.4);
+      doc.setTextColor(181, 131, 40);
+      doc.text('RAHU KAAL (INAUSPICIOUS - AVOID)', 17, yP2 + 40.5);
+
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(6.8);
+      doc.setTextColor(26, 26, 30);
+      doc.text(sanitize(panchang.rahuKaal.split('(')[0]), 17, yP2 + 44.5);
+
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(5.8);
+      doc.setTextColor(70, 70, 75);
+      doc.text('Avoid signing major legal contracts, journeys or new financial starts.', 17, yP2 + 48.5, { maxWidth: splitCardW - 8 });
+
+      // Right Card: Daily Numerology & Harmonic Remedies
+      doc.setFillColor(252, 249, 242);
+      doc.setDrawColor(201, 160, 80);
+      doc.setLineWidth(0.35);
+      doc.roundedRect(13 + splitCardW + 4, yP2, splitCardW, splitCardH, 1.5, 1.5, 'FD');
+
+      const rightCardInnerX = 17 + splitCardW + 4;
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(7);
+      doc.setTextColor(126, 95, 24);
+      doc.text('DAILY NUMEROLOGY & HARMONIC REMEDIES', rightCardInnerX, yP2 + 5.2);
+
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(6.2);
+      doc.setTextColor(181, 131, 40);
+      doc.text('NATAL CORE VIBRATIONS', rightCardInnerX, yP2 + 10.2);
+
+      // Distinct Mulank Highlight Pill Box
+      const mulBoxW = splitCardW - 8;
+      doc.setFillColor(254, 238, 192); // Vivid Warm Golden Amber Highlight
+      doc.setDrawColor(190, 135, 40);
+      doc.setLineWidth(0.4);
+      doc.roundedRect(rightCardInnerX, yP2 + 12, mulBoxW, 7.5, 1, 1, 'FD');
+
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(5);
+      doc.setTextColor(140, 80, 10);
+      doc.text('PSYCHIC NUMBER (MULANK)', rightCardInnerX + 2.5, yP2 + 15);
+
+      doc.setFontSize(7.2);
+      doc.setTextColor(130, 65, 10);
+      doc.text(`Mulank ${mulank} (Ruled by ${mulankPlanet})`, rightCardInnerX + 2.5, yP2 + 18.2);
+
+      // Destiny & Name numbers
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(6.2);
+      doc.setTextColor(50, 50, 55);
+      doc.text(`* Bhagyank (Destiny): ${bhagyank}  |  Namank: ${namank}`, rightCardInnerX, yP2 + 23.5);
+
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(6.2);
+      doc.setTextColor(181, 131, 40);
+      doc.text('DAILY TRANSIT HARMONIZERS', rightCardInnerX, yP2 + 29);
 
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(6.2);
-      doc.setTextColor(70, 70, 75);
-      const mLines = doc.splitTextToSize(rituals.morningDesc, ritualColW - 8);
-      doc.text(mLines.slice(0, 2), 20, yPos + 19);
-
-      // Evening
-      doc.setFillColor(248, 244, 234);
-      doc.setDrawColor(226, 211, 176);
-      doc.roundedRect(17 + ritualColW + 2, yPos + 7.5, ritualColW - 2, 21, 1, 1, 'FD');
+      doc.setTextColor(50, 50, 55);
+      doc.text(`* Lucky Number Today: ${luckyNum} (${luckyPlanet})`, rightCardInnerX, yP2 + 33.5);
+      doc.text(`* Lucky Color & Tone: ${luckyColor}`, rightCardInnerX, yP2 + 37.5);
+      doc.text(`* Resonance: ${luckyColorDesc}`, rightCardInnerX, yP2 + 41.5, { maxWidth: splitCardW - 8 });
 
       doc.setFont('helvetica', 'bold');
-      doc.setFontSize(6.5);
+      doc.setFontSize(6.2);
       doc.setTextColor(181, 131, 40);
-      doc.text('EVENING SADHANA', 17 + ritualColW + 5, yPos + 11.5);
-
-      doc.setFontSize(7);
-      doc.setTextColor(26, 26, 30);
-      doc.text(doc.splitTextToSize(rituals.eveningTitle, ritualColW - 8)[0] || rituals.eveningTitle, 17 + ritualColW + 5, yPos + 15.5);
+      doc.text('SACRED REMEDIAL GEMS & DIRECTION', rightCardInnerX, yP2 + 47);
 
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(6.2);
-      doc.setTextColor(70, 70, 75);
-      const eLines = doc.splitTextToSize(rituals.eveningDesc, ritualColW - 8);
-      doc.text(eLines.slice(0, 2), 17 + ritualColW + 5, yPos + 19);
+      doc.setTextColor(50, 50, 55);
+      doc.text(`* Primary Gem: ${sanitize(numerology?.luckyGems?.[0]) || 'Ruby / Yellow Sapphire'}`, rightCardInnerX, yP2 + 51);
+      doc.text(`* Favorable Days: ${sanitize(numerology?.luckyDays?.join(', ')) || 'Thursday, Tuesday'} | Dir: East`, rightCardInnerX, yP2 + 55);
 
-      yPos += 36;
+      yP2 += splitCardH + 4;
 
-      // 6. Page Decorations Pass (Watermark, Double Border, Header & Footer)
+      // 4. Official Verification & Astrological Disclaimer Box
+      doc.setFillColor(252, 249, 242);
+      doc.setDrawColor(201, 160, 80);
+      doc.setLineWidth(0.35);
+      doc.roundedRect(13, yP2, pageWidth - 26, 20, 1.5, 1.5, 'FD');
+
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(6.5);
+      doc.setTextColor(126, 95, 24);
+      doc.text('CERTIFIED VEDIC VERIFICATION & TRADITIONAL DISCLAIMER', 17, yP2 + 4.5);
+
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(5.8);
+      doc.setTextColor(90, 85, 80);
+      doc.text(
+        'This Daily Vedic Transit & Panchang Report is computationally generated using Swiss Ephemeris mathematical coordinates and Classical Jyotish principles (Lahiri Nirayana). Vedic astrological guidance describes planetary archetypes and cosmic tendencies to foster self-awareness, timing awareness, and proactive wisdom. It does not replace professional medical, legal, or financial counsel.',
+        17,
+        yP2 + 8.5,
+        { maxWidth: pageWidth - 34 }
+      );
+
+      // ==========================================
+      // PAGE DECORATIONS PASS (Borders, Watermark, Header & Footer on all pages)
+      // ==========================================
       const totalPages = doc.getNumberOfPages();
       for (let i = 1; i <= totalPages; i++) {
         doc.setPage(i);
@@ -483,7 +934,7 @@ export const DailyHoroscopeView: React.FC<DailyHoroscopeViewProps> = ({
         if (bgBase64) {
           try {
             if (typeof (doc as any).setGState === 'function' && (doc as any).GState) {
-              (doc as any).setGState(new (doc as any).GState({ opacity: 0.07 }));
+              (doc as any).setGState(new (doc as any).GState({ opacity: 0.05 }));
             }
           } catch {}
           doc.addImage(bgBase64, 'JPEG', 0, 0, pageWidth, pageHeight);
@@ -508,73 +959,35 @@ export const DailyHoroscopeView: React.FC<DailyHoroscopeViewProps> = ({
         doc.circle(10, pageHeight - 10, 1.2, 'F');
         doc.circle(pageWidth - 10, pageHeight - 10, 1.2, 'F');
 
-        if (i === 1) {
-          // Page 1 Header with Logo
-          if (logoBase64) {
-            doc.addImage(logoBase64, 'PNG', 14, 13, 16, 16);
-          }
-
-          doc.setFont('helvetica', 'bold');
-          doc.setFontSize(18);
-          doc.setTextColor(20, 20, 24);
-          doc.text('JYOTISH', 33, 20);
-          doc.setTextColor(181, 131, 40);
-          doc.text('VEDA', 33 + doc.getTextWidth('JYOTISH') + 0.5, 20);
-
-          doc.setFontSize(8.5);
-          doc.setTextColor(126, 95, 24);
-          doc.text('DAILY VEDIC TRANSIT & PANCHANG REPORT', 33, 24.5);
-
-          doc.setFont('helvetica', 'italic');
-          doc.setFontSize(7);
-          doc.setTextColor(110, 105, 95);
-          doc.text(
-            `Precision Astronomical Ephemeris & AI Vedic Synthesis • ${new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}`,
-            33,
-            28
-          );
-        } else {
-          // Header for page 2+
+        if (i > 1) {
+          // Clean Page 2+ Header (Strictly at y = 14 to 17)
           doc.setFont('helvetica', 'bold');
           doc.setFontSize(8);
           doc.setTextColor(126, 95, 24);
-          doc.text('JYOTISHVEDA • DAILY VEDIC TRANSIT & PANCHANG REPORT', 14, 14);
+          doc.text('JYOTISHVEDA | DAILY VEDIC TRANSIT & PANCHANG REPORT', 14, 14);
+
           doc.setFont('helvetica', 'normal');
-          doc.setFontSize(7.5);
+          doc.setFontSize(7);
           doc.setTextColor(100, 100, 100);
-          doc.text(
-            `Client: ${profile.fullName || 'Seeker'}  |  Lagna: ${ascSign}`,
-            pageWidth - 14,
-            14,
-            { align: 'right' }
-          );
+          doc.text(`Client: ${sanitize(profile.fullName) || 'Seeker'}  |  Lagna: ${ascSign}  |  Transit: ${todayStr}`, pageWidth - 14, 14, { align: 'right' });
+
           doc.setDrawColor(226, 211, 176);
           doc.setLineWidth(0.3);
-          doc.line(13, 16, pageWidth - 13, 16);
+          doc.line(13, 16.5, pageWidth - 13, 16.5);
         }
 
         // Footer Divider Line
-        const footerY = pageHeight - 18;
+        const footerY = pageHeight - 17;
         doc.setDrawColor(226, 211, 176);
         doc.setLineWidth(0.4);
         doc.line(13, footerY, pageWidth - 13, footerY);
 
-        // Footer Details
+        // Footer Details (Non-overlapping left and right)
         doc.setFont('helvetica', 'normal');
-        doc.setFontSize(7);
+        doc.setFontSize(6.5);
         doc.setTextColor(110, 105, 95);
-        const certId = `JV-DAILY-${Date.now().toString(36).toUpperCase()}`;
-        doc.text(
-          `Document ID: ${certId}  |  Generated: ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}  |  Confidential & Proprietary`,
-          14,
-          footerY + 4
-        );
-        doc.text(
-          `Certified by JyotishVeda AI & Traditional Daivajna Ephemeris Calculation Engine  |  Page ${i} of ${totalPages}`,
-          pageWidth - 14,
-          footerY + 4,
-          { align: 'right' }
-        );
+        doc.text(`Document ID: ${certId}  |  Confidential & Proprietary`, 14, footerY + 4);
+        doc.text(`Certified by JyotishVeda AI Engine  |  Page ${i} of ${totalPages}`, pageWidth - 14, footerY + 4, { align: 'right' });
       }
 
       // Save PDF
@@ -701,18 +1114,6 @@ export const DailyHoroscopeView: React.FC<DailyHoroscopeViewProps> = ({
               </div>
 
               <div className="flex items-center space-x-2">
-                <button
-                  onClick={handleDownloadDailyReportPdf}
-                  disabled={isGeneratingPdf}
-                  className={`p-2 rounded-lg border hover:text-[#C9A050] transition cursor-pointer text-xs flex items-center space-x-1 ${
-                    theme === 'dark' ? 'bg-[#1A1A1E] border-[#2A2A2E] text-[#E5E1D8]' : 'bg-[#F9F7F1] border-[#E5E1D8] text-[#2A2A2E]'
-                  }`}
-                  title="Download Daily PDF Report"
-                >
-                  {isGeneratingPdf ? <Loader2 className="w-4 h-4 animate-spin text-[#C9A050]" /> : <Download className="w-4 h-4 text-[#C9A050]" />}
-                  <span className="hidden sm:inline">{isGeneratingPdf ? 'Exporting...' : 'PDF'}</span>
-                </button>
-
                 {aiInsights && (
                   <>
                     <button

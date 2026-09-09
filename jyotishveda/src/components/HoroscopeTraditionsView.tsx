@@ -1991,20 +1991,6 @@ export const HoroscopeTraditionsView: React.FC<
           </div>
 
           <div className="flex items-center space-x-2">
-            <button
-              onClick={handleDownloadTraditionsPdf}
-              disabled={isGeneratingPdf}
-              className="p-2 rounded-lg bg-[#1A1A1E] border border-[#2A2A2E] text-[#E5E1D8] hover:text-[#C9A050] transition cursor-pointer text-xs flex items-center space-x-1"
-              title="Download full birth chart traditions PDF report"
-            >
-              {isGeneratingPdf ? (
-                <Loader2 className="w-4 h-4 animate-spin text-[#C9A050]" />
-              ) : (
-                <Download className="w-4 h-4 text-[#C9A050]" />
-              )}
-              <span className="hidden sm:inline">{isGeneratingPdf ? 'Exporting...' : 'PDF'}</span>
-            </button>
-
             {aiInterpretation && (
               <button
                 onClick={() => handleSpeech(aiInterpretation)}

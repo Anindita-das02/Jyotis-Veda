@@ -863,18 +863,7 @@ export const NumerologyView: React.FC<NumerologyViewProps> = ({
             <div className="bg-[#141418] border border-[#2A2A2E] rounded-xl p-6 text-[#E5E1D8] shadow-xl space-y-3">
               <div className="flex items-center justify-between pb-3 border-b border-[#2A2A2E]">
                 <h3 className="text-base font-bold text-[#F0ECE1]">Planes of Strength & Arrows of Destiny</h3>
-                <div className="flex items-center space-x-2">
-                  <span className="text-xs text-[#C9A050] font-medium">8 Geometric Vectors</span>
-                  <button
-                    onClick={handleDownloadNumerologyPdf}
-                    disabled={isGeneratingPdf}
-                    className="p-1.5 rounded-lg bg-[#1A1A1E] border border-[#2A2A2E] text-[#E5E1D8] hover:text-[#C9A050] transition cursor-pointer text-xs flex items-center space-x-1"
-                    title="Download Lo Shu PDF Report"
-                  >
-                    {isGeneratingPdf ? <Loader2 className="w-3.5 h-3.5 animate-spin text-[#C9A050]" /> : <Download className="w-3.5 h-3.5 text-[#C9A050]" />}
-                    <span className="hidden sm:inline text-[11px]">{isGeneratingPdf ? 'Exporting...' : 'PDF'}</span>
-                  </button>
-                </div>
+                <span className="text-xs text-[#C9A050] font-medium">8 Geometric Vectors</span>
               </div>
 
               <div className="space-y-3 font-sans">

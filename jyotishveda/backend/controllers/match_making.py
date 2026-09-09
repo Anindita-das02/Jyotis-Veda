@@ -6,12 +6,8 @@ from datetime import datetime, timezone
 from typing import Any, Dict, Optional, Tuple, List
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
-try:
-    from geopy.geocoders import Nominatim
-    from timezonefinder import TimezoneFinder
-except ImportError:
-    Nominatim = None
-    TimezoneFinder = None
+from geopy.geocoders import Nominatim
+from timezonefinder import TimezoneFinder
 
 import swisseph as swe
 from flask import request, jsonify, Response
@@ -945,13 +941,26 @@ def _manglik_reference(chart: dict, reference: str) -> dict:
 
 def calculate_manglik_dosha(chart1: dict, chart2: dict) -> dict:
     """
-    Report the common Mars-house criterion from Lagna and also the optional
-    Moon/Venus reference checks. This does NOT silently apply every regional
-    cancellation rule because those rules differ across Jyotish traditions.
+    Calculate Manglik Dosha primarily from Lagna.
+
+    Mars in houses 1, 2, 4, 7, 8, or 12 from Lagna
+    is considered Manglik.
+
+    Moon and Venus references are also reported, but they
+    are not used for the primary Manglik status.
     """
+
     checks = {}
-    for key, chart in (("partner1", chart1), ("partner2", chart2)):
-        refs = {r: _manglik_reference(chart, r) for r in ("Lagna", "Moon", "Venus")}
+
+    for key, chart in (
+        ("partner1", chart1),
+        ("partner2", chart2),
+    ):
+        refs = {
+            r: _manglik_reference(chart, r)
+            for r in ("Lagna", "Moon", "Venus")
+        }
+
         checks[key] = {
             "name": chart["partner"]["name"],
             "marsSign": chart["planetsById"]["mars"]["signName"],
@@ -963,25 +972,46 @@ def calculate_manglik_dosha(chart1: dict, chart2: dict) -> dict:
 
     m1 = checks["partner1"]["fromLagna"]["isManglik"]
     m2 = checks["partner2"]["fromLagna"]["isManglik"]
-    both_lagna_manglik = m1 and m2
+
+    p1_name = checks["partner1"]["name"]
+    p2_name = checks["partner2"]["name"]
+
+    partner1_status = (
+        f"{p1_name} has Manglik Dosha"
+        if m1
+        else f"{p1_name} has no Manglik Dosha"
+    )
+
+    partner2_status = (
+        f"{p2_name} has Manglik Dosha"
+        if m2
+        else f"{p2_name} has no Manglik Dosha"
+    )
 
     return {
         "partner1": checks["partner1"],
         "partner2": checks["partner2"],
-        "isNeutralized": both_lagna_manglik,
-        "bothManglikFromLagna": both_lagna_manglik,
-        "status": (
-            "Both Manglik from Lagna" if both_lagna_manglik
-            else "Both Non-Manglik from Lagna" if not m1 and not m2
-            else "One Partner Manglik from Lagna"
+
+        "status": {
+            "partner1": partner1_status,
+            "partner2": partner2_status,
+        },
+
+        "method": (
+            "Manglik is determined primarily from Lagna. "
+            "Mars in houses 1, 2, 4, 7, 8, or 12 from Lagna "
+            "is considered Manglik."
         ),
-        "method": "Mars in houses 1,2,4,7,8,12; evaluated from Lagna, Moon and Venus",
+
         "cancellation": {
             "automaticallyApplied": False,
-            "note": "Full Kuja Dosha cancellation depends on the selected Jyotish tradition and additional chart factors.",
+            "note": (
+                "Full Kuja Dosha cancellation depends on the "
+                "selected Jyotish tradition and additional "
+                "chart factors."
+            ),
         },
     }
-
 
 # ============================================================
 # COMPLETE MILAN
@@ -1088,12 +1118,14 @@ def calculate_kundli_milan(partner1: dict, partner2: dict) -> dict:
     }
 
     return {
-        "totalScore": total_score,
-        "maxScore": max_score,
-        "manglikStatus": manglik["status"],
-        "report": report,
-    }
+    "totalScore": total_score,
+    "maxScore": max_score,
 
+    "partner1ManglikStatus": manglik["status"]["partner1"],
+    "partner2ManglikStatus": manglik["status"]["partner2"],
+
+    "report": report,
+}
 
 # ============================================================
 # DATABASE SERIALIZATION
@@ -1112,7 +1144,14 @@ def _row_to_summary(row: dict) -> dict:
         else str(row["partner2_birth_date"]),
         "totalScore": float(row["total_score"]),
         "maxScore": float(row["max_score"]),
-        "manglikStatus": row.get("manglik_status"),
+        "partner1ManglikStatus": row.get(
+            "partner1_manglik_status"
+        ),
+
+        "partner2ManglikStatus": row.get(
+            "partner2_manglik_status"
+        ),
+
         "createdAt": row["created_at"].isoformat()
         if hasattr(row.get("created_at"), "isoformat")
         else row.get("created_at"),
@@ -1137,114 +1176,282 @@ def _row_to_full(row: dict) -> dict:
 
 def create_match_report(user_id: str):
     body = request.get_json(silent=True)
+
     if not isinstance(body, dict):
-        return _error("Request body must be valid JSON", "INVALID_JSON")
+        return _error(
+            "Request body must be valid JSON",
+            "INVALID_JSON"
+        )
 
     partner1 = body.get("partner1")
     partner2 = body.get("partner2")
     supplied_report = body.get("report")
+
+    # --------------------------------------------------------
+    # PARTNER 1
+    # --------------------------------------------------------
 
     if not partner1:
         partner1 = {
             "name": body.get("partner1Name"),
             "dob": body.get("partner1BirthDate"),
             "time": body.get("partner1BirthTime"),
-            "place": body.get("partner1BirthPlace") or body.get("partner1Place"),
-            "houseSystem": body.get("partner1HouseSystem", "W"),
-            "nodeType": body.get("partner1NodeType", "true"),
+            "place": (
+                body.get("partner1BirthPlace")
+                or body.get("partner1Place")
+            ),
+            "houseSystem": body.get(
+                "partner1HouseSystem",
+                "W"
+            ),
+            "nodeType": body.get(
+                "partner1NodeType",
+                "true"
+            ),
         }
+
+    # --------------------------------------------------------
+    # PARTNER 2
+    # --------------------------------------------------------
 
     if not partner2:
         partner2 = {
             "name": body.get("partner2Name"),
             "dob": body.get("partner2BirthDate"),
             "time": body.get("partner2BirthTime"),
-            "place": body.get("partner2BirthPlace") or body.get("partner2Place"),
-            "houseSystem": body.get("partner2HouseSystem", "W"),
-            "nodeType": body.get("partner2NodeType", "true"),
+            "place": (
+                body.get("partner2BirthPlace")
+                or body.get("partner2Place")
+            ),
+            "houseSystem": body.get(
+                "partner2HouseSystem",
+                "W"
+            ),
+            "nodeType": body.get(
+                "partner2NodeType",
+                "true"
+            ),
         }
 
-    # Resolve coordinates/timezone automatically from the human-readable birthplace.
+    # --------------------------------------------------------
+    # RESOLVE PLACE -> LAT/LON/TIMEZONE
+    # --------------------------------------------------------
+
     try:
         partner1 = prepare_partner(partner1)
         partner2 = prepare_partner(partner2)
+
     except Exception as exc:
-        return _error(str(exc), "BIRTH_PLACE_RESOLUTION_ERROR")
+        return _error(
+            str(exc),
+            "BIRTH_PLACE_RESOLUTION_ERROR"
+        )
 
-    # Always calculate on the backend when dynamic inputs are supplied.
+    # ========================================================
+    # BACKEND CALCULATION
+    # ========================================================
+
     if not supplied_report:
-        err1 = validate_partner(partner1, "partner1")
-        if err1:
-            return _error(err1, "VALIDATION_ERROR")
 
-        err2 = validate_partner(partner2, "partner2")
+        err1 = validate_partner(
+            partner1,
+            "partner1"
+        )
+
+        if err1:
+            return _error(
+                err1,
+                "VALIDATION_ERROR"
+            )
+
+        err2 = validate_partner(
+            partner2,
+            "partner2"
+        )
+
         if err2:
-            return _error(err2, "VALIDATION_ERROR")
+            return _error(
+                err2,
+                "VALIDATION_ERROR"
+            )
 
         try:
-            result = calculate_kundli_milan(partner1, partner2)
+            result = calculate_kundli_milan(
+                partner1,
+                partner2
+            )
+
         except Exception as exc:
-            return _error(f"Failed to calculate Kundli Milan: {exc}", "CALCULATION_ERROR", 500)
+            return _error(
+                f"Failed to calculate Kundli Milan: {exc}",
+                "CALCULATION_ERROR",
+                500
+            )
+
+        # ----------------------------------------------------
+        # BASIC RESULT
+        # ----------------------------------------------------
 
         report = result["report"]
-        total_score = float(result["totalScore"])
-        max_score = float(result["maxScore"])
-        manglik_status = result["manglikStatus"]
+
+        total_score = float(
+            result["totalScore"]
+        )
+
+        max_score = float(
+            result["maxScore"]
+        )
+
+        # ----------------------------------------------------
+        # SEPARATE MANGLIK STATUS
+        # ----------------------------------------------------
+
+        partner1_manglik_status = str(
+            result["partner1ManglikStatus"]
+        )
+
+        partner2_manglik_status = str(
+            result["partner2ManglikStatus"]
+        )
+
+        # ----------------------------------------------------
+        # NORMALIZE PARTNERS
+        # ----------------------------------------------------
 
         p1 = _normalize_partner(partner1)
         p2 = _normalize_partner(partner2)
 
-        p1_name, p1_dob = p1["name"], p1["dob"]
-        p2_name, p2_dob = p2["name"], p2["dob"]
+        p1_name = p1["name"]
+        p1_dob = p1["dob"]
+
+        p2_name = p2["name"]
+        p2_dob = p2["dob"]
+
+    # ========================================================
+    # BACKWARD COMPATIBILITY
+    # ========================================================
 
     else:
-        # Kept only for backward compatibility with old frontend payloads.
-        # For astronomical integrity, dynamic calculation is recommended.
+
         report = supplied_report
-        p1_name = body.get("partner1Name") or partner1.get("name")
-        p1_dob = body.get("partner1BirthDate") or partner1.get("dob")
-        p2_name = body.get("partner2Name") or partner2.get("name")
-        p2_dob = body.get("partner2BirthDate") or partner2.get("dob")
+
+        p1_name = (
+            body.get("partner1Name")
+            or partner1.get("name")
+        )
+
+        p1_dob = (
+            body.get("partner1BirthDate")
+            or partner1.get("dob")
+        )
+
+        p2_name = (
+            body.get("partner2Name")
+            or partner2.get("name")
+        )
+
+        p2_dob = (
+            body.get("partner2BirthDate")
+            or partner2.get("dob")
+        )
 
         try:
-            total_score = float(body["totalScore"])
-            max_score = float(body.get("maxScore", 36))
-        except (KeyError, TypeError, ValueError):
-            return _error("totalScore/maxScore must be numeric", "VALIDATION_ERROR")
+            total_score = float(
+                body["totalScore"]
+            )
 
-        manglik_status = body.get("manglikStatus", "Unknown")
+            max_score = float(
+                body.get("maxScore", 36)
+            )
+
+        except (
+            KeyError,
+            TypeError,
+            ValueError
+        ):
+            return _error(
+                "totalScore/maxScore must be numeric",
+                "VALIDATION_ERROR"
+            )
+
+        partner1_manglik_status = str(
+            body.get(
+                "partner1ManglikStatus",
+                "Unknown"
+            )
+        )
+
+        partner2_manglik_status = str(
+            body.get(
+                "partner2ManglikStatus",
+                "Unknown"
+            )
+        )
+
+    # ========================================================
+    # SERIALIZE JSON
+    # ========================================================
 
     report_id = str(uuid.uuid4())
-    report_json_str = json.dumps(report, ensure_ascii=False)
+
+    report_json_str = json.dumps(
+        report,
+        ensure_ascii=False
+    )
+
+    partner1_manglik_status,
+    partner2_manglik_status,
+
+    # ========================================================
+    # SAVE TO DATABASE
+    # ========================================================
 
     try:
+
         rows = call_procedure(
             "sp_create_match_report",
             [
                 report_id,
                 user_id,
+
                 p1_name,
                 p1_dob,
+
                 p2_name,
                 p2_dob,
+
                 total_score,
                 max_score,
-                manglik_status,
+
+                partner1_manglik_status,
+                partner2_manglik_status,
                 report_json_str,
             ],
         )
+
     except Exception as exc:
-        return _error(f"Database error while saving report: {exc}", "DATABASE_ERROR", 500)
+
+        return _error(
+            f"Database error while saving report: {exc}",
+            "DATABASE_ERROR",
+            500
+        )
 
     if not rows:
-        return _error("Could not save match report", "SAVE_FAILED", 500)
+        return _error(
+            "Could not save match report",
+            "SAVE_FAILED",
+            500
+        )
 
     return jsonify({
         "status": "success",
-        "message": "Astronomical Kundli Milan report generated and saved successfully",
+        "message": (
+            "Astronomical Kundli Milan report "
+            "generated and saved successfully"
+        ),
         "data": _row_to_full(rows[0]),
     }), 201
-
 
 def list_match_reports(user_id: str):
     try:
@@ -1462,18 +1669,48 @@ def generate_ai_synthesis(user_id: str):
     # Manglik Status
     #
     # IMPORTANT:
-    # Manglik status directly comes from data.manglikStatus
+    # Take the already calculated values DIRECTLY from data.
+    # DO NOT call calculate_kundli_milan() again.
     # ---------------------------------------------------------
 
-    manglik_status = data.get("manglikStatus", "")
+    partner1_manglik_status = (
+        data.get("partner1ManglikStatus")
+        or report.get("partner1ManglikStatus")
+        or "Manglik status unavailable"
+    )
+
+    partner2_manglik_status = (
+        data.get("partner2ManglikStatus")
+        or report.get("partner2ManglikStatus")
+        or "Manglik status unavailable"
+    )
 
     # ---------------------------------------------------------
-    # Check whether Manglik is present
+    # Determine whether Manglik Dosha is present
+    #
+    # Status was already calculated by the astrology engine.
+    # We are ONLY reading the supplied result.
     # ---------------------------------------------------------
+
+    p1_manglik_present = (
+        isinstance(partner1_manglik_status, str)
+        and "has Manglik Dosha" in partner1_manglik_status
+    )
+
+    p2_manglik_present = (
+        isinstance(partner2_manglik_status, str)
+        and "has Manglik Dosha" in partner2_manglik_status
+    )
 
     manglik_present = (
-        "manglik" in str(manglik_status).lower()
+        p1_manglik_present or p2_manglik_present
     )
+
+    # Keep both partner statuses together for the AI/remedies.
+    manglik_status = {
+        "partner1": partner1_manglik_status,
+        "partner2": partner2_manglik_status
+    }
 
     # ---------------------------------------------------------
     # System Prompt
@@ -1544,11 +1781,11 @@ ASHTA KOOTA:
 TOTAL ASHTA KOOTA SCORE:
 {score}/36
 
-MANGALIK STATUS:
-{manglik_status}
+PARTNER 1 MANGLIK STATUS:
+{partner1_manglik_status}
 
-MANGALIK DOSHA PRESENT:
-{manglik_present}
+PARTNER 2 MANGLIK STATUS:
+{partner2_manglik_status}
 
 PARTNER 1 NAME:
 {p1_name}
@@ -1565,13 +1802,18 @@ DO NOT recalculate Manglik Dosha.
 
 DO NOT recalculate or modify the Ashta Koota score.
 
-Use the supplied Manglik status exactly as provided.
+Use the supplied Manglik statuses exactly as provided.
 
 If Manglik status indicates that one or both partners are
 Manglik, describe the Manglik condition accordingly.
 
 If Manglik status indicates that there is no Manglik Dosha,
 do not claim that Manglik Dosha exists.
+
+The Manglik statuses are:
+
+Partner 1: {partner1_manglik_status}
+Partner 2: {partner2_manglik_status}
 """
 
     try:
@@ -1593,11 +1835,10 @@ do not claim that Manglik Dosha exists.
         synthesis = synthesis.strip()
 
         # -----------------------------------------------------
-        # Remove Markdown code fence
+        # Remove Markdown code fence if AI returns one
         # -----------------------------------------------------
 
         if synthesis.startswith("```"):
-
             synthesis = re.sub(
                 r"^```(?:json)?\s*",
                 "",
@@ -1617,19 +1858,22 @@ do not claim that Manglik Dosha exists.
         synthesis_data = json.loads(synthesis)
 
         # -----------------------------------------------------
-        # Force actual Manglik status into final response
+        # Force ACTUAL supplied Manglik statuses
+        #
+        # Do not allow AI to change them.
         # -----------------------------------------------------
 
         synthesis_data["manglik_dosha"] = {
             "present": manglik_present,
-            "status": manglik_status
+            "partner1": partner1_manglik_status,
+            "partner2": partner2_manglik_status
         }
 
         # -----------------------------------------------------
         # MANGALIK REMEDIES
         #
-        # If Manglik status exists:
-        # AI will generate minimum 3 remedies.
+        # Generate remedies ONLY when at least one partner
+        # actually has Manglik Dosha.
         # -----------------------------------------------------
 
         if manglik_present:
@@ -1690,9 +1934,17 @@ do not claim that Manglik Dosha exists.
             "LLM_FAILED",
             500
         )
+def generate_manglik_remedies_with_ai(manglik_status: dict) -> list:
 
+    partner1_status = manglik_status.get(
+        "partner1",
+        "Manglik status unavailable"
+    )
 
-def generate_manglik_remedies_with_ai(manglik_status: str) -> list:
+    partner2_status = manglik_status.get(
+        "partner2",
+        "Manglik status unavailable"
+    )
 
     prompt = f"""
 You are a traditional Vedic Jyotish assistant.
@@ -1700,25 +1952,31 @@ You are a traditional Vedic Jyotish assistant.
 The astrology calculation engine has already calculated
 the Manglik status.
 
-Manglik Status:
-{manglik_status}
+PARTNER 1 MANGLIK STATUS:
+{partner1_status}
+
+PARTNER 2 MANGLIK STATUS:
+{partner2_status}
 
 DO NOT calculate Manglik Dosha again.
 
 Generate AT LEAST 3 DISTINCT traditional Vedic Jyotish
-remedies for this Manglik condition.
+remedies only for the Manglik condition indicated by
+the supplied statuses.
 
 Rules:
 
 1. Remedies must be generated dynamically by AI.
-2. Minimum 3 remedies are required.
+2. Minimum 4 remedies are required.
 3. Remedies must be related to Manglik / Kuja Dosha.
 4. Do not invent planetary positions.
 5. Do not invent cancellation rules.
 6. Do not claim that a remedy guarantees removal or
    cancellation of Manglik Dosha.
 7. Keep remedies traditional and practical.
-8. Return ONLY valid JSON.
+8. If neither partner has Manglik Dosha, return an
+   empty remedies list.
+9. Return ONLY valid JSON.
 
 Required format:
 
@@ -1726,7 +1984,8 @@ Required format:
     "remedies": [
         "Remedy 1",
         "Remedy 2",
-        "Remedy 3"
+        "Remedy 3",
+        "Remedy 4"
     ]
 }}
 """
@@ -1736,7 +1995,9 @@ Required format:
 You are a Vedic Jyotish remedy assistant.
 
 Generate Manglik remedies dynamically from the
-supplied Manglik status.
+supplied Manglik statuses.
+
+Do not recalculate Manglik Dosha.
 
 Return ONLY valid JSON.
 """,
@@ -1792,7 +2053,7 @@ Return ONLY valid JSON.
     # Minimum 3 remedies
     # ---------------------------------------------------------
 
-    if len(remedies) < 3:
+    if len(remedies) < 4:
         raise RuntimeError(
             "AI returned fewer than 3 Manglik remedies"
         )
