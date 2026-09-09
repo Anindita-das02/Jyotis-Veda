@@ -260,7 +260,7 @@ export const AICounsellorChat: React.FC<AICounsellorChatProps> = ({
         const message =
           err instanceof ApiError
             ? err.message
-            : 'Could not reach the AI counsellor service. Please try again.';
+            : 'Could not reach the Daivajna counselling service. Please try again.';
         setMessages((prev) => [
           ...prev,
           {
@@ -365,7 +365,7 @@ export const AICounsellorChat: React.FC<AICounsellorChatProps> = ({
 
   const handleExportTranscript = () => {
     const transcript = messages
-      .map((m) => `[${m.timestamp}] ${m.role === 'user' ? profile.fullName : 'AI Daivajna'}:\n${m.content}\n`)
+      .map((m) => `[${m.timestamp}] ${m.role === 'user' ? profile.fullName : 'Daivajna'}:\n${m.content}\n`)
       .join('\n----------------------------------------\n\n');
 
     const blob = new Blob([transcript], { type: 'text/plain;charset=utf-8' });
@@ -613,7 +613,7 @@ export const AICounsellorChat: React.FC<AICounsellorChatProps> = ({
             </div>
             <div className="bg-[#1C1C22] p-3 rounded-xl border border-[#2A2A2E] text-xs text-[#9E9A90] flex items-center space-x-2">
               <Sparkles className="w-3.5 h-3.5 text-[#C9A050] animate-pulse" />
-              <span>AI Daivajna is analyzing ephemeris transits & natal alignments...</span>
+              <span>Daivajna is analyzing ephemeris transits & natal alignments...</span>
             </div>
           </div>
         )}

@@ -1717,7 +1717,7 @@ def generate_ai_synthesis(user_id: str):
     # ---------------------------------------------------------
 
     system_prompt = """
-You are an AI assistant for a Vedic astrology application.
+You are a Master Astrological Counsellor (Daivajna) for a Vedic astrology application.
 
 IMPORTANT RULES:
 

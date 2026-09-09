@@ -699,7 +699,7 @@ export function LandingPage({
               <div className="bg-[#C9A050] p-3 text-[#0D0D0F] flex justify-between items-center">
                 <div className="flex items-center space-x-2">
                   <Sparkles className="w-4 h-4" />
-                  <span className="font-bold text-sm">JyotishVeda AI</span>
+                  <span className="font-bold text-sm">JyotishVeda</span>
                 </div>
                 <div className="flex items-center space-x-1">
                   <button 

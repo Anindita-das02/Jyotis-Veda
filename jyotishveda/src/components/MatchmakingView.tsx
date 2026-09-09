@@ -492,7 +492,7 @@ export const MatchmakingView: React.FC<MatchmakingViewProps> = ({
     if (!aiSynthesis) return;
     let textToCopy = '';
     if (typeof aiSynthesis === 'object') {
-      textToCopy = `JYOTISHVEDA • AI RELATIONSHIP SYNTHESIS\n` +
+      textToCopy = `JYOTISHVEDA • RELATIONSHIP SYNTHESIS\n` +
         `Partner 1: ${partner1.fullName || 'Partner 1'} | Partner 2: ${partner2.fullName || 'Partner 2'}\n\n` +
         (aiSynthesis.overall_compatibility ? `OVERALL COMPATIBILITY:\n${renderSafeAiText(aiSynthesis.overall_compatibility)}\n\n` : '') +
         (aiSynthesis.guna_milan ? `GUNA MILAN:\n${renderSafeAiText(aiSynthesis.guna_milan)}\n\n` : '') +
@@ -671,7 +671,7 @@ export const MatchmakingView: React.FC<MatchmakingViewProps> = ({
         doc.text('Calculated in accordance with Brihat Parashara Hora Shastra & Classical Jyotish Sutras', 33, 28);
 
         // Couple Information Box
-        doc.setFillColor(252, 249, 242);
+        doc.setFillColor(255, 255, 255);
         doc.setDrawColor(226, 211, 176);
         doc.setLineWidth(0.4);
         doc.roundedRect(13, 33, pageWidth - 26, 25, 2, 2, 'FD');
@@ -706,7 +706,7 @@ export const MatchmakingView: React.FC<MatchmakingViewProps> = ({
         doc.text(doc.splitTextToSize(p2Info, (pageWidth - 36) / 2)[0] || '', pageWidth / 2 + 5, 50.5);
 
         // Score & Verdict Highlight Box
-        doc.setFillColor(254, 250, 240);
+        doc.setFillColor(255, 255, 255);
         doc.setDrawColor(201, 160, 80);
         doc.setLineWidth(0.6);
         doc.roundedRect(13, 62, pageWidth - 26, 26, 2, 2, 'FD');
@@ -737,7 +737,7 @@ export const MatchmakingView: React.FC<MatchmakingViewProps> = ({
         doc.text('ASHTA KOOTA POINTS BREAKDOWN', 13, 93.5);
 
         // Table Column Headers
-        doc.setFillColor(243, 236, 218);
+        doc.setFillColor(250, 247, 240);
         doc.rect(13, 96, pageWidth - 26, 6.5, 'F');
         doc.setFontSize(8);
         doc.setTextColor(126, 95, 24);
@@ -755,7 +755,7 @@ export const MatchmakingView: React.FC<MatchmakingViewProps> = ({
         matchResult.kootas.forEach((k, idx) => {
           const rowY = startY + idx * 7.5;
           if (idx % 2 === 1) {
-            doc.setFillColor(252, 250, 245);
+            doc.setFillColor(253, 252, 250);
             doc.rect(13, rowY - 5, pageWidth - 26, 7.5, 'F');
           }
           doc.setDrawColor(229, 220, 190);
@@ -786,7 +786,7 @@ export const MatchmakingView: React.FC<MatchmakingViewProps> = ({
 
         // Dosha Boxes
         const boxWidth = (pageWidth - 30) / 2;
-        doc.setFillColor(250, 247, 240);
+        doc.setFillColor(255, 255, 255);
         doc.setDrawColor(226, 211, 176);
         doc.roundedRect(13, doshaStartY + 2.5, boxWidth, 23, 2, 2, 'FD');
         doc.roundedRect(13 + boxWidth + 4, doshaStartY + 2.5, boxWidth, 23, 2, 2, 'FD');
@@ -824,7 +824,7 @@ export const MatchmakingView: React.FC<MatchmakingViewProps> = ({
         doc.setTextColor(126, 95, 24);
         doc.text('AUSPICIOUS VEDIC REMEDIES & GUIDANCE', 13, remedyY);
 
-        doc.setFillColor(254, 252, 247);
+        doc.setFillColor(255, 255, 255);
         doc.setDrawColor(201, 160, 80);
         doc.roundedRect(13, remedyY + 2.5, pageWidth - 26, 21, 2, 2, 'FD');
 
@@ -949,7 +949,7 @@ Auspicious Muhurat Guidance:
 ${matchResult.auspiciousMuhuratAdvice}
 
 ===================================================================
-Issued by JyotishVeda AI Daivajna Astrological Intelligence Engine
+Issued by JyotishVeda Daivajna Astrological Intelligence Engine
 ===================================================================`;
 
     const blob = new Blob([textContent], { type: 'text/plain;charset=utf-8' });
@@ -979,7 +979,7 @@ Issued by JyotishVeda AI Daivajna Astrological Intelligence Engine
       <div className={`${
         theme === 'dark' 
           ? 'bg-[#141418] border-[#2A2A2E]' 
-          : 'bg-gradient-to-br from-[#FAF3DF] via-[#FAF7EB] to-[#F5E8C8] border-[#DFC896] shadow-md shadow-[#C9A050]/10'
+          : 'bg-white border-[#E5E1D8] shadow-sm'
       } border rounded-2xl p-6 sm:p-8 shadow-xl relative overflow-hidden`}>
         <div className="absolute top-0 right-0 w-96 h-96 bg-[#C9A050]/5 rounded-full blur-3xl pointer-events-none" />
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10">
@@ -988,10 +988,10 @@ Issued by JyotishVeda AI Daivajna Astrological Intelligence Engine
               <HeartHandshake className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#C9A050]" />
               <span>{t('matchmaking.title')}</span>
             </div>
-            <h1 className={`text-2xl sm:text-3xl lg:text-4xl font-serif font-bold leading-tight ${theme === 'dark' ? 'text-[#F0ECE1]' : 'text-[#1E1B15]'}`}>
+            <h1 className={`text-2xl sm:text-3xl lg:text-4xl font-serif font-bold leading-tight ${theme === 'dark' ? 'text-[#F0ECE1]' : 'text-[#0D0D0F]'}`}>
               Kundli Milan &amp; Relationship Compatibility
             </h1>
-            <p className={`text-xs sm:text-sm ${theme === 'dark' ? 'text-[#9E9A90]' : 'text-[#6E6452]'} mt-2.5 max-w-2xl leading-relaxed`}>
+            <p className={`text-xs sm:text-sm ${theme === 'dark' ? 'text-[#9E9A90]' : 'text-[#544B3D]'} mt-2.5 max-w-2xl leading-relaxed`}>
               Authentic Ashta Koota 36 Gunas calculation, Manglik (Kuja) Dosha balance, Nadi vitality, and Western synastry synthesis for marriage, love, and life partnerships.
             </p>
           </div>
@@ -1005,7 +1005,7 @@ Issued by JyotishVeda AI Daivajna Astrological Intelligence Engine
               className={`flex items-center space-x-1.5 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold border transition cursor-pointer ${
                 theme === 'dark'
                   ? 'bg-[#1A1A1E] border-[#2A2A2E] text-[#E5E1D8] hover:border-[#C9A050]/50 hover:bg-[#222228]'
-                  : 'bg-[#FAF4E4] border-[#DFC896] text-[#423C32] hover:border-[#C9A050] hover:bg-[#F5E8C8]'
+                  : 'bg-[#F9F7F1] border-[#E5E1D8] text-[#2A2A2E] hover:border-[#C9A050] hover:bg-[#F0ECE1]'
               }`}
               title="View saved matchmaking reports"
             >
@@ -1034,20 +1034,20 @@ Issued by JyotishVeda AI Daivajna Astrological Intelligence Engine
                 }
                 handleDownloadPDF();
               }}
-              className="flex items-center space-x-2 px-5 py-2.5 rounded-xl font-bold text-xs sm:text-sm tracking-wide bg-[#C9A050] hover:bg-[#D4AF37] text-[#0D0D0F] shadow-lg shadow-[#C9A050]/25 transition active:scale-[0.98] cursor-pointer"
+              disabled={isGeneratingPdf}
+              className={`flex items-center justify-center space-x-2 px-4 py-3 rounded-xl border text-xs font-bold transition shadow-lg cursor-pointer shrink-0 ${
+                theme === 'dark'
+                  ? 'bg-gradient-to-r from-[#C9A050] to-[#A07828] hover:from-[#D4AF37] hover:to-[#B38730] text-[#0D0D0F] border-[#C9A050] shadow-[#C9A050]/20'
+                  : 'bg-[#C9A050] hover:bg-[#B38730] text-white border-[#C9A050] shadow-[#C9A050]/20'
+              } disabled:opacity-50`}
               title="Download Match Report (PDF)"
             >
               {isGeneratingPdf ? (
-                <>
-                  <RefreshCw className="w-4 h-4 animate-spin" />
-                  <span>Generating PDF...</span>
-                </>
+                <Loader2 className="w-4 h-4 animate-spin" />
               ) : (
-                <>
-                  <Download className="w-4 h-4" />
-                  <span>{t('matchmaking.download_pdf')}</span>
-                </>
+                <Download className="w-4 h-4" />
               )}
+              <span>{isGeneratingPdf ? 'Generating PDF...' : 'Download Report (PDF)'}</span>
             </button>
           </div>
         </div>
@@ -1059,24 +1059,24 @@ Issued by JyotishVeda AI Daivajna Astrological Intelligence Engine
         <div id="partner-card-1" className={`rounded-2xl p-6 sm:p-8 shadow-sm border ${
           theme === 'dark' 
             ? 'bg-[#141418] border-[#2A2A2E]' 
-            : 'bg-gradient-to-b from-[#FAF4E4] via-[#FCF8EE] to-[#F6ECD2] border-[#DFC896] shadow-sm'
+            : 'bg-white border-[#E5E1D8] shadow-sm'
         } relative flex flex-col justify-between`}>
           <div>
-            <div className={`flex items-center justify-between mb-5 pb-3.5 border-b ${theme === 'dark' ? 'border-[#2A2A2E]' : 'border-[#DECFA6]'}`}>
+            <div className={`flex items-center justify-between mb-5 pb-3.5 border-b ${theme === 'dark' ? 'border-[#2A2A2E]' : 'border-[#E5E1D8]'}`}>
               <div className="flex items-center space-x-3">
                 <div className="w-9 h-9 rounded-xl flex items-center justify-center font-bold text-xs sm:text-sm border matchmaking-avatar-a shadow-sm">
                   A
                 </div>
                 <div>
-                  <h3 className={`text-base sm:text-lg font-serif font-bold ${theme === 'dark' ? 'text-[#F0ECE1]' : 'text-[#1E1B15]'}`}>
+                  <h3 className={`text-base sm:text-lg font-serif font-bold ${theme === 'dark' ? 'text-[#F0ECE1]' : 'text-[#0D0D0F]'}`}>
                     {t('matchmaking.partner1')}
                   </h3>
                 </div>
               </div>
 
               {isP1Saved && (
-                <span className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full text-xs font-extrabold bg-[#FCE59F] text-[#3B2902] border-2 border-[#C9A050] dark:bg-[#C9A050] dark:text-[#0D0D0F] dark:border-[#DFC896] shadow-sm">
-                  <Check className="w-3.5 h-3.5 text-[#3B2902] dark:text-[#0D0D0F] stroke-[3]" />
+                <span className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full text-xs font-bold bg-[#C9A050]/20 text-[#C9A050] border border-[#C9A050]/40 shadow-sm">
+                  <Check className="w-3.5 h-3.5 text-[#C9A050] stroke-[2.5]" />
                   <span>Saved</span>
                 </span>
               )}
@@ -1095,7 +1095,7 @@ Issued by JyotishVeda AI Daivajna Astrological Intelligence Engine
                   className={`w-full rounded-xl px-3.5 py-2.5 text-xs sm:text-sm border outline-none transition ${
                     theme === 'dark'
                       ? 'bg-[#141418] border-[#2A2A2E] text-[#E5E1D8] placeholder:text-gray-600 focus:border-[#C9A050]'
-                      : 'bg-[#FFFDF7] border-[#DECFA6] text-[#1E1B15] placeholder:text-[#A89F8F] focus:border-[#C9A050] focus:ring-1 focus:ring-[#C9A050]/20'
+                      : 'bg-white border-[#E5E1D8] text-[#0D0D0F] placeholder:text-[#9E9A90] focus:border-[#C9A050] focus:ring-1 focus:ring-[#C9A050]/20'
                   } disabled:opacity-60 disabled:cursor-not-allowed`}
                 />
               </div>
@@ -1122,7 +1122,7 @@ Issued by JyotishVeda AI Daivajna Astrological Intelligence Engine
                     onChange={(newTime) => setPartner1({ ...partner1, birthTime: newTime })}
                     disabled={isP1Saved}
                     theme={theme}
-                    placeholder="HH:MM (e.g. 10:30)"
+                    placeholder="HH:MM"
                   />
                 </div>
               </div>
@@ -1139,7 +1139,7 @@ Issued by JyotishVeda AI Daivajna Astrological Intelligence Engine
                   className={`w-full rounded-xl px-3.5 py-2.5 text-xs sm:text-sm border outline-none transition ${
                     theme === 'dark'
                       ? 'bg-[#141418] border-[#2A2A2E] text-[#E5E1D8] placeholder:text-gray-600 focus:border-[#C9A050]'
-                      : 'bg-[#FFFDF7] border-[#DECFA6] text-[#1E1B15] placeholder:text-[#A89F8F] focus:border-[#C9A050]'
+                      : 'bg-white border-[#E5E1D8] text-[#0D0D0F] placeholder:text-[#9E9A90] focus:border-[#C9A050]'
                   } disabled:opacity-60 disabled:cursor-not-allowed`}
                 />
               </div>
@@ -1147,12 +1147,16 @@ Issued by JyotishVeda AI Daivajna Astrological Intelligence Engine
           </div>
 
           {/* Bottom Action Footer */}
-          <div className={`pt-4 flex items-center justify-end border-t ${theme === 'dark' ? 'border-[#2A2A2E]' : 'border-[#DECFA6]'} mt-6`}>
+          <div className={`pt-4 flex items-center justify-end border-t ${theme === 'dark' ? 'border-[#2A2A2E]' : 'border-[#E5E1D8]'} mt-6`}>
             <div className="flex items-center space-x-2.5">
               <button
                 type="button"
                 onClick={() => setIsP1Saved(false)}
-                className="px-5 py-2.5 rounded-xl font-bold text-xs sm:text-sm border-2 border-[#B38730] bg-[#FAF0D0] hover:bg-[#EEDCA8] text-[#0D0D0F] dark:bg-[#FAF0D0] dark:border-[#B38730] dark:text-[#0D0D0F] dark:hover:bg-[#EEDCA8] transition shadow-sm cursor-pointer"
+                className={`px-5 py-2.5 rounded-xl font-bold text-xs sm:text-sm border transition shadow-sm cursor-pointer ${
+                  theme === 'dark'
+                    ? 'bg-[#1A1A1E] border-[#2A2A2E] text-[#E5E1D8] hover:text-white'
+                    : 'bg-[#F9F7F1] border-[#E5E1D8] text-[#2A2A2E] hover:bg-[#F0ECE1]'
+                }`}
               >
                 Edit
               </button>
@@ -1166,8 +1170,8 @@ Issued by JyotishVeda AI Daivajna Astrological Intelligence Engine
                 }}
                 className={`px-6 py-2.5 rounded-xl font-bold text-xs sm:text-sm shadow-md transition cursor-pointer flex items-center justify-center ${
                   isP1Saved
-                    ? 'bg-[#C9A050] text-[#0D0D0F] border border-[#A67C28] shadow-[#C9A050]/25 dark:bg-[#C9A050] dark:text-[#0D0D0F]'
-                    : 'bg-[#D4AF37] hover:bg-[#C9A050] text-[#0D0D0F] border border-[#B38730] shadow-[#C9A050]/30 hover:scale-[1.02] dark:bg-[#D4AF37] dark:text-[#0D0D0F]'
+                    ? 'bg-[#C9A050] text-[#0D0D0F] border border-[#A67C28] shadow-[#C9A050]/25'
+                    : 'bg-[#C9A050] hover:bg-[#D4AF37] text-[#0D0D0F] shadow-[#C9A050]/20 hover:scale-[1.02]'
                 }`}
               >
                 <span>{isP1Saved ? 'Saved' : 'Save'}</span>
@@ -1180,24 +1184,24 @@ Issued by JyotishVeda AI Daivajna Astrological Intelligence Engine
         <div id="partner-card-2" className={`rounded-2xl p-6 sm:p-8 shadow-sm border ${
           theme === 'dark' 
             ? 'bg-[#141418] border-[#2A2A2E]' 
-            : 'bg-gradient-to-b from-[#FAF4E4] via-[#FCF8EE] to-[#F6ECD2] border-[#DFC896] shadow-sm'
+            : 'bg-white border-[#E5E1D8] shadow-sm'
         } relative flex flex-col justify-between`}>
           <div>
-            <div className={`flex items-center justify-between mb-5 pb-3.5 border-b ${theme === 'dark' ? 'border-[#2A2A2E]' : 'border-[#DECFA6]'}`}>
+            <div className={`flex items-center justify-between mb-5 pb-3.5 border-b ${theme === 'dark' ? 'border-[#2A2A2E]' : 'border-[#E5E1D8]'}`}>
               <div className="flex items-center space-x-3">
                 <div className="w-9 h-9 rounded-xl flex items-center justify-center font-bold text-xs sm:text-sm border matchmaking-avatar-b shadow-sm">
                   B
                 </div>
                 <div>
-                  <h3 className={`text-base sm:text-lg font-serif font-bold ${theme === 'dark' ? 'text-[#F0ECE1]' : 'text-[#1E1B15]'}`}>
+                  <h3 className={`text-base sm:text-lg font-serif font-bold ${theme === 'dark' ? 'text-[#F0ECE1]' : 'text-[#0D0D0F]'}`}>
                     {t('matchmaking.partner2')}
                   </h3>
                 </div>
               </div>
 
               {isP2Saved && (
-                <span className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full text-xs font-extrabold bg-[#FCE59F] text-[#3B2902] border-2 border-[#C9A050] dark:bg-[#C9A050] dark:text-[#0D0D0F] dark:border-[#DFC896] shadow-md">
-                  <Check className="w-3.5 h-3.5 text-[#3B2902] dark:text-[#0D0D0F] stroke-[3]" />
+                <span className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full text-xs font-bold bg-[#C9A050]/20 text-[#C9A050] border border-[#C9A050]/40 shadow-sm">
+                  <Check className="w-3.5 h-3.5 text-[#C9A050] stroke-[2.5]" />
                   <span>Saved</span>
                 </span>
               )}
@@ -1216,7 +1220,7 @@ Issued by JyotishVeda AI Daivajna Astrological Intelligence Engine
                   className={`w-full rounded-xl px-3.5 py-2.5 text-xs sm:text-sm border outline-none transition ${
                     theme === 'dark'
                       ? 'bg-[#141418] border-[#2A2A2E] text-[#E5E1D8] placeholder:text-gray-600 focus:border-[#C9A050]'
-                      : 'bg-[#FFFDF7] border-[#DECFA6] text-[#1E1B15] placeholder:text-[#A89F8F] focus:border-[#C9A050]'
+                      : 'bg-white border-[#E5E1D8] text-[#0D0D0F] placeholder:text-[#9E9A90] focus:border-[#C9A050]'
                   } disabled:opacity-60 disabled:cursor-not-allowed`}
                 />
               </div>
@@ -1243,7 +1247,7 @@ Issued by JyotishVeda AI Daivajna Astrological Intelligence Engine
                     onChange={(newTime) => setPartner2({ ...partner2, birthTime: newTime })}
                     disabled={isP2Saved}
                     theme={theme}
-                    placeholder="HH:MM (e.g. 10:30)"
+                    placeholder="HH:MM"
                   />
                 </div>
               </div>
@@ -1260,7 +1264,7 @@ Issued by JyotishVeda AI Daivajna Astrological Intelligence Engine
                   className={`w-full rounded-xl px-3.5 py-2.5 text-xs sm:text-sm border outline-none transition ${
                     theme === 'dark'
                       ? 'bg-[#141418] border-[#2A2A2E] text-[#E5E1D8] placeholder:text-gray-600 focus:border-[#C9A050]'
-                      : 'bg-[#FFFDF7] border-[#DECFA6] text-[#1E1B15] placeholder:text-[#A89F8F] focus:border-[#C9A050]'
+                      : 'bg-white border-[#E5E1D8] text-[#0D0D0F] placeholder:text-[#9E9A90] focus:border-[#C9A050]'
                   } disabled:opacity-60 disabled:cursor-not-allowed`}
                 />
               </div>
@@ -1268,12 +1272,16 @@ Issued by JyotishVeda AI Daivajna Astrological Intelligence Engine
           </div>
 
           {/* Bottom Action Footer */}
-          <div className={`pt-4 flex items-center justify-end border-t ${theme === 'dark' ? 'border-[#2A2A2E]' : 'border-[#DECFA6]'} mt-6`}>
+          <div className={`pt-4 flex items-center justify-end border-t ${theme === 'dark' ? 'border-[#2A2A2E]' : 'border-[#E5E1D8]'} mt-6`}>
             <div className="flex items-center space-x-2.5">
               <button
                 type="button"
                 onClick={() => setIsP2Saved(false)}
-                className="px-5 py-2.5 rounded-xl font-bold text-xs sm:text-sm border-2 border-[#B38730] bg-[#FAF0D0] hover:bg-[#EEDCA8] text-[#0D0D0F] dark:bg-[#FAF0D0] dark:border-[#B38730] dark:text-[#0D0D0F] dark:hover:bg-[#EEDCA8] transition shadow-sm cursor-pointer"
+                className={`px-5 py-2.5 rounded-xl font-bold text-xs sm:text-sm border transition shadow-sm cursor-pointer ${
+                  theme === 'dark'
+                    ? 'bg-[#1A1A1E] border-[#2A2A2E] text-[#E5E1D8] hover:text-white'
+                    : 'bg-[#F9F7F1] border-[#E5E1D8] text-[#2A2A2E] hover:bg-[#F0ECE1]'
+                }`}
               >
                 Edit
               </button>
@@ -1287,8 +1295,8 @@ Issued by JyotishVeda AI Daivajna Astrological Intelligence Engine
                 }}
                 className={`px-6 py-2.5 rounded-xl font-bold text-xs sm:text-sm shadow-md transition cursor-pointer flex items-center justify-center ${
                   isP2Saved
-                    ? 'bg-[#C9A050] text-[#0D0D0F] border border-[#A67C28] shadow-[#C9A050]/25 dark:bg-[#C9A050] dark:text-[#0D0D0F]'
-                    : 'bg-[#D4AF37] hover:bg-[#C9A050] text-[#0D0D0F] border border-[#B38730] shadow-[#C9A050]/30 hover:scale-[1.02] dark:bg-[#D4AF37] dark:text-[#0D0D0F]'
+                    ? 'bg-[#C9A050] text-[#0D0D0F] border border-[#A67C28] shadow-[#C9A050]/25'
+                    : 'bg-[#C9A050] hover:bg-[#D4AF37] text-[#0D0D0F] shadow-[#C9A050]/20 hover:scale-[1.02]'
                 }`}
               >
                 <span>{isP2Saved ? 'Saved' : 'Save'}</span>
@@ -1339,8 +1347,8 @@ Issued by JyotishVeda AI Daivajna Astrological Intelligence Engine
               className={`w-full max-w-lg ${
                 theme === 'dark'
                   ? 'bg-gradient-to-b from-[#18181D] via-[#121215] to-[#0D0D0F] border-[#C9A050]/50 shadow-[0_0_50px_rgba(201,160,80,0.25)]'
-                  : 'bg-gradient-to-br from-[#FAF2DA] via-[#FAF7EB] to-[#F5E8C8] border-[#DFC896] shadow-[0_0_50px_rgba(201,160,80,0.35)]'
-              } border-2 rounded-3xl p-8 sm:p-12 text-center space-y-6 relative overflow-hidden`}
+                  : 'bg-white border-[#E5E1D8] shadow-2xl'
+              } border rounded-3xl p-8 sm:p-12 text-center space-y-6 relative overflow-hidden`}
             >
               {/* Ambient Gold Halo Glow */}
               <div className="absolute inset-0 bg-radial from-[#C9A050]/20 via-transparent to-transparent pointer-events-none" />
@@ -1362,7 +1370,7 @@ Issued by JyotishVeda AI Daivajna Astrological Intelligence Engine
                   className={`w-16 h-16 sm:w-20 sm:h-20 rounded-2xl ${
                     theme === 'dark'
                       ? 'bg-gradient-to-br from-[#C9A050]/30 to-[#C9A050]/10 border-[#C9A050]/60 text-[#C9A050]'
-                      : 'bg-[#FFF9EE] border-[#C9A050]/50 text-[#8C6218]'
+                      : 'bg-[#F9F7F1] border-[#C9A050]/50 text-[#C9A050]'
                   } border flex items-center justify-center shadow-xl shadow-[#C9A050]/30 animate-pulse`}
                 >
                   <Sparkles className="w-8 h-8 sm:w-10 sm:h-10 text-[#C9A050]" />
@@ -1373,7 +1381,7 @@ Issued by JyotishVeda AI Daivajna Astrological Intelligence Engine
               <div className="space-y-2 relative z-10">
                 <h3
                   className={`text-lg sm:text-xl font-serif font-bold ${
-                    theme === 'dark' ? 'text-[#F0ECE1]' : 'text-[#1A1816]'
+                    theme === 'dark' ? 'text-[#F0ECE1]' : 'text-[#0D0D0F]'
                   } tracking-wide min-h-[32px] transition-all`}
                 >
                   {loadingStep === 0 && '✨ Aligning Moon Nakshatras & Lunar Mansions...'}
@@ -1388,7 +1396,7 @@ Issued by JyotishVeda AI Daivajna Astrological Intelligence Engine
               {/* Shimmering Progress Bar */}
               <div
                 className={`max-w-md mx-auto w-full ${
-                  theme === 'dark' ? 'bg-[#0D0D0F] border-[#2A2A2E]' : 'bg-[#FAF1D8] border-[#DFC896]'
+                  theme === 'dark' ? 'bg-[#0D0D0F] border-[#2A2A2E]' : 'bg-[#F9F7F1] border-[#E5E1D8]'
                 } border h-3 rounded-full overflow-hidden p-0.5 shadow-inner`}
               >
                 <div
@@ -1409,7 +1417,7 @@ Issued by JyotishVeda AI Daivajna Astrological Intelligence Engine
       <div className={`${
         theme === 'dark' 
           ? 'bg-gradient-to-br from-[#1A1A1E] via-[#141418] to-[#0D0D0F] border-[#C9A050]/40' 
-          : 'bg-gradient-to-br from-[#FAF2DA] via-[#FAF7EB] to-[#F5E8C8] border-[#DFC896] shadow-xl'
+          : 'bg-white border-[#E5E1D8] shadow-sm'
       } border rounded-3xl p-6 sm:p-8 lg:p-10 relative overflow-hidden`}>
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 sm:gap-8">
           {/* Left: Overall Guna Gauge */}
@@ -1445,11 +1453,11 @@ Issued by JyotishVeda AI Daivajna Astrological Intelligence Engine
                 </defs>
               </svg>
               <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-                <span className={`text-3xl sm:text-4xl font-serif font-bold ${theme === 'dark' ? 'text-[#F0ECE1]' : 'text-[#1E1B15]'}`}>
+                <span className={`text-3xl sm:text-4xl font-serif font-bold ${theme === 'dark' ? 'text-[#F0ECE1]' : 'text-[#0D0D0F]'}`}>
                   {matchResult.totalPoints}
                 </span>
                 <span className="text-[10px] sm:text-xs text-[#C9A050] font-bold tracking-wider uppercase">/ 36 Gunas</span>
-                <span className={`text-xs sm:text-sm ${theme === 'dark' ? 'text-[#9E9A90]' : 'text-[#6E6452]'} font-sans font-semibold`}>{matchResult.percentage}%</span>
+                <span className={`text-xs sm:text-sm ${theme === 'dark' ? 'text-[#9E9A90]' : 'text-[#544B3D]'} font-sans font-semibold`}>{matchResult.percentage}%</span>
               </div>
             </div>
 
@@ -1475,10 +1483,10 @@ Issued by JyotishVeda AI Daivajna Astrological Intelligence Engine
                   </span>
                 ) : null}
               </div>
-              <h2 className={`text-xl sm:text-2xl lg:text-3xl font-serif font-bold ${theme === 'dark' ? 'text-[#F0ECE1]' : 'text-[#1E1B15]'}`}>
+              <h2 className={`text-xl sm:text-2xl lg:text-3xl font-serif font-bold ${theme === 'dark' ? 'text-[#F0ECE1]' : 'text-[#0D0D0F]'}`}>
                 {partner1.fullName || 'Partner 1'} &amp; {partner2.fullName || 'Partner 2'}
               </h2>
-              <p className={`text-xs sm:text-sm ${theme === 'dark' ? 'text-[#9E9A90]' : 'text-[#6E6452]'} mt-2.5 max-w-xl leading-relaxed`}>
+              <p className={`text-xs sm:text-sm ${theme === 'dark' ? 'text-[#9E9A90]' : 'text-[#544B3D]'} mt-2.5 max-w-xl leading-relaxed`}>
                 {typeof matchResult.summary === 'object'
                   ? (matchResult.summary as any)?.description
                   : (matchResult.summary || (matchResult as any)?.description || '')}
@@ -1489,37 +1497,37 @@ Issued by JyotishVeda AI Daivajna Astrological Intelligence Engine
           {/* Right: Key Compatibility Metrics */}
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3.5">
             <div className={`p-4 sm:p-5 rounded-xl border text-center ${
-              theme === 'dark' ? 'bg-[#0D0D0F]/80 border-[#2A2A2E]' : 'bg-[#FFFDF7] border-[#DECFA6] shadow-sm'
+              theme === 'dark' ? 'bg-[#0D0D0F]/80 border-[#2A2A2E]' : 'bg-[#F9F7F1] border-[#E5E1D8] shadow-sm'
             }`}>
               <div className="flex items-center justify-center text-[#C9A050] mb-1.5">
                 <Flame className="w-4 h-4" />
               </div>
-              <span className={`text-[10px] sm:text-xs ${theme === 'dark' ? 'text-[#9E9A90]' : 'text-[#7A6F5D]'} font-semibold uppercase tracking-wider block`}>Manglik Dosha</span>
-              <span className={`text-xs sm:text-sm font-bold ${theme === 'dark' ? 'text-[#E5E1D8]' : 'text-[#1E1B15]'} mt-1 block`}>
+              <span className={`text-[10px] sm:text-xs ${theme === 'dark' ? 'text-[#9E9A90]' : 'text-[#9E9A90]'} font-semibold uppercase tracking-wider block`}>Manglik Dosha</span>
+              <span className={`text-xs sm:text-sm font-bold ${theme === 'dark' ? 'text-[#E5E1D8]' : 'text-[#0D0D0F]'} mt-1 block`}>
                 {matchResult.manglik?.isNeutralized ? 'Neutralized ✓' : 'Remedy Needed ⚠️'}
               </span>
             </div>
 
             <div className={`p-4 sm:p-5 rounded-xl border text-center ${
-              theme === 'dark' ? 'bg-[#0D0D0F]/80 border-[#2A2A2E]' : 'bg-[#FFFDF7] border-[#DECFA6] shadow-sm'
+              theme === 'dark' ? 'bg-[#0D0D0F]/80 border-[#2A2A2E]' : 'bg-[#F9F7F1] border-[#E5E1D8] shadow-sm'
             }`}>
               <div className="flex items-center justify-center text-[#C9A050] mb-1.5">
                 <Dna className="w-4 h-4" />
               </div>
-              <span className={`text-[10px] sm:text-xs ${theme === 'dark' ? 'text-[#9E9A90]' : 'text-[#7A6F5D]'} font-semibold uppercase tracking-wider block`}>Nadi Vitality</span>
-              <span className={`text-xs sm:text-sm font-bold ${theme === 'dark' ? 'text-[#E5E1D8]' : 'text-[#1E1B15]'} mt-1 block`}>
+              <span className={`text-[10px] sm:text-xs ${theme === 'dark' ? 'text-[#9E9A90]' : 'text-[#9E9A90]'} font-semibold uppercase tracking-wider block`}>Nadi Vitality</span>
+              <span className={`text-xs sm:text-sm font-bold ${theme === 'dark' ? 'text-[#E5E1D8]' : 'text-[#0D0D0F]'} mt-1 block`}>
                 {matchResult.kootas?.find((k) => k.id === 'nadi')?.obtainedPoints ?? 0}/8 Points
               </span>
             </div>
 
             <div className={`p-4 sm:p-5 rounded-xl border text-center ${
-              theme === 'dark' ? 'bg-[#0D0D0F]/80 border-[#2A2A2E]' : 'bg-[#FFFDF7] border-[#DECFA6] shadow-sm'
+              theme === 'dark' ? 'bg-[#0D0D0F]/80 border-[#2A2A2E]' : 'bg-[#F9F7F1] border-[#E5E1D8] shadow-sm'
             }`}>
               <div className="flex items-center justify-center text-[#C9A050] mb-1.5">
                 <Heart className="w-4 h-4" />
               </div>
-              <span className={`text-[10px] sm:text-xs ${theme === 'dark' ? 'text-[#9E9A90]' : 'text-[#7A6F5D]'} font-semibold uppercase tracking-wider block`}>Bhakoot Harmony</span>
-              <span className={`text-xs sm:text-sm font-bold ${theme === 'dark' ? 'text-[#E5E1D8]' : 'text-[#1E1B15]'} mt-1 block`}>
+              <span className={`text-[10px] sm:text-xs ${theme === 'dark' ? 'text-[#9E9A90]' : 'text-[#9E9A90]'} font-semibold uppercase tracking-wider block`}>Bhakoot Harmony</span>
+              <span className={`text-xs sm:text-sm font-bold ${theme === 'dark' ? 'text-[#E5E1D8]' : 'text-[#0D0D0F]'} mt-1 block`}>
                 {matchResult.kootas?.find((k) => k.id === 'bhakoot')?.obtainedPoints ?? 0}/7 Points
               </span>
             </div>
@@ -1528,7 +1536,7 @@ Issued by JyotishVeda AI Daivajna Astrological Intelligence Engine
       </div>
 
       {/* Sub-Navigation Tabs */}
-      <div className={`flex items-center space-x-2 border-b ${theme === 'dark' ? 'border-[#2A2A2E]' : 'border-[#DECFA6]'} pb-3 overflow-x-auto no-scrollbar`}>
+      <div className={`flex items-center space-x-2 border-b ${theme === 'dark' ? 'border-[#2A2A2E]' : 'border-[#E5E1D8]'} pb-3 overflow-x-auto no-scrollbar`}>
         <button
           onClick={() => setActiveTab('kootas')}
           className={`flex items-center space-x-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold whitespace-nowrap transition cursor-pointer ${
@@ -1536,7 +1544,7 @@ Issued by JyotishVeda AI Daivajna Astrological Intelligence Engine
               ? 'bg-[#C9A050] text-[#0D0D0F] shadow-md shadow-[#C9A050]/20 font-bold'
               : theme === 'dark'
               ? 'bg-[#141418] text-[#9E9A90] hover:text-[#E5E1D8] border border-[#2A2A2E]'
-              : 'bg-[#FAF4E4] text-[#6E6452] hover:text-[#1E1B15] hover:bg-[#F5E8C8] border border-[#DECFA6]'
+              : 'bg-[#F9F7F1] text-[#544B3D] hover:text-[#0D0D0F] hover:bg-[#F0ECE1] border border-[#E5E1D8]'
           }`}
         >
           <Layers className="w-4 h-4" />
@@ -1550,7 +1558,7 @@ Issued by JyotishVeda AI Daivajna Astrological Intelligence Engine
               ? 'bg-[#C9A050] text-[#0D0D0F] shadow-md shadow-[#C9A050]/20 font-bold'
               : theme === 'dark'
               ? 'bg-[#141418] text-[#9E9A90] hover:text-[#E5E1D8] border border-[#2A2A2E]'
-              : 'bg-[#FAF4E4] text-[#6E6452] hover:text-[#1E1B15] hover:bg-[#F5E8C8] border border-[#DECFA6]'
+              : 'bg-[#F9F7F1] text-[#544B3D] hover:text-[#0D0D0F] hover:bg-[#F0ECE1] border border-[#E5E1D8]'
           }`}
         >
           <Flame className="w-4 h-4" />
@@ -1564,7 +1572,7 @@ Issued by JyotishVeda AI Daivajna Astrological Intelligence Engine
               ? 'bg-[#C9A050] text-[#0D0D0F] shadow-md shadow-[#C9A050]/20 font-bold'
               : theme === 'dark'
               ? 'bg-[#141418] text-[#9E9A90] hover:text-[#E5E1D8] border border-[#2A2A2E]'
-              : 'bg-[#FAF4E4] text-[#6E6452] hover:text-[#1E1B15] hover:bg-[#F5E8C8] border border-[#DECFA6]'
+              : 'bg-[#F9F7F1] text-[#544B3D] hover:text-[#0D0D0F] hover:bg-[#F0ECE1] border border-[#E5E1D8]'
           }`}
         >
           <Compass className="w-4 h-4" />
@@ -1578,11 +1586,11 @@ Issued by JyotishVeda AI Daivajna Astrological Intelligence Engine
               ? 'bg-[#C9A050] text-[#0D0D0F] shadow-md shadow-[#C9A050]/20 font-bold'
               : theme === 'dark'
               ? 'bg-[#141418] text-[#9E9A90] hover:text-[#E5E1D8] border border-[#2A2A2E]'
-              : 'bg-[#FAF4E4] text-[#6E6452] hover:text-[#1E1B15] hover:bg-[#F5E8C8] border border-[#DECFA6]'
+              : 'bg-[#F9F7F1] text-[#544B3D] hover:text-[#0D0D0F] hover:bg-[#F0ECE1] border border-[#E5E1D8]'
           }`}
         >
           <Sparkles className="w-4 h-4" />
-          <span>AI Astrological Counsel</span>
+          <span>Astrological Counsel</span>
         </button>
 
         <button
@@ -1592,7 +1600,7 @@ Issued by JyotishVeda AI Daivajna Astrological Intelligence Engine
               ? 'bg-[#C9A050] text-[#0D0D0F] shadow-md shadow-[#C9A050]/20 font-bold'
               : theme === 'dark'
               ? 'bg-[#141418] text-[#9E9A90] hover:text-[#E5E1D8] border border-[#2A2A2E]'
-              : 'bg-[#FAF4E4] text-[#6E6452] hover:text-[#1E1B15] hover:bg-[#F5E8C8] border border-[#DECFA6]'
+              : 'bg-[#F9F7F1] text-[#544B3D] hover:text-[#0D0D0F] hover:bg-[#F0ECE1] border border-[#E5E1D8]'
           }`}
         >
           <ShieldCheck className="w-4 h-4" />
@@ -1606,7 +1614,7 @@ Issued by JyotishVeda AI Daivajna Astrological Intelligence Engine
               ? 'bg-[#C9A050] text-[#0D0D0F] shadow-md shadow-[#C9A050]/20 font-bold'
               : theme === 'dark'
               ? 'bg-[#141418] text-[#9E9A90] hover:text-[#E5E1D8] border border-[#2A2A2E]'
-              : 'bg-[#FAF4E4] text-[#6E6452] hover:text-[#1E1B15] hover:bg-[#F5E8C8] border border-[#DECFA6]'
+              : 'bg-[#F9F7F1] text-[#544B3D] hover:text-[#0D0D0F] hover:bg-[#F0ECE1] border border-[#E5E1D8]'
           }`}
         >
           <Download className="w-4 h-4" />
@@ -1618,10 +1626,10 @@ Issued by JyotishVeda AI Daivajna Astrological Intelligence Engine
       {activeTab === 'kootas' && (
         <div className="space-y-5">
           <div className="flex items-center justify-between">
-            <h3 className={`text-lg sm:text-xl font-serif font-bold ${theme === 'dark' ? 'text-[#F0ECE1]' : 'text-[#1E1B15]'}`}>
+            <h3 className={`text-lg sm:text-xl font-serif font-bold ${theme === 'dark' ? 'text-[#F0ECE1]' : 'text-[#0D0D0F]'}`}>
               Ashta Koota (8 Kootas) Classical Scoring Matrix
             </h3>
-            <span className={`text-xs sm:text-sm ${theme === 'dark' ? 'text-[#9E9A90]' : 'text-[#6E6452]'}`}>
+            <span className={`text-xs sm:text-sm ${theme === 'dark' ? 'text-[#9E9A90]' : 'text-[#544B3D]'}`}>
               Score: <strong className="text-[#C9A050] font-bold">{matchResult.totalPoints}</strong> / 36 Maximum
             </span>
           </div>
@@ -1637,8 +1645,8 @@ Issued by JyotishVeda AI Daivajna Astrological Intelligence Engine
                   className={`${
                     theme === 'dark'
                       ? 'bg-[#141418] border-[#2A2A2E] hover:border-[#C9A050]/40'
-                      : 'bg-gradient-to-b from-[#FAF4E4] to-[#F6ECD2] border-[#DFC896] hover:border-[#C9A050]'
-                  } border rounded-2xl p-5 sm:p-6 transition shadow-sm`}
+                      : 'bg-white border-[#E5E1D8] hover:border-[#C9A050] shadow-sm'
+                  } border rounded-2xl p-5 sm:p-6 transition`}
                 >
                   <div
                     className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 cursor-pointer"
@@ -1646,29 +1654,29 @@ Issued by JyotishVeda AI Daivajna Astrological Intelligence Engine
                   >
                     <div className="flex items-start sm:items-center space-x-4">
                       <div className={`w-9 h-9 rounded-xl ${
-                        theme === 'dark' ? 'bg-[#1A1A1E] border-[#2A2A2E]' : 'bg-[#FAF0D4] border-[#DECFA6]'
+                        theme === 'dark' ? 'bg-[#1A1A1E] border-[#2A2A2E]' : 'bg-[#F9F7F1] border-[#E5E1D8]'
                       } border flex items-center justify-center font-bold text-xs sm:text-sm text-[#C9A050] shrink-0`}>
                         0{index + 1}
                       </div>
                       <div>
                         <div className="flex items-center space-x-2">
-                          <h4 className={`text-base sm:text-lg font-serif font-bold ${theme === 'dark' ? 'text-[#F0ECE1]' : 'text-[#1E1B15]'}`}>
+                          <h4 className={`text-base sm:text-lg font-serif font-bold ${theme === 'dark' ? 'text-[#F0ECE1]' : 'text-[#0D0D0F]'}`}>
                             {koota.name}
                           </h4>
-                          <span className={`text-xs ${theme === 'dark' ? 'text-[#9E9A90]' : 'text-[#7A6F5D]'} italic`}>({koota.sanskritName})</span>
+                          <span className={`text-xs ${theme === 'dark' ? 'text-[#9E9A90]' : 'text-[#9E9A90]'} italic`}>({koota.sanskritName})</span>
                         </div>
-                        <p className={`text-xs sm:text-sm ${theme === 'dark' ? 'text-[#9E9A90]' : 'text-[#6E6452]'} mt-0.5`}>{koota.area}</p>
+                        <p className={`text-xs sm:text-sm ${theme === 'dark' ? 'text-[#9E9A90]' : 'text-[#544B3D]'} mt-0.5`}>{koota.area}</p>
                       </div>
                     </div>
 
                     <div className="flex items-center space-x-4">
                       {/* Values Comparison Pill */}
                       <div className={`hidden md:flex items-center space-x-2 text-xs px-3.5 py-1.5 rounded-xl border ${
-                        theme === 'dark' ? 'bg-[#0D0D0F] border-[#2A2A2E] text-[#9E9A90]' : 'bg-[#FFFDF7] border-[#DECFA6] text-[#6E6452]'
+                        theme === 'dark' ? 'bg-[#0D0D0F] border-[#2A2A2E] text-[#9E9A90]' : 'bg-[#F9F7F1] border-[#E5E1D8] text-[#544B3D]'
                       }`}>
-                        <span className={theme === 'dark' ? 'text-[#E5E1D8]' : 'text-[#1E1B15]'}>{partner1.fullName.split(' ')[0]}: <strong className="text-[#C9A050]">{koota.p1Value}</strong></span>
+                        <span className={theme === 'dark' ? 'text-[#E5E1D8]' : 'text-[#0D0D0F]'}>{partner1.fullName.split(' ')[0]}: <strong className="text-[#C9A050]">{koota.p1Value}</strong></span>
                         <span>↔</span>
-                        <span className={theme === 'dark' ? 'text-[#E5E1D8]' : 'text-[#1E1B15]'}>{partner2.fullName.split(' ')[0]}: <strong className="text-[#C9A050]">{koota.p2Value}</strong></span>
+                        <span className={theme === 'dark' ? 'text-[#E5E1D8]' : 'text-[#0D0D0F]'}>{partner2.fullName.split(' ')[0]}: <strong className="text-[#C9A050]">{koota.p2Value}</strong></span>
                       </div>
 
                       {/* Points Badge */}
@@ -1677,9 +1685,9 @@ Issued by JyotishVeda AI Daivajna Astrological Intelligence Engine
                       </div>
 
                       {isExpanded ? (
-                        <ChevronUp className={`w-4 h-4 ${theme === 'dark' ? 'text-[#9E9A90]' : 'text-[#6E6452]'}`} />
+                        <ChevronUp className={`w-4 h-4 ${theme === 'dark' ? 'text-[#9E9A90]' : 'text-[#9E9A90]'}`} />
                       ) : (
-                        <ChevronDown className={`w-4 h-4 ${theme === 'dark' ? 'text-[#9E9A90]' : 'text-[#6E6452]'}`} />
+                        <ChevronDown className={`w-4 h-4 ${theme === 'dark' ? 'text-[#9E9A90]' : 'text-[#9E9A90]'}`} />
                       )}
                     </div>
                   </div>
@@ -1692,16 +1700,16 @@ Issued by JyotishVeda AI Daivajna Astrological Intelligence Engine
                         animate={{ opacity: 1, height: 'auto' }}
                         exit={{ opacity: 0, height: 0 }}
                         className={`mt-4 pt-4 border-t ${
-                          theme === 'dark' ? 'border-[#2A2A2E] text-[#E5E1D8]' : 'border-[#DECFA6] text-[#2C2825]'
+                          theme === 'dark' ? 'border-[#2A2A2E] text-[#E5E1D8]' : 'border-[#E5E1D8] text-[#2A2A2E]'
                         } text-xs sm:text-sm space-y-2.5 leading-relaxed`}
                       >
-                        <p className={theme === 'dark' ? 'text-[#9E9A90]' : 'text-[#6E6452]'}>{koota.description}</p>
+                        <p className={theme === 'dark' ? 'text-[#9E9A90]' : 'text-[#544B3D]'}>{koota.description}</p>
                         <div className={`p-3.5 sm:p-4 rounded-xl border flex items-start space-x-2.5 ${
-                          theme === 'dark' ? 'bg-[#0D0D0F] border-[#2A2A2E]' : 'bg-[#FFFDF7] border-[#DECFA6]'
+                          theme === 'dark' ? 'bg-[#0D0D0F] border-[#2A2A2E]' : 'bg-[#F9F7F1] border-[#E5E1D8]'
                         }`}>
                           <Info className="w-4 h-4 text-[#C9A050] shrink-0 mt-0.5" />
                           <div>
-                            <span className={`font-semibold ${theme === 'dark' ? 'text-[#F0ECE1]' : 'text-[#1E1B15]'}`}>Verdict Details: </span>
+                            <span className={`font-semibold ${theme === 'dark' ? 'text-[#F0ECE1]' : 'text-[#0D0D0F]'}`}>Verdict Details: </span>
                             <span>{koota.details}</span>
                           </div>
                         </div>
@@ -1722,61 +1730,61 @@ Issued by JyotishVeda AI Daivajna Astrological Intelligence Engine
           <div className={`${
             theme === 'dark' 
               ? 'bg-[#141418] border-[#2A2A2E]' 
-              : 'bg-gradient-to-b from-[#FAF4E4] to-[#F6ECD2] border-[#DFC896]'
-          } border rounded-2xl p-6 sm:p-8 shadow-md`}>
+              : 'bg-white border-[#E5E1D8] shadow-sm'
+          } border rounded-2xl p-6 sm:p-8`}>
             <div className="flex items-center space-x-3 mb-4">
               <div className="p-2.5 rounded-xl bg-orange-500/10 text-orange-400 border border-orange-500/30">
                 <Flame className="w-5 h-5" />
               </div>
               <div>
-                <h3 className={`text-lg sm:text-xl font-serif font-bold ${theme === 'dark' ? 'text-[#F0ECE1]' : 'text-[#1E1B15]'}`}>
+                <h3 className={`text-lg sm:text-xl font-serif font-bold ${theme === 'dark' ? 'text-[#F0ECE1]' : 'text-[#0D0D0F]'}`}>
                   Manglik (Kuja) Dosha Comparative Assessment
                 </h3>
-                <p className={`text-xs sm:text-sm ${theme === 'dark' ? 'text-[#9E9A90]' : 'text-[#6E6452]'}`}>Mars placement in 1st, 2nd, 4th, 7th, 8th, or 12th houses</p>
+                <p className={`text-xs sm:text-sm ${theme === 'dark' ? 'text-[#9E9A90]' : 'text-[#544B3D]'}`}>Mars placement in 1st, 2nd, 4th, 7th, 8th, or 12th houses</p>
               </div>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 my-4">
               {/* Partner 1 Manglik */}
               <div className={`p-4 sm:p-5 rounded-xl border ${
-                theme === 'dark' ? 'bg-[#0D0D0F] border-[#2A2A2E]' : 'bg-[#FFFDF7] border-[#DECFA6]'
+                theme === 'dark' ? 'bg-[#0D0D0F] border-[#2A2A2E]' : 'bg-[#F9F7F1] border-[#E5E1D8]'
               }`}>
-                <span className={`text-xs ${theme === 'dark' ? 'text-[#9E9A90]' : 'text-[#7A6F5D]'} font-semibold uppercase tracking-wider block mb-1.5`}>
+                <span className={`text-xs ${theme === 'dark' ? 'text-[#9E9A90]' : 'text-[#9E9A90]'} font-semibold uppercase tracking-wider block mb-1.5`}>
                   {partner1.fullName} (Partner A)
                 </span>
                 <div className="flex items-center justify-between">
-                  <span className={`text-xs sm:text-sm font-bold ${theme === 'dark' ? 'text-[#F0ECE1]' : 'text-[#1E1B15]'}`}>
+                  <span className={`text-xs sm:text-sm font-bold ${theme === 'dark' ? 'text-[#F0ECE1]' : 'text-[#0D0D0F]'}`}>
                     {matchResult.manglik?.partner1?.isManglik ? `Manglik (${matchResult.manglik?.partner1?.severity || 'Active'})` : 'Non-Manglik'}
                   </span>
                   <span className={`text-xs px-2.5 py-0.5 rounded-lg border font-semibold ${
-                    theme === 'dark' ? 'bg-[#1A1A1E] text-[#9E9A90] border-[#2A2A2E]' : 'bg-[#FAF1D8] text-[#6E6452] border-[#DECFA6]'
+                    theme === 'dark' ? 'bg-[#1A1A1E] text-[#9E9A90] border-[#2A2A2E]' : 'bg-white text-[#544B3D] border-[#E5E1D8]'
                   }`}>
                     House {matchResult.manglik?.partner1?.marsHouse || '-'}
                   </span>
                 </div>
-                <p className={`text-xs ${theme === 'dark' ? 'text-[#9E9A90]' : 'text-[#6E6452]'} mt-2.5`}>
+                <p className={`text-xs ${theme === 'dark' ? 'text-[#9E9A90]' : 'text-[#544B3D]'} mt-2.5`}>
                   Status: <strong className="text-[#C9A050] font-semibold">{matchResult.manglik?.partner1?.cancellation || 'Standard Evaluation'}</strong>
                 </p>
               </div>
 
               {/* Partner 2 Manglik */}
               <div className={`p-4 sm:p-5 rounded-xl border ${
-                theme === 'dark' ? 'bg-[#0D0D0F] border-[#2A2A2E]' : 'bg-[#FFFDF7] border-[#DECFA6]'
+                theme === 'dark' ? 'bg-[#0D0D0F] border-[#2A2A2E]' : 'bg-[#F9F7F1] border-[#E5E1D8]'
               }`}>
-                <span className={`text-xs ${theme === 'dark' ? 'text-[#9E9A90]' : 'text-[#7A6F5D]'} font-semibold uppercase tracking-wider block mb-1.5`}>
+                <span className={`text-xs ${theme === 'dark' ? 'text-[#9E9A90]' : 'text-[#9E9A90]'} font-semibold uppercase tracking-wider block mb-1.5`}>
                   {partner2.fullName} (Partner B)
                 </span>
                 <div className="flex items-center justify-between">
-                  <span className={`text-xs sm:text-sm font-bold ${theme === 'dark' ? 'text-[#F0ECE1]' : 'text-[#1E1B15]'}`}>
+                  <span className={`text-xs sm:text-sm font-bold ${theme === 'dark' ? 'text-[#F0ECE1]' : 'text-[#0D0D0F]'}`}>
                     {matchResult.manglik?.partner2?.isManglik ? `Manglik (${matchResult.manglik?.partner2?.severity || 'Active'})` : 'Non-Manglik'}
                   </span>
                   <span className={`text-xs px-2.5 py-0.5 rounded-lg border font-semibold ${
-                    theme === 'dark' ? 'bg-[#1A1A1E] text-[#9E9A90] border-[#2A2A2E]' : 'bg-[#FAF1D8] text-[#6E6452] border-[#DECFA6]'
+                    theme === 'dark' ? 'bg-[#1A1A1E] text-[#9E9A90] border-[#2A2A2E]' : 'bg-white text-[#544B3D] border-[#E5E1D8]'
                   }`}>
                     House {matchResult.manglik?.partner2?.marsHouse || '-'}
                   </span>
                 </div>
-                <p className={`text-xs ${theme === 'dark' ? 'text-[#9E9A90]' : 'text-[#6E6452]'} mt-2.5`}>
+                <p className={`text-xs ${theme === 'dark' ? 'text-[#9E9A90]' : 'text-[#544B3D]'} mt-2.5`}>
                   Status: <strong className="text-[#C9A050] font-semibold">{matchResult.manglik?.partner2?.cancellation || 'Standard Evaluation'}</strong>
                 </p>
               </div>
@@ -1785,16 +1793,16 @@ Issued by JyotishVeda AI Daivajna Astrological Intelligence Engine
             <div className={`p-4 sm:p-5 rounded-xl border text-xs sm:text-sm leading-relaxed ${
               matchResult.manglik?.isNeutralized
                 ? theme === 'light'
-                  ? 'bg-[#FAF7EE] border-[#C9A050]/50 text-[#8C6B28]'
+                  ? 'bg-[#F9F7F1] border-[#C9A050]/40 text-[#2A2A2E]'
                   : 'bg-[#1C1A14] border-[#C9A050]/50 text-[#E8C470]'
                 : theme === 'light'
                   ? 'bg-[#FFF8F6] border-rose-300 text-rose-800'
                   : 'bg-rose-950/20 border-rose-500/40 text-rose-300'
             }`}>
-              <div className={`font-bold text-sm sm:text-base mb-1.5 ${theme === 'light' ? 'text-[#8C6B28]' : 'text-[#E8C470]'}`}>
+              <div className={`font-bold text-sm sm:text-base mb-1.5 ${theme === 'light' ? 'text-[#C9A050]' : 'text-[#E8C470]'}`}>
                 {matchResult.manglik?.verdict || 'Manglik Analysis'}
               </div>
-              <p className={theme === 'light' ? 'text-[#5C574F]' : 'text-[#9E9A90]'}>
+              <p className={theme === 'light' ? 'text-[#544B3D]' : 'text-[#9E9A90]'}>
                 {matchResult.manglik?.explanation || ''}
               </p>
             </div>
@@ -1806,20 +1814,20 @@ Issued by JyotishVeda AI Daivajna Astrological Intelligence Engine
             <div className={`${
               theme === 'dark' 
                 ? 'bg-[#141418] border-[#2A2A2E]' 
-                : 'bg-gradient-to-b from-[#FAF4E4] to-[#F6ECD2] border-[#DFC896]'
-            } border rounded-2xl p-6 sm:p-8 shadow-md`}>
+                : 'bg-white border-[#E5E1D8] shadow-sm'
+            } border rounded-2xl p-6 sm:p-8`}>
               <div className="flex items-center space-x-3 mb-3.5">
                 <Dna className="w-5 h-5 text-[#C9A050]" />
-                <h4 className={`text-base sm:text-lg font-serif font-bold ${theme === 'dark' ? 'text-[#F0ECE1]' : 'text-[#1E1B15]'}`}>Nadi Dosha Examination</h4>
+                <h4 className={`text-base sm:text-lg font-serif font-bold ${theme === 'dark' ? 'text-[#F0ECE1]' : 'text-[#0D0D0F]'}`}>Nadi Dosha Examination</h4>
               </div>
-              <div className={`space-y-2.5 text-xs sm:text-sm ${theme === 'dark' ? 'text-[#9E9A90]' : 'text-[#6E6452]'}`}>
+              <div className={`space-y-2.5 text-xs sm:text-sm ${theme === 'dark' ? 'text-[#9E9A90]' : 'text-[#544B3D]'}`}>
                 <div className="flex justify-between">
                   <span>{partner1.fullName.split(' ')[0]} Nadi:</span>
-                  <strong className={theme === 'dark' ? 'text-[#E5E1D8]' : 'text-[#1E1B15]'}>{matchResult.nadiDosha?.partner1Nadi || '-'}</strong>
+                  <strong className={theme === 'dark' ? 'text-[#E5E1D8]' : 'text-[#0D0D0F]'}>{matchResult.nadiDosha?.partner1Nadi || '-'}</strong>
                 </div>
                 <div className="flex justify-between">
                   <span>{partner2.fullName.split(' ')[0]} Nadi:</span>
-                  <strong className={theme === 'dark' ? 'text-[#E5E1D8]' : 'text-[#1E1B15]'}>{matchResult.nadiDosha?.partner2Nadi || '-'}</strong>
+                  <strong className={theme === 'dark' ? 'text-[#E5E1D8]' : 'text-[#0D0D0F]'}>{matchResult.nadiDosha?.partner2Nadi || '-'}</strong>
                 </div>
                 <div className="flex justify-between">
                   <span>Status:</span>
@@ -1832,7 +1840,7 @@ Issued by JyotishVeda AI Daivajna Astrological Intelligence Engine
                   </strong>
                 </div>
                 <p className={`p-3.5 rounded-xl border text-xs sm:text-sm mt-3.5 leading-relaxed ${
-                  theme === 'dark' ? 'bg-[#0D0D0F] border-[#2A2A2E] text-[#E5E1D8]' : 'bg-[#FFFDF7] border-[#DECFA6] text-[#2C2825]'
+                  theme === 'dark' ? 'bg-[#0D0D0F] border-[#2A2A2E] text-[#E5E1D8]' : 'bg-[#F9F7F1] border-[#E5E1D8] text-[#2A2A2E]'
                 }`}>
                   {matchResult.nadiDosha?.reason || 'Evaluation completed'}. {matchResult.nadiDosha?.remedy || ''}
                 </p>
@@ -1843,27 +1851,27 @@ Issued by JyotishVeda AI Daivajna Astrological Intelligence Engine
             <div className={`${
               theme === 'dark' 
                 ? 'bg-[#141418] border-[#2A2A2E]' 
-                : 'bg-gradient-to-b from-[#FAF4E4] to-[#F6ECD2] border-[#DFC896]'
-            } border rounded-2xl p-6 sm:p-8 shadow-md`}>
+                : 'bg-white border-[#E5E1D8] shadow-sm'
+            } border rounded-2xl p-6 sm:p-8`}>
               <div className="flex items-center space-x-3 mb-3.5">
                 <Heart className="w-5 h-5 text-[#C9A050]" />
-                <h4 className={`text-base sm:text-lg font-serif font-bold ${theme === 'dark' ? 'text-[#F0ECE1]' : 'text-[#1E1B15]'}`}>Bhakoot Dosha Examination</h4>
+                <h4 className={`text-base sm:text-lg font-serif font-bold ${theme === 'dark' ? 'text-[#F0ECE1]' : 'text-[#0D0D0F]'}`}>Bhakoot Dosha Examination</h4>
               </div>
-              <div className={`space-y-2.5 text-xs sm:text-sm ${theme === 'dark' ? 'text-[#9E9A90]' : 'text-[#6E6452]'}`}>
+              <div className={`space-y-2.5 text-xs sm:text-sm ${theme === 'dark' ? 'text-[#9E9A90]' : 'text-[#544B3D]'}`}>
                 <div className="flex justify-between">
                   <span>{partner1.fullName.split(' ')[0]} Rashi:</span>
-                  <strong className={theme === 'dark' ? 'text-[#E5E1D8]' : 'text-[#1E1B15]'}>{matchResult.bhakootDosha?.partner1Rashi || '-'}</strong>
+                  <strong className={theme === 'dark' ? 'text-[#E5E1D8]' : 'text-[#0D0D0F]'}>{matchResult.bhakootDosha?.partner1Rashi || '-'}</strong>
                 </div>
                 <div className="flex justify-between">
                   <span>{partner2.fullName.split(' ')[0]} Rashi:</span>
-                  <strong className={theme === 'dark' ? 'text-[#E5E1D8]' : 'text-[#1E1B15]'}>{matchResult.bhakootDosha?.partner2Rashi || '-'}</strong>
+                  <strong className={theme === 'dark' ? 'text-[#E5E1D8]' : 'text-[#0D0D0F]'}>{matchResult.bhakootDosha?.partner2Rashi || '-'}</strong>
                 </div>
                 <div className="flex justify-between">
                   <span>Rashi Angular Disparity:</span>
                   <strong className="text-[#C9A050] font-bold">{matchResult.bhakootDosha?.rashiDistance || '-'}</strong>
                 </div>
                 <p className={`p-3.5 rounded-xl border text-xs sm:text-sm mt-3.5 leading-relaxed ${
-                  theme === 'dark' ? 'bg-[#0D0D0F] border-[#2A2A2E] text-[#E5E1D8]' : 'bg-[#FFFDF7] border-[#DECFA6] text-[#2C2825]'
+                  theme === 'dark' ? 'bg-[#0D0D0F] border-[#2A2A2E] text-[#E5E1D8]' : 'bg-[#F9F7F1] border-[#E5E1D8] text-[#2A2A2E]'
                 }`}>
                   {matchResult.bhakootDosha?.reason || 'Evaluation completed'}. {matchResult.bhakootDosha?.remedy || ''}
                 </p>
@@ -1879,35 +1887,35 @@ Issued by JyotishVeda AI Daivajna Astrological Intelligence Engine
           <div className={`${
             theme === 'dark' 
               ? 'bg-[#141418] border-[#2A2A2E]' 
-              : 'bg-gradient-to-b from-[#FAF4E4] to-[#F6ECD2] border-[#DFC896]'
-          } border rounded-2xl p-6 sm:p-8 shadow-md`}>
-            <h3 className={`text-lg sm:text-xl font-serif font-bold ${theme === 'dark' ? 'text-[#F0ECE1]' : 'text-[#1E1B15]'} mb-2`}>
+              : 'bg-white border-[#E5E1D8] shadow-sm'
+          } border rounded-2xl p-6 sm:p-8`}>
+            <h3 className={`text-lg sm:text-xl font-serif font-bold ${theme === 'dark' ? 'text-[#F0ECE1]' : 'text-[#0D0D0F]'} mb-2`}>
               Western Synastry &amp; Cosmic Planetary Aspects
             </h3>
-            <p className={`text-xs sm:text-sm ${theme === 'dark' ? 'text-[#9E9A90]' : 'text-[#6E6452]'} mb-6 leading-relaxed`}>
+            <p className={`text-xs sm:text-sm ${theme === 'dark' ? 'text-[#9E9A90]' : 'text-[#544B3D]'} mb-6 leading-relaxed`}>
               Cross-tradition psychological harmonization between solar-lunar archetypes and interpersonal attraction vectors.
             </p>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
               {matchResult.synastry?.map((syn, i) => (
                 <div key={i} className={`p-4 sm:p-5 rounded-xl border space-y-2.5 ${
-                  theme === 'dark' ? 'bg-[#0D0D0F] border-[#2A2A2E]' : 'bg-[#FFFDF7] border-[#DECFA6]'
+                  theme === 'dark' ? 'bg-[#0D0D0F] border-[#2A2A2E]' : 'bg-[#F9F7F1] border-[#E5E1D8]'
                 }`}>
                   <div className="flex justify-between items-center gap-2">
                     <span className="text-xs sm:text-sm font-bold text-[#C9A050] truncate">{syn.title}</span>
                     <span className={`text-xs font-extrabold px-2.5 py-0.5 rounded-full shrink-0 shadow-sm ${
                       theme === 'light'
-                        ? 'bg-[#FAF1D6] text-[#8C6218] border border-[#DECFA6]'
+                        ? 'bg-[#C9A050]/15 text-[#C9A050] border border-[#C9A050]/30'
                         : 'bg-[#C9A050]/20 text-[#E8C470] border border-[#C9A050]/40'
                     }`}>
                       {syn.harmonyScore}%
                     </span>
                   </div>
-                  <span className={`text-xs ${theme === 'dark' ? 'text-[#9E9A90]' : 'text-[#7A6F5D]'} block`}>{syn.planets}</span>
-                  <div className={`w-full ${theme === 'light' ? 'bg-[#FAF1D6]' : 'bg-[#1A1A1E]'} h-2 rounded-full overflow-hidden`}>
+                  <span className={`text-xs ${theme === 'dark' ? 'text-[#9E9A90]' : 'text-[#9E9A90]'} block`}>{syn.planets}</span>
+                  <div className={`w-full ${theme === 'light' ? 'bg-[#E5E1D8]' : 'bg-[#1A1A1E]'} h-2 rounded-full overflow-hidden`}>
                     <div className="bg-[#C9A050] h-full rounded-full transition-all duration-500" style={{ width: `${syn.harmonyScore}%` }} />
                   </div>
-                  <p className={`text-xs sm:text-sm ${theme === 'dark' ? 'text-[#E5E1D8]' : 'text-[#2C2825]'} pt-1 leading-relaxed`}>{syn.description}</p>
+                  <p className={`text-xs sm:text-sm ${theme === 'dark' ? 'text-[#E5E1D8]' : 'text-[#2A2A2E]'} pt-1 leading-relaxed`}>{syn.description}</p>
                 </div>
               ))}
             </div>
@@ -1918,58 +1926,58 @@ Issued by JyotishVeda AI Daivajna Astrological Intelligence Engine
             <div className={`${
               theme === 'dark' 
                 ? 'bg-[#141418] border-[#2A2A2E]' 
-                : 'bg-gradient-to-b from-[#FAF4E4] to-[#F6ECD2] border-[#DFC896]'
-            } border rounded-2xl p-6 sm:p-8 shadow-md`}>
-              <h4 className={`text-base sm:text-lg font-serif font-bold ${theme === 'dark' ? 'text-[#F0ECE1]' : 'text-[#1E1B15]'} mb-3`}>Elemental Synergy</h4>
+                : 'bg-white border-[#E5E1D8] shadow-sm'
+            } border rounded-2xl p-6 sm:p-8`}>
+              <h4 className={`text-base sm:text-lg font-serif font-bold ${theme === 'dark' ? 'text-[#F0ECE1]' : 'text-[#0D0D0F]'} mb-3`}>Elemental Synergy</h4>
               <div className={`p-4 sm:p-5 rounded-xl border space-y-2.5 text-xs sm:text-sm ${
-                theme === 'dark' ? 'bg-[#0D0D0F] border-[#2A2A2E]' : 'bg-[#FFFDF7] border-[#DECFA6]'
+                theme === 'dark' ? 'bg-[#0D0D0F] border-[#2A2A2E]' : 'bg-[#F9F7F1] border-[#E5E1D8]'
               }`}>
-                <div className={`flex justify-between ${theme === 'dark' ? 'text-[#9E9A90]' : 'text-[#6E6452]'}`}>
+                <div className={`flex justify-between ${theme === 'dark' ? 'text-[#9E9A90]' : 'text-[#544B3D]'}`}>
                   <span>Elements:</span>
-                  <strong className={theme === 'dark' ? 'text-[#E5E1D8]' : 'text-[#1E1B15]'}>
+                  <strong className={theme === 'dark' ? 'text-[#E5E1D8]' : 'text-[#0D0D0F]'}>
                     {matchResult.elementalBalance?.partner1Element || '-'} ↔ {matchResult.elementalBalance?.partner2Element || '-'}
                   </strong>
                 </div>
-                <div className={`flex justify-between items-center ${theme === 'dark' ? 'text-[#9E9A90]' : 'text-[#6E6452]'}`}>
+                <div className={`flex justify-between items-center ${theme === 'dark' ? 'text-[#9E9A90]' : 'text-[#544B3D]'}`}>
                   <span>Synergy Score:</span>
                   <span className={`text-xs font-extrabold px-2.5 py-0.5 rounded-full ${
                     theme === 'light'
-                      ? 'bg-[#FAF1D6] text-[#8C6218] border border-[#DECFA6]'
+                      ? 'bg-[#C9A050]/15 text-[#C9A050] border border-[#C9A050]/30'
                       : 'bg-[#C9A050]/20 text-[#E8C470] border border-[#C9A050]/40'
                   }`}>
                     {matchResult.elementalBalance?.score || 0}%
                   </span>
                 </div>
-                <p className={`${theme === 'dark' ? 'text-[#E5E1D8]' : 'text-[#2C2825]'} pt-1 leading-relaxed`}>{matchResult.elementalBalance?.synergy || ''}</p>
+                <p className={`${theme === 'dark' ? 'text-[#E5E1D8]' : 'text-[#2A2A2E]'} pt-1 leading-relaxed`}>{matchResult.elementalBalance?.synergy || ''}</p>
               </div>
             </div>
 
             <div className={`${
               theme === 'dark' 
                 ? 'bg-[#141418] border-[#2A2A2E]' 
-                : 'bg-gradient-to-b from-[#FAF4E4] to-[#F6ECD2] border-[#DFC896]'
-            } border rounded-2xl p-6 sm:p-8 shadow-md`}>
-              <h4 className={`text-base sm:text-lg font-serif font-bold ${theme === 'dark' ? 'text-[#F0ECE1]' : 'text-[#1E1B15]'} mb-3`}>Numerological Alignment (Mulank &amp; Bhagyank)</h4>
+                : 'bg-white border-[#E5E1D8] shadow-sm'
+            } border rounded-2xl p-6 sm:p-8`}>
+              <h4 className={`text-base sm:text-lg font-serif font-bold ${theme === 'dark' ? 'text-[#F0ECE1]' : 'text-[#0D0D0F]'} mb-3`}>Numerological Alignment (Mulank &amp; Bhagyank)</h4>
               <div className={`p-4 sm:p-5 rounded-xl border space-y-2.5 text-xs sm:text-sm ${
-                theme === 'dark' ? 'bg-[#0D0D0F] border-[#2A2A2E]' : 'bg-[#FFFDF7] border-[#DECFA6]'
+                theme === 'dark' ? 'bg-[#0D0D0F] border-[#2A2A2E]' : 'bg-[#F9F7F1] border-[#E5E1D8]'
               }`}>
-                <div className={`flex justify-between ${theme === 'dark' ? 'text-[#9E9A90]' : 'text-[#6E6452]'}`}>
+                <div className={`flex justify-between ${theme === 'dark' ? 'text-[#9E9A90]' : 'text-[#544B3D]'}`}>
                   <span>Psychic Numbers (Mulank):</span>
-                  <strong className={theme === 'dark' ? 'text-[#E5E1D8]' : 'text-[#1E1B15]'}>
+                  <strong className={theme === 'dark' ? 'text-[#E5E1D8]' : 'text-[#0D0D0F]'}>
                     Mulank {matchResult.numerologyMilan?.partner1Mulank || 0} ↔ Mulank {matchResult.numerologyMilan?.partner2Mulank || 0}
                   </strong>
                 </div>
-                <div className={`flex justify-between items-center ${theme === 'dark' ? 'text-[#9E9A90]' : 'text-[#6E6452]'}`}>
+                <div className={`flex justify-between items-center ${theme === 'dark' ? 'text-[#9E9A90]' : 'text-[#544B3D]'}`}>
                   <span>Destiny Harmony Score:</span>
                   <span className={`text-xs font-extrabold px-2.5 py-0.5 rounded-full ${
                     theme === 'light'
-                      ? 'bg-[#FAF1D6] text-[#8C6218] border border-[#DECFA6]'
+                      ? 'bg-[#C9A050]/15 text-[#C9A050] border border-[#C9A050]/30'
                       : 'bg-[#C9A050]/20 text-[#E8C470] border border-[#C9A050]/40'
                   }`}>
                     {matchResult.numerologyMilan?.harmonyScore || 0}%
                   </span>
                 </div>
-                <p className={`${theme === 'dark' ? 'text-[#E5E1D8]' : 'text-[#2C2825]'} pt-1 leading-relaxed`}>{matchResult.numerologyMilan?.description || ''}</p>
+                <p className={`${theme === 'dark' ? 'text-[#E5E1D8]' : 'text-[#2A2A2E]'} pt-1 leading-relaxed`}>{matchResult.numerologyMilan?.description || ''}</p>
               </div>
             </div>
           </div>
@@ -1981,18 +1989,18 @@ Issued by JyotishVeda AI Daivajna Astrological Intelligence Engine
         <div className={`${
           theme === 'dark' 
             ? 'bg-[#141418] border-[#2A2A2E]' 
-            : 'bg-gradient-to-b from-[#FAF4E4] to-[#F6ECD2] border-[#DFC896]'
-        } border rounded-2xl p-6 sm:p-8 shadow-xl space-y-6`}>
+            : 'bg-white border-[#E5E1D8] shadow-sm'
+        } border rounded-2xl p-6 sm:p-8 space-y-6`}>
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
               <div className="inline-flex items-center space-x-2 px-3.5 py-1.5 rounded-full bg-gradient-to-r from-[#C9A050]/20 to-transparent border border-[#C9A050]/30 text-[#C9A050] text-[10px] sm:text-xs font-bold uppercase tracking-widest mb-2.5 backdrop-blur-md">
                 <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#C9A050]" />
                 <span>{t('matchmaking.ai_counsel')}</span>
               </div>
-              <h3 className={`text-xl sm:text-2xl font-serif font-bold ${theme === 'dark' ? 'text-[#F0ECE1]' : 'text-[#1E1B15]'}`}>
-                AI Daivajna Deep Relationship Synthesis
+              <h3 className={`text-xl sm:text-2xl font-serif font-bold ${theme === 'dark' ? 'text-[#F0ECE1]' : 'text-[#0D0D0F]'}`}>
+                Daivajna Deep Relationship Synthesis
               </h3>
-              <p className={`text-xs sm:text-sm ${theme === 'dark' ? 'text-[#9E9A90]' : 'text-[#6E6452]'} mt-1`}>
+              <p className={`text-xs sm:text-sm ${theme === 'dark' ? 'text-[#9E9A90]' : 'text-[#544B3D]'} mt-1`}>
                 Multidimensional karmic counsel generated dynamically for {partner1.fullName} &amp; {partner2.fullName}.
               </p>
             </div>
@@ -2004,7 +2012,7 @@ Issued by JyotishVeda AI Daivajna Astrological Intelligence Engine
                   className={`flex items-center space-x-1.5 px-4 py-2.5 rounded-xl border text-xs sm:text-sm font-semibold transition cursor-pointer ${
                     theme === 'dark'
                       ? 'bg-[#1C1C22] hover:bg-[#25252E] text-[#E5E1D8] border-[#3A3A42]'
-                      : 'bg-[#FFFDF7] hover:bg-[#FAF4E4] text-[#1E1B15] border-[#DECFA6]'
+                      : 'bg-[#F9F7F1] hover:bg-[#F0ECE1] text-[#2A2A2E] border-[#E5E1D8]'
                   }`}
                   title="Copy counsel report"
                 >
@@ -2035,7 +2043,7 @@ Issued by JyotishVeda AI Daivajna Astrological Intelligence Engine
                 ) : (
                   <>
                     <Sparkles className="w-4 h-4" />
-                    <span>{aiSynthesis ? 'Regenerate Full AI Counsel' : 'Generate Full AI Counsel'}</span>
+                    <span>{aiSynthesis ? 'Regenerate Full Counsel' : 'Generate Full Counsel'}</span>
                   </>
                 )}
               </button>
@@ -2049,7 +2057,7 @@ Issued by JyotishVeda AI Daivajna Astrological Intelligence Engine
                   {/* Overall Compatibility Hero */}
                   {aiSynthesis.overall_compatibility && (
                     <div className={`p-5 sm:p-6 rounded-2xl border ${
-                      theme === 'dark' ? 'bg-[#0D0D0F] border-[#C9A050]/40' : 'bg-[#FFFDF7] border-[#DECFA6]'
+                      theme === 'dark' ? 'bg-[#0D0D0F] border-[#C9A050]/40' : 'bg-[#F9F7F1] border-[#E5E1D8]'
                     } space-y-2.5`}>
                       <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-2 text-[#C9A050] font-serif font-bold text-sm sm:text-base">
@@ -2062,7 +2070,7 @@ Issued by JyotishVeda AI Daivajna Astrological Intelligence Engine
                           </span>
                         )}
                       </div>
-                      <p className={`${theme === 'dark' ? 'text-[#E5E1D8]' : 'text-[#2C2825]'} leading-relaxed`}>
+                      <p className={`${theme === 'dark' ? 'text-[#E5E1D8]' : 'text-[#2A2A2E]'} leading-relaxed`}>
                         {renderSafeAiText(aiSynthesis.overall_compatibility)}
                       </p>
                     </div>
@@ -2071,7 +2079,7 @@ Issued by JyotishVeda AI Daivajna Astrological Intelligence Engine
                   {/* Core Dimensions Grid */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5">
                     {aiSynthesis.guna_milan && (
-                      <div className={`p-4 sm:p-5 rounded-xl border ${theme === 'dark' ? 'bg-[#141418] border-[#2A2A2E]' : 'bg-[#FFFDF7] border-[#DECFA6]'} space-y-2`}>
+                      <div className={`p-4 sm:p-5 rounded-xl border ${theme === 'dark' ? 'bg-[#141418] border-[#2A2A2E]' : 'bg-[#F9F7F1] border-[#E5E1D8]'} space-y-2`}>
                         <h4 className="font-serif font-bold text-[#C9A050] text-xs sm:text-sm uppercase tracking-wider flex items-center space-x-1.5">
                           <span>✨ Guna Milan &amp; Cosmic Alignment</span>
                         </h4>
@@ -2082,7 +2090,7 @@ Issued by JyotishVeda AI Daivajna Astrological Intelligence Engine
                     )}
 
                     {aiSynthesis.manglik_dosha && (
-                      <div className={`p-4 sm:p-5 rounded-xl border ${theme === 'dark' ? 'bg-[#141418] border-[#2A2A2E]' : 'bg-[#FFFDF7] border-[#DECFA6]'} space-y-2`}>
+                      <div className={`p-4 sm:p-5 rounded-xl border ${theme === 'dark' ? 'bg-[#141418] border-[#2A2A2E]' : 'bg-[#F9F7F1] border-[#E5E1D8]'} space-y-2`}>
                         <h4 className="font-serif font-bold text-amber-500 text-xs sm:text-sm uppercase tracking-wider flex items-center space-x-1.5">
                           <Flame className="w-4 h-4 text-amber-500" />
                           <span>Manglik (Kuja) Dosha Evaluation</span>
@@ -2094,7 +2102,7 @@ Issued by JyotishVeda AI Daivajna Astrological Intelligence Engine
                     )}
 
                     {aiSynthesis.nadi_analysis && (
-                      <div className={`p-4 sm:p-5 rounded-xl border ${theme === 'dark' ? 'bg-[#141418] border-[#2A2A2E]' : 'bg-[#FFFDF7] border-[#DECFA6]'} space-y-2`}>
+                      <div className={`p-4 sm:p-5 rounded-xl border ${theme === 'dark' ? 'bg-[#141418] border-[#2A2A2E]' : 'bg-[#F9F7F1] border-[#E5E1D8]'} space-y-2`}>
                         <h4 className="font-serif font-bold text-purple-400 text-xs sm:text-sm uppercase tracking-wider flex items-center space-x-1.5">
                           <Dna className="w-4 h-4 text-purple-400" />
                           <span>Nadi Koota &amp; Genetic Prana Harmony</span>
@@ -2106,7 +2114,7 @@ Issued by JyotishVeda AI Daivajna Astrological Intelligence Engine
                     )}
 
                     {aiSynthesis.bhakoot_analysis && (
-                      <div className={`p-4 sm:p-5 rounded-xl border ${theme === 'dark' ? 'bg-[#141418] border-[#2A2A2E]' : 'bg-[#FFFDF7] border-[#DECFA6]'} space-y-2`}>
+                      <div className={`p-4 sm:p-5 rounded-xl border ${theme === 'dark' ? 'bg-[#141418] border-[#2A2A2E]' : 'bg-[#F9F7F1] border-[#E5E1D8]'} space-y-2`}>
                         <h4 className="font-serif font-bold text-[#C9A050] text-xs sm:text-sm uppercase tracking-wider flex items-center space-x-1.5">
                           <Heart className="w-4 h-4 text-[#C9A050]" />
                           <span>Bhakoot Harmony &amp; Emotional Rhythm</span>
@@ -2118,7 +2126,7 @@ Issued by JyotishVeda AI Daivajna Astrological Intelligence Engine
                     )}
 
                     {aiSynthesis.psychological_affinity && (
-                      <div className={`p-4 sm:p-5 rounded-xl border ${theme === 'dark' ? 'bg-[#141418] border-[#2A2A2E]' : 'bg-[#FFFDF7] border-[#DECFA6]'} space-y-2`}>
+                      <div className={`p-4 sm:p-5 rounded-xl border ${theme === 'dark' ? 'bg-[#141418] border-[#2A2A2E]' : 'bg-[#F9F7F1] border-[#E5E1D8]'} space-y-2`}>
                         <h4 className="font-serif font-bold text-[#C9A050] text-xs sm:text-sm uppercase tracking-wider flex items-center space-x-1.5">
                           <span>🧠 Psychological &amp; Intellectual Affinity</span>
                         </h4>
@@ -2129,7 +2137,7 @@ Issued by JyotishVeda AI Daivajna Astrological Intelligence Engine
                     )}
 
                     {aiSynthesis.emotional_resonance && (
-                      <div className={`p-4 sm:p-5 rounded-xl border ${theme === 'dark' ? 'bg-[#141418] border-[#2A2A2E]' : 'bg-[#FFFDF7] border-[#DECFA6]'} space-y-2`}>
+                      <div className={`p-4 sm:p-5 rounded-xl border ${theme === 'dark' ? 'bg-[#141418] border-[#2A2A2E]' : 'bg-[#F9F7F1] border-[#E5E1D8]'} space-y-2`}>
                         <h4 className="font-serif font-bold text-[#C9A050] text-xs sm:text-sm uppercase tracking-wider flex items-center space-x-1.5">
                           <span>❤️ Emotional Resonance &amp; Temperament</span>
                         </h4>
@@ -2140,7 +2148,7 @@ Issued by JyotishVeda AI Daivajna Astrological Intelligence Engine
                     )}
 
                     {aiSynthesis.karmic_bond && (
-                      <div className={`p-4 sm:p-5 rounded-xl border ${theme === 'dark' ? 'bg-[#141418] border-[#2A2A2E]' : 'bg-[#FFFDF7] border-[#DECFA6]'} space-y-2`}>
+                      <div className={`p-4 sm:p-5 rounded-xl border ${theme === 'dark' ? 'bg-[#141418] border-[#2A2A2E]' : 'bg-[#F9F7F1] border-[#E5E1D8]'} space-y-2`}>
                         <h4 className="font-serif font-bold text-[#C9A050] text-xs sm:text-sm uppercase tracking-wider flex items-center space-x-1.5">
                           <span>🪐 Karmic Bond &amp; Destiny</span>
                         </h4>
@@ -2151,7 +2159,7 @@ Issued by JyotishVeda AI Daivajna Astrological Intelligence Engine
                     )}
 
                     {aiSynthesis.physical_harmonization && (
-                      <div className={`p-4 sm:p-5 rounded-xl border ${theme === 'dark' ? 'bg-[#141418] border-[#2A2A2E]' : 'bg-[#FFFDF7] border-[#DECFA6]'} space-y-2`}>
+                      <div className={`p-4 sm:p-5 rounded-xl border ${theme === 'dark' ? 'bg-[#141418] border-[#2A2A2E]' : 'bg-[#F9F7F1] border-[#E5E1D8]'} space-y-2`}>
                         <h4 className="font-serif font-bold text-[#C9A050] text-xs sm:text-sm uppercase tracking-wider flex items-center space-x-1.5">
                           <span>🌿 Biological &amp; Physical Harmonization</span>
                         </h4>
@@ -2162,7 +2170,7 @@ Issued by JyotishVeda AI Daivajna Astrological Intelligence Engine
                     )}
 
                     {aiSynthesis.family_and_married_life && (
-                      <div className={`p-4 sm:p-5 rounded-xl border ${theme === 'dark' ? 'bg-[#141418] border-[#2A2A2E]' : 'bg-[#FFFDF7] border-[#DECFA6]'} space-y-2`}>
+                      <div className={`p-4 sm:p-5 rounded-xl border ${theme === 'dark' ? 'bg-[#141418] border-[#2A2A2E]' : 'bg-[#F9F7F1] border-[#E5E1D8]'} space-y-2`}>
                         <h4 className="font-serif font-bold text-[#C9A050] text-xs sm:text-sm uppercase tracking-wider flex items-center space-x-1.5">
                           <span>🏡 Family &amp; Married Life</span>
                         </h4>
@@ -2173,7 +2181,7 @@ Issued by JyotishVeda AI Daivajna Astrological Intelligence Engine
                     )}
 
                     {aiSynthesis.wealth_and_prosperity && (
-                      <div className={`p-4 sm:p-5 rounded-xl border ${theme === 'dark' ? 'bg-[#141418] border-[#2A2A2E]' : 'bg-[#FFFDF7] border-[#DECFA6]'} space-y-2`}>
+                      <div className={`p-4 sm:p-5 rounded-xl border ${theme === 'dark' ? 'bg-[#141418] border-[#2A2A2E]' : 'bg-[#F9F7F1] border-[#E5E1D8]'} space-y-2`}>
                         <h4 className="font-serif font-bold text-[#C9A050] text-xs sm:text-sm uppercase tracking-wider flex items-center space-x-1.5">
                           <span>💰 Wealth Multiplication &amp; Prosperity</span>
                         </h4>
@@ -2187,7 +2195,7 @@ Issued by JyotishVeda AI Daivajna Astrological Intelligence Engine
                   {/* Strengths & Challenges Grid */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5">
                     {Array.isArray(aiSynthesis.major_strengths) && aiSynthesis.major_strengths.length > 0 && (
-                      <div className={`p-4 sm:p-5 rounded-xl border ${theme === 'dark' ? 'bg-[#0D0D0F] border-emerald-500/30' : 'bg-[#FFFDF7] border-emerald-500/30'} space-y-2.5`}>
+                      <div className={`p-4 sm:p-5 rounded-xl border ${theme === 'dark' ? 'bg-[#0D0D0F] border-emerald-500/30' : 'bg-[#F9F7F1] border-emerald-500/30'} space-y-2.5`}>
                         <h4 className="font-serif font-bold text-emerald-500 text-xs sm:text-sm uppercase tracking-wider flex items-center space-x-1.5">
                           <CheckCircle2 className="w-4 h-4 text-emerald-500" />
                           <span>Major Relationship Strengths</span>
@@ -2196,7 +2204,7 @@ Issued by JyotishVeda AI Daivajna Astrological Intelligence Engine
                           {aiSynthesis.major_strengths.map((str: any, i: number) => (
                             <li key={i} className="flex items-start space-x-2 text-xs sm:text-sm">
                               <span className="text-emerald-500 font-bold">•</span>
-                              <span className={theme === 'dark' ? 'text-[#E5E1D8]' : 'text-[#2C2825]'}>{renderSafeAiText(str)}</span>
+                              <span className={theme === 'dark' ? 'text-[#E5E1D8]' : 'text-[#2A2A2E]'}>{renderSafeAiText(str)}</span>
                             </li>
                           ))}
                         </ul>
@@ -2204,7 +2212,7 @@ Issued by JyotishVeda AI Daivajna Astrological Intelligence Engine
                     )}
 
                     {Array.isArray(aiSynthesis.major_challenges) && aiSynthesis.major_challenges.length > 0 && (
-                      <div className={`p-4 sm:p-5 rounded-xl border ${theme === 'dark' ? 'bg-[#0D0D0F] border-amber-500/30' : 'bg-[#FFFDF7] border-amber-500/30'} space-y-2.5`}>
+                      <div className={`p-4 sm:p-5 rounded-xl border ${theme === 'dark' ? 'bg-[#0D0D0F] border-amber-500/30' : 'bg-[#F9F7F1] border-amber-500/30'} space-y-2.5`}>
                         <h4 className="font-serif font-bold text-amber-500 text-xs sm:text-sm uppercase tracking-wider flex items-center space-x-1.5">
                           <AlertTriangle className="w-4 h-4 text-amber-500" />
                           <span>Potential Challenges &amp; Growth Areas</span>
@@ -2213,7 +2221,7 @@ Issued by JyotishVeda AI Daivajna Astrological Intelligence Engine
                           {aiSynthesis.major_challenges.map((ch: any, i: number) => (
                             <li key={i} className="flex items-start space-x-2 text-xs sm:text-sm">
                               <span className="text-amber-500 font-bold">•</span>
-                              <span className={theme === 'dark' ? 'text-[#E5E1D8]' : 'text-[#2C2825]'}>{renderSafeAiText(ch)}</span>
+                              <span className={theme === 'dark' ? 'text-[#E5E1D8]' : 'text-[#2A2A2E]'}>{renderSafeAiText(ch)}</span>
                             </li>
                           ))}
                         </ul>
@@ -2224,7 +2232,7 @@ Issued by JyotishVeda AI Daivajna Astrological Intelligence Engine
                   {/* Conflict Resolution & Vedic Remedies */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5">
                     {Array.isArray(aiSynthesis.conflict_resolution) && aiSynthesis.conflict_resolution.length > 0 && (
-                      <div className={`p-4 sm:p-5 rounded-xl border ${theme === 'dark' ? 'bg-[#0D0D0F] border-[#2A2A2E]' : 'bg-[#FFFDF7] border-[#DECFA6]'} space-y-2.5`}>
+                      <div className={`p-4 sm:p-5 rounded-xl border ${theme === 'dark' ? 'bg-[#0D0D0F] border-[#2A2A2E]' : 'bg-[#F9F7F1] border-[#E5E1D8]'} space-y-2.5`}>
                         <h4 className="font-serif font-bold text-blue-400 text-xs sm:text-sm uppercase tracking-wider flex items-center space-x-1.5">
                           <ShieldCheck className="w-4 h-4 text-blue-400" />
                           <span>Conflict Resolution Guidance</span>
@@ -2233,7 +2241,7 @@ Issued by JyotishVeda AI Daivajna Astrological Intelligence Engine
                           {aiSynthesis.conflict_resolution.map((cr: any, i: number) => (
                             <li key={i} className="flex items-start space-x-2 text-xs sm:text-sm">
                               <span className="text-blue-400 font-bold">•</span>
-                              <span className={theme === 'dark' ? 'text-[#E5E1D8]' : 'text-[#2C2825]'}>{renderSafeAiText(cr)}</span>
+                              <span className={theme === 'dark' ? 'text-[#E5E1D8]' : 'text-[#2A2A2E]'}>{renderSafeAiText(cr)}</span>
                             </li>
                           ))}
                         </ul>
@@ -2241,7 +2249,7 @@ Issued by JyotishVeda AI Daivajna Astrological Intelligence Engine
                     )}
 
                     {Array.isArray(aiSynthesis.vedic_remedies) && aiSynthesis.vedic_remedies.length > 0 && (
-                      <div className={`p-4 sm:p-5 rounded-xl border ${theme === 'dark' ? 'bg-[#0D0D0F] border-[#C9A050]/40' : 'bg-[#FFFDF7] border-[#DECFA6]'} space-y-2.5`}>
+                      <div className={`p-4 sm:p-5 rounded-xl border ${theme === 'dark' ? 'bg-[#0D0D0F] border-[#C9A050]/40' : 'bg-[#F9F7F1] border-[#E5E1D8]'} space-y-2.5`}>
                         <h4 className="font-serif font-bold text-[#C9A050] text-xs sm:text-sm uppercase tracking-wider flex items-center space-x-1.5">
                           <Sparkles className="w-4 h-4 text-[#C9A050]" />
                           <span>Vedic Upayas &amp; Remedies</span>
@@ -2250,7 +2258,7 @@ Issued by JyotishVeda AI Daivajna Astrological Intelligence Engine
                           {aiSynthesis.vedic_remedies.map((vr: any, i: number) => (
                             <li key={i} className="flex items-start space-x-2 text-xs sm:text-sm">
                               <span className="text-[#C9A050] font-bold">•</span>
-                              <span className={theme === 'dark' ? 'text-[#E5E1D8]' : 'text-[#2C2825]'}>{renderSafeAiText(vr)}</span>
+                              <span className={theme === 'dark' ? 'text-[#E5E1D8]' : 'text-[#2A2A2E]'}>{renderSafeAiText(vr)}</span>
                             </li>
                           ))}
                         </ul>
@@ -2261,13 +2269,13 @@ Issued by JyotishVeda AI Daivajna Astrological Intelligence Engine
                   {/* Final Assessment Box */}
                   {aiSynthesis.final_assessment && (
                     <div className={`p-5 sm:p-6 rounded-2xl border ${
-                      theme === 'dark' ? 'bg-gradient-to-r from-[#C9A050]/15 via-[#C9A050]/5 to-transparent border-[#C9A050]/50' : 'bg-gradient-to-r from-[#FAF0D0] via-[#FAF6E8] to-[#FFFDF7] border-[#DFC896]'
+                      theme === 'dark' ? 'bg-gradient-to-r from-[#C9A050]/15 via-[#C9A050]/5 to-transparent border-[#C9A050]/50' : 'bg-[#F9F7F1] border-[#E5E1D8]'
                     } space-y-2.5`}>
                       <h4 className="font-serif font-bold text-[#C9A050] text-sm sm:text-base flex items-center space-x-2">
                         <HeartHandshake className="w-4 h-4 text-[#C9A050]" />
-                        <span>AI Daivajna Final Assessment &amp; Blessings</span>
+                        <span>Daivajna Final Assessment &amp; Blessings</span>
                       </h4>
-                      <p className={`${theme === 'dark' ? 'text-[#F0ECE1]' : 'text-[#1E1B15]'} font-serif italic text-xs sm:text-sm leading-relaxed`}>
+                      <p className={`${theme === 'dark' ? 'text-[#F0ECE1]' : 'text-[#2A2A2E]'} font-serif italic text-xs sm:text-sm leading-relaxed`}>
                         "{renderSafeAiText(aiSynthesis.final_assessment)}"
                       </p>
                     </div>
@@ -2275,9 +2283,9 @@ Issued by JyotishVeda AI Daivajna Astrological Intelligence Engine
                 </div>
               ) : (
                 <div className={`p-6 sm:p-8 rounded-2xl border text-xs sm:text-sm leading-relaxed space-y-4 ${
-                  theme === 'dark' ? 'bg-[#0D0D0F] border-[#2A2A2E] text-[#E5E1D8]' : 'bg-[#FFFDF7] border-[#DECFA6] text-[#1E1B15]'
+                  theme === 'dark' ? 'bg-[#0D0D0F] border-[#2A2A2E] text-[#E5E1D8]' : 'bg-[#F9F7F1] border-[#E5E1D8] text-[#2A2A2E]'
                 }`}>
-                  <div className={`prose max-w-none text-xs sm:text-sm ${theme === 'dark' ? 'prose-invert' : 'text-[#1E1B15]'}`}>
+                  <div className={`prose max-w-none text-xs sm:text-sm ${theme === 'dark' ? 'prose-invert' : 'text-[#2A2A2E]'}`}>
                     <ReactMarkdown>{aiSynthesis}</ReactMarkdown>
                   </div>
                 </div>
@@ -2285,25 +2293,25 @@ Issued by JyotishVeda AI Daivajna Astrological Intelligence Engine
             </div>
           ) : isGeneratingAI ? (
             <div className={`p-12 rounded-2xl border border-dashed text-center space-y-4 ${
-              theme === 'dark' ? 'bg-[#0D0D0F]/60 border-[#C9A050]/40' : 'bg-[#FFFDF7]/80 border-[#DECFA6]'
+              theme === 'dark' ? 'bg-[#0D0D0F]/60 border-[#C9A050]/40' : 'bg-[#F9F7F1] border-[#E5E1D8]'
             }`}>
               <RefreshCw className="w-8 h-8 text-[#C9A050] mx-auto animate-spin" />
               <div className="space-y-1.5">
-                <h4 className={`text-base sm:text-lg font-serif font-bold ${theme === 'dark' ? 'text-[#F0ECE1]' : 'text-[#1E1B15]'}`}>
+                <h4 className={`text-base sm:text-lg font-serif font-bold ${theme === 'dark' ? 'text-[#F0ECE1]' : 'text-[#0D0D0F]'}`}>
                   Synthesizing Vedic Charts &amp; Planetary Alignments...
                 </h4>
-                <p className={`text-xs sm:text-sm ${theme === 'dark' ? 'text-[#9E9A90]' : 'text-[#6E6452]'}`}>
-                  AI Daivajna is analyzing Guna Milan, Doshas, and synastry dynamics for {partner1.fullName} &amp; {partner2.fullName}.
+                <p className={`text-xs sm:text-sm ${theme === 'dark' ? 'text-[#9E9A90]' : 'text-[#544B3D]'}`}>
+                  Daivajna is analyzing Guna Milan, Doshas, and synastry dynamics for {partner1.fullName} &amp; {partner2.fullName}.
                 </p>
               </div>
             </div>
           ) : (
             <div className={`p-8 sm:p-10 rounded-2xl border border-dashed text-center space-y-3.5 ${
-              theme === 'dark' ? 'bg-[#0D0D0F]/60 border-[#2A2A2E]' : 'bg-[#FFFDF7]/80 border-[#DECFA6]'
+              theme === 'dark' ? 'bg-[#0D0D0F]/60 border-[#2A2A2E]' : 'bg-[#F9F7F1] border-[#E5E1D8]'
             }`}>
               <Sparkles className="w-8 h-8 text-[#C9A050] mx-auto opacity-70" />
-              <p className={`text-xs sm:text-sm font-serif ${theme === 'dark' ? 'text-[#E5E1D8]' : 'text-[#1E1B15]'}`}>
-                Generate an exhaustive AI consultation covering psychological affinity, wealth generation, marital timing, and conflict resolution.
+              <p className={`text-xs sm:text-sm font-serif ${theme === 'dark' ? 'text-[#E5E1D8]' : 'text-[#2A2A2E]'}`}>
+                Generate an exhaustive consultation covering psychological affinity, wealth generation, marital timing, and conflict resolution.
               </p>
               <div>
                 <button
@@ -2312,7 +2320,7 @@ Issued by JyotishVeda AI Daivajna Astrological Intelligence Engine
                   className="mt-2 inline-flex items-center space-x-2 px-6 py-2.5 rounded-xl bg-[#C9A050] hover:bg-[#D4AF37] disabled:opacity-50 text-[#0D0D0F] font-bold text-xs sm:text-sm shadow-lg shadow-[#C9A050]/20 transition cursor-pointer hover:scale-[1.02] active:scale-95"
                 >
                   <Sparkles className="w-4 h-4" />
-                  <span>Generate Full AI Counsel</span>
+                  <span>Generate Full Counsel</span>
                 </button>
               </div>
             </div>
@@ -2326,42 +2334,42 @@ Issued by JyotishVeda AI Daivajna Astrological Intelligence Engine
           <div className={`${
             theme === 'dark' 
               ? 'bg-[#141418] border-[#2A2A2E]' 
-              : 'bg-gradient-to-b from-[#FAF4E4] to-[#F6ECD2] border-[#DFC896]'
-          } border rounded-2xl p-6 sm:p-8 shadow-md space-y-4`}>
+              : 'bg-white border-[#E5E1D8] shadow-sm'
+          } border rounded-2xl p-6 sm:p-8 space-y-4`}>
             <div className="flex items-center space-x-2.5 text-[#C9A050]">
               <ShieldCheck className="w-5 h-5" />
-              <h3 className={`text-lg sm:text-xl font-serif font-bold ${theme === 'dark' ? 'text-[#F0ECE1]' : 'text-[#1E1B15]'}`}>
+              <h3 className={`text-lg sm:text-xl font-serif font-bold ${theme === 'dark' ? 'text-[#F0ECE1]' : 'text-[#0D0D0F]'}`}>
                 {t('matchmaking.remedies_title')}
               </h3>
             </div>
-            <p className={`text-xs sm:text-sm ${theme === 'dark' ? 'text-[#9E9A90]' : 'text-[#6E6452]'}`}>
+            <p className={`text-xs sm:text-sm ${theme === 'dark' ? 'text-[#9E9A90]' : 'text-[#544B3D]'}`}>
               Traditional Vedic Upayas and practical actions designed to pacify minor planetary afflictions and enhance marital sweetness.
             </p>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 pt-2">
               {matchResult.remedies?.map((rem, idx) => (
                 <div key={idx} className={`p-4 sm:p-5 rounded-xl border flex items-start space-x-3 text-xs sm:text-sm ${
-                  theme === 'dark' ? 'bg-[#0D0D0F] border-[#2A2A2E]' : 'bg-[#FFFDF7] border-[#DECFA6]'
+                  theme === 'dark' ? 'bg-[#0D0D0F] border-[#2A2A2E]' : 'bg-[#F9F7F1] border-[#E5E1D8]'
                 }`}>
                   <span className="w-6 h-6 rounded-full bg-[#C9A050]/20 text-[#C9A050] font-bold flex items-center justify-center shrink-0 text-xs">
                     {idx + 1}
                   </span>
-                  <span className={`${theme === 'dark' ? 'text-[#E5E1D8]' : 'text-[#2C2825]'} leading-relaxed`}>{rem}</span>
+                  <span className={`${theme === 'dark' ? 'text-[#E5E1D8]' : 'text-[#2A2A2E]'} leading-relaxed`}>{rem}</span>
                 </div>
               ))}
             </div>
 
             {Array.isArray(aiSynthesis?.vedic_remedies) && aiSynthesis.vedic_remedies.length > 0 && (
-              <div className={`p-4 sm:p-5 rounded-xl border ${theme === 'dark' ? 'bg-[#0D0D0F] border-[#C9A050]/40' : 'bg-[#FFFDF7] border-[#DECFA6]'} space-y-2.5 mt-4`}>
+              <div className={`p-4 sm:p-5 rounded-xl border ${theme === 'dark' ? 'bg-[#0D0D0F] border-[#C9A050]/40' : 'bg-[#F9F7F1] border-[#E5E1D8]'} space-y-2.5 mt-4`}>
                 <h4 className="font-serif font-bold text-[#C9A050] text-xs sm:text-sm uppercase tracking-wider flex items-center space-x-1.5">
                   <Sparkles className="w-4 h-4 text-[#C9A050]" />
-                  <span>AI Daivajna Personalized Relationship Upayas</span>
+                  <span>Daivajna Personalized Relationship Upayas</span>
                 </h4>
                 <ul className="space-y-2">
                   {aiSynthesis.vedic_remedies.map((vr: string, i: number) => (
                     <li key={i} className="flex items-start space-x-2 text-xs sm:text-sm">
                       <span className="text-[#C9A050] font-bold">•</span>
-                      <span className={theme === 'dark' ? 'text-[#E5E1D8]' : 'text-[#2C2825]'}>{vr}</span>
+                      <span className={theme === 'dark' ? 'text-[#E5E1D8]' : 'text-[#2A2A2E]'}>{vr}</span>
                     </li>
                   ))}
                 </ul>
@@ -2373,16 +2381,16 @@ Issued by JyotishVeda AI Daivajna Astrological Intelligence Engine
           <div className={`${
             theme === 'dark' 
               ? 'bg-[#141418] border-[#2A2A2E]' 
-              : 'bg-gradient-to-b from-[#FAF4E4] to-[#F6ECD2] border-[#DFC896]'
-          } border rounded-2xl p-6 sm:p-8 shadow-md space-y-3`}>
+              : 'bg-white border-[#E5E1D8] shadow-sm'
+          } border rounded-2xl p-6 sm:p-8 space-y-3`}>
             <div className="flex items-center space-x-2.5 text-amber-500">
               <Calendar className="w-5 h-5" />
-              <h4 className={`text-base sm:text-lg font-serif font-bold ${theme === 'dark' ? 'text-[#F0ECE1]' : 'text-[#1E1B15]'}`}>
+              <h4 className={`text-base sm:text-lg font-serif font-bold ${theme === 'dark' ? 'text-[#F0ECE1]' : 'text-[#0D0D0F]'}`}>
                 Auspicious Vivaha / Partnership Muhurat Guidance
               </h4>
             </div>
             <p className={`text-xs sm:text-sm leading-relaxed p-4 sm:p-5 rounded-xl border ${
-              theme === 'dark' ? 'bg-[#0D0D0F] border-[#2A2A2E] text-[#E5E1D8]' : 'bg-[#FFFDF7] border-[#DECFA6] text-[#2C2825]'
+              theme === 'dark' ? 'bg-[#0D0D0F] border-[#2A2A2E] text-[#E5E1D8]' : 'bg-[#F9F7F1] border-[#E5E1D8] text-[#2A2A2E]'
             }`}>
               {matchResult.auspiciousMuhuratAdvice}
             </p>
@@ -2401,24 +2409,24 @@ Issued by JyotishVeda AI Daivajna Astrological Intelligence Engine
                 <div className={`${
                   theme === 'dark' 
                     ? 'bg-[#141418] border-[#2A2A2E]' 
-                    : 'bg-[#FFFDF7] border-[#DECFA6]'
-                } border rounded-2xl p-6 sm:p-8 shadow-md space-y-4`}>
-                  <div className="flex items-center space-x-2 font-serif font-bold text-xs sm:text-sm pb-2.5 border-b border-[#DFC896]/40">
+                    : 'bg-white border-[#E5E1D8] shadow-sm'
+                } border rounded-2xl p-6 sm:p-8 space-y-4`}>
+                  <div className="flex items-center space-x-2 font-serif font-bold text-xs sm:text-sm pb-2.5 border-b border-[#E5E1D8]">
                     <Layers className="w-4 h-4 text-[#C9A050]" />
-                    <span className={theme === 'dark' ? 'text-[#F0ECE1]' : 'text-[#8C6D23]'}>
+                    <span className={theme === 'dark' ? 'text-[#F0ECE1]' : 'text-[#0D0D0F]'}>
                       Favorable Gemstones (Lagna Based) • {partner1.fullName || 'Partner 1'}
                     </span>
                   </div>
                   <div className="space-y-2.5">
                     {p1Gems.map((g: any, idx: number) => (
                       <div key={idx} className={`p-3.5 sm:p-4 rounded-xl border flex flex-col ${
-                        theme === 'dark' ? 'bg-[#0D0D0F] border-[#2A2A2E]' : 'bg-[#FAF7F0] border-[#DECFA6]'
+                        theme === 'dark' ? 'bg-[#0D0D0F] border-[#2A2A2E]' : 'bg-[#F9F7F1] border-[#E5E1D8]'
                       }`}>
                         <div className="flex justify-between items-center mb-1">
-                          <span className={`text-xs sm:text-sm font-bold ${theme === 'dark' ? 'text-[#F0ECE1]' : 'text-[#1E1B15]'}`}>{g.gem}</span>
+                          <span className={`text-xs sm:text-sm font-bold ${theme === 'dark' ? 'text-[#F0ECE1]' : 'text-[#0D0D0F]'}`}>{g.gem}</span>
                           <span className="text-[10px] sm:text-xs font-bold text-[#C9A050] uppercase tracking-wider">{g.planet}</span>
                         </div>
-                        <span className={`text-xs ${theme === 'dark' ? 'text-[#9E9A90]' : 'text-[#6E6452]'}`}>{g.purpose}</span>
+                        <span className={`text-xs ${theme === 'dark' ? 'text-[#9E9A90]' : 'text-[#544B3D]'}`}>{g.purpose}</span>
                       </div>
                     ))}
                   </div>
@@ -2428,24 +2436,24 @@ Issued by JyotishVeda AI Daivajna Astrological Intelligence Engine
                 <div className={`${
                   theme === 'dark' 
                     ? 'bg-[#141418] border-[#2A2A2E]' 
-                    : 'bg-[#FFFDF7] border-[#DECFA6]'
-                } border rounded-2xl p-6 sm:p-8 shadow-md space-y-4`}>
-                  <div className="flex items-center space-x-2 font-serif font-bold text-xs sm:text-sm pb-2.5 border-b border-[#DFC896]/40">
+                    : 'bg-white border-[#E5E1D8] shadow-sm'
+                } border rounded-2xl p-6 sm:p-8 space-y-4`}>
+                  <div className="flex items-center space-x-2 font-serif font-bold text-xs sm:text-sm pb-2.5 border-b border-[#E5E1D8]">
                     <Layers className="w-4 h-4 text-[#C9A050]" />
-                    <span className={theme === 'dark' ? 'text-[#F0ECE1]' : 'text-[#8C6D23]'}>
+                    <span className={theme === 'dark' ? 'text-[#F0ECE1]' : 'text-[#0D0D0F]'}>
                       Favorable Gemstones (Lagna Based) • {partner2.fullName || 'Partner 2'}
                     </span>
                   </div>
                   <div className="space-y-2.5">
                     {p2Gems.map((g: any, idx: number) => (
                       <div key={idx} className={`p-3.5 sm:p-4 rounded-xl border flex flex-col ${
-                        theme === 'dark' ? 'bg-[#0D0D0F] border-[#2A2A2E]' : 'bg-[#FAF7F0] border-[#DECFA6]'
+                        theme === 'dark' ? 'bg-[#0D0D0F] border-[#2A2A2E]' : 'bg-[#F9F7F1] border-[#E5E1D8]'
                       }`}>
                         <div className="flex justify-between items-center mb-1">
-                          <span className={`text-xs sm:text-sm font-bold ${theme === 'dark' ? 'text-[#F0ECE1]' : 'text-[#1E1B15]'}`}>{g.gem}</span>
+                          <span className={`text-xs sm:text-sm font-bold ${theme === 'dark' ? 'text-[#F0ECE1]' : 'text-[#0D0D0F]'}`}>{g.gem}</span>
                           <span className="text-[10px] sm:text-xs font-bold text-[#C9A050] uppercase tracking-wider">{g.planet}</span>
                         </div>
-                        <span className={`text-xs ${theme === 'dark' ? 'text-[#9E9A90]' : 'text-[#6E6452]'}`}>{g.purpose}</span>
+                        <span className={`text-xs ${theme === 'dark' ? 'text-[#9E9A90]' : 'text-[#544B3D]'}`}>{g.purpose}</span>
                       </div>
                     ))}
                   </div>
@@ -2462,17 +2470,17 @@ Issued by JyotishVeda AI Daivajna Astrological Intelligence Engine
           <div className={`${
             theme === 'dark' 
               ? 'bg-[#141418] border-[#2A2A2E]' 
-              : 'bg-gradient-to-b from-[#FAF4E4] to-[#F6ECD2] border-[#DFC896]'
-          } border rounded-2xl p-6 sm:p-8 shadow-xl`}>
+              : 'bg-white border-[#E5E1D8] shadow-sm'
+          } border rounded-2xl p-6 sm:p-8`}>
             <div className="max-w-2xl">
               <div className="inline-flex items-center space-x-2 px-3.5 py-1.5 rounded-full bg-gradient-to-r from-[#C9A050]/20 to-transparent border border-[#C9A050]/30 text-[#C9A050] text-[10px] sm:text-xs font-bold uppercase tracking-widest mb-2.5 backdrop-blur-md">
                 <Download className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#C9A050]" />
                 <span>Match Report Export &amp; Archival</span>
               </div>
-              <h3 className={`text-2xl sm:text-3xl font-serif font-bold ${theme === 'dark' ? 'text-[#F0ECE1]' : 'text-[#1E1B15]'}`}>
+              <h3 className={`text-2xl sm:text-3xl font-serif font-bold ${theme === 'dark' ? 'text-[#F0ECE1]' : 'text-[#0D0D0F]'}`}>
                 Download Kundli Milan Dossier
               </h3>
-              <p className={`text-xs sm:text-sm ${theme === 'dark' ? 'text-[#9E9A90]' : 'text-[#6E6452]'} mt-1.5 leading-relaxed`}>
+              <p className={`text-xs sm:text-sm ${theme === 'dark' ? 'text-[#9E9A90]' : 'text-[#544B3D]'} mt-1.5 leading-relaxed`}>
                 Export high-resolution printable certificates and formatted PDF reports for family consultation.
               </p>
             </div>
@@ -2482,17 +2490,17 @@ Issued by JyotishVeda AI Daivajna Astrological Intelligence Engine
               <div className={`p-6 sm:p-8 rounded-2xl border transition flex flex-col md:flex-row md:items-center justify-between gap-6 ${
                 theme === 'dark' 
                   ? 'bg-[#0D0D0F] border-[#2A2A2E] hover:border-[#C9A050]/60 shadow-lg' 
-                  : 'bg-[#FFFDF7] border-[#DECFA6] hover:border-[#C9A050] shadow-md'
+                  : 'bg-[#F9F7F1] border-[#E5E1D8] hover:border-[#C9A050] shadow-sm'
               }`}>
                 <div className="flex items-start space-x-4">
                   <div className="w-12 h-12 rounded-2xl bg-[#C9A050]/15 border border-[#C9A050]/30 flex items-center justify-center text-[#C9A050] shrink-0 shadow-sm">
                     <Download className="w-6 h-6" />
                   </div>
                   <div className="space-y-1.5">
-                    <h4 className={`text-lg sm:text-xl font-serif font-bold ${theme === 'dark' ? 'text-[#F0ECE1]' : 'text-[#1E1B15]'}`}>
+                    <h4 className={`text-lg sm:text-xl font-serif font-bold ${theme === 'dark' ? 'text-[#F0ECE1]' : 'text-[#0D0D0F]'}`}>
                       Download Official Kundli Milan PDF Certificate
                     </h4>
-                    <p className={`text-xs sm:text-sm ${theme === 'dark' ? 'text-[#9E9A90]' : 'text-[#6E6452]'} leading-relaxed max-w-2xl`}>
+                    <p className={`text-xs sm:text-sm ${theme === 'dark' ? 'text-[#9E9A90]' : 'text-[#544B3D]'} leading-relaxed max-w-2xl`}>
                       High-resolution printable document with traditional Vedic double borders, authentication seal, 8 Kootas matrix score, and Pandit verification signature line.
                     </p>
                   </div>
@@ -2652,22 +2660,22 @@ Issued by JyotishVeda AI Daivajna Astrological Intelligence Engine
               exit={{ opacity: 0, scale: 0.95, y: 15 }}
               transition={{ duration: 0.2 }}
               className={`w-full max-w-2xl max-h-[85vh] flex flex-col rounded-2xl border shadow-2xl overflow-hidden ${
-                theme === 'dark' ? 'bg-[#141418] border-[#2A2A2E]' : 'bg-[#FAF4E4] border-[#DFC896]'
+                theme === 'dark' ? 'bg-[#141418] border-[#2A2A2E]' : 'bg-white border-[#E5E1D8]'
               }`}
             >
               {/* Modal Header */}
               <div className={`p-5 sm:p-6 border-b flex items-center justify-between ${
-                theme === 'dark' ? 'border-[#2A2A2E]' : 'border-[#DECFA6]'
+                theme === 'dark' ? 'border-[#2A2A2E]' : 'border-[#E5E1D8]'
               }`}>
                 <div className="flex items-center space-x-3">
                   <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-[#C9A050]/15 flex items-center justify-center text-[#C9A050]">
                     <FileText className="w-4 h-4" />
                   </div>
                   <div>
-                    <h3 className={`font-serif font-bold text-base sm:text-lg ${theme === 'dark' ? 'text-[#F0ECE1]' : 'text-[#1E1B15]'}`}>
+                    <h3 className={`font-serif font-bold text-base sm:text-lg ${theme === 'dark' ? 'text-[#F0ECE1]' : 'text-[#0D0D0F]'}`}>
                       Saved Matchmaking Reports
                     </h3>
-                    <p className={`text-xs ${theme === 'dark' ? 'text-[#9E9A90]' : 'text-[#6E6452]'}`}>
+                    <p className={`text-xs ${theme === 'dark' ? 'text-[#9E9A90]' : 'text-[#544B3D]'}`}>
                       History for {currentProfile?.fullName || 'Current User'} ({savedMatches.length} records)
                     </p>
                   </div>
@@ -2676,7 +2684,7 @@ Issued by JyotishVeda AI Daivajna Astrological Intelligence Engine
                 <button
                   onClick={() => setIsHistoryModalOpen(false)}
                   className={`p-1.5 rounded-lg transition ${
-                    theme === 'dark' ? 'text-[#9E9A90] hover:text-[#F0ECE1] hover:bg-[#1A1A1E]' : 'text-[#6E6452] hover:text-[#1E1B15] hover:bg-[#F3EACB]'
+                    theme === 'dark' ? 'text-[#9E9A90] hover:text-[#F0ECE1] hover:bg-[#1A1A1E]' : 'text-[#544B3D] hover:text-[#0D0D0F] hover:bg-[#F0ECE1]'
                   }`}
                 >
                   <X className="w-5 h-5" />
@@ -2688,10 +2696,10 @@ Issued by JyotishVeda AI Daivajna Astrological Intelligence Engine
                 {savedMatches.length === 0 ? (
                   <div className="text-center py-12 space-y-3">
                     <HeartHandshake className="w-12 h-12 text-[#9E9A90]/40 mx-auto" />
-                    <p className={`text-sm ${theme === 'dark' ? 'text-[#9E9A90]' : 'text-[#6E6452]'}`}>
+                    <p className={`text-sm ${theme === 'dark' ? 'text-[#9E9A90]' : 'text-[#544B3D]'}`}>
                       No saved matchmaking reports yet for this profile.
                     </p>
-                    <p className={`text-xs ${theme === 'dark' ? 'text-[#9E9A90]/60' : 'text-[#6E6452]/70'}`}>
+                    <p className={`text-xs ${theme === 'dark' ? 'text-[#9E9A90]/60' : 'text-[#9E9A90]'}`}>
                       When you enter partner details and save them, your match reports will appear here.
                     </p>
                   </div>
@@ -2703,7 +2711,7 @@ Issued by JyotishVeda AI Daivajna Astrological Intelligence Engine
                       className={`p-4 sm:p-5 rounded-xl border transition cursor-pointer flex flex-col sm:flex-row sm:items-center justify-between gap-4 ${
                         theme === 'dark'
                           ? 'bg-[#1A1A1E] border-[#2A2A2E] hover:border-[#C9A050]/60 hover:bg-[#202026]'
-                          : 'bg-[#FFFDF7] border-[#DECFA6] hover:border-[#C9A050] hover:bg-[#FAF4E4]'
+                          : 'bg-[#F9F7F1] border-[#E5E1D8] hover:border-[#C9A050] hover:bg-[#F0ECE1]'
                       }`}
                     >
                       <div className="space-y-1.5">
@@ -2711,7 +2719,7 @@ Issued by JyotishVeda AI Daivajna Astrological Intelligence Engine
                           <span className="font-bold text-sm sm:text-base text-[#C9A050]">
                             {m.partner1Name || 'Partner 1'}
                           </span>
-                          <span className={`text-xs ${theme === 'dark' ? 'text-[#9E9A90]' : 'text-[#6E6452]'}`}>&amp;</span>
+                          <span className={`text-xs ${theme === 'dark' ? 'text-[#9E9A90]' : 'text-[#544B3D]'}`}>&amp;</span>
                           <span className="font-bold text-sm sm:text-base text-[#C9A050]">
                             {m.partner2Name || 'Partner 2'}
                           </span>
@@ -2721,12 +2729,12 @@ Issued by JyotishVeda AI Daivajna Astrological Intelligence Engine
                           <span className="px-2.5 py-0.5 rounded-full font-bold bg-[#C9A050]/15 text-[#C9A050] border border-[#C9A050]/30">
                             {m.totalScore} / {m.maxScore || 36} Gunas ({m.percentage || Math.round((m.totalScore / (m.maxScore || 36)) * 100)}%)
                           </span>
-                          <span className={`text-xs font-semibold ${theme === 'dark' ? 'text-[#E5E1D8]' : 'text-[#1E1B15]'}`}>
+                          <span className={`text-xs font-semibold ${theme === 'dark' ? 'text-[#E5E1D8]' : 'text-[#0D0D0F]'}`}>
                             {m.verdictTitle || 'Calculated Match'}
                           </span>
                         </div>
 
-                        <div className={`text-xs ${theme === 'dark' ? 'text-[#9E9A90]' : 'text-[#6E6452]'} flex items-center space-x-2 pt-0.5`}>
+                        <div className={`text-xs ${theme === 'dark' ? 'text-[#9E9A90]' : 'text-[#544B3D]'} flex items-center space-x-2 pt-0.5`}>
                           <Calendar className="w-3.5 h-3.5" />
                           <span>{new Date(m.createdAt).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
                         </div>
@@ -2758,16 +2766,16 @@ Issued by JyotishVeda AI Daivajna Astrological Intelligence Engine
 
               {/* Modal Footer */}
               <div className={`p-4 sm:p-5 border-t flex justify-between items-center ${
-                theme === 'dark' ? 'border-[#2A2A2E] bg-[#101014]' : 'border-[#DECFA6] bg-[#FAF0D8]'
+                theme === 'dark' ? 'border-[#2A2A2E] bg-[#101014]' : 'border-[#E5E1D8] bg-[#F9F7F1]'
               }`}>
-                <span className={`text-xs ${theme === 'dark' ? 'text-[#9E9A90]' : 'text-[#6E6452]'}`}>
+                <span className={`text-xs ${theme === 'dark' ? 'text-[#9E9A90]' : 'text-[#544B3D]'}`}>
                   Click "Load" to restore any match report directly into the UI.
                 </span>
                 <button
                   type="button"
                   onClick={() => setIsHistoryModalOpen(false)}
                   className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold border transition cursor-pointer ${
-                    theme === 'dark' ? 'bg-[#1A1A1E] border-[#2A2A2E] text-[#E5E1D8]' : 'bg-[#FFFDF7] border-[#DECFA6] text-[#423C32] hover:bg-[#F3EACB]'
+                    theme === 'dark' ? 'bg-[#1A1A1E] border-[#2A2A2E] text-[#E5E1D8]' : 'bg-white border-[#E5E1D8] text-[#2A2A2E] hover:bg-[#F0ECE1]'
                   }`}
                 >
                   Close

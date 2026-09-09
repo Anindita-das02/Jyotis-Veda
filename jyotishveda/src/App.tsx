@@ -675,6 +675,7 @@ export function App() {
                 profile={currentProfile}
                 numerology={numerology}
                 isAuthenticated={!!authUser}
+                theme={theme}
               />
             )}
 
@@ -701,6 +702,7 @@ export function App() {
                 roadmap={roadmap}
                 setRoadmap={setRoadmap}
                 onNavigateToConsultations={() => setActiveTab('consultations')}
+                theme={theme}
               />
             )}
 

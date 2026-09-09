@@ -174,7 +174,7 @@ app.post('/api/gemini/chat', async (req, res) => {
     };
     const targetLangName = languageNames[language] || 'English';
 
-    const systemInstruction = `You are "Daivajna AI", an empathetic, wise, and highly certified Master Vedic Astrologer and Life Counsellor.
+    const systemInstruction = `You are "Daivajna", an empathetic, wise, and highly certified Master Vedic Astrologer and Life Counsellor.
 You are in an active 1-on-1 confidential counselling session with ${profile?.fullName || 'the seeker'}.
 
 Seeker Chart Context:

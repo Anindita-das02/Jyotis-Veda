@@ -133,7 +133,7 @@ export const Navbar: React.FC<NavbarProps> = ({
         { id: 'daily', label: 'Daily', icon: Sun },
         { id: 'horoscope', label: 'Kundli', icon: Compass },
         { id: 'matchmaking', label: 'Match', icon: HeartHandshake },
-        { id: 'counsellor', label: 'AI Daivajna', icon: Sparkles },
+        { id: 'counsellor', label: 'Daivajna', icon: Sparkles },
       ];
 
   const isViewingAdmin = isAdmin || activeTab?.startsWith('admin_') || activeTab === 'admin';
@@ -500,7 +500,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                   );
                 })}
 
-                {/* AI Daivajna Consultation Link */}
+                {/* Daivajna Consultation Link */}
                 <button
                   onClick={() => {
                     setActiveTab('counsellor');
@@ -513,7 +513,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                   }`}
                 >
                   <Sparkles className="w-4 h-4 text-[#C9A050]" />
-                  <span>AI Daivajna Consultation</span>
+                  <span>Daivajna Consultation</span>
                 </button>
               </div>
             </div>

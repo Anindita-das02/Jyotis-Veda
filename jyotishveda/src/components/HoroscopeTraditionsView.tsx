@@ -285,7 +285,7 @@ export const HoroscopeTraditionsView: React.FC<
       let yPos = 33;
 
       // 1. Client & Natal Coordinates Box
-      doc.setFillColor(252, 249, 242);
+      doc.setFillColor(255, 255, 255);
       doc.setDrawColor(226, 211, 176);
       doc.setLineWidth(0.4);
       doc.roundedRect(13, yPos, pageWidth - 26, 24, 2, 2, 'FD');
@@ -306,7 +306,6 @@ export const HoroscopeTraditionsView: React.FC<
       doc.setTextColor(80, 80, 80);
       const birthDetails = `Born: ${profile.birthDate || 'N/A'}${profile.birthTime ? ` at ${profile.birthTime}` : ''} | ${profile.birthPlace || 'Global'}`;
       doc.text(doc.splitTextToSize(birthDetails, (pageWidth - 36) / 2)[0] || '', 17, yPos + 15);
-      doc.text(`System: ${profile.horoscopeSystem === 'western' ? 'Western Tropical (Sayana)' : 'Vedic Sidereal (Nirayana - Lahiri)'}`, 17, yPos + 19.5);
 
       // Right Column
       doc.setFont('helvetica', 'bold');
@@ -329,7 +328,7 @@ export const HoroscopeTraditionsView: React.FC<
       yPos += 32; // Added more vertical spacing
 
       // 2. Graha Ephemeris Positions (9 Planets Table)
-      doc.setFillColor(248, 245, 237);
+      doc.setFillColor(255, 255, 255);
       doc.setDrawColor(201, 160, 80);
       doc.setLineWidth(0.4);
       doc.roundedRect(13, yPos, pageWidth - 26, 70, 1.5, 1.5, 'FD');
@@ -345,7 +344,7 @@ export const HoroscopeTraditionsView: React.FC<
       const startX = 13;
       let headerY = yPos + 8;
 
-      doc.setFillColor(236, 227, 206);
+      doc.setFillColor(250, 247, 240);
       doc.rect(startX, headerY, pageWidth - 26, 5.5, 'F');
       doc.setFontSize(6.8);
       doc.setTextColor(100, 75, 20);
@@ -361,7 +360,7 @@ export const HoroscopeTraditionsView: React.FC<
       let rowY = headerY + 5.5;
       chartData.planets.slice(0, 9).forEach((p, idx) => {
         if (idx % 2 === 1) {
-          doc.setFillColor(252, 250, 245);
+          doc.setFillColor(253, 252, 250);
           doc.rect(startX, rowY, pageWidth - 26, 6, 'F');
         }
         doc.setFontSize(6.8);
@@ -388,14 +387,8 @@ export const HoroscopeTraditionsView: React.FC<
         doc.text(`Pada ${p.pada || 1}`, cellX, rowY + 4);
         cellX += colWidths[5];
 
-        // Dignity with color highlight
-        if (p.dignity?.toLowerCase().includes('exalt')) {
-          doc.setTextColor(34, 139, 34);
-        } else if (p.dignity?.toLowerCase().includes('debilit')) {
-          doc.setTextColor(178, 34, 34);
-        } else {
-          doc.setTextColor(181, 131, 40);
-        }
+        // Dignity with UI theme gold color
+        doc.setTextColor(181, 131, 40);
         doc.text(p.dignity || 'Neutral', cellX, rowY + 4);
         doc.setTextColor(30, 30, 35);
         cellX += colWidths[6];
@@ -412,7 +405,7 @@ export const HoroscopeTraditionsView: React.FC<
       yPos += 80; // Added more vertical spacing
 
       // 3. 12 Bhavas (Houses) Overview Grid
-      doc.setFillColor(252, 249, 242);
+      doc.setFillColor(255, 255, 255);
       doc.setDrawColor(201, 160, 80);
       doc.setLineWidth(0.4);
       doc.roundedRect(13, yPos, pageWidth - 26, 92, 1.5, 1.5, 'FD');
@@ -424,12 +417,12 @@ export const HoroscopeTraditionsView: React.FC<
 
       const hHalfW = (pageWidth - 36) / 2;
       chartData.houses.slice(0, 12).forEach((h, hIdx) => {
-        const isRightCol = hIdx >= 6;
-        const localIdx = isRightCol ? hIdx - 6 : hIdx;
+        const isRightCol = hIdx % 2 === 1;
+        const rowIndex = Math.floor(hIdx / 2);
         const boxX = isRightCol ? pageWidth / 2 + 3 : 16;
-        const boxY = yPos + 8 + localIdx * 13.5;
+        const boxY = yPos + 8 + rowIndex * 13.5;
 
-        doc.setFillColor(248, 244, 235);
+        doc.setFillColor(255, 255, 255);
         doc.setDrawColor(226, 211, 176);
         doc.setLineWidth(0.2);
         doc.roundedRect(boxX, boxY, hHalfW, 12, 1, 1, 'FD');
@@ -459,7 +452,7 @@ export const HoroscopeTraditionsView: React.FC<
       // 4. Vedic Yogas Box
       const numYogas = chartData.yogas ? Math.min(chartData.yogas.length, 5) : 0;
       const yogaBoxHeight = numYogas > 0 ? (12 + numYogas * 10.5) : 24;
-      doc.setFillColor(254, 252, 247);
+      doc.setFillColor(255, 255, 255);
       doc.setDrawColor(201, 160, 80);
       doc.setLineWidth(0.4);
       doc.roundedRect(13, yPos, pageWidth - 26, yogaBoxHeight, 1.5, 1.5, 'FD');
@@ -497,7 +490,7 @@ export const HoroscopeTraditionsView: React.FC<
       // 5. Vedic Doshas Box
       const numDoshas = chartData.doshas ? Math.min(chartData.doshas.length, 5) : 0;
       const doshaBoxHeight = numDoshas > 0 ? (12 + numDoshas * 10) : 24;
-      doc.setFillColor(254, 252, 247);
+      doc.setFillColor(255, 255, 255);
       doc.setDrawColor(201, 160, 80);
       doc.setLineWidth(0.4);
       doc.roundedRect(13, yPos, pageWidth - 26, doshaBoxHeight, 1.5, 1.5, 'FD');
@@ -512,7 +505,7 @@ export const HoroscopeTraditionsView: React.FC<
           const dOff = yPos + 9.5 + dIdx * 10;
           doc.setFont('helvetica', 'bold');
           doc.setFontSize(7.2);
-          doc.setTextColor(dosha.present ? 178 : 34, dosha.present ? 34 : 139, 34);
+          doc.setTextColor(dosha.present ? 181 : 80, dosha.present ? 131 : 80, dosha.present ? 40 : 80);
           doc.text(`• ${dosha.name}: ${dosha.present ? `Present (${dosha.intensity || 'Moderate'})` : 'Not Afflicted / Absent'}`, 17, dOff);
 
           doc.setFont('helvetica', 'normal');
@@ -531,7 +524,7 @@ export const HoroscopeTraditionsView: React.FC<
       yPos += doshaBoxHeight + 8;
 
       // 6. Vimshottari Dasha Timeline Box
-      doc.setFillColor(252, 249, 242);
+      doc.setFillColor(255, 255, 255);
       doc.setDrawColor(201, 160, 80);
       doc.setLineWidth(0.4);
       doc.roundedRect(13, yPos, pageWidth - 26, 36, 1.5, 1.5, 'FD');
@@ -548,7 +541,7 @@ export const HoroscopeTraditionsView: React.FC<
         const dX = 17 + col * (dashaW + 2);
         const dY = yPos + 9 + row * 12.5;
 
-        doc.setFillColor(d.isCurrent ? 245 : 255, d.isCurrent ? 236 : 255, d.isCurrent ? 215 : 255);
+        doc.setFillColor(255, 255, 255);
         doc.setDrawColor(d.isCurrent ? 201 : 226, d.isCurrent ? 160 : 211, d.isCurrent ? 80 : 176);
         doc.setLineWidth(d.isCurrent ? 0.4 : 0.2);
         doc.roundedRect(dX, dY, dashaW, 11, 1, 1, 'FD');
@@ -581,7 +574,7 @@ export const HoroscopeTraditionsView: React.FC<
       const visibleAiLines = aiLines.slice(0, maxAiLines);
       const aiBoxHeight = 14 + (visibleAiLines.length * 4.0);
       
-      doc.setFillColor(254, 252, 247);
+      doc.setFillColor(255, 255, 255);
       doc.setDrawColor(201, 160, 80);
       doc.setLineWidth(0.4);
       doc.roundedRect(13, yPos, pageWidth - 26, aiBoxHeight, 1.5, 1.5, 'FD');
@@ -589,7 +582,7 @@ export const HoroscopeTraditionsView: React.FC<
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(8);
       doc.setTextColor(126, 95, 24);
-      doc.text(`AI DEEP SYNTHESIS (${tradition.toUpperCase()} METHODOLOGY)`, 17, yPos + 5);
+      doc.text(`VEDIC DEEP SYNTHESIS (${tradition.toUpperCase()} METHODOLOGY)`, 17, yPos + 5);
 
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(7.5);
@@ -601,7 +594,7 @@ export const HoroscopeTraditionsView: React.FC<
       // 8. Recommended Gemstones & Upayas
       const numGems = chartData.gemstones ? Math.min(chartData.gemstones.length, 4) : 0;
       const gemBoxHeight = numGems > 0 ? (12 + numGems * 5.5) : 22;
-      doc.setFillColor(250, 247, 240);
+      doc.setFillColor(255, 255, 255);
       doc.setDrawColor(201, 160, 80);
       doc.setLineWidth(0.4);
       doc.roundedRect(13, yPos, pageWidth - 26, gemBoxHeight, 1.5, 1.5, 'FD');
@@ -1367,7 +1360,11 @@ export const HoroscopeTraditionsView: React.FC<
           <button
             onClick={handleDownloadTraditionsPdf}
             disabled={isGeneratingPdf}
-            className="flex items-center justify-center space-x-2 px-4 py-3 rounded-xl border text-xs font-bold transition shadow-lg cursor-pointer bg-gradient-to-r from-[#C9A050] to-[#A07828] hover:from-[#D4AF37] hover:to-[#B38730] text-[#0D0D0F] border-[#C9A050] shadow-[#C9A050]/20 shrink-0 disabled:opacity-50"
+            className={`flex items-center justify-center space-x-2 px-4 py-3 rounded-xl border text-xs font-bold transition shadow-lg cursor-pointer shrink-0 ${
+              theme === 'dark'
+                ? 'bg-gradient-to-r from-[#C9A050] to-[#A07828] hover:from-[#D4AF37] hover:to-[#B38730] text-[#0D0D0F] border-[#C9A050] shadow-[#C9A050]/20'
+                : 'bg-[#C9A050] hover:bg-[#B38730] text-white border-[#C9A050] shadow-[#C9A050]/20'
+            } disabled:opacity-50`}
             title="Download full birth chart traditions PDF report"
           >
             {isGeneratingPdf ? (
@@ -1619,8 +1616,12 @@ export const HoroscopeTraditionsView: React.FC<
           {/* YOGAS & DOSHAS (Moved to Left Column for perfect balanced layout) */}
           <div className="grid grid-cols-1 gap-4">
             {/* YOGAS */}
-            <div className="bg-[#141418] border border-[#2A2A2E] rounded-xl p-5 text-[#E5E1D8] shadow-xl space-y-3">
-              <div className="flex items-center space-x-2 text-[#C9A050] font-serif font-bold text-xs pb-2 border-b border-[#2A2A2E]">
+            <div className={`${
+              isDark ? 'bg-[#141418] border-[#2A2A2E] text-[#E5E1D8]' : 'bg-[#FFFDF7] border-[#DECFA6] text-[#1E1B15]'
+            } border rounded-2xl p-5 shadow-sm space-y-3`}>
+              <div className={`flex items-center space-x-2 text-[#C9A050] font-serif font-bold text-xs pb-2 border-b ${
+                isDark ? 'border-[#2A2A2E]' : 'border-[#DECFA6]/60'
+              }`}>
                 <Sparkles className="w-4 h-4" />
                 <span>
                   Detected Auspicious Yogas ({chartData.yogas.length})
@@ -1631,7 +1632,9 @@ export const HoroscopeTraditionsView: React.FC<
                 {chartData.yogas.map((y) => (
                   <div
                     key={y.id}
-                    className="p-3 bg-[#1A1A1E] rounded-xl border border-[#2A2A2E]"
+                    className={`p-3 rounded-xl border ${
+                      isDark ? 'bg-[#1A1A1E] border-[#2A2A2E]' : 'bg-[#FAF7F0] border-[#DECFA6]'
+                    }`}
                   >
                     <div className="flex justify-between items-center">
                       <h4 className="text-xs font-serif font-bold text-[#C9A050]">
@@ -1643,7 +1646,9 @@ export const HoroscopeTraditionsView: React.FC<
                       </span>
                     </div>
 
-                    <p className="text-[11px] text-[#9E9A90] mt-1 leading-relaxed font-sans">
+                    <p className={`text-[11px] mt-1 leading-relaxed font-sans ${
+                      isDark ? 'text-[#9E9A90]' : 'text-[#6E6452]'
+                    }`}>
                       {y.effect}
                     </p>
                   </div>
@@ -1652,8 +1657,12 @@ export const HoroscopeTraditionsView: React.FC<
             </div>
 
             {/* DOSHAS */}
-            <div className="bg-[#141418] border border-[#2A2A2E] rounded-xl p-5 text-[#E5E1D8] shadow-xl space-y-3">
-              <div className="flex items-center space-x-2 text-[#C9A050] font-serif font-bold text-xs pb-2 border-b border-[#2A2A2E]">
+            <div className={`${
+              isDark ? 'bg-[#141418] border-[#2A2A2E] text-[#E5E1D8]' : 'bg-[#FFFDF7] border-[#DECFA6] text-[#1E1B15]'
+            } border rounded-2xl p-5 shadow-sm space-y-3`}>
+              <div className={`flex items-center space-x-2 text-[#C9A050] font-serif font-bold text-xs pb-2 border-b ${
+                isDark ? 'border-[#2A2A2E]' : 'border-[#DECFA6]/60'
+              }`}>
                 <Flame className="w-4 h-4" />
                 <span>
                   Karmic Doshas & Planetary Afflictions
@@ -1664,10 +1673,14 @@ export const HoroscopeTraditionsView: React.FC<
                 {chartData.doshas.map((d) => (
                   <div
                     key={d.id}
-                    className="p-3 bg-[#1A1A1E] rounded-xl border border-[#2A2A2E]"
+                    className={`p-3 rounded-xl border ${
+                      isDark ? 'bg-[#1A1A1E] border-[#2A2A2E]' : 'bg-[#FAF7F0] border-[#DECFA6]'
+                    }`}
                   >
                     <div className="flex justify-between items-center">
-                      <h4 className="text-xs font-serif font-bold text-[#F0ECE1]">
+                      <h4 className={`text-xs font-serif font-bold ${
+                        isDark ? 'text-[#F0ECE1]' : 'text-[#1E1B15]'
+                      }`}>
                         {d.name}
                       </h4>
 
@@ -1684,7 +1697,9 @@ export const HoroscopeTraditionsView: React.FC<
                       </span>
                     </div>
 
-                    <p className="text-[11px] text-[#9E9A90] mt-1 leading-relaxed font-sans">
+                    <p className={`text-[11px] mt-1 leading-relaxed font-sans ${
+                      isDark ? 'text-[#9E9A90]' : 'text-[#6E6452]'
+                    }`}>
                       {d.description}
                     </p>
                   </div>
@@ -1694,19 +1709,43 @@ export const HoroscopeTraditionsView: React.FC<
 
             {/* ASPECTS */}
             {chartData.aspects && chartData.aspects.length > 0 && (
-              <div className="bg-[#141418] border border-[#2A2A2E] rounded-xl p-5 text-[#E5E1D8] shadow-xl space-y-3">
-                <div className="flex items-center space-x-2 text-[#C9A050] font-serif font-bold text-xs pb-2 border-b border-[#2A2A2E]">
-                  <Sparkles className="w-4 h-4" />
-                  <span>
-                    Planetary Aspects (Drishti)
+              <div className={`${
+                isDark ? 'bg-[#141418] border-[#2A2A2E] text-[#E5E1D8]' : 'bg-[#FFFDF7] border-[#DECFA6] text-[#1E1B15]'
+              } border rounded-2xl p-5 shadow-sm space-y-3`}>
+                <div className={`flex items-center justify-between pb-2 border-b ${
+                  isDark ? 'border-[#2A2A2E]' : 'border-[#DECFA6]/60'
+                }`}>
+                  <div className="flex items-center space-x-2 text-[#C9A050] font-serif font-bold text-xs">
+                    <Sparkles className="w-4 h-4" />
+                    <span>
+                      Planetary Aspects (Drishti)
+                    </span>
+                  </div>
+                  <span className={`text-[10px] px-2.5 py-0.5 rounded-full font-mono font-semibold ${
+                    isDark ? 'bg-[#C9A050]/15 text-[#C9A050] border border-[#C9A050]/30' : 'bg-[#FAF4E4] text-[#8C6D23] border border-[#DFC896]'
+                  }`}>
+                    {chartData.aspects.length} Drishtis
                   </span>
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-2 max-h-[260px] overflow-y-auto pr-1.5 custom-scrollbar">
                   {chartData.aspects.map((asp, idx) => (
-                    <div key={idx} className="p-2.5 bg-[#1A1A1E] rounded-lg border border-[#2A2A2E] grid grid-cols-3 items-center">
-                      <span className="text-[11px] text-[#E5E1D8] font-semibold uppercase text-left truncate">{asp.aspectingPlanet}</span>
-                      <span className="text-[9.5px] font-semibold text-[#C9A050] bg-[#C9A050]/15 border border-[#C9A050]/30 px-2.5 py-0.5 rounded-full justify-self-center text-center whitespace-nowrap">{asp.aspectType}</span>
-                      <span className="text-[11px] text-[#C9A050] font-semibold uppercase text-right truncate">{asp.aspectedPlanet}</span>
+                    <div
+                      key={idx}
+                      className={`p-2.5 rounded-lg border grid grid-cols-3 items-center transition ${
+                        isDark ? 'bg-[#1A1A1E] border-[#2A2A2E]' : 'bg-[#FAF7F0] border-[#DECFA6]'
+                      }`}
+                    >
+                      <span className={`text-[11px] font-semibold uppercase text-left truncate ${
+                        isDark ? 'text-[#E5E1D8]' : 'text-[#2C2825]'
+                      }`}>
+                        {asp.aspectingPlanet}
+                      </span>
+                      <span className="text-[9.5px] font-semibold text-[#C9A050] bg-[#C9A050]/15 border border-[#C9A050]/30 px-2.5 py-0.5 rounded-full justify-self-center text-center whitespace-nowrap">
+                        {asp.aspectType}
+                      </span>
+                      <span className="text-[11px] text-[#C9A050] font-semibold uppercase text-right truncate">
+                        {asp.aspectedPlanet}
+                      </span>
                     </div>
                   ))}
                 </div>
@@ -1997,11 +2036,11 @@ export const HoroscopeTraditionsView: React.FC<
             <h3 className="text-base font-serif font-bold text-[#F0ECE1] flex items-center space-x-2">
               <Sparkles className="w-4 h-4 text-[#C9A050]" />
               <span>
-                AI Comprehensive Synthesis ({tradition.toUpperCase()})
+                Comprehensive Vedic Synthesis ({tradition.toUpperCase()})
               </span>
             </h3>
             <p className="text-xs text-[#9E9A90]">
-              Deep AI analysis integrating chart positions, dashas & ancient rules
+              Deep Vedic analysis integrating chart positions, dashas & ancient rules
             </p>
           </div>
 
@@ -2031,7 +2070,7 @@ export const HoroscopeTraditionsView: React.FC<
                   ? 'Synthesizing...'
                   : aiInterpretation
                   ? 'Regenerate Analysis'
-                  : 'Run Full AI Analysis'}
+                  : 'Run Full Synthesis'}
               </span>
             </button>
           </div>
@@ -2041,7 +2080,7 @@ export const HoroscopeTraditionsView: React.FC<
           <div className="py-12 flex flex-col items-center justify-center space-y-3 text-center">
             <div className="w-9 h-9 border-2 border-[#C9A050] border-t-transparent rounded-full animate-spin" />
             <p className="text-xs text-[#C9A050] font-serif font-semibold">
-              JyotishVeda AI synthesizing multi-tradition Vedic sutras...
+              JyotishVeda synthesizing multi-tradition Vedic sutras...
             </p>
           </div>
         ) : aiInterpretation ? (
@@ -2058,7 +2097,7 @@ export const HoroscopeTraditionsView: React.FC<
               onClick={handleGenerateAIInterpretation}
               className="mt-3 px-4 py-2 rounded-lg bg-[#C9A050]/15 hover:bg-[#C9A050]/25 border border-[#C9A050]/40 text-[#C9A050] text-xs font-semibold cursor-pointer transition"
             >
-              Click to Generate Deep AI Interpretation
+              Click to Generate Deep Interpretation
             </button>
           </div>
         )}

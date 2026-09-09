@@ -12,7 +12,7 @@ from reportlab.platypus import (
 
 GOLD_DARK = colors.HexColor("#7E5F18")
 GOLD_MAIN = colors.HexColor("#C9A050")
-GOLD_LIGHT = colors.HexColor("#FCF9F2")
+GOLD_LIGHT = colors.HexColor("#FFFFFF")
 GOLD_BORDER = colors.HexColor("#E2D3B0")
 TEXT_DARK = colors.HexColor("#1A1A1E")
 TEXT_MUTED = colors.HexColor("#5A554C")
@@ -181,7 +181,7 @@ def generate_match_report_pdf(report: dict) -> bytes:
     ]
     score_table = Table(score_data, colWidths=[184 * mm])
     score_table.setStyle(TableStyle([
-        ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#FEFAF0")),
+        ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#FFFFFF")),
         ("BOX", (0, 0), (-1, -1), 0.8, GOLD_MAIN),
         ("ALIGN", (0, 0), (-1, -1), "CENTER"),
         ("TOPPADDING", (0, 0), (-1, -1), 8),
@@ -230,7 +230,7 @@ def generate_match_report_pdf(report: dict) -> bytes:
 
     koota_table = Table(rows, colWidths=[33 * mm, 57 * mm, 35 * mm, 35 * mm, 24 * mm])
     t_style = [
-        ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#F3ECDA")),
+        ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#FAF7F0")),
         ("LINEBELOW", (0, 0), (-1, -1), 0.4, colors.HexColor("#E5DCBE")),
         ("BOX", (0, 0), (-1, -1), 0.6, GOLD_BORDER),
         ("TOPPADDING", (0, 0), (-1, -1), 5.5),
@@ -241,7 +241,7 @@ def generate_match_report_pdf(report: dict) -> bytes:
     ]
     for r_i in range(1, len(rows)):
         if r_i % 2 == 0:
-            t_style.append(("BACKGROUND", (0, r_i), (-1, r_i), colors.HexColor("#FCFAF5")))
+            t_style.append(("BACKGROUND", (0, r_i), (-1, r_i), colors.HexColor("#FAF8F2")))
     koota_table.setStyle(TableStyle(t_style))
     story.append(koota_table)
     story.append(Spacer(1, 4.5 * mm))
@@ -264,7 +264,7 @@ def generate_match_report_pdf(report: dict) -> bytes:
     ]
     dosha_table = Table(dosha_data, colWidths=[92 * mm, 92 * mm])
     dosha_table.setStyle(TableStyle([
-        ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#FAF7F0")),
+        ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#FFFFFF")),
         ("BOX", (0, 0), (-1, -1), 0.6, GOLD_BORDER),
         ("LINEBEFORE", (1, 0), (1, -1), 0.6, GOLD_BORDER),
         ("TOPPADDING", (0, 0), (-1, -1), 7),
@@ -296,7 +296,7 @@ def generate_match_report_pdf(report: dict) -> bytes:
         Paragraph(f"<font size=9 color='#7E5F18'><b>AUSPICIOUS VEDIC REMEDIES &amp; MUHURAT</b></font><br/>{rem_lines}<br/><font size=7.8 color='#666666'><b>Muhurat Guidance:</b> {muhurat_str[:150]}</font>", rem_style)
     ]], colWidths=[184 * mm])
     rem_table.setStyle(TableStyle([
-        ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#FEFCF7")),
+        ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#FFFFFF")),
         ("BOX", (0, 0), (-1, -1), 0.6, GOLD_MAIN),
         ("TOPPADDING", (0, 0), (-1, -1), 7),
         ("BOTTOMPADDING", (0, 0), (-1, -1), 7),
@@ -353,7 +353,7 @@ def generate_match_report_pdf(report: dict) -> bytes:
     ]
     syn_table = Table(syn_table_data, colWidths=[92 * mm, 92 * mm])
     syn_table.setStyle(TableStyle([
-        ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#FAF7F0")),
+        ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#FFFFFF")),
         ("BOX", (0, 0), (-1, -1), 0.6, GOLD_BORDER),
         ("LINEBEFORE", (1, 0), (1, -1), 0.6, GOLD_BORDER),
         ("LINEBELOW", (0, 0), (-1, 0), 0.6, GOLD_BORDER),
@@ -365,8 +365,8 @@ def generate_match_report_pdf(report: dict) -> bytes:
     story.append(syn_table)
     story.append(Spacer(1, 7 * mm))
 
-    # AI Daivajna Relationship Synthesis Section
-    story.append(Paragraph("AI DAIVAJNA DEEP RELATIONSHIP SYNTHESIS", styles["JVSection"]))
+    # Daivajna Relationship Synthesis Section
+    story.append(Paragraph("DAIVAJNA DEEP RELATIONSHIP SYNTHESIS", styles["JVSection"]))
     
     ai_overall = ai_synth.get("overall_compatibility") or "Harmonious celestial resonance across emotional, spiritual, and material domains."
     ai_psych = ai_synth.get("psychological_affinity") or "Strong intellectual rapport, fluid communication, and high mutual respect."
@@ -406,7 +406,7 @@ def generate_match_report_pdf(report: dict) -> bytes:
 
     ai_table = Table(ai_grid_data, colWidths=[92 * mm, 92 * mm])
     ai_table.setStyle(TableStyle([
-        ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#FEFAF0")),
+        ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#FFFFFF")),
         ("BOX", (0, 0), (-1, -1), 0.6, GOLD_MAIN),
         ("LINEBELOW", (0, 0), (-1, -2), 0.4, GOLD_BORDER),
         ("LINEBEFORE", (1, 0), (1, -1), 0.4, GOLD_BORDER),
@@ -419,16 +419,16 @@ def generate_match_report_pdf(report: dict) -> bytes:
     story.append(ai_table)
     story.append(Spacer(1, 7 * mm))
 
-    # AI Final Assessment Box
+    # Final Assessment Box
     final_box = Table([[
         Paragraph(
-            f"<font size=10 color='#7E5F18'><b>AI DAIVAJNA FINAL ASSESSMENT &amp; BLESSINGS</b></font><br/>"
+            f"<font size=10 color='#7E5F18'><b>DAIVAJNA FINAL ASSESSMENT &amp; BLESSINGS</b></font><br/>"
             f"<font size=9 color='#222222'><i>\"{ai_final[:280]}\"</i></font>",
             styles["ScoreCenter"]
         )
     ]], colWidths=[184 * mm])
     final_box.setStyle(TableStyle([
-        ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#FDF7E7")),
+        ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#FFFFFF")),
         ("BOX", (0, 0), (-1, -1), 0.7, GOLD_DARK),
         ("TOPPADDING", (0, 0), (-1, -1), 12),
         ("BOTTOMPADDING", (0, 0), (-1, -1), 12),

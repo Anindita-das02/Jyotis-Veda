@@ -1,9 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Sun,
   Moon,
   Clock,
-  Sparkles,
   Calendar,
   AlertTriangle,
   Flame,
@@ -16,9 +15,16 @@ import {
   Download,
   FileText,
   Loader2,
+  Bot,
+  Lock,
+  X,
+  Sparkles,
+  ShieldCheck,
+  ArrowRight,
+  Crown,
 } from 'lucide-react';
 import { jsPDF } from 'jspdf';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { api } from '../services/api';
 import { API_ENDPOINTS } from '../config/api_config';
 import { UserProfile, PanchangInfo, NumerologyReport } from '../types';
@@ -59,6 +65,7 @@ export const DailyHoroscopeView: React.FC<DailyHoroscopeViewProps> = ({
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
+  const [isSubscriptionModalOpen, setIsSubscriptionModalOpen] = useState(false);
 
   // Helper to load image as base64 DataURL for jsPDF canvas rendering
   const loadImageBase64 = (url: string): Promise<string | null> => {
@@ -86,7 +93,58 @@ export const DailyHoroscopeView: React.FC<DailyHoroscopeViewProps> = ({
     });
   };
 
+  const getDailyStorageKey = () => {
+    const profileKey = (profile?.id || profile?.fullName || 'seeker').trim().replace(/[^a-zA-Z0-9]/g, '_');
+    const dateKey = panchang?.date || new Date().toISOString().split('T')[0];
+    return `jyotishveda_daily_reading_${profileKey}_${dateKey}`;
+  };
+
+  // Check localStorage on mount or when profile/panchang date changes
+  useEffect(() => {
+    if (!profile?.isPremium) {
+      setAiInsights(null);
+      return;
+    }
+    try {
+      const storageKey = getDailyStorageKey();
+      const cached = localStorage.getItem(storageKey);
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (parsed && parsed.summary) {
+          setAiInsights(parsed);
+          return;
+        }
+      }
+      setAiInsights(null);
+    } catch {
+      setAiInsights(null);
+    }
+  }, [profile?.id, profile?.fullName, profile?.isPremium, panchang?.date]);
+
+  const handleUnlockClick = () => {
+    if (profile?.isPremium) {
+      fetchDailyAiReading();
+    } else {
+      setIsSubscriptionModalOpen(true);
+    }
+  };
+
   const fetchDailyAiReading = async () => {
+    if (isLoadingAi || aiInsights) return;
+    const storageKey = getDailyStorageKey();
+
+    // Check if already in localStorage
+    try {
+      const cached = localStorage.getItem(storageKey);
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (parsed && parsed.summary) {
+          setAiInsights(parsed);
+          return;
+        }
+      }
+    } catch {}
+
     setIsLoadingAi(true);
     try {
       const data = await api.post<{ insights: DailyAiInsights }>(API_ENDPOINTS.INSIGHTS.DAILY_HOROSCOPE, {
@@ -97,9 +155,14 @@ export const DailyHoroscopeView: React.FC<DailyHoroscopeViewProps> = ({
       });
       if (data && data.insights) {
         setAiInsights(data.insights);
+        try {
+          localStorage.setItem(storageKey, JSON.stringify(data.insights));
+        } catch (storageErr) {
+          console.warn('Could not persist daily reading to localStorage:', storageErr);
+        }
       }
     } catch (e) {
-      console.error('Failed to fetch AI insights:', e);
+      console.error('Failed to fetch daily insights:', e);
     } finally {
       setIsLoadingAi(false);
     }
@@ -125,7 +188,7 @@ export const DailyHoroscopeView: React.FC<DailyHoroscopeViewProps> = ({
 
   const handleShare = () => {
     navigator.clipboard.writeText(
-      `Daily Vedic Insight for ${profile.fullName} | JyotishVeda AI:\nTithi: ${panchang.tithi} | Nakshatra: ${panchang.nakshatra}\nAbhijit Muhurta: ${panchang.abhijitMuhurta}`
+      `Daily Vedic Insight for ${profile.fullName} | JyotishVeda:\nTithi: ${panchang.tithi} | Nakshatra: ${panchang.nakshatra}\nAbhijit Muhurta: ${panchang.abhijitMuhurta}`
     );
     setIsCopied(true);
     setTimeout(() => setIsCopied(false), 2500);
@@ -186,8 +249,22 @@ export const DailyHoroscopeView: React.FC<DailyHoroscopeViewProps> = ({
   const handleDownloadDailyReportPdf = async () => {
     setIsGeneratingPdf(true);
     try {
-      // 1. Live AI insights auto-fetching
+      // 1. Live insights auto-fetching / cached reading usage
       let currentAi = aiInsights;
+      if (!currentAi) {
+        const storageKey = getDailyStorageKey();
+        try {
+          const cached = localStorage.getItem(storageKey);
+          if (cached) {
+            const parsed = JSON.parse(cached);
+            if (parsed && parsed.summary) {
+              currentAi = parsed;
+              setAiInsights(parsed);
+            }
+          }
+        } catch {}
+      }
+
       if (!currentAi) {
         try {
           const data = await api.post<{ insights: DailyAiInsights }>(API_ENDPOINTS.INSIGHTS.DAILY_HOROSCOPE, {
@@ -199,9 +276,13 @@ export const DailyHoroscopeView: React.FC<DailyHoroscopeViewProps> = ({
           if (data && data.insights) {
             currentAi = data.insights;
             setAiInsights(data.insights);
+            try {
+              const storageKey = getDailyStorageKey();
+              localStorage.setItem(storageKey, JSON.stringify(data.insights));
+            } catch {}
           }
         } catch (e) {
-          console.warn('Could not fetch live AI insights for PDF, using dynamic transit engine:', e);
+          console.warn('Could not fetch daily insights for PDF, using dynamic transit engine:', e);
         }
       }
 
@@ -299,13 +380,13 @@ export const DailyHoroscopeView: React.FC<DailyHoroscopeViewProps> = ({
       doc.setFont('helvetica', 'italic');
       doc.setFontSize(7);
       doc.setTextColor(110, 105, 95);
-      doc.text(`Precision Astronomical Ephemeris & AI Vedic Synthesis | ${todayStr}`, 32, 28);
+      doc.text(`Precision Astronomical Ephemeris & Vedic Synthesis | ${todayStr}`, 32, 28);
 
       let yPos = 32;
 
       // 2. Client & Celestial Alignment Particulars (Highlighted Core Astrological Identity)
       const sec2H = 28;
-      doc.setFillColor(252, 249, 242);
+      doc.setFillColor(255, 255, 255);
       doc.setDrawColor(226, 211, 176);
       doc.setLineWidth(0.4);
       doc.roundedRect(13, yPos, pageWidth - 26, sec2H, 2, 2, 'FD');
@@ -326,7 +407,7 @@ export const DailyHoroscopeView: React.FC<DailyHoroscopeViewProps> = ({
       doc.setTextColor(80, 80, 80);
       const birthDetails = `Born: ${sanitize(profile.birthDate) || 'N/A'}${profile.birthTime ? ` at ${sanitize(profile.birthTime)}` : ''} | ${sanitize(profile.birthPlace) || 'Global'}`;
       doc.text(doc.splitTextToSize(birthDetails, (pageWidth - 36) / 2)[0] || '', 17, yPos + 15);
-      doc.text(`Coords: ${profile.latitude ? profile.latitude.toFixed(2) : '28.61'}N, ${profile.longitude ? profile.longitude.toFixed(2) : '77.20'}E | System: ${profile.horoscopeSystem === 'western' ? 'Western Tropical' : 'Vedic Sidereal'}`, 17, yPos + 19.5);
+      doc.text(`Coords: ${profile.latitude ? profile.latitude.toFixed(2) : '28.61'}N, ${profile.longitude ? profile.longitude.toFixed(2) : '77.20'}E`, 17, yPos + 19.5);
 
       doc.setFont('helvetica', 'italic');
       doc.setFontSize(6.2);
@@ -347,7 +428,7 @@ export const DailyHoroscopeView: React.FC<DailyHoroscopeViewProps> = ({
       const bRow2Y = yPos + 18;
 
       // Badge 1: LAGNA RASHI (ASCENDANT)
-      doc.setFillColor(246, 237, 214);
+      doc.setFillColor(255, 255, 255);
       doc.setDrawColor(201, 160, 80);
       doc.setLineWidth(0.4);
       doc.roundedRect(rightColX, bRow1Y, badgeW, badgeH, 1.2, 1.2, 'FD');
@@ -361,7 +442,7 @@ export const DailyHoroscopeView: React.FC<DailyHoroscopeViewProps> = ({
 
       // Badge 2: CHANDRA RASHI (MOON SIGN)
       const b2X = rightColX + badgeW + 3;
-      doc.setFillColor(246, 237, 214);
+      doc.setFillColor(255, 255, 255);
       doc.setDrawColor(201, 160, 80);
       doc.setLineWidth(0.4);
       doc.roundedRect(b2X, bRow1Y, badgeW, badgeH, 1.2, 1.2, 'FD');
@@ -373,8 +454,8 @@ export const DailyHoroscopeView: React.FC<DailyHoroscopeViewProps> = ({
       doc.setTextColor(26, 26, 30);
       doc.text(moonSign, b2X + 2.5, bRow1Y + 7);
 
-      // Badge 3: MULANK (PSYCHIC ROOT - EXTRA HIGHLIGHTED)
-      doc.setFillColor(254, 238, 192); // Vivid Warm Golden Amber Highlight
+      // Badge 3: MULANK (PSYCHIC ROOT)
+      doc.setFillColor(255, 255, 255);
       doc.setDrawColor(190, 135, 40);
       doc.setLineWidth(0.5);
       doc.roundedRect(rightColX, bRow2Y, badgeW, badgeH, 1.2, 1.2, 'FD');
@@ -387,7 +468,7 @@ export const DailyHoroscopeView: React.FC<DailyHoroscopeViewProps> = ({
       doc.text(`Mulank ${mulank} (${mulankPlanet})`, rightColX + 2.5, bRow2Y + 7);
 
       // Badge 4: NAKSHATRA & HARMONY
-      doc.setFillColor(246, 237, 214);
+      doc.setFillColor(255, 255, 255);
       doc.setDrawColor(201, 160, 80);
       doc.setLineWidth(0.4);
       doc.roundedRect(b2X, bRow2Y, badgeW, badgeH, 1.2, 1.2, 'FD');
@@ -413,7 +494,7 @@ export const DailyHoroscopeView: React.FC<DailyHoroscopeViewProps> = ({
 
       metrics.forEach((m, idx) => {
         const xPos = 13 + idx * (colWidth + 3);
-        doc.setFillColor(248, 245, 237);
+        doc.setFillColor(255, 255, 255);
         doc.setDrawColor(226, 211, 176);
         doc.setLineWidth(0.3);
         doc.roundedRect(xPos, yPos, colWidth, cardH, 1.5, 1.5, 'FD');
@@ -436,7 +517,7 @@ export const DailyHoroscopeView: React.FC<DailyHoroscopeViewProps> = ({
       yPos += cardH + 4;
 
       // 4. Daily AI Planetary Synthesis Card (Generous Padding & Elegant Typography)
-      doc.setFillColor(254, 252, 247);
+      doc.setFillColor(255, 255, 255);
       doc.setDrawColor(201, 160, 80);
       doc.setLineWidth(0.4);
 
@@ -453,7 +534,7 @@ export const DailyHoroscopeView: React.FC<DailyHoroscopeViewProps> = ({
       doc.setFont('helvetica', 'italic');
       doc.setFontSize(6.2);
       doc.setTextColor(160, 130, 70);
-      doc.text('Personalized Transit Analysis | Lahiri Ephemeris & AI Vedic Model', pageWidth - 17, yPos + 5.2, { align: 'right' });
+      doc.text('Personalized Transit Analysis | Lahiri Ephemeris & Vedic Model', pageWidth - 17, yPos + 5.2, { align: 'right' });
 
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(6.8);
@@ -473,7 +554,7 @@ export const DailyHoroscopeView: React.FC<DailyHoroscopeViewProps> = ({
       const domainCardH = 44;
       domains.forEach((d, idx) => {
         const xPos = 13 + idx * (domainW + 3);
-        doc.setFillColor(252, 249, 242);
+        doc.setFillColor(255, 255, 255);
         doc.setDrawColor(226, 211, 176);
         doc.setLineWidth(0.3);
         doc.roundedRect(xPos, yPos, domainW, domainCardH, 1.5, 1.5, 'FD');
@@ -498,7 +579,7 @@ export const DailyHoroscopeView: React.FC<DailyHoroscopeViewProps> = ({
       yPos += domainCardH + 4;
 
       // 6. Recommended Daily Vedic Sadhana & Upaya (Morning & Evening)
-      doc.setFillColor(254, 252, 247);
+      doc.setFillColor(255, 255, 255);
       doc.setDrawColor(201, 160, 80);
       doc.setLineWidth(0.4);
       const ritualBoxH = 40;
@@ -516,7 +597,7 @@ export const DailyHoroscopeView: React.FC<DailyHoroscopeViewProps> = ({
 
       const ritualColW = (pageWidth - 36) / 2;
       // Morning Sadhana
-      doc.setFillColor(248, 244, 234);
+      doc.setFillColor(255, 255, 255);
       doc.setDrawColor(226, 211, 176);
       doc.roundedRect(17, yPos + 7.8, ritualColW - 2, 29, 1, 1, 'FD');
 
@@ -536,7 +617,7 @@ export const DailyHoroscopeView: React.FC<DailyHoroscopeViewProps> = ({
       doc.text(mLines.slice(0, 4), 20, yPos + 20.5);
 
       // Evening Sadhana
-      doc.setFillColor(248, 244, 234);
+      doc.setFillColor(255, 255, 255);
       doc.setDrawColor(226, 211, 176);
       doc.roundedRect(17 + ritualColW + 2, yPos + 7.8, ritualColW - 2, 29, 1, 1, 'FD');
 
@@ -558,7 +639,7 @@ export const DailyHoroscopeView: React.FC<DailyHoroscopeViewProps> = ({
       yPos += ritualBoxH + 4;
 
       // 7. Daily Sankalpa & Blessing Affirmation Box
-      doc.setFillColor(250, 245, 235);
+      doc.setFillColor(255, 255, 255);
       doc.setDrawColor(201, 160, 80);
       doc.setLineWidth(0.4);
       doc.roundedRect(13, yPos, pageWidth - 26, 24, 1.5, 1.5, 'FD');
@@ -585,7 +666,7 @@ export const DailyHoroscopeView: React.FC<DailyHoroscopeViewProps> = ({
       let yP2 = 22;
 
       // 1. Sacred Panchang Parameters Table (8 attributes in 2x4 grid)
-      doc.setFillColor(250, 247, 240);
+      doc.setFillColor(255, 255, 255);
       doc.setDrawColor(201, 160, 80);
       doc.setLineWidth(0.4);
       doc.roundedRect(13, yP2, pageWidth - 26, 36, 1.5, 1.5, 'FD');
@@ -623,7 +704,7 @@ export const DailyHoroscopeView: React.FC<DailyHoroscopeViewProps> = ({
           const isHighlightRow = row.label.includes('Moon Sign');
 
           if (isHighlightRow) {
-            doc.setFillColor(254, 240, 205);
+            doc.setFillColor(255, 255, 255);
             doc.roundedRect(xOffset - 1, rowY - 4, pColW + 2, 5.5, 0.8, 0.8, 'F');
             doc.setFont('helvetica', 'bold');
             doc.setFontSize(6.8);
@@ -654,7 +735,7 @@ export const DailyHoroscopeView: React.FC<DailyHoroscopeViewProps> = ({
       yP2 += 40;
 
       // 2. Active Planetary Positions & Natal Transits Table
-      doc.setFillColor(254, 252, 247);
+      doc.setFillColor(255, 255, 255);
       doc.setDrawColor(201, 160, 80);
       doc.setLineWidth(0.4);
 
@@ -673,7 +754,7 @@ export const DailyHoroscopeView: React.FC<DailyHoroscopeViewProps> = ({
 
       // Table Header Row
       const tblY = yP2 + 7.5;
-      doc.setFillColor(243, 237, 223);
+      doc.setFillColor(250, 247, 240);
       doc.rect(17, tblY, pageWidth - 34, 5.5, 'F');
 
       doc.setFont('helvetica', 'bold');
@@ -731,12 +812,12 @@ export const DailyHoroscopeView: React.FC<DailyHoroscopeViewProps> = ({
 
         if (isLagna || isMoon) {
           // Highlight row with warm gold background and left gold indicator
-          doc.setFillColor(254, 241, 210);
+          doc.setFillColor(252, 249, 240);
           doc.rect(17, rowY - 1, pageWidth - 34, 5.9, 'F');
           doc.setFillColor(181, 131, 40);
           doc.rect(17, rowY - 1, 2.2, 5.9, 'F');
         } else if (pIdx % 2 === 1) {
-          doc.setFillColor(250, 247, 240);
+          doc.setFillColor(253, 252, 250);
           doc.rect(17, rowY - 1, pageWidth - 34, 5.9, 'F');
         }
 
@@ -780,7 +861,7 @@ export const DailyHoroscopeView: React.FC<DailyHoroscopeViewProps> = ({
       const splitCardH = 58;
 
       // Left Card: Sacred Muhurta Windows
-      doc.setFillColor(252, 249, 242);
+      doc.setFillColor(255, 255, 255);
       doc.setDrawColor(201, 160, 80);
       doc.setLineWidth(0.35);
       doc.roundedRect(13, yP2, splitCardW, splitCardH, 1.5, 1.5, 'FD');
@@ -839,7 +920,7 @@ export const DailyHoroscopeView: React.FC<DailyHoroscopeViewProps> = ({
       doc.text('Avoid signing major legal contracts, journeys or new financial starts.', 17, yP2 + 48.5, { maxWidth: splitCardW - 8 });
 
       // Right Card: Daily Numerology & Harmonic Remedies
-      doc.setFillColor(252, 249, 242);
+      doc.setFillColor(255, 255, 255);
       doc.setDrawColor(201, 160, 80);
       doc.setLineWidth(0.35);
       doc.roundedRect(13 + splitCardW + 4, yP2, splitCardW, splitCardH, 1.5, 1.5, 'FD');
@@ -857,7 +938,7 @@ export const DailyHoroscopeView: React.FC<DailyHoroscopeViewProps> = ({
 
       // Distinct Mulank Highlight Pill Box
       const mulBoxW = splitCardW - 8;
-      doc.setFillColor(254, 238, 192); // Vivid Warm Golden Amber Highlight
+      doc.setFillColor(255, 255, 255);
       doc.setDrawColor(190, 135, 40);
       doc.setLineWidth(0.4);
       doc.roundedRect(rightCardInnerX, yP2 + 12, mulBoxW, 7.5, 1, 1, 'FD');
@@ -903,7 +984,7 @@ export const DailyHoroscopeView: React.FC<DailyHoroscopeViewProps> = ({
       yP2 += splitCardH + 4;
 
       // 4. Official Verification & Astrological Disclaimer Box
-      doc.setFillColor(252, 249, 242);
+      doc.setFillColor(255, 255, 255);
       doc.setDrawColor(201, 160, 80);
       doc.setLineWidth(0.35);
       doc.roundedRect(13, yP2, pageWidth - 26, 20, 1.5, 1.5, 'FD');
@@ -986,7 +1067,7 @@ export const DailyHoroscopeView: React.FC<DailyHoroscopeViewProps> = ({
         doc.setFont('helvetica', 'normal');
         doc.setFontSize(6.5);
         doc.text(`Document ID: ${certId}  |  Confidential & Proprietary`, 14, footerY + 4);
-        doc.text(`Certified by JyotishVeda AI Engine  |  Page ${i} of ${totalPages}`, pageWidth - 14, footerY + 4, { align: 'right' });
+        doc.text(`Certified by JyotishVeda AstroEngine  |  Page ${i} of ${totalPages}`, pageWidth - 14, footerY + 4, { align: 'right' });
       }
 
       // Save PDF
@@ -1009,7 +1090,7 @@ export const DailyHoroscopeView: React.FC<DailyHoroscopeViewProps> = ({
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10">
           <div>
             <div className="flex items-center space-x-2 text-xs font-semibold tracking-widest text-[#C9A050] mb-2 uppercase">
-              <Sparkles className="w-3.5 h-3.5" />
+              <Compass className="w-3.5 h-3.5 text-[#C9A050]" />
               <span>
                 {profile.horoscopeSystem === 'western' ? 'Western Tropical' : 'Vedic Sidereal'} Daily Transit • {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
               </span>
@@ -1104,10 +1185,10 @@ export const DailyHoroscopeView: React.FC<DailyHoroscopeViewProps> = ({
             <div className={`flex items-center justify-between pb-4 border-b mb-4 ${theme === 'dark' ? 'border-[#2A2A2E]' : 'border-[#E5E1D8]'}`}>
               <div className="flex items-center space-x-2.5">
                 <div className="p-2 rounded-lg bg-[#C9A050]/15 text-[#C9A050] border border-[#C9A050]/30">
-                  <Sparkles className="w-4 h-4" />
+                  <Bot className="w-4 h-4" />
                 </div>
                 <div>
-                  <h2 className={`text-xl font-bold ${theme === 'dark' ? 'text-[#F0ECE1]' : 'text-[#0D0D0F]'}`}>Daily AI Vedic Horoscope Interpretation</h2>
+                  <h2 className={`text-xl font-bold ${theme === 'dark' ? 'text-[#F0ECE1]' : 'text-[#0D0D0F]'}`}>Daily Vedic Horoscope Interpretation</h2>
                   <p className="text-xs text-[#9E9A90]">Personalized transit synthesis based on your specific birth chart & active dasha</p>
                 </div>
               </div>
@@ -1137,19 +1218,6 @@ export const DailyHoroscopeView: React.FC<DailyHoroscopeViewProps> = ({
                     </button>
                   </>
                 )}
-
-                <button
-                  onClick={fetchDailyAiReading}
-                  disabled={isLoadingAi}
-                  className={`px-3.5 py-2 rounded-lg font-bold text-xs shadow-md transition cursor-pointer flex items-center space-x-1.5 disabled:opacity-50 ${
-                    theme === 'dark'
-                      ? 'bg-gradient-to-r from-[#C9A050] to-[#A07828] hover:from-[#D4AF37] hover:to-[#B38730] text-[#0D0D0F] shadow-[#C9A050]/15'
-                      : 'bg-[#FFFFFF] border border-[#C9A050]/50 text-[#C9A050] hover:bg-[#C9A050]/10 shadow-[#C9A050]/10'
-                  }`}
-                >
-                  <Sparkles className={`w-3.5 h-3.5 ${isLoadingAi ? 'animate-spin' : ''}`} />
-                  <span>{isLoadingAi ? 'Consulting...' : aiInsights ? 'Regenerate Insight' : 'Generate Full AI Reading'}</span>
-                </button>
               </div>
             </div>
 
@@ -1157,7 +1225,7 @@ export const DailyHoroscopeView: React.FC<DailyHoroscopeViewProps> = ({
             {isLoadingAi ? (
               <div className="py-12 flex flex-col items-center justify-center space-y-3 text-center">
                 <div className="w-9 h-9 border-2 border-[#C9A050] border-t-transparent rounded-full animate-spin" />
-                <p className="text-xs text-[#C9A050] font-serif font-semibold">Consulting Planetary Ephemeris & AI Model...</p>
+                <p className="text-xs text-[#C9A050] font-serif font-semibold">Consulting Planetary Ephemeris & Vedic Model...</p>
                 <p className="text-[11px] text-[#9E9A90] max-w-sm">Calculating Moon transit, Nakshatra lord aspect, and today’s Tithi vibration for your Ascendant.</p>
               </div>
             ) : aiInsights ? (
@@ -1227,11 +1295,18 @@ export const DailyHoroscopeView: React.FC<DailyHoroscopeViewProps> = ({
                 </div>
 
                 <button
-                  onClick={fetchDailyAiReading}
-                  className="w-full py-3 rounded-lg border border-[#C9A050]/40 bg-[#C9A050]/10 hover:bg-[#C9A050]/20 text-[#C9A050] text-xs font-sans font-semibold flex items-center justify-center space-x-2 transition cursor-pointer"
+                  onClick={handleUnlockClick}
+                  className={`w-full py-3.5 px-4 rounded-xl border flex items-center justify-center space-x-2.5 transition cursor-pointer font-sans text-xs sm:text-sm font-semibold shadow-sm ${
+                    theme === 'dark'
+                      ? 'border-[#C9A050]/40 bg-gradient-to-r from-[#C9A050]/15 via-[#C9A050]/10 to-[#C9A050]/15 hover:bg-[#C9A050]/20 text-[#E5E1D8]'
+                      : 'border-[#C9A050]/50 bg-gradient-to-r from-[#C9A050]/15 via-[#FFFDF7] to-[#C9A050]/15 hover:bg-[#C9A050]/25 text-[#2A2A2E]'
+                  }`}
                 >
-                  <Sparkles className="w-4 h-4" />
-                  <span>Click to Unlock Comprehensive AI Vedic Deep-Dive Reading</span>
+                  <Lock className="w-4 h-4 text-[#C9A050]" />
+                  <span>Click to Unlock Comprehensive Vedic Deep-Dive Reading</span>
+                  <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-[#C9A050] text-[#0D0D0F] ml-1.5 shadow-sm">
+                    {profile?.isPremium ? 'Unlocked' : 'Subscription'}
+                  </span>
                 </button>
               </div>
             )}
@@ -1336,10 +1411,10 @@ export const DailyHoroscopeView: React.FC<DailyHoroscopeViewProps> = ({
               className={`w-full text-left p-3 rounded-lg hover:bg-[#1E1E24] border transition cursor-pointer flex items-center justify-between group ${theme === 'dark' ? 'bg-[#1A1A1E] border-[#2A2A2E]' : 'bg-[#F9F7F1] border-[#E5E1D8]'}`}
             >
               <div>
-                <div className={`text-xs font-semibold group-hover:text-[#C9A050] transition ${theme === 'dark' ? 'text-[#F0ECE1]' : 'text-[#0D0D0F]'}`}>Interactive AI Astrologer</div>
+                <div className={`text-xs font-semibold group-hover:text-[#C9A050] transition ${theme === 'dark' ? 'text-[#F0ECE1]' : 'text-[#0D0D0F]'}`}>Interactive Astrologer</div>
                 <div className="text-[11px] text-[#9E9A90]">Counselling grounded in your exact birth chart</div>
               </div>
-              <Sparkles className="w-4 h-4 text-[#C9A050] group-hover:translate-x-0.5 transition" />
+              <Bot className="w-4 h-4 text-[#C9A050] group-hover:translate-x-0.5 transition" />
             </button>
 
             <button
@@ -1355,6 +1430,134 @@ export const DailyHoroscopeView: React.FC<DailyHoroscopeViewProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Subscription Paywall Modal */}
+      <AnimatePresence>
+        {isSubscriptionModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.94, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.94, y: 20 }}
+              transition={{ duration: 0.25, ease: 'easeOut' }}
+              className={`relative w-full max-w-lg rounded-2xl border shadow-2xl p-6 sm:p-7 overflow-hidden ${
+                theme === 'dark'
+                  ? 'bg-[#141418] border-[#C9A050]/40 text-[#E5E1D8]'
+                  : 'bg-[#FFFDF7] border-[#DECFA6] text-[#2A2A2E]'
+              }`}
+            >
+              {/* Background ambient decorative glow */}
+              <div className="absolute -top-24 -right-24 w-48 h-48 bg-[#C9A050]/20 rounded-full blur-3xl pointer-events-none" />
+              <div className="absolute -bottom-24 -left-24 w-48 h-48 bg-[#C9A050]/15 rounded-full blur-3xl pointer-events-none" />
+
+              {/* Close Button */}
+              <button
+                onClick={() => setIsSubscriptionModalOpen(false)}
+                className={`absolute top-4 right-4 p-2 rounded-full border transition cursor-pointer ${
+                  theme === 'dark'
+                    ? 'border-[#2A2A2E] text-[#9E9A90] hover:text-white hover:bg-[#1A1A1E]'
+                    : 'border-[#E5E1D8] text-[#9E9A90] hover:text-black hover:bg-[#F0ECE1]'
+                }`}
+                title="Close"
+              >
+                <X className="w-4 h-4" />
+              </button>
+
+              {/* Modal Header */}
+              <div className="flex flex-col items-center text-center space-y-3 pt-2">
+                <div className="relative">
+                  <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#C9A050]/30 to-[#A07828]/10 border border-[#C9A050]/60 flex items-center justify-center shadow-lg shadow-[#C9A050]/20">
+                    <Lock className="w-8 h-8 text-[#C9A050]" />
+                  </div>
+                  <div className="absolute -bottom-1 -right-1 p-1 rounded-full bg-[#C9A050] text-[#0D0D0F]">
+                    <Sparkles className="w-3.5 h-3.5" />
+                  </div>
+                </div>
+
+                <div className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider bg-[#C9A050]/15 text-[#C9A050] border border-[#C9A050]/30">
+                  <Crown className="w-3.5 h-3.5" />
+                  <span>Vedic Premium Feature</span>
+                </div>
+
+                <h3 className={`text-xl sm:text-2xl font-serif font-bold ${
+                  theme === 'dark' ? 'text-[#F0ECE1]' : 'text-[#0D0D0F]'
+                }`}>
+                  Unlock Daily Deep-Dive Interpretation
+                </h3>
+
+                <p className="text-xs font-sans text-[#9E9A90] max-w-md leading-relaxed">
+                  Deep personalized transit synthesis based on your specific Kundli (Ascendant, Moon sign, Bhava lords & active Vimshottari Mahadasha) is reserved for subscribers.
+                </p>
+              </div>
+
+              {/* Feature Highlights */}
+              <div className={`mt-5 p-4 rounded-xl border space-y-2.5 ${
+                theme === 'dark' ? 'bg-[#1A1A1E]/80 border-[#2A2A2E]' : 'bg-[#F9F7F1] border-[#E5E1D8]'
+              }`}>
+                <div className="text-xs font-bold text-[#C9A050] uppercase tracking-wider font-sans mb-1">
+                  What is unlocked with your Subscription:
+                </div>
+                
+                <div className="flex items-start space-x-2.5 text-xs">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+                  <span><strong>Full Daily Transit Synthesis:</strong> 12 Bhavas, Nakshatra lord vibrations & planetary aspects.</span>
+                </div>
+                
+                <div className="flex items-start space-x-2.5 text-xs">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+                  <span><strong>Career & Finance Timing:</strong> Optimal negotiation windows, risk management & business foresight.</span>
+                </div>
+                
+                <div className="flex items-start space-x-2.5 text-xs">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+                  <span><strong>Love & Harmony Forecast:</strong> Relationship harmonics, domestic peace & communication rhythms.</span>
+                </div>
+
+                <div className="flex items-start space-x-2.5 text-xs">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+                  <span><strong>Health, Prana & Vedic Upayas:</strong> Tailored Mantras, Chanting Audio & personalized rituals.</span>
+                </div>
+
+                <div className="flex items-start space-x-2.5 text-xs">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+                  <span><strong>Astrologer Consultations & Reports:</strong> Priority consultation bookings & unlimited PDF downloads.</span>
+                </div>
+              </div>
+
+              {/* CTA Buttons */}
+              <div className="mt-6 flex flex-col sm:flex-row items-center gap-3">
+                <button
+                  onClick={() => {
+                    setIsSubscriptionModalOpen(false);
+                    onNavigateToTab('consultations');
+                  }}
+                  className="w-full py-3.5 px-5 rounded-xl bg-gradient-to-r from-[#C9A050] to-[#A07828] hover:from-[#D4AF37] hover:to-[#B38730] text-[#0D0D0F] font-bold text-xs sm:text-sm shadow-lg shadow-[#C9A050]/25 transition cursor-pointer flex items-center justify-center space-x-2"
+                >
+                  <Sparkles className="w-4 h-4" />
+                  <span>Get Subscription / View Plans</span>
+                  <ArrowRight className="w-4 h-4" />
+                </button>
+
+                <button
+                  onClick={() => setIsSubscriptionModalOpen(false)}
+                  className={`w-full sm:w-auto py-3.5 px-4 rounded-xl border text-xs font-semibold transition cursor-pointer ${
+                    theme === 'dark'
+                      ? 'border-[#2A2A2E] text-[#9E9A90] hover:text-white hover:bg-[#1A1A1E]'
+                      : 'border-[#E5E1D8] text-[#6E6A60] hover:text-black hover:bg-[#F0ECE1]'
+                  }`}
+                >
+                  Maybe Later
+                </button>
+              </div>
+
+              <div className="mt-4 flex items-center justify-center space-x-2 text-[11px] text-[#9E9A90]">
+                <ShieldCheck className="w-3.5 h-3.5 text-[#C9A050]" />
+                <span>256-bit SSL Encrypted • Cancel Anytime</span>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

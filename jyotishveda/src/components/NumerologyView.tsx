@@ -29,12 +29,14 @@ interface NumerologyViewProps {
   profile: UserProfile;
   numerology: NumerologyReport;
   isAuthenticated?: boolean;
+  theme?: 'light' | 'dark';
 }
 
 export const NumerologyView: React.FC<NumerologyViewProps> = ({
   profile,
   numerology,
   isAuthenticated,
+  theme = 'dark',
 }) => {
   const [testName, setTestName] = useState(profile.fullName);
   
@@ -166,7 +168,7 @@ export const NumerologyView: React.FC<NumerologyViewProps> = ({
       let yPos = 33;
 
       // 1. Client & Core Numerological Particulars Box
-      doc.setFillColor(252, 249, 242);
+      doc.setFillColor(255, 255, 255);
       doc.setDrawColor(226, 211, 176);
       doc.setLineWidth(0.4);
       doc.roundedRect(13, yPos, pageWidth - 26, 24, 2, 2, 'FD');
@@ -210,7 +212,7 @@ export const NumerologyView: React.FC<NumerologyViewProps> = ({
       yPos += 32;
 
       // 2. Mulank & Bhagyank Synthesis Deep Dive
-      doc.setFillColor(252, 249, 242);
+      doc.setFillColor(255, 255, 255);
       doc.setDrawColor(201, 160, 80);
       doc.setLineWidth(0.4);
 
@@ -287,7 +289,7 @@ export const NumerologyView: React.FC<NumerologyViewProps> = ({
       const loShuBoxH = 118;
 
       // Left Box: Lo Shu 3x3 Magic Grid Drawing
-      doc.setFillColor(252, 249, 242);
+      doc.setFillColor(255, 255, 255);
       doc.setDrawColor(201, 160, 80);
       doc.setLineWidth(0.4);
       doc.roundedRect(13, yPos, halfW, loShuBoxH, 1.5, 1.5, 'FD');
@@ -320,7 +322,7 @@ export const NumerologyView: React.FC<NumerologyViewProps> = ({
           const count = activeNumerology.loShuGrid?.[num] || 0;
           const isPresent = count > 0;
 
-          doc.setFillColor(isPresent ? 245 : 255, isPresent ? 236 : 252, isPresent ? 215 : 248);
+          doc.setFillColor(255, 255, 255);
           doc.setDrawColor(isPresent ? 201 : 230, isPresent ? 160 : 225, isPresent ? 80 : 215);
           doc.setLineWidth(isPresent ? 0.4 : 0.2);
           doc.roundedRect(cellX, cellY, cellSize - 1.5, cellSize - 2.5, 1, 1, 'FD');
@@ -348,7 +350,7 @@ export const NumerologyView: React.FC<NumerologyViewProps> = ({
 
       // Right Box: 8 Lo Shu Planes Assessment
       const rightBoxX = 13 + halfW + 4;
-      doc.setFillColor(252, 249, 242);
+      doc.setFillColor(255, 255, 255);
       doc.setDrawColor(201, 160, 80);
       doc.setLineWidth(0.4);
       doc.roundedRect(rightBoxX, yPos, halfW, loShuBoxH, 1.5, 1.5, 'FD');
@@ -361,7 +363,7 @@ export const NumerologyView: React.FC<NumerologyViewProps> = ({
       if (activeNumerology.loShuPlanes && activeNumerology.loShuPlanes.length > 0) {
         activeNumerology.loShuPlanes.slice(0, 8).forEach((plane, pIdx) => {
           const pY = yPos + 8.5 + pIdx * 13.5;
-          doc.setFillColor(248, 244, 235);
+          doc.setFillColor(255, 255, 255);
           doc.setDrawColor(226, 211, 176);
           doc.setLineWidth(0.15);
           doc.roundedRect(rightBoxX + 3, pY, halfW - 6, 12.5, 0.8, 0.8, 'FD');
@@ -371,10 +373,9 @@ export const NumerologyView: React.FC<NumerologyViewProps> = ({
           doc.setTextColor(126, 95, 24);
           doc.text(plane.name, rightBoxX + 5, pY + 4);
 
-          // Status Badge
+          // Status Badge in UI gold / neutral slate
           let statusCol = [181, 131, 40];
-          if (plane.status === 'Strong') statusCol = [34, 139, 34];
-          if (plane.status === 'Empty' || plane.status === 'Weak') statusCol = [178, 34, 34];
+          if (plane.status === 'Empty' || plane.status === 'Weak') statusCol = [100, 95, 85];
 
           doc.setTextColor(statusCol[0], statusCol[1], statusCol[2]);
           doc.setFontSize(5.8);
@@ -397,7 +398,7 @@ export const NumerologyView: React.FC<NumerologyViewProps> = ({
       const displayMissingNums = missingNums.length > 0 ? Math.min(missingNums.length, 5) : 0;
       const missingBoxHeight = displayMissingNums > 0 ? (12 + displayMissingNums * 10) : 18;
 
-      doc.setFillColor(254, 252, 247);
+      doc.setFillColor(255, 255, 255);
       doc.setDrawColor(201, 160, 80);
       doc.setLineWidth(0.4);
       doc.roundedRect(13, yPos, pageWidth - 26, missingBoxHeight, 1.5, 1.5, 'FD');
@@ -426,7 +427,7 @@ export const NumerologyView: React.FC<NumerologyViewProps> = ({
 
           doc.setFont('helvetica', 'bold');
           doc.setFontSize(7.2);
-          doc.setTextColor(178, 34, 34);
+          doc.setTextColor(181, 131, 40);
           doc.text(`• Missing Number ${num} [${info.element}]:`, 17, mY);
 
           doc.setFont('helvetica', 'normal');
@@ -437,7 +438,7 @@ export const NumerologyView: React.FC<NumerologyViewProps> = ({
       } else {
         doc.setFont('helvetica', 'normal');
         doc.setFontSize(7);
-        doc.setTextColor(34, 139, 34);
+        doc.setTextColor(181, 131, 40);
         doc.text('All nine Lo Shu digits are activated in your birth blueprint. Golden vibrational harmony established.', 17, yPos + 12);
       }
 
@@ -456,7 +457,7 @@ export const NumerologyView: React.FC<NumerologyViewProps> = ({
       const lettersRows = Math.ceil(pdfCleanName.length / ((pageWidth - 34) / 7)) || 1;
       const chaldeanBoxHeight = 40 + (lettersRows * 10) + (chaldeanRecs.length * 5);
 
-      doc.setFillColor(252, 249, 242);
+      doc.setFillColor(255, 255, 255);
       doc.setDrawColor(201, 160, 80);
       doc.setLineWidth(0.4);
       doc.roundedRect(13, yPos, pageWidth - 26, chaldeanBoxHeight, 1.5, 1.5, 'FD');
@@ -479,7 +480,7 @@ export const NumerologyView: React.FC<NumerologyViewProps> = ({
              lx = 17;
              ly += 10;
          }
-         doc.setFillColor(248, 245, 237);
+         doc.setFillColor(255, 255, 255);
          doc.setDrawColor(226, 211, 176);
          doc.setLineWidth(0.2);
          doc.roundedRect(lx, ly, 6, 8, 0.5, 0.5, 'FD');
@@ -525,7 +526,7 @@ export const NumerologyView: React.FC<NumerologyViewProps> = ({
         ? `Highly favorable vibration ${pdfChaldeanSingleStr}. Resonates strongly with commercial prosperity, leadership respect, and smooth financial transactions.`
         : `Vibration ${pdfChaldeanSingleStr} requires conscious balancing or a slight single-letter adjustment to align with Mercury (5) or Venus (6).`;
 
-      doc.setFillColor(248, 244, 235);
+      doc.setFillColor(255, 255, 255);
       doc.setDrawColor(226, 211, 176);
       doc.roundedRect(17, nextY, pageWidth - 34, 11, 1, 1, 'FD');
       
@@ -560,7 +561,7 @@ export const NumerologyView: React.FC<NumerologyViewProps> = ({
 
       // 6. Auspicious Correspondences & Numerology Upayas
       const correspondsBoxHeight = 34;
-      doc.setFillColor(254, 252, 247);
+      doc.setFillColor(255, 255, 255);
       doc.setDrawColor(201, 160, 80);
       doc.setLineWidth(0.4);
       doc.roundedRect(13, yPos, pageWidth - 26, correspondsBoxHeight, 1.5, 1.5, 'FD');
@@ -595,7 +596,7 @@ export const NumerologyView: React.FC<NumerologyViewProps> = ({
         const visibleAiLines = aiLines.slice(0, 15);
         const aiBoxHeight = 14 + (visibleAiLines.length * 4.0);
         
-        doc.setFillColor(250, 247, 240);
+        doc.setFillColor(255, 255, 255);
         doc.setDrawColor(201, 160, 80);
         doc.setLineWidth(0.4);
         doc.roundedRect(13, yPos, pageWidth - 26, aiBoxHeight, 1.5, 1.5, 'FD');
@@ -603,7 +604,7 @@ export const NumerologyView: React.FC<NumerologyViewProps> = ({
         doc.setFont('helvetica', 'bold');
         doc.setFontSize(8);
         doc.setTextColor(126, 95, 24);
-        doc.text('AI NUMEROLOGICAL LIFE BLUEPRINT & SUTRA SYNTHESIS', 17, yPos + 5);
+        doc.text('NUMEROLOGICAL LIFE BLUEPRINT & SUTRA SYNTHESIS', 17, yPos + 5);
 
         doc.setFont('helvetica', 'normal');
         doc.setFontSize(7.5);
@@ -751,7 +752,11 @@ export const NumerologyView: React.FC<NumerologyViewProps> = ({
             <button
               onClick={handleDownloadNumerologyPdf}
               disabled={isGeneratingPdf}
-              className="flex items-center justify-center space-x-2 px-4 py-2.5 rounded-xl border text-xs font-bold transition shadow-lg cursor-pointer bg-gradient-to-r from-[#C9A050] to-[#A07828] hover:from-[#D4AF37] hover:to-[#B38730] text-[#0D0D0F] border-[#C9A050] shadow-[#C9A050]/20 shrink-0 disabled:opacity-50"
+              className={`flex items-center justify-center space-x-2 px-4 py-3 rounded-xl border text-xs font-bold transition shadow-lg cursor-pointer shrink-0 ${
+                theme === 'dark'
+                  ? 'bg-gradient-to-r from-[#C9A050] to-[#A07828] hover:from-[#D4AF37] hover:to-[#B38730] text-[#0D0D0F] border-[#C9A050] shadow-[#C9A050]/20'
+                  : 'bg-[#C9A050] hover:bg-[#B38730] text-white border-[#C9A050] shadow-[#C9A050]/20'
+              } disabled:opacity-50`}
               title="Download full Numerology & Lo Shu magic grid PDF report"
             >
               {isGeneratingPdf ? (

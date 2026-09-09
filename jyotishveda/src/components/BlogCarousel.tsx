@@ -97,66 +97,81 @@ export const BlogCarousel: React.FC<BlogCarouselProps> = ({ theme, onSelectBlog,
               (blog.content ? blog.content.replace(/<[^>]*>?/gm, '').substring(0, 110) + '...' : '');
 
             return (
-              <div 
-                key={`${blog.id}-${idx}`}
-                onClick={() => {
-                  if (onSelectBlog) onSelectBlog(blog);
-                  else if (onViewAll) onViewAll();
-                }}
-                className={`shrink-0 w-[320px] md:w-[380px] rounded-[2rem] overflow-hidden flex flex-col cursor-pointer transition-all hover:-translate-y-2 duration-300 shadow-xl border ${
-                  isDark 
-                    ? 'bg-[#18181C] border-[#2A2A2E] shadow-black/40 hover:border-[#C9A050]/50' 
-                    : 'bg-[#FFFFFF] border-[#E5E1D8] shadow-amber-900/5 hover:border-[#C9A050]'
-                }`}
-              >
-                <div className="relative h-[220px] w-full overflow-hidden bg-black/20">
-                  <img 
-                    src={blog.image_url || '/blog_1.jpg'} 
-                    alt={blog.title} 
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).src = '/blog_1.jpg';
-                    }}
-                    className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 hover:scale-105"
-                  />
-                  <div className={`absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t ${isDark ? 'from-[#18181C]' : 'from-white'} to-transparent opacity-90 pointer-events-none`}></div>
-                  {blog.pinned === 1 && (
-                    <span className="absolute top-4 right-4 px-2.5 py-1 rounded-full bg-[#C9A050] text-[#0D0D0F] text-[10px] font-bold uppercase tracking-wider shadow-lg">
-                      Featured
-                    </span>
-                  )}
-                </div>
-                
-                <div className="p-6 md:p-7 flex-1 flex flex-col">
-                  <div className="flex items-center space-x-2 mb-3 flex-wrap gap-y-1">
-                    <span className={`text-[10px] font-bold uppercase tracking-[0.18em] ${isDark ? 'text-[#C9A050]' : 'text-amber-700'}`}>
-                      {blog.category || 'VEDIC ASTROLOGY'}
-                    </span>
-                    <span className={`text-[10px] ${isDark ? 'text-[#50505A]' : 'text-gray-300'}`}>•</span>
-                    <span className={`text-[9px] font-medium uppercase tracking-wider truncate max-w-[170px] ${isDark ? 'text-[#9E9A90]' : 'text-gray-500'}`}>
-                      {tagString}
-                    </span>
-                  </div>
-
-                  <h4 className={`text-lg md:text-xl font-semibold mb-3 leading-snug line-clamp-2 ${isDark ? 'text-[#F0ECE1]' : 'text-[#0D0D0F]'}`}>
-                    {blog.title}
-                  </h4>
-                  
-                  <p className={`text-xs md:text-sm leading-relaxed line-clamp-3 mb-4 mt-auto ${isDark ? 'text-[#9E9A90]' : 'text-gray-600'}`}>
-                    {cleanExcerpt}
-                  </p>
-
-                  <div className="pt-2 border-t border-white/5 flex items-center justify-between text-xs font-semibold">
-                    <span className={isDark ? 'text-[#C9A050]' : 'text-amber-700'}>
-                      Read Article →
-                    </span>
-                    {blog.created_at && (
-                      <span className={`text-[11px] font-normal ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
-                        {new Date(blog.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                <div 
+                  key={`${blog.id}-${idx}`}
+                  onClick={() => {
+                    if (onSelectBlog) onSelectBlog(blog);
+                    else if (onViewAll) onViewAll();
+                  }}
+                  style={{
+                    backgroundColor: isDark ? '#141418' : '#FFFFFF',
+                  }}
+                  className={`shrink-0 w-[320px] md:w-[380px] rounded-[2rem] overflow-hidden flex flex-col cursor-pointer transition-all hover:-translate-y-2 duration-300 shadow-xl border group ${
+                    isDark 
+                      ? 'bg-[#141418] border-[#2A2A2E] shadow-black/60 hover:border-[#C9A050]/60' 
+                      : 'bg-white border-[#E2D9C8] shadow-amber-900/10 hover:border-[#C9A050]'
+                  }`}
+                >
+                  <div className="relative h-[220px] w-full overflow-hidden bg-black/20">
+                    <img 
+                      src={blog.image_url || '/blog_1.jpg'} 
+                      alt={blog.title} 
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src = '/blog_1.jpg';
+                      }}
+                      className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                    />
+                    {blog.pinned === 1 && (
+                      <span className="absolute top-4 right-4 px-2.5 py-1 rounded-full bg-[#C9A050] text-[#0D0D0F] text-[10px] font-bold uppercase tracking-wider shadow-lg">
+                        Featured
                       </span>
                     )}
                   </div>
+                  
+                  <div 
+                    style={{
+                      backgroundColor: isDark ? '#141418' : '#FFFFFF',
+                    }}
+                    className={`p-6 md:p-7 flex-1 flex flex-col ${isDark ? 'bg-[#141418]' : 'bg-white'}`}
+                  >
+                    <div className="flex items-center space-x-2 mb-3 flex-wrap gap-y-1">
+                      <span className={`text-[11px] font-extrabold uppercase tracking-[0.18em] ${isDark ? 'text-[#C9A050]' : 'text-black'}`}>
+                        {blog.category || 'VEDIC ASTROLOGY'}
+                      </span>
+                      <span className={`text-[10px] ${isDark ? 'text-[#50505A]' : 'text-gray-600'}`}>•</span>
+                      <span className={`text-[11px] font-bold uppercase tracking-wider truncate max-w-[170px] ${isDark ? 'text-[#9E9A90]' : 'text-gray-900'}`}>
+                        {tagString}
+                      </span>
+                    </div>
+
+                    <h4 className={`text-lg md:text-xl font-serif font-bold mb-3 leading-snug line-clamp-2 ${
+                      isDark ? 'text-[#F0ECE1]' : 'text-black'
+                    }`}>
+                      {blog.title}
+                    </h4>
+                    
+                    <p className={`text-xs md:text-sm leading-relaxed line-clamp-3 mb-4 mt-auto ${
+                      isDark ? 'text-[#D0CCC2] font-normal' : 'text-gray-950 font-medium'
+                    }`}>
+                      {cleanExcerpt}
+                    </p>
+
+                    <div className={`pt-3 border-t flex items-center justify-between text-xs font-semibold ${
+                      isDark ? 'border-white/10' : 'border-gray-200'
+                    }`}>
+                      <span className={`font-black uppercase tracking-wider ${
+                        isDark ? 'text-[#C9A050]' : 'text-black'
+                      }`}>
+                        Read Article →
+                      </span>
+                      {blog.created_at && (
+                        <span className={`text-[11px] font-bold ${isDark ? 'text-gray-400' : 'text-gray-900'}`}>
+                          {new Date(blog.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                        </span>
+                      )}
+                    </div>
+                  </div>
                 </div>
-              </div>
             );
           })}
         </div>

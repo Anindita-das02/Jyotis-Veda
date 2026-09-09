@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Clock, ChevronDown, Check, X, Sparkles, Sun, Moon } from 'lucide-react';
+import { Clock, ChevronDown, Check, X, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
 interface VedicTimePickerProps {
@@ -84,7 +84,7 @@ export const VedicTimePicker: React.FC<VedicTimePickerProps> = ({
   onChange,
   disabled = false,
   theme = 'dark',
-  placeholder = 'HH:MM (e.g. 10:30)',
+  placeholder = 'HH:MM',
   className = '',
   id,
 }) => {
@@ -236,10 +236,10 @@ export const VedicTimePicker: React.FC<VedicTimePickerProps> = ({
     <div ref={containerRef} className={`relative ${className}`} id={id}>
       {/* Time Input Bar with Integrated AM/PM Toggle */}
       <div
-        className={`w-full rounded-lg border flex items-center transition ${
+        className={`w-full rounded-xl border flex items-center transition ${
           theme === 'dark'
             ? 'bg-[#141418] border-[#2A2A2E] text-[#E5E1D8] focus-within:border-[#C9A050]'
-            : 'bg-[#FFFDF7] border-[#DECFA6] text-[#1E1B15] focus-within:border-[#C9A050]'
+            : 'bg-white border-[#E5E1D8] text-[#0D0D0F] focus-within:border-[#C9A050]'
         } ${isOpen ? 'border-[#C9A050] ring-1 ring-[#C9A050]/30' : ''} ${
           disabled ? 'opacity-60 cursor-not-allowed' : ''
         }`}
@@ -271,61 +271,20 @@ export const VedicTimePicker: React.FC<VedicTimePickerProps> = ({
           className="w-full py-2 text-sm bg-transparent outline-none tracking-wide placeholder:opacity-40"
         />
 
-        {/* AM / PM Quick Toggle Segmented Buttons */}
-        <div className={`flex items-center space-x-0.5 p-0.5 rounded-lg border mr-1.5 shrink-0 select-none ${
-          theme === 'dark' ? 'bg-[#1C1C22] border-[#2A2A2E]' : 'bg-[#FAF2DA] border-[#DFC896]'
-        }`}>
-          <button
-            type="button"
-            disabled={disabled}
-            onClick={() => handleAmPmToggle('AM')}
-            className={`px-2 py-0.5 rounded-md text-[11px] font-bold tracking-wider transition cursor-pointer ${
-              ampm === 'AM'
-                ? theme === 'dark'
-                  ? 'bg-[#C9A050] text-[#0D0D0F] shadow-sm shadow-[#C9A050]/30 scale-105'
-                  : 'bg-[#FDE68A] text-[#5C4505] border border-[#DECFA6] shadow-sm scale-105'
-                : theme === 'dark'
-                ? 'text-[#9E9A90] hover:text-[#C9A050]'
-                : 'text-[#8A795D] hover:text-[#5C4505]'
-            }`}
-          >
-            AM
-          </button>
-          <button
-            type="button"
-            disabled={disabled}
-            onClick={() => handleAmPmToggle('PM')}
-            className={`px-2 py-0.5 rounded-md text-[11px] font-bold tracking-wider transition cursor-pointer ${
-              ampm === 'PM'
-                ? theme === 'dark'
-                  ? 'bg-[#C9A050] text-[#0D0D0F] shadow-sm shadow-[#C9A050]/30 scale-105'
-                  : 'bg-[#FDE68A] text-[#5C4505] border border-[#DECFA6] shadow-sm scale-105'
-                : theme === 'dark'
-                ? 'text-[#9E9A90] hover:text-[#C9A050]'
-                : 'text-[#8A795D] hover:text-[#5C4505]'
-            }`}
-          >
-            PM
-          </button>
-        </div>
-
-        {/* Dropdown Chevron */}
-        <div className="flex items-center pr-2.5 shrink-0">
-          <button
-            type="button"
-            disabled={disabled}
-            onClick={() => {
-              if (!disabled) setIsOpen(!isOpen);
-            }}
-            className="p-1 text-gray-400 hover:text-[#C9A050] transition cursor-pointer"
-          >
-            <ChevronDown
-              className={`w-4 h-4 transition-transform duration-200 ${
-                isOpen ? 'rotate-180 text-[#C9A050]' : ''
-              }`}
-            />
-          </button>
-        </div>
+        {/* Single AM/PM Toggle Button */}
+        <button
+          type="button"
+          disabled={disabled}
+          onClick={() => handleAmPmToggle(ampm === 'AM' ? 'PM' : 'AM')}
+          className={`px-3 py-1 rounded-lg text-xs font-bold font-sans tracking-wider mr-2 shrink-0 transition cursor-pointer select-none border ${
+            theme === 'dark'
+              ? 'bg-[#C9A050]/20 text-[#C9A050] border-[#C9A050]/50 hover:bg-[#C9A050]/30 shadow-sm'
+              : 'bg-[#C9A050]/20 text-[#0D0D0F] border-[#C9A050]/40 hover:bg-[#C9A050]/30 shadow-sm'
+          }`}
+          title={`Click to switch to ${ampm === 'AM' ? 'PM' : 'AM'}`}
+        >
+          {ampm}
+        </button>
       </div>
 
       {/* Floating Vedic Astrological Time Picker Popover */}
@@ -341,7 +300,7 @@ export const VedicTimePicker: React.FC<VedicTimePickerProps> = ({
             } z-50 w-72 sm:w-80 rounded-2xl border shadow-2xl p-4 overflow-hidden backdrop-blur-md ${
               theme === 'dark'
                 ? 'bg-[#141418] border-[#C9A050]/40 shadow-black/80'
-                : 'bg-gradient-to-b from-[#FAF4E4] to-[#F5EACB] border-[#DFC896] shadow-[#C9A050]/15 text-[#1E1B15]'
+                : 'bg-white border-[#E5E1D8] shadow-2xl text-[#0D0D0F]'
             }`}
           >
             {/* Header: Selected Time Display & Large AM/PM Switcher */}
@@ -355,43 +314,19 @@ export const VedicTimePicker: React.FC<VedicTimePickerProps> = ({
                 </span>
               </div>
 
-              {/* AM / PM Segmented Switcher in Popover */}
-              <div className={`flex items-center p-0.5 rounded-xl border ${
-                theme === 'dark' ? 'bg-[#1C1C22] border-[#2A2A2E]' : 'bg-[#FAF2DA] border-[#DFC896]'
-              }`}>
-                <button
-                  type="button"
-                  onClick={() => handleAmPmToggle('AM')}
-                  className={`px-3 py-1 rounded-lg text-xs font-bold transition flex items-center space-x-1 cursor-pointer ${
-                    ampm === 'AM'
-                      ? theme === 'dark'
-                        ? 'bg-[#C9A050] text-[#0D0D0F] shadow-md shadow-[#C9A050]/30'
-                        : 'bg-[#FDE68A] text-[#5C4505] border border-[#DFC896] shadow-sm'
-                      : theme === 'dark'
-                      ? 'text-[#9E9A90] hover:text-[#C9A050]'
-                      : 'text-[#8A795D] hover:text-[#5C4505]'
-                  }`}
-                >
-                  <Sun className="w-3 h-3" />
-                  <span>AM</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleAmPmToggle('PM')}
-                  className={`px-3 py-1 rounded-lg text-xs font-bold transition flex items-center space-x-1 cursor-pointer ${
-                    ampm === 'PM'
-                      ? theme === 'dark'
-                        ? 'bg-[#C9A050] text-[#0D0D0F] shadow-md shadow-[#C9A050]/30'
-                        : 'bg-[#FDE68A] text-[#5C4505] border border-[#DFC896] shadow-sm'
-                      : theme === 'dark'
-                      ? 'text-[#9E9A90] hover:text-[#C9A050]'
-                      : 'text-[#8A795D] hover:text-[#5C4505]'
-                  }`}
-                >
-                  <Moon className="w-3 h-3" />
-                  <span>PM</span>
-                </button>
-              </div>
+              {/* Single AM / PM Switcher in Popover */}
+              <button
+                type="button"
+                onClick={() => handleAmPmToggle(ampm === 'AM' ? 'PM' : 'AM')}
+                className={`px-3 py-1 rounded-xl text-xs font-bold font-sans transition cursor-pointer border ${
+                  theme === 'dark'
+                    ? 'bg-[#C9A050] text-[#0D0D0F] border-[#C9A050] shadow-md shadow-[#C9A050]/30 hover:bg-[#D4AF37]'
+                    : 'bg-[#C9A050] text-[#0D0D0F] border-[#C9A050] shadow-sm hover:bg-[#D4AF37]'
+                }`}
+                title={`Click to switch to ${ampm === 'AM' ? 'PM' : 'AM'}`}
+              >
+                {ampm}
+              </button>
             </div>
 
             {/* Hour Selector (1 - 12) */}
@@ -411,10 +346,10 @@ export const VedicTimePicker: React.FC<VedicTimePickerProps> = ({
                         isSelected
                           ? theme === 'dark'
                             ? 'bg-[#C9A050] text-[#0D0D0F] shadow-md shadow-[#C9A050]/40 scale-105'
-                            : 'bg-[#FDE68A] text-[#5C4505] font-bold border border-[#DECFA6] shadow-sm scale-105'
+                            : 'bg-[#C9A050] text-[#0D0D0F] font-bold shadow-md shadow-[#C9A050]/30 scale-105'
                           : theme === 'dark'
                           ? 'bg-[#1C1C22] border border-[#2A2A2E] text-[#E5E1D8] hover:border-[#C9A050] hover:text-[#C9A050]'
-                          : 'bg-[#FFFDF7] border border-[#DECFA6] text-[#1E1B15] hover:border-[#C9A050] hover:bg-[#FAF1D6]'
+                          : 'bg-[#F9F7F1] border border-[#E5E1D8] text-[#0D0D0F] hover:border-[#C9A050] hover:bg-[#F0ECE1]'
                       }`}
                     >
                       {String(h).padStart(2, '0')}
@@ -438,7 +373,7 @@ export const VedicTimePicker: React.FC<VedicTimePickerProps> = ({
                     className={`w-6 h-6 rounded-md font-bold text-xs flex items-center justify-center transition border cursor-pointer ${
                       theme === 'dark'
                         ? 'bg-[#1C1C22] border-[#2A2A2E] text-[#E5E1D8] hover:border-[#C9A050] hover:text-[#C9A050]'
-                        : 'bg-[#FFFDF7] border-[#DECFA6] text-[#1E1B15] hover:border-[#C9A050] hover:bg-[#FAF1D6]'
+                        : 'bg-[#F9F7F1] border-[#E5E1D8] text-[#0D0D0F] hover:border-[#C9A050] hover:bg-[#F0ECE1]'
                     }`}
                     title="Decrement 1 minute"
                   >
@@ -453,7 +388,7 @@ export const VedicTimePicker: React.FC<VedicTimePickerProps> = ({
                     className={`w-6 h-6 rounded-md font-bold text-xs flex items-center justify-center transition border cursor-pointer ${
                       theme === 'dark'
                         ? 'bg-[#1C1C22] border-[#2A2A2E] text-[#E5E1D8] hover:border-[#C9A050] hover:text-[#C9A050]'
-                        : 'bg-[#FFFDF7] border-[#DECFA6] text-[#1E1B15] hover:border-[#C9A050] hover:bg-[#FAF1D6]'
+                        : 'bg-[#F9F7F1] border-[#E5E1D8] text-[#0D0D0F] hover:border-[#C9A050] hover:bg-[#F0ECE1]'
                     }`}
                     title="Increment 1 minute"
                   >
@@ -487,10 +422,10 @@ export const VedicTimePicker: React.FC<VedicTimePickerProps> = ({
                         isSelected
                           ? theme === 'dark'
                             ? 'bg-[#C9A050] text-[#0D0D0F] font-bold shadow-md shadow-[#C9A050]/40 scale-105'
-                            : 'bg-[#FDE68A] text-[#5C4505] font-bold border border-[#DECFA6] shadow-sm scale-105'
+                            : 'bg-[#C9A050] text-[#0D0D0F] font-bold shadow-md shadow-[#C9A050]/30 scale-105'
                           : theme === 'dark'
                           ? 'bg-[#1C1C22] border border-[#2A2A2E] text-[#E5E1D8] hover:border-[#C9A050] hover:text-[#C9A050]'
-                          : 'bg-[#FFFDF7] border border-[#DECFA6] text-[#1E1B15] hover:border-[#C9A050] hover:bg-[#FAF1D6]'
+                          : 'bg-[#F9F7F1] border border-[#E5E1D8] text-[#0D0D0F] hover:border-[#C9A050] hover:bg-[#F0ECE1]'
                       }`}
                     >
                       :{String(m).padStart(2, '0')}

@@ -61,10 +61,10 @@ export const AdminLogsView: React.FC<AdminLogsViewProps> = ({ theme }) => {
         <div>
           <h2 className="text-xl font-serif font-bold tracking-wide flex items-center gap-2">
             <Terminal className="w-5 h-5 text-[#C9A050]" />
-            System &amp; AI <span className="text-[#C9A050]">Logs</span>
+            System &amp; Engine <span className="text-[#C9A050]">Logs</span>
           </h2>
           <p className={`mt-0.5 text-xs ${textMutedClass}`}>
-            Audit trail of AI oracle interactions and backend system errors.
+            Audit trail of oracle interactions and backend system errors.
           </p>
         </div>
       </div>
@@ -76,7 +76,7 @@ export const AdminLogsView: React.FC<AdminLogsViewProps> = ({ theme }) => {
           className={`pb-2.5 px-1 font-medium transition-colors ${activeSubTab === 'ai' ? 'text-[#C9A050] border-b-2 border-[#C9A050] font-bold' : textMutedClass}`}
         >
           <div className="flex items-center gap-1.5">
-            <Bot className="w-4 h-4" /> AI Oracle Consultations
+            <Bot className="w-4 h-4" /> Oracle Consultations
           </div>
         </button>
         <button
@@ -97,7 +97,7 @@ export const AdminLogsView: React.FC<AdminLogsViewProps> = ({ theme }) => {
         ) : activeSubTab === 'ai' ? (
           <div className="divide-y divide-[#2A2A2E]/30 overflow-y-auto max-h-[calc(100vh-320px)] min-h-[160px] custom-scrollbar">
             {aiLogs.length === 0 ? (
-              <div className={`p-8 text-center text-xs ${textMutedClass}`}>No AI logs found.</div>
+              <div className={`p-8 text-center text-xs ${textMutedClass}`}>No engine logs found.</div>
             ) : (
               aiLogs.map((log, idx) => (
                 <div key={idx} className="p-4 hover:bg-black/5 dark:hover:bg-white/5 transition-colors">

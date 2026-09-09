@@ -267,10 +267,10 @@ export const VedicDatePicker: React.FC<VedicDatePickerProps> = ({
     <div ref={containerRef} className={`relative ${className}`} id={id}>
       {/* Input Field: Supports direct typing AND clicking calendar */}
       <div
-        className={`w-full rounded-lg border flex items-center transition ${
+        className={`w-full rounded-xl border flex items-center transition ${
           theme === 'dark'
             ? 'bg-[#141418] border-[#2A2A2E] text-[#E5E1D8] focus-within:border-[#C9A050]'
-            : 'bg-[#FFFDF7] border-[#DECFA6] text-[#1E1B15] focus-within:border-[#C9A050]'
+            : 'bg-white border-[#E5E1D8] text-[#0D0D0F] focus-within:border-[#C9A050]'
         } ${isOpen ? 'border-[#C9A050] ring-1 ring-[#C9A050]/30' : ''} ${
           disabled ? 'opacity-60 cursor-not-allowed' : ''
         }`}
@@ -335,7 +335,7 @@ export const VedicDatePicker: React.FC<VedicDatePickerProps> = ({
             } z-50 w-72 sm:w-80 rounded-2xl border shadow-2xl p-4 overflow-hidden backdrop-blur-md ${
               theme === 'dark'
                 ? 'bg-[#141418] border-[#C9A050]/40 shadow-black/80'
-                : 'bg-gradient-to-b from-[#FAF4E4] to-[#F5EACB] border-[#DFC896] shadow-[#C9A050]/15 text-[#1E1B15]'
+                : 'bg-white border-[#E5E1D8] shadow-2xl text-[#0D0D0F]'
             }`}
           >
             {/* Header: Month / Year / Navigators */}
@@ -349,7 +349,7 @@ export const VedicDatePicker: React.FC<VedicDatePickerProps> = ({
                       className={`px-2.5 py-1 rounded-lg text-xs font-bold font-serif transition flex items-center space-x-1 cursor-pointer ${
                         theme === 'dark'
                           ? 'bg-[#1F1F24] hover:bg-[#C9A050]/20 text-[#F0ECE1]'
-                          : 'bg-[#FFFDF7] hover:bg-[#C9A050]/20 text-[#1E1B15] border border-[#DECFA6]'
+                          : 'bg-[#F9F7F1] hover:bg-[#F0ECE1] text-[#0D0D0F] border border-[#E5E1D8]'
                       }`}
                     >
                       <span>{MONTHS[viewMonth]}</span>
@@ -365,7 +365,7 @@ export const VedicDatePicker: React.FC<VedicDatePickerProps> = ({
                       className={`px-2.5 py-1 rounded-lg text-xs font-bold font-mono transition flex items-center space-x-1 cursor-pointer ${
                         theme === 'dark'
                           ? 'bg-[#1F1F24] hover:bg-[#C9A050]/20 text-[#F0ECE1]'
-                          : 'bg-[#FFFDF7] hover:bg-[#C9A050]/20 text-[#1E1B15] border border-[#DECFA6]'
+                          : 'bg-[#F9F7F1] hover:bg-[#F0ECE1] text-[#0D0D0F] border border-[#E5E1D8]'
                       }`}
                     >
                       <span>{viewYear}</span>
@@ -395,7 +395,7 @@ export const VedicDatePicker: React.FC<VedicDatePickerProps> = ({
                   className={`p-1.5 rounded-lg border transition cursor-pointer ${
                     theme === 'dark'
                       ? 'bg-[#1A1A1E] border-[#2A2A2E] text-gray-300 hover:text-[#C9A050] hover:border-[#C9A050]/50'
-                      : 'bg-[#FFFDF7] border-[#DECFA6] text-[#423C32] hover:text-[#1E1B15] hover:border-[#C9A050]'
+                      : 'bg-[#F9F7F1] border-[#E5E1D8] text-[#544B3D] hover:text-[#0D0D0F] hover:border-[#C9A050]'
                   }`}
                   title="Previous"
                 >
@@ -408,7 +408,7 @@ export const VedicDatePicker: React.FC<VedicDatePickerProps> = ({
                   className={`p-1.5 rounded-lg border transition cursor-pointer ${
                     theme === 'dark'
                       ? 'bg-[#1A1A1E] border-[#2A2A2E] text-gray-300 hover:text-[#C9A050] hover:border-[#C9A050]/50'
-                      : 'bg-[#FFFDF7] border-[#DECFA6] text-[#423C32] hover:text-[#1E1B15] hover:border-[#C9A050]'
+                      : 'bg-[#F9F7F1] border-[#E5E1D8] text-[#544B3D] hover:text-[#0D0D0F] hover:border-[#C9A050]'
                   }`}
                   title="Next"
                 >
@@ -426,7 +426,7 @@ export const VedicDatePicker: React.FC<VedicDatePickerProps> = ({
                     <span
                       key={d}
                       className={`text-[11px] font-bold py-1 ${
-                        idx === 0 || idx === 6 ? 'text-[#C9A050]' : theme === 'dark' ? 'text-gray-400' : 'text-[#6E6452]'
+                        idx === 0 || idx === 6 ? 'text-[#C9A050]' : theme === 'dark' ? 'text-gray-400' : 'text-[#544B3D]'
                       }`}
                     >
                       {d}
@@ -474,12 +474,12 @@ export const VedicDatePicker: React.FC<VedicDatePickerProps> = ({
                         isSelected
                           ? theme === 'dark'
                             ? 'bg-[#C9A050] text-[#0D0D0F] font-bold shadow-md shadow-[#C9A050]/40 scale-105'
-                            : 'bg-[#FDE68A] text-[#5C4505] font-bold border border-[#DFC896] shadow-sm scale-105'
+                            : 'bg-[#C9A050] text-[#0D0D0F] font-bold shadow-md shadow-[#C9A050]/30 scale-105'
                           : isToday
                           ? 'border border-[#C9A050] text-[#C9A050] font-bold hover:bg-[#C9A050]/20'
                           : theme === 'dark'
                           ? 'text-[#F0ECE1] hover:bg-[#C9A050]/20 hover:text-[#C9A050]'
-                          : 'text-[#1E1B15] hover:bg-[#C9A050]/25 hover:text-[#1E1B15]'
+                          : 'text-[#0D0D0F] hover:bg-[#F0ECE1] hover:text-[#0D0D0F]'
                       }`}
                       >
                         {dayNum}
@@ -504,10 +504,10 @@ export const VedicDatePicker: React.FC<VedicDatePickerProps> = ({
                       isCurrentMonth
                         ? theme === 'dark'
                           ? 'bg-[#C9A050] text-[#0D0D0F] shadow-md shadow-[#C9A050]/30'
-                          : 'bg-[#FDE68A] text-[#5C4505] border border-[#DFC896] shadow-sm'
+                          : 'bg-[#C9A050] text-[#0D0D0F] shadow-md shadow-[#C9A050]/30'
                         : theme === 'dark'
                         ? 'bg-[#1C1C22] border border-[#2A2A2E] text-[#E5E1D8] hover:border-[#C9A050] hover:text-[#C9A050]'
-                        : 'bg-[#FFFDF7] border border-[#DECFA6] text-[#1E1B15] hover:border-[#C9A050] hover:bg-[#FAF1D6]'
+                        : 'bg-[#F9F7F1] border border-[#E5E1D8] text-[#0D0D0F] hover:border-[#C9A050] hover:bg-[#F0ECE1]'
                     }`}
                     >
                       {mName}
@@ -534,10 +534,10 @@ export const VedicDatePicker: React.FC<VedicDatePickerProps> = ({
                         isCurrentYear
                           ? theme === 'dark'
                             ? 'bg-[#C9A050] text-[#0D0D0F] shadow-md shadow-[#C9A050]/30'
-                            : 'bg-[#FDE68A] text-[#5C4505] border border-[#DFC896] shadow-sm'
+                            : 'bg-[#C9A050] text-[#0D0D0F] shadow-md shadow-[#C9A050]/30'
                           : theme === 'dark'
                           ? 'bg-[#1C1C22] border border-[#2A2A2E] text-[#E5E1D8] hover:border-[#C9A050] hover:text-[#C9A050]'
-                          : 'bg-[#FFFDF7] border border-[#DECFA6] text-[#1E1B15] hover:border-[#C9A050] hover:bg-[#FAF1D6]'
+                          : 'bg-[#F9F7F1] border border-[#E5E1D8] text-[#0D0D0F] hover:border-[#C9A050] hover:bg-[#F0ECE1]'
                       }`}
                       >
                         {yearNum}

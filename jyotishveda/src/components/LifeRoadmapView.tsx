@@ -16,6 +16,7 @@ import {
   Calendar,
   AlertCircle,
   FileText,
+  Loader2,
 } from 'lucide-react';
 import { UserProfile, LifeMilestone, HoroscopeTradition, NumerologyReport } from '../types';
 import { API_ENDPOINTS } from '../config/api_config';
@@ -30,6 +31,7 @@ interface LifeRoadmapViewProps {
   roadmap: LifeMilestone[];
   setRoadmap: React.Dispatch<React.SetStateAction<LifeMilestone[]>>;
   onNavigateToConsultations?: () => void;
+  theme?: 'light' | 'dark';
 }
 
 export const LifeRoadmapView: React.FC<LifeRoadmapViewProps> = ({
@@ -40,20 +42,44 @@ export const LifeRoadmapView: React.FC<LifeRoadmapViewProps> = ({
   roadmap,
   setRoadmap,
   onNavigateToConsultations,
+  theme = 'dark',
 }) => {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedHorizon, setSelectedHorizon] = useState<string>('0-5 Years');
   const [isGenerating, setIsGenerating] = useState(false);
-  const [hasGenerated, setHasGenerated] = useState(false);
+  const [generatedHorizons, setGeneratedHorizons] = useState<Record<string, boolean>>({});
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
   const [loadingText, setLoadingText] = useState<string>('0-5 Years');
 
-  // Ensure roadmap is initialized with full 15 milestones on mount/profile change if partial
+  const getStorageKey = () => `jyotish_roadmap_horizons_${profile?.id || profile?.name || 'user'}_${profile?.birthDate || ''}`;
+
+  // Ensure roadmap is initialized with full 15 milestones on mount/profile change
+  // and restore generated horizons state
   useEffect(() => {
+    if (!profile) return;
+    const key = getStorageKey();
+    try {
+      const cached = localStorage.getItem(key);
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (parsed && typeof parsed === 'object') {
+          if (parsed.generatedHorizons) {
+            setGeneratedHorizons(parsed.generatedHorizons);
+          }
+          if (Array.isArray(parsed.milestones) && parsed.milestones.length > 0) {
+            setRoadmap(parsed.milestones);
+            return;
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('Error reading cached roadmap horizons:', e);
+    }
+
     if (!roadmap || roadmap.length < 15) {
       setRoadmap(generateCustomRoadmap(profile, chartData));
     }
-  }, [profile, chartData]);
+  }, [profile?.name, profile?.birthDate]);
 
   // Helper to load image as base64 DataURL for jsPDF canvas rendering
   const loadImageBase64 = (url: string): Promise<string | null> => {
@@ -91,48 +117,79 @@ export const LifeRoadmapView: React.FC<LifeRoadmapViewProps> = ({
   ];
 
   const horizons = ['0-5 Years', '5-10 Years', '10-15 Years', '15-20 Years', '20-25 Years'];
+  const isCurrentHorizonGenerated = Boolean(generatedHorizons[selectedHorizon]);
 
   const handleGenerateRoadmap = async () => {
+    if (isCurrentHorizonGenerated || isGenerating) return;
+
     setIsGenerating(true);
     const catObj = categories.find((c) => c.id === selectedCategory);
-    setLoadingText(`${catObj ? catObj.label : 'All Life Spheres'} • ${selectedHorizon}`);
+    setLoadingText(`${catObj && catObj.id !== 'all' ? catObj.label + ' • ' : ''}${selectedHorizon}`);
+    
+    let updatedRoadmap = roadmap && roadmap.length >= 15 ? [...roadmap] : generateCustomRoadmap(profile, chartData);
+
     try {
       const data = await api.post<any>(API_ENDPOINTS.ROADMAP.GENERATE, {
         profile,
         tradition,
         chartData,
         numerology,
+        horizon: selectedHorizon,
       });
 
-      if (data && data.milestones && Array.isArray(data.milestones) && data.milestones.length >= 15) {
-        setRoadmap(data.milestones);
-      } else if (data && data.milestones && Array.isArray(data.milestones) && data.milestones.length > 0) {
-        // Merge AI milestones with default 15-milestone structure
-        const customRoadmap = generateCustomRoadmap(profile, chartData);
-        const merged = customRoadmap.map((defaultItem) => {
-          const matched = data.milestones.find(
-            (m: any) => m.timeframe === defaultItem.timeframe && m.category === defaultItem.category
-          );
-          return matched ? { ...defaultItem, ...matched } : defaultItem;
-        });
-        setRoadmap(merged);
-      } else {
-        setRoadmap(generateCustomRoadmap(profile, chartData));
+      if (data && data.milestones && Array.isArray(data.milestones) && data.milestones.length > 0) {
+        // Merge generated AI milestones for the selected horizon
+        const generatedForHorizon = data.milestones.filter((m: any) => m.timeframe === selectedHorizon);
+        if (generatedForHorizon.length > 0) {
+          updatedRoadmap = updatedRoadmap.map((item) => {
+            if (item.timeframe === selectedHorizon) {
+              const matched = generatedForHorizon.find((m: any) => m.category === item.category);
+              return matched ? { ...item, ...matched } : item;
+            }
+            return item;
+          });
+        } else {
+          updatedRoadmap = updatedRoadmap.map((item) => {
+            if (item.timeframe === selectedHorizon) {
+              const matched = data.milestones.find((m: any) => m.category === item.category);
+              return matched ? { ...item, ...matched } : item;
+            }
+            return item;
+          });
+        }
       }
     } catch (e) {
       console.warn('Roadmap AI generation fallback:', e);
-      setRoadmap(generateCustomRoadmap(profile, chartData));
     } finally {
+      const nextGeneratedHorizons = {
+        ...generatedHorizons,
+        [selectedHorizon]: true,
+      };
+      setGeneratedHorizons(nextGeneratedHorizons);
+      setRoadmap(updatedRoadmap);
+
+      try {
+        localStorage.setItem(
+          getStorageKey(),
+          JSON.stringify({
+            generatedHorizons: nextGeneratedHorizons,
+            milestones: updatedRoadmap,
+          })
+        );
+      } catch (storageErr) {
+        console.warn('Could not cache roadmap to localStorage:', storageErr);
+      }
+
       setTimeout(() => {
         setIsGenerating(false);
-        setHasGenerated(true);
       }, 700);
     }
   };
 
   const isMilestoneLocked = (item: LifeMilestone): boolean => {
-    const tf = item.timeframe;
-    const cat = item.category;
+    if (!item) return false;
+    const tf = item.timeframe || '';
+    const cat = item.category || '';
 
     // 0-5 Years: All categories are OPEN
     if (tf === '0-5 Years' || tf === '0-12 Months' || tf === '1-3 Years') {
@@ -176,16 +233,21 @@ export const LifeRoadmapView: React.FC<LifeRoadmapViewProps> = ({
       case 'Career':
         return 'Career & Executive';
       default:
-        return cat;
+        return cat || '';
     }
   };
 
-  const normalizedRoadmap = roadmap.map((m) => {
-    let t = m.timeframe;
+  const safeRoadmap = Array.isArray(roadmap) && roadmap.length > 0 
+    ? roadmap 
+    : generateCustomRoadmap(profile, chartData);
+
+  const normalizedRoadmap = safeRoadmap.map((m) => {
+    if (!m) return m;
+    let t = m.timeframe || '0-5 Years';
     if (t === '0-12 Months' || t === '1-3 Years') t = '0-5 Years';
     else if (t === '3-5 Years') t = '5-10 Years';
     return { ...m, timeframe: t };
-  });
+  }).filter(Boolean);
 
   const sortedRoadmap = [...normalizedRoadmap].sort((a, b) => {
     const isALocked = isMilestoneLocked(a);
@@ -196,6 +258,7 @@ export const LifeRoadmapView: React.FC<LifeRoadmapViewProps> = ({
   });
 
   const filteredRoadmap = sortedRoadmap.filter((m) => {
+    if (!m) return false;
     const matchCat = selectedCategory === 'all' || m.category === selectedCategory;
     const matchHor = selectedHorizon === 'all' || m.timeframe === selectedHorizon;
     return matchCat && matchHor;
@@ -238,7 +301,7 @@ export const LifeRoadmapView: React.FC<LifeRoadmapViewProps> = ({
       let yPos = 33;
 
       // User Information Box
-      doc.setFillColor(252, 249, 242);
+      doc.setFillColor(255, 255, 255);
       doc.setDrawColor(226, 211, 176);
       doc.setLineWidth(0.4);
       doc.roundedRect(13, yPos, pageWidth - 26, 24, 2, 2, 'FD');
@@ -280,7 +343,7 @@ export const LifeRoadmapView: React.FC<LifeRoadmapViewProps> = ({
       yPos += 28;
 
       // 25-Year Lifecycle Overview Banner
-      doc.setFillColor(243, 236, 218);
+      doc.setFillColor(250, 247, 240);
       doc.setDrawColor(201, 160, 80);
       doc.setLineWidth(0.5);
       doc.roundedRect(13, yPos, pageWidth - 26, 12, 1.5, 1.5, 'FD');
@@ -336,20 +399,12 @@ export const LifeRoadmapView: React.FC<LifeRoadmapViewProps> = ({
           yPos = 20; // reset yPos on subsequent pages
         }
 
-        // Card Container
+        // Card Container - Pure white with gold border
         const isCompleted = m.status === 'Completed';
         const isInProgress = m.status === 'In-Progress';
 
-        if (isCompleted) {
-          doc.setFillColor(242, 250, 245);
-          doc.setDrawColor(120, 190, 150);
-        } else if (isInProgress) {
-          doc.setFillColor(254, 250, 240);
-          doc.setDrawColor(201, 160, 80);
-        } else {
-          doc.setFillColor(250, 249, 246);
-          doc.setDrawColor(220, 215, 205);
-        }
+        doc.setFillColor(255, 255, 255);
+        doc.setDrawColor(201, 160, 80);
         doc.setLineWidth(0.4);
         doc.roundedRect(13, yPos, pageWidth - 26, cardHeight, 1.5, 1.5, 'FD');
 
@@ -366,9 +421,7 @@ export const LifeRoadmapView: React.FC<LifeRoadmapViewProps> = ({
 
         // Status Tag
         const statusStr = m.status ? m.status.toUpperCase() : 'PENDING';
-        if (isCompleted) {
-          doc.setTextColor(20, 120, 60);
-        } else if (isInProgress) {
+        if (isCompleted || isInProgress) {
           doc.setTextColor(181, 131, 40);
         } else {
           doc.setTextColor(120, 120, 120);
@@ -402,7 +455,7 @@ export const LifeRoadmapView: React.FC<LifeRoadmapViewProps> = ({
         // Upaya / Sadhana Row
         doc.setFont('helvetica', 'bold');
         doc.setFontSize(7.2);
-        doc.setTextColor(180, 80, 20);
+        doc.setTextColor(181, 131, 40);
         doc.text('Recommended Upaya / Sadhana: ', 17, textY);
         doc.setFont('helvetica', 'normal');
         doc.setTextColor(60, 60, 60);
@@ -418,7 +471,7 @@ export const LifeRoadmapView: React.FC<LifeRoadmapViewProps> = ({
         yPos = 20;
       }
 
-      doc.setFillColor(254, 252, 247);
+      doc.setFillColor(255, 255, 255);
       doc.setDrawColor(201, 160, 80);
       doc.setLineWidth(0.5);
       doc.roundedRect(13, yPos, pageWidth - 26, remedyBoxHeight, 1.5, 1.5, 'FD');
@@ -579,17 +632,25 @@ export const LifeRoadmapView: React.FC<LifeRoadmapViewProps> = ({
   return (
     <div className="space-y-6">
       {/* Top Banner */}
-      <div className="bg-[#141418] border border-[#2A2A2E] rounded-xl p-6 text-[#E5E1D8] shadow-xl">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-5 border-b border-[#2A2A2E]">
+      <div className={`border rounded-xl p-6 shadow-xl transition-colors ${
+        theme === 'dark' ? 'bg-[#141418] border-[#2A2A2E] text-[#E5E1D8]' : 'bg-white border-[#E5E1D8] text-[#0D0D0F]'
+      }`}>
+        <div className={`flex flex-col md:flex-row md:items-center justify-between gap-4 pb-5 border-b ${
+          theme === 'dark' ? 'border-[#2A2A2E]' : 'border-[#E5E1D8]'
+        }`}>
           <div>
             <div className="flex items-center space-x-2 text-xs font-sans font-semibold tracking-widest text-[#C9A050] uppercase mb-1">
               <Milestone className="w-4 h-4" />
               <span>25-Year Astrological Life Blueprint</span>
             </div>
-            <h1 className="text-2xl sm:text-3xl font-serif font-bold text-[#F0ECE1]">
+            <h1 className={`text-2xl sm:text-3xl font-serif font-bold ${
+              theme === 'dark' ? 'text-[#F0ECE1]' : 'text-[#0D0D0F]'
+            }`}>
               Vedic Destiny Roadmap ({new Date().getFullYear()} – {new Date().getFullYear() + 25})
             </h1>
-            <p className="text-xs font-sans text-[#9E9A90] mt-1 leading-relaxed">
+            <p className={`text-xs font-sans mt-1 leading-relaxed ${
+              theme === 'dark' ? 'text-[#9E9A90]' : 'text-gray-600'
+            }`}>
               Synthesized through your active Vimshottari Mahadasha/Antardasha cycles, major Saturn (Shani) and Jupiter (Guru) transits.
             </p>
           </div>
@@ -598,26 +659,80 @@ export const LifeRoadmapView: React.FC<LifeRoadmapViewProps> = ({
             <button
               onClick={handleDownloadPdfReport}
               disabled={isGeneratingPdf}
-              className="px-3.5 py-2 rounded-lg bg-[#1A1A1E] hover:bg-[#2A2A2E] border border-[#C9A050]/40 text-[#C9A050] hover:text-[#F0ECE1] transition cursor-pointer text-xs font-semibold flex items-center space-x-1.5 disabled:opacity-50"
+              className={`flex items-center justify-center space-x-2 px-4 py-2.5 rounded-xl border text-xs font-bold transition shadow-lg cursor-pointer shrink-0 ${
+                theme === 'dark'
+                  ? 'bg-gradient-to-r from-[#C9A050] to-[#A07828] hover:from-[#D4AF37] hover:to-[#B38730] text-[#0D0D0F] border-[#C9A050] shadow-[#C9A050]/20'
+                  : 'bg-[#C9A050] hover:bg-[#B38730] text-white border-[#C9A050] shadow-[#C9A050]/20'
+              } disabled:opacity-50`}
               title="Download 25-Year Vedic Destiny Roadmap (PDF)"
             >
-              <Download className={`w-3.5 h-3.5 ${isGeneratingPdf ? 'animate-bounce' : ''}`} />
-              <span>{isGeneratingPdf ? 'Generating Report...' : 'Download Report (PDF)'}</span>
+              {isGeneratingPdf ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Download className="w-4 h-4" />
+              )}
+              <span>{isGeneratingPdf ? 'Generating PDF...' : 'Download Report (PDF)'}</span>
             </button>
 
-            <button
-              onClick={handleGenerateRoadmap}
-              disabled={isGenerating}
-              className="px-4 py-2 rounded-lg bg-[#C9A050] hover:bg-[#D4AF37] text-[#0D0D0F] font-bold text-xs shadow-md shadow-[#C9A050]/20 transition cursor-pointer flex items-center space-x-1.5 disabled:opacity-50"
-            >
-              <Sparkles className={`w-4 h-4 ${isGenerating ? 'animate-spin' : ''}`} />
-              <span>{isGenerating ? 'Generating...' : 'Generate Roadmap'}</span>
-            </button>
+            {isCurrentHorizonGenerated ? (
+              <button
+                type="button"
+                disabled
+                className="px-4 py-2.5 rounded-xl font-bold text-xs bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 flex items-center space-x-1.5 cursor-default select-none shadow-sm"
+                title={`${selectedHorizon} Vedic Destiny Roadmap has been generated (1 of 1 complimentary access used)`}
+              >
+                <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                <span>{selectedHorizon} Generated</span>
+              </button>
+            ) : selectedHorizon === '15-20 Years' || selectedHorizon === '20-25 Years' ? (
+              <button
+                type="button"
+                onClick={() => onNavigateToConsultations && onNavigateToConsultations()}
+                className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-[#C9A050] to-[#A07828] hover:from-[#D4AF37] hover:to-[#B38730] text-[#0D0D0F] font-bold text-xs shadow-md transition cursor-pointer flex items-center space-x-1.5"
+              >
+                <span>🔒 Unlock {selectedHorizon}</span>
+              </button>
+            ) : (
+              <button
+                onClick={handleGenerateRoadmap}
+                disabled={isGenerating}
+                className="px-4 py-2.5 rounded-xl bg-[#C9A050] hover:bg-[#D4AF37] text-[#0D0D0F] font-bold text-xs shadow-md shadow-[#C9A050]/20 transition cursor-pointer flex items-center space-x-1.5 disabled:opacity-50"
+              >
+                <Sparkles className={`w-4 h-4 ${isGenerating ? 'animate-spin' : ''}`} />
+                <span>{isGenerating ? 'Generating...' : `Generate ${selectedHorizon}`}</span>
+              </button>
+            )}
           </div>
         </div>
 
-        {/* Category Filters */}
+        {/* 1. Time Horizon Filters (Prominent Top Row) */}
         <div className="flex flex-wrap gap-2 pt-4 font-sans">
+          {horizons.map((hor) => {
+            const isSelected = selectedHorizon === hor;
+            return (
+              <button
+                key={hor}
+                onClick={() => setSelectedHorizon(hor)}
+                className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer flex items-center space-x-1.5 border shadow-sm ${
+                  isSelected
+                    ? 'bg-[#C9A050] text-[#0D0D0F] border-[#C9A050] font-bold shadow-md shadow-[#C9A050]/20'
+                    : theme === 'dark'
+                    ? 'bg-[#1A1A1E] text-[#9E9A90] hover:bg-[#2A2A2E] hover:text-[#F0ECE1] border-[#2A2A2E]'
+                    : 'bg-white text-gray-700 hover:bg-gray-100 hover:text-black border-[#E5E1D8]'
+                }`}
+              >
+                <Clock className={`w-3.5 h-3.5 ${isSelected ? 'text-[#0D0D0F]' : 'text-[#C9A050]'}`} />
+                <span>{hor}</span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* 2. Life Spheres / Categories (Compact Sub-Row with Label) */}
+        <div className="flex items-center space-x-2 pt-3 text-xs overflow-x-auto font-sans">
+          <span className={`text-[11px] shrink-0 font-medium ${theme === 'dark' ? 'text-[#9E9A90]' : 'text-gray-500'}`}>
+            Life Spheres:
+          </span>
           {categories.map((cat) => {
             const Icon = cat.icon;
             const isSelected = selectedCategory === cat.id;
@@ -625,79 +740,102 @@ export const LifeRoadmapView: React.FC<LifeRoadmapViewProps> = ({
               <button
                 key={cat.id}
                 onClick={() => setSelectedCategory(cat.id)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer flex items-center space-x-1.5 ${
+                className={`px-2.5 py-1 rounded-md text-[11px] font-medium transition cursor-pointer shrink-0 flex items-center space-x-1 border ${
                   isSelected
-                    ? 'bg-[#C9A050] text-[#0D0D0F] shadow-sm'
-                    : 'bg-[#1A1A1E] text-[#9E9A90] hover:bg-[#2A2A2E] hover:text-[#F0ECE1] border border-[#2A2A2E]'
+                    ? 'bg-[#C9A050]/20 text-[#C9A050] border-[#C9A050]/50 font-semibold'
+                    : theme === 'dark'
+                    ? 'bg-[#1A1A1E]/60 text-[#9E9A90] hover:text-[#F0ECE1] border-transparent'
+                    : 'bg-gray-100 text-gray-600 hover:text-black border-transparent'
                 }`}
               >
-                <Icon className="w-3.5 h-3.5" />
+                <Icon className="w-3 h-3 text-[#C9A050]" />
                 <span>{cat.label}</span>
               </button>
             );
           })}
         </div>
-
-        {/* Timeframe Horizons */}
-        <div className="flex items-center space-x-2 pt-3 text-xs overflow-x-auto font-sans">
-          <span className="text-[#9E9A90] text-[11px] shrink-0 font-medium">Time Horizon:</span>
-          {horizons.map((hor) => (
-            <button
-              key={hor}
-              onClick={() => setSelectedHorizon(hor)}
-              className={`px-2.5 py-1 rounded-md text-[11px] font-medium transition cursor-pointer shrink-0 ${
-                selectedHorizon === hor
-                  ? 'bg-[#C9A050]/20 text-[#C9A050] border border-[#C9A050]/40'
-                  : 'bg-[#1A1A1E]/60 text-[#9E9A90] hover:text-[#F0ECE1]'
-              }`}
-            >
-              {hor}
-            </button>
-          ))}
-        </div>
       </div>
 
-      {/* Roadmap Milestone Cards */}
-      {hasGenerated || isGenerating ? (
-        <div className="space-y-4 min-h-[300px]">
-          {isGenerating ? (
-            <div className="bg-[#141418] border border-[#2A2A2E] rounded-xl p-16 sm:p-24 flex flex-col items-center justify-center min-h-[340px] text-center shadow-xl space-y-4 animate-in fade-in duration-300">
-              <div className="relative flex items-center justify-center">
-                {/* Outer Golden Spinner */}
-                <div className="w-14 h-14 rounded-full border-2 border-[#C9A050]/20 border-t-[#C9A050] animate-spin" />
-                {/* Center Sacred Icon */}
-                <Sparkles className="w-5 h-5 text-[#C9A050] absolute animate-pulse" />
-              </div>
-              <div className="space-y-1.5">
-                <h3 className="font-serif font-bold text-base sm:text-lg text-[#F0ECE1]">
-                  Generating {loadingText} Roadmap...
-                </h3>
-                <p className="text-xs text-[#9E9A90] font-sans max-w-sm mx-auto">
-                  Synthesizing Vimshottari Mahadasha cycles, Saturn Gochara &amp; Jupiter transit windows
-                </p>
-              </div>
+      {/* Roadmap Milestone Cards & Horizon State */}
+      <div className="space-y-4 min-h-[300px]">
+        {isGenerating ? (
+          <div className={`border rounded-xl p-16 sm:p-24 flex flex-col items-center justify-center min-h-[340px] text-center shadow-xl space-y-4 animate-in fade-in duration-300 ${
+            theme === 'dark' ? 'bg-[#141418] border-[#2A2A2E]' : 'bg-white border-[#E5E1D8]'
+          }`}>
+            <div className="relative flex items-center justify-center">
+              {/* Outer Golden Spinner */}
+              <div className="w-14 h-14 rounded-full border-2 border-[#C9A050]/20 border-t-[#C9A050] animate-spin" />
+              {/* Center Sacred Icon */}
+              <Sparkles className="w-5 h-5 text-[#C9A050] absolute animate-pulse" />
             </div>
-          ) : selectedHorizon === '15-20 Years' || selectedHorizon === '20-25 Years' ? (
-            <div className="relative bg-[#141418] border border-[#C9A050]/40 rounded-xl p-8 sm:p-12 text-center shadow-xl space-y-5 flex flex-col items-center justify-center min-h-[300px]">
-              <div className="w-16 h-16 rounded-full bg-black/60 border border-[#C9A050]/40 flex items-center justify-center mb-2">
-                <span className="text-[#C9A050] text-2xl font-bold">🔒</span>
-              </div>
-              <h3 className="text-xl sm:text-2xl font-serif font-bold text-[#F0ECE1]">
-                Unlock the {selectedHorizon} Roadmap
+            <div className="space-y-1.5">
+              <h3 className={`font-serif font-bold text-base sm:text-lg ${
+                theme === 'dark' ? 'text-[#F0ECE1]' : 'text-gray-900'
+              }`}>
+                Generating {loadingText} Roadmap...
               </h3>
-              <p className="text-[#9E9A90] text-sm max-w-lg mx-auto pb-4">
-                Accessing your long-term Vedic Destiny beyond 15 years requires a deeper astrological synthesis. Please visit the Consultations & Gateway section to unlock this premium analysis.
+              <p className={`text-xs font-sans max-w-sm mx-auto ${
+                theme === 'dark' ? 'text-[#9E9A90]' : 'text-gray-500'
+              }`}>
+                Synthesizing Vimshottari Mahadasha cycles, Saturn Gochara &amp; Jupiter transit windows
               </p>
-              <button 
-                onClick={() => onNavigateToConsultations && onNavigateToConsultations()} 
-                className="px-6 py-3 bg-[#C9A050] text-[#0D0D0F] font-bold text-sm rounded-lg shadow-md cursor-pointer transition hover:bg-[#D4AF37]"
-              >
-                Consultations & Gateway
-              </button>
             </div>
-          ) : (
-            <>
-              {filteredRoadmap.map((item, idx) => {
+          </div>
+        ) : selectedHorizon === '15-20 Years' || selectedHorizon === '20-25 Years' ? (
+          <div className={`relative border border-[#C9A050]/40 rounded-xl p-8 sm:p-12 text-center shadow-xl space-y-5 flex flex-col items-center justify-center min-h-[300px] ${
+            theme === 'dark' ? 'bg-[#141418]' : 'bg-white'
+          }`}>
+            <div className="w-16 h-16 rounded-full bg-black/60 border border-[#C9A050]/40 flex items-center justify-center mb-2">
+              <span className="text-[#C9A050] text-2xl font-bold">🔒</span>
+            </div>
+            <h3 className={`text-xl sm:text-2xl font-serif font-bold ${
+              theme === 'dark' ? 'text-[#F0ECE1]' : 'text-gray-900'
+            }`}>
+              Unlock the {selectedHorizon} Roadmap
+            </h3>
+            <p className={`text-sm max-w-lg mx-auto pb-4 ${
+              theme === 'dark' ? 'text-[#9E9A90]' : 'text-gray-600'
+            }`}>
+              Accessing your long-term Vedic Destiny beyond 15 years requires a deeper astrological synthesis. Please visit the Consultations & Gateway section to unlock this premium analysis.
+            </p>
+            <button 
+              onClick={() => onNavigateToConsultations && onNavigateToConsultations()} 
+              className="px-6 py-3 bg-[#C9A050] text-[#0D0D0F] font-bold text-sm rounded-lg shadow-md cursor-pointer transition hover:bg-[#D4AF37]"
+            >
+              Consultations & Gateway
+            </button>
+          </div>
+        ) : !isCurrentHorizonGenerated ? (
+          <div className={`border rounded-xl p-10 sm:p-14 text-center shadow-xl space-y-4 flex flex-col items-center justify-center min-h-[300px] ${
+            theme === 'dark' ? 'bg-[#141418] border-[#2A2A2E]' : 'bg-white border-[#E5E1D8]'
+          }`}>
+            <div className="w-14 h-14 rounded-2xl bg-[#C9A050]/15 border border-[#C9A050]/30 flex items-center justify-center mb-1 shadow-inner">
+              <Sparkles className="w-6 h-6 text-[#C9A050]" />
+            </div>
+            <div className="space-y-1">
+              <h3 className={`text-xl sm:text-2xl font-serif font-bold ${
+                theme === 'dark' ? 'text-[#F0ECE1]' : 'text-gray-900'
+              }`}>
+                Synthesize {selectedHorizon} Vedic Life Blueprint
+              </h3>
+              <p className={`text-xs sm:text-sm max-w-md mx-auto leading-relaxed ${
+                theme === 'dark' ? 'text-[#9E9A90]' : 'text-gray-600'
+              }`}>
+                Unlock your individualized planetary dasha cycles, favorable transit windows, and life milestones for the {selectedHorizon} epoch.
+              </p>
+            </div>
+            <button
+              onClick={handleGenerateRoadmap}
+              disabled={isGenerating}
+              className="px-6 py-3 rounded-xl bg-[#C9A050] hover:bg-[#D4AF37] text-[#0D0D0F] font-bold text-xs shadow-lg shadow-[#C9A050]/25 transition cursor-pointer flex items-center space-x-2"
+            >
+              <Sparkles className="w-4 h-4" />
+              <span>Generate {selectedHorizon} Roadmap</span>
+            </button>
+          </div>
+        ) : (
+          <>
+            {filteredRoadmap.map((item, idx) => {
               const isCompleted = item.status === 'Completed';
               const isInProgress = item.status === 'In-Progress';
               const isLockedCategory = isMilestoneLocked(item);
@@ -705,13 +843,15 @@ export const LifeRoadmapView: React.FC<LifeRoadmapViewProps> = ({
               return (
                 <div
                   key={item.id}
-                  className={`relative bg-[#141418] border rounded-xl shadow-xl transition overflow-hidden group ${
+                  className={`relative border rounded-xl shadow-xl transition overflow-hidden group ${
+                    theme === 'dark' ? 'bg-[#141418]' : 'bg-white'
+                  } ${
                     isLockedCategory ? 'border-[#C9A050]/40' :
                     isCompleted
                       ? 'border-emerald-500/40 bg-emerald-950/10'
                       : isInProgress
                       ? 'border-[#C9A050]/40 bg-[#C9A050]/5'
-                      : 'border-[#2A2A2E]'
+                      : theme === 'dark' ? 'border-[#2A2A2E]' : 'border-[#E5E1D8]'
                   }`}
                 >
                   {isLockedCategory && (
@@ -735,56 +875,81 @@ export const LifeRoadmapView: React.FC<LifeRoadmapViewProps> = ({
                     </div>
                   )}
 
-              <div className={`p-5 sm:p-6 space-y-4 ${isLockedCategory ? 'opacity-30 blur-[3px] pointer-events-none' : ''}`}>
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-[#2A2A2E]">
-                  <div className="flex items-center space-x-3.5">
-                    <div className="w-8 h-8 rounded-xl bg-[#C9A050]/20 text-[#C9A050] font-serif font-bold text-xs flex items-center justify-center shrink-0 border border-[#C9A050]/30">
-                      {idx + 1}
-                    </div>
-                    <div>
-                      <div className="flex items-center space-x-2 font-sans">
-                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-[#1A1A1E] text-[#C9A050] border border-[#2A2A2E]">
-                          {item.timeframe}
-                        </span>
-                        <span className="text-xs font-semibold text-[#9E9A90]">{item.category}</span>
+                  <div className={`p-5 sm:p-6 space-y-4 ${isLockedCategory ? 'opacity-30 blur-[3px] pointer-events-none' : ''}`}>
+                    <div className={`flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b ${
+                      theme === 'dark' ? 'border-[#2A2A2E]' : 'border-[#E5E1D8]'
+                    }`}>
+                      <div className="flex items-center space-x-3.5">
+                        <div className="w-8 h-8 rounded-xl bg-[#C9A050]/20 text-[#C9A050] font-serif font-bold text-xs flex items-center justify-center shrink-0 border border-[#C9A050]/30">
+                          {idx + 1}
+                        </div>
+                        <div>
+                          <div className="flex items-center space-x-2 font-sans">
+                            <span className={`px-2 py-0.5 rounded text-[10px] font-bold border ${
+                              theme === 'dark' ? 'bg-[#1A1A1E] text-[#C9A050] border-[#2A2A2E]' : 'bg-amber-50 text-amber-900 border-amber-200'
+                            }`}>
+                              {item.timeframe}
+                            </span>
+                            <span className={`text-xs font-semibold ${theme === 'dark' ? 'text-[#9E9A90]' : 'text-gray-500'}`}>
+                              {item.category}
+                            </span>
+                          </div>
+                          <h3 className={`text-base font-serif font-bold mt-0.5 ${
+                            theme === 'dark' ? 'text-[#F0ECE1]' : 'text-gray-900'
+                          }`}>
+                            {item.title}
+                          </h3>
+                        </div>
                       </div>
-                      <h3 className="text-base font-serif font-bold text-[#F0ECE1] mt-0.5">{item.title}</h3>
+                    </div>
+
+                    {/* Guidance & Favorable Transits */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs font-sans">
+                      <div className={`p-3.5 rounded-xl border space-y-1 ${
+                        theme === 'dark' ? 'bg-[#1A1A1E] border-[#2A2A2E]' : 'bg-[#F9F7F1] border-[#E5E1D8]'
+                      }`}>
+                        <span className="text-[9px] uppercase font-bold text-[#C9A050] block tracking-wider">
+                          Dasha & Life Strategy Guidance
+                        </span>
+                        <p className={`leading-relaxed ${theme === 'dark' ? 'text-[#E5E1D8]' : 'text-gray-800'}`}>
+                          {item.guidance}
+                        </p>
+                      </div>
+
+                      <div className="space-y-2">
+                        <div className={`p-3 rounded-xl border flex items-center justify-between ${
+                          theme === 'dark' ? 'bg-[#1A1A1E] border-[#2A2A2E]' : 'bg-[#F9F7F1] border-[#E5E1D8]'
+                        }`}>
+                          <span className={`text-[11px] ${theme === 'dark' ? 'text-[#9E9A90]' : 'text-gray-500'}`}>
+                            Astrological Window:
+                          </span>
+                          <span className="font-semibold text-[#C9A050] text-right font-mono">{item.favorableTransits}</span>
+                        </div>
+
+                        <div className={`p-3 rounded-xl border flex items-start space-x-2.5 ${
+                          theme === 'dark' ? 'bg-[#1A1A1E] border-[#2A2A2E]' : 'bg-[#F9F7F1] border-[#E5E1D8]'
+                        }`}>
+                          <Flame className="w-3.5 h-3.5 text-[#C9A050] shrink-0 mt-0.5" />
+                          <div>
+                            <span className={`text-[9px] uppercase font-bold block tracking-wider ${
+                              theme === 'dark' ? 'text-[#9E9A90]' : 'text-gray-500'
+                            }`}>
+                              Recommended Upaya / Sadhana
+                            </span>
+                            <span className={`text-[11px] ${theme === 'dark' ? 'text-[#E5E1D8]' : 'text-gray-800'}`}>
+                              {item.remedialAction}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
-
-              {/* Guidance & Favorable Transits */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs font-sans">
-                <div className="bg-[#1A1A1E] p-3.5 rounded-xl border border-[#2A2A2E] space-y-1">
-                  <span className="text-[9px] uppercase font-bold text-[#C9A050] block tracking-wider">
-                    Dasha & Life Strategy Guidance
-                  </span>
-                  <p className="text-[#E5E1D8] leading-relaxed">{item.guidance}</p>
-                </div>
-
-                <div className="space-y-2">
-                  <div className="bg-[#1A1A1E] p-3 rounded-xl border border-[#2A2A2E] flex items-center justify-between">
-                    <span className="text-[11px] text-[#9E9A90]">Astrological Window:</span>
-                    <span className="font-semibold text-[#C9A050] text-right font-mono">{item.favorableTransits}</span>
-                  </div>
-
-                  <div className="bg-[#1A1A1E] p-3 rounded-xl border border-[#2A2A2E] flex items-start space-x-2.5">
-                    <Flame className="w-3.5 h-3.5 text-[#C9A050] shrink-0 mt-0.5" />
-                    <div>
-                      <span className="text-[9px] uppercase font-bold text-[#9E9A90] block tracking-wider">Recommended Upaya / Sadhana</span>
-                      <span className="text-[11px] text-[#E5E1D8]">{item.remedialAction}</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        );
-      })}
-    </>
-  )}
-</div>
-) : null}
+              );
+            })}
+          </>
+        )}
+      </div>
 </div>
 );
 };

@@ -328,10 +328,10 @@ export const AdminKGraphView: React.FC<AdminKGraphViewProps> = ({
           <div>
             <div className="flex items-center space-x-2 text-xs font-sans font-semibold tracking-widest text-[#C9A050] uppercase mb-1">
               <Network className="w-4 h-4" />
-              <span>Administrative Knowledge Graph & AI LLM Pipelines</span>
+              <span>Administrative Knowledge Graph & Astrological Pipelines</span>
             </div>
             <h1 className="text-2xl sm:text-3xl font-serif font-bold text-[#F0ECE1]">
-              AI Knowledge Graph & Pure LLM Extractor
+              Vedic Knowledge Graph & Pure Astrological Extractor
             </h1>
             <p className="text-xs font-sans text-[#9E9A90] mt-1 leading-relaxed max-w-3xl">
               Extract astrological nodes, lordship rules, and planetary relationships directly from LLM or classical texts into the MySQL Knowledge Graph.
@@ -584,7 +584,7 @@ export const AdminKGraphView: React.FC<AdminKGraphViewProps> = ({
                   <span>Direct LLM Knowledge Extractor Pipeline</span>
                 </div>
                 <h3 className="text-xl font-serif font-bold text-[#F0ECE1]">
-                  AI Vedic Fact Extraction (No PDFs Required)
+                  Vedic Fact Extraction (No PDFs Required)
                 </h3>
                 <p className="text-xs text-[#9E9A90] mt-1">
                   Query the LLM directly via <code className="bg-[#08080A] px-1.5 py-0.5 rounded text-[#C9A050] font-mono">/api/knowledge/generate-from-llm</code> to automatically populate MySQL nodes and relationships.
@@ -702,7 +702,7 @@ export const AdminKGraphView: React.FC<AdminKGraphViewProps> = ({
         <div className="space-y-6 font-sans">
           <div className="flex justify-between items-center">
             <div>
-              <h3 className="text-lg font-serif font-bold text-[#F0ECE1]">Automated AI Runbooks</h3>
+              <h3 className="text-lg font-serif font-bold text-[#F0ECE1]">Automated Vedic Runbooks</h3>
               <p className="text-xs text-[#9E9A90]">Execute pipelines to parse Sanskrit treatises or ingest anonymized user queries</p>
             </div>
             <button
@@ -872,7 +872,7 @@ export const AdminKGraphView: React.FC<AdminKGraphViewProps> = ({
           <div className="flex items-center justify-between pb-3 border-b border-[#2A2A2E]">
             <div className="flex items-center space-x-2">
               <Terminal className="w-4 h-4 text-[#C9A050]" />
-              <h3 className="text-sm font-bold text-[#F0ECE1]">Live Execution Terminal & AI Telemetry</h3>
+              <h3 className="text-sm font-bold text-[#F0ECE1]">Live Execution Terminal & Telemetry</h3>
             </div>
             <button
               onClick={() => setExecutionLogs([])}
@@ -903,7 +903,7 @@ export const AdminKGraphView: React.FC<AdminKGraphViewProps> = ({
                 </div>
                 <div>
                   <h3 className="text-lg font-serif font-bold text-[#F0ECE1]">
-                    Generate Knowledge via AI LLM
+                    Generate Knowledge via AstroEngine
                   </h3>
                   <span className="text-[11px] text-[#9E9A90]">
                     Direct extraction into MySQL Knowledge Graph

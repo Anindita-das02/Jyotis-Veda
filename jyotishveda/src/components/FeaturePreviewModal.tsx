@@ -107,17 +107,17 @@ export const PREMIUM_FEATURES_CATALOG: PremiumFeatureDetail[] = [
       { label: 'Cycle Range', value: '120-Year Full Dasha' },
       { label: 'Sub-Periods', value: 'Mahadasha & Antardasha' },
       { label: 'Transit Sync', value: 'Real-Time Planetary Engine' },
-      { label: 'Milestone Mapping', value: 'AI Predictive Graph' },
+      { label: 'Milestone Mapping', value: 'Predictive Transit Graph' },
     ],
   },
   {
     id: 'ai-astrologer',
-    title: 'AI Astrologer Pro',
+    title: 'Daivajna Astrologer Pro',
     subtitle: '24/7 Vedic Oracle Consultation',
     tagline: 'Unlimited Real-Time Astrological Guidance with Zero Caps',
-    desc: 'Unlimited deep astrological chat and custom queries powered by advanced AI and Vedic literature.',
+    desc: 'Unlimited deep astrological counsel and custom queries powered by advanced Vedic literature.',
     fullDescription:
-      'Engage in real-time personalized dialogues with our state-of-the-art AI Astrological Oracle. Synthesizing Brihat Parashara Hora Shastra, Jaimini Sutras, and planetary transits, the AI Counsellor provides empathetic, deeply personalized counsel on career paths, romantic relationships, business decisions, and remedial rituals without any message limits.',
+      'Engage in real-time personalized dialogues with our state-of-the-art Astrological Oracle. Synthesizing Brihat Parashara Hora Shastra, Jaimini Sutras, and planetary transits, the Daivajna Counsellor provides empathetic, deeply personalized counsel on career paths, romantic relationships, business decisions, and remedial rituals without any message limits.',
     icon: Bot,
     targetTab: 'ai_chat',
     videoPoster: '/golden_zodiac_wheel.jpg',
@@ -435,7 +435,7 @@ export const FeaturePreviewModal: React.FC<FeaturePreviewModalProps> = ({
                           <div className="flex items-center justify-between text-xs font-bold text-[#C9A050]">
                             <span className="flex items-center space-x-1">
                               <Bot className="w-3.5 h-3.5" />
-                              <span>AI Oracle Dialogue</span>
+                              <span>Oracle Dialogue</span>
                             </span>
                             <span className="text-[10px] text-green-400">Streaming Live...</span>
                           </div>
@@ -607,7 +607,7 @@ export const FeaturePreviewModal: React.FC<FeaturePreviewModalProps> = ({
                   <span>Access Requires Authentication</span>
                 </div>
                 <p className={`text-xs mb-3 font-medium ${isDark ? 'text-[#9E9A90]' : 'text-[#57534E]'}`}>
-                  Log in with your JyotishVeda account to immediately access full calculations, personalized charts, and AI consults.
+                  Log in with your JyotishVeda account to immediately access full calculations, personalized charts, and Daivajna consults.
                 </p>
 
                 <div className="flex flex-col sm:flex-row items-center gap-2">

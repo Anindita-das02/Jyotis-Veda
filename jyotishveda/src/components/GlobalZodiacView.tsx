@@ -558,7 +558,7 @@ export const GlobalZodiacView: React.FC<GlobalZodiacViewProps> = ({
             {isFetchingForecast && !dynamicZodiacData[`${activeSign.id}-${timeframe}-${language}`] ? (
               <div className="animate-pulse flex space-x-2 items-center text-[#C9A050]">
                 <Sparkles className="w-4 h-4 animate-spin-slow" />
-                <span>Consulting AI Daivajna for personalized transits...</span>
+                <span>Consulting Daivajna for personalized transits...</span>
               </div>
             ) : (
               <p>{getForecastText(activeSign)}</p>

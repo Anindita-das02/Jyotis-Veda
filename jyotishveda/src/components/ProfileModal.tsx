@@ -349,7 +349,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                 value={birthTime}
                 onChange={(newTime) => setBirthTime(newTime)}
                 theme={theme}
-                placeholder="HH:MM (e.g. 10:30)"
+                placeholder="HH:MM"
               />
             </div>
           </div>

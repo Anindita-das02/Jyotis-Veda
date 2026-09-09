@@ -36,8 +36,8 @@ export const INITIAL_KGRAPH_NODES: KGraphNode[] = [
   { id: 'house_10', label: '10th House (Karma)', category: 'house', sanskritName: 'कर्म भाव', description: 'Career, profession, social prestige, authority, executive actions.', significance: 'Peak zenith of the sky; dictates professional impact and destiny.' },
 
   // Runbook Corpus
-  { id: 'rb_parashara_remedies', label: 'Runbook: Parashara Graha Shanti Corpus', category: 'runbook', description: 'Ingested rules for planet-specific mantras, gemstone karakas, and charity timings.', significance: 'Integrated into Daivajna AI context memory for remedial prescriptions.' },
-  { id: 'rb_lalkitab_farmans', label: 'Runbook: Lal Kitab Karmic Farman Ingestion', category: 'runbook', description: '1952 Farman rules regarding dormant house wakeups, silver remedies, and mercury-moon clashes.', significance: 'Active in AI counselling for non-traditional practical lifestyle modifications.' },
+  { id: 'rb_parashara_remedies', label: 'Runbook: Parashara Graha Shanti Corpus', category: 'runbook', description: 'Ingested rules for planet-specific mantras, gemstone karakas, and charity timings.', significance: 'Integrated into Daivajna context memory for remedial prescriptions.' },
+  { id: 'rb_lalkitab_farmans', label: 'Runbook: Lal Kitab Karmic Farman Ingestion', category: 'runbook', description: '1952 Farman rules regarding dormant house wakeups, silver remedies, and mercury-moon clashes.', significance: 'Active in Daivajna counselling for non-traditional practical lifestyle modifications.' },
 ];
 
 export const INITIAL_KGRAPH_EDGES: KGraphEdge[] = [
@@ -135,7 +135,7 @@ export const CONSULTATION_TIERS: ConsultationTier[] = [
     priceINR: 1499,
     priceUSD: 24,
     popular: true,
-    deliveryTime: 'Instant Access + Priority AI Consultation',
+    deliveryTime: 'Instant Access + Priority Consultation',
     category: 'blueprint',
     features: [
       'Everything in Express Audit',
@@ -144,7 +144,7 @@ export const CONSULTATION_TIERS: ConsultationTier[] = [
       'KP Cuspal Sub-Lord timing for major financial/property milestones',
       'Lal Kitab Dormant House awakening remedies (Upayas)',
       'Name Spelling optimization analysis & Chaldean correction',
-      'Unlimited questions with Daivajna AI Astrologer (30 Days)',
+      'Unlimited questions with Daivajna Astrologer (30 Days)',
     ],
   },
   {
@@ -161,13 +161,13 @@ export const CONSULTATION_TIERS: ConsultationTier[] = [
       'Darakaraka & Upapada Lagna (UL) marriage timing check',
       '7th & 8th House Navamsha (D9) joint wealth and progeny forecast',
       'Harmonization remedies: Mangal Shanti, Yantras, and mutual rituals',
-      'Interactive AI Relationship Counsellor session access',
+      'Interactive Relationship Counsellor session access',
     ],
   },
   {
     id: 'tier-live-consult',
-    title: '1-on-1 Certified Acharya & AI Video Masterclass',
-    tagline: 'Private 45-minute live consultation with Senior Vedic Astrologer + AI Transcripts & Remedies.',
+    title: '1-on-1 Certified Acharya & Video Masterclass',
+    tagline: 'Private 45-minute live consultation with Senior Vedic Astrologer + Digital Transcripts & Remedies.',
     priceINR: 3499,
     priceUSD: 49,
     deliveryTime: 'Scheduled within 24-48 Hours',
@@ -177,7 +177,7 @@ export const CONSULTATION_TIERS: ConsultationTier[] = [
       '45-Minute Private 1-on-1 Video Session with Certified Vedic Pandit',
       'Prashna Kundli (Horary astrology for immediate burning questions)',
       'Vedic Remedial Kit recommendation (Consecrated Yantra + Gemstone advice)',
-      'Recorded session video + AI transcribed session summary & action plan',
+      'Recorded session video + transcribed session summary & action plan',
       '6 Months VIP Priority Support & Monthly Transit Alerts',
     ],
   },

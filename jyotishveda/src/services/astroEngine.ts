@@ -1076,7 +1076,7 @@ export const DEFAULT_CONSULTATION_TIERS = [
     features: [
       'Instant Natal Lagna & Navamsha summary',
       'Active Vimshottari Mahadasha analysis',
-      '3 specific life questions answered by AI Daivajna',
+      '3 specific life questions answered by Daivajna',
       'Primary gemstone & Rudraksha recommendation',
       'Downloadable PDF Summary',
     ],
@@ -1094,7 +1094,7 @@ export const DEFAULT_CONSULTATION_TIERS = [
       'Chaldean Name spelling correction analysis',
       'Sade Sati & Manglik Dosha cancellation check',
       'Comprehensive Vastu & Vedic Upayas',
-      'Priority AI Astrologer counselling access',
+      'Priority Astrologer counselling access',
     ],
     isPopular: true,
     deliveryTime: 'Instant Access',

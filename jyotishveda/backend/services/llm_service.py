@@ -12,7 +12,7 @@ class LLMError(Exception):
     pass
 
 
-SYSTEM_PROMPT_TEMPLATE = """You are the JyotishVeda AI Daivajna, a Vedic astrology and \
+SYSTEM_PROMPT_TEMPLATE = """You are the JyotishVeda Daivajna, an authentic Vedic astrology and \
 numerology counsellor. You are given the user's ALREADY-CALCULATED chart data and \
 numerology below — do not invent, alter, or recompute any planetary positions, degrees, \
 dasha dates, or numerology numbers. Use only the data provided and the classical \
@@ -173,7 +173,7 @@ def get_daily_insights_response(
     numerology: dict,
 ) -> str:
     active_llm = os.getenv("ACTIVE_LLM", "mistral_local")
-    system_prompt = f"""You are the JyotishVeda AI Daivajna. The user has provided their daily transit data.
+    system_prompt = f"""You are the JyotishVeda Daivajna. The user has provided their daily transit data.
 You MUST respond with ONLY a valid JSON object matching exactly this structure, no markdown formatting or backticks around it:
 {{
   "summary": "A 2-3 sentence overall astrological prediction for today based on transits and tithi.",
@@ -576,7 +576,7 @@ def get_roadmap_insights_response(
     mulank = numerology.get("mulank", "3")
     bhagyank = numerology.get("bhagyank", "7")
 
-    system_prompt = f"""You are JyotishVeda AI, an expert 25-Year Vedic Astrological Forecaster.
+    system_prompt = f"""You are JyotishVeda Daivajna, an expert 25-Year Vedic Astrological Forecaster.
 Generate a 15-Year Astrological Destiny Roadmap for the user with ALL 5 LIFE CATEGORIES across 3 TIME HORIZONS (15 milestones total):
 Time horizons: '0-5 Years', '5-10 Years', '10-15 Years'.
 Categories for each horizon: 'Career', 'Wealth', 'Relationships', 'Health', 'Spirituality'.
@@ -858,7 +858,7 @@ def get_interpret_response(
             raise LLMError(f"Unknown ACTIVE_LLM value: '{active_llm}'.")
         return res.strip()
     
-    prompt1 = f"""You are JyotishVeda AI, a Master Astrologer specializing in the {tradition.upper()} tradition.
+    prompt1 = f"""You are JyotishVeda Daivajna, a Master Astrologer specializing in the {tradition.upper()} tradition.
 Generate Part 1 of a deeply insightful and personalized Vedic astrological interpretation for the user.
 
 User Details: Name: {profile_name}, Lagna: {lagna_rashi} ({lagna_nak})
@@ -870,7 +870,7 @@ Instructions:
 4. All text MUST be translated into the language code: {language}. If 'bn', output in Bengali script.
 """
 
-    prompt2 = f"""You are JyotishVeda AI, a Master Astrologer specializing in the {tradition.upper()} tradition.
+    prompt2 = f"""You are JyotishVeda Daivajna, a Master Astrologer specializing in the {tradition.upper()} tradition.
 Generate Part 2 of a deeply insightful and personalized Vedic astrological interpretation for the user.
 
 User Details: Name: {profile_name}, Active Dasha: {maha_dasha} Mahadasha / {antar_dasha} Antardasha
