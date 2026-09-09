@@ -5,15 +5,26 @@ import { BlogPost } from './BlogCarousel';
 interface BlogPageProps {
   theme: 'light' | 'dark';
   onBack: () => void;
+  initialBlog?: BlogPost | null;
 }
 
-export function BlogPage({ theme, onBack }: BlogPageProps) {
+export function BlogPage({ theme, onBack, initialBlog = null }: BlogPageProps) {
   const isDark = theme === 'dark';
   const [blogs, setBlogs] = useState<BlogPost[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
-  const [selectedBlog, setSelectedBlog] = useState<BlogPost | null>(null);
+  const [selectedBlog, setSelectedBlog] = useState<BlogPost | null>(initialBlog);
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+  }, []);
+
+  useEffect(() => {
+    if (initialBlog) {
+      setSelectedBlog(initialBlog);
+    }
+  }, [initialBlog]);
 
   useEffect(() => {
     const fetchBlogs = async () => {
@@ -62,33 +73,32 @@ export function BlogPage({ theme, onBack }: BlogPageProps) {
 
   return (
     <div className={`min-h-[calc(100vh-5rem)] w-full pb-24 ${isDark ? 'bg-transparent text-[#E5E1D8]' : 'bg-transparent text-[#0D0D0F]'}`}>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8">
-        
-        {/* Header Navigation */}
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-10 pb-6 border-b border-white/10">
+      {/* Top Control Bar: Full-width matching Navbar's left and right alignment */}
+      <div className="w-full px-4 sm:px-6 lg:px-8 pt-6 sm:pt-8">
+        <div className="w-full flex flex-col sm:flex-row items-center justify-between gap-4 mb-6">
           <button 
             onClick={onBack}
-            className={`flex items-center space-x-2 px-5 py-2.5 rounded-full transition-all border ${
+            className={`flex items-center space-x-2 px-5 py-2.5 rounded-full transition-all border shadow-sm cursor-pointer ${
               isDark 
-                ? 'text-[#9E9A90] hover:text-[#C9A050] hover:bg-[#C9A050]/10 border-white/10 hover:border-[#C9A050]/40' 
-                : 'text-gray-700 hover:text-amber-800 hover:bg-amber-500/10 border-gray-200 hover:border-amber-600'
+                ? 'text-[#9E9A90] hover:text-[#C9A050] hover:bg-[#C9A050]/10 border-[#2A2A2E] hover:border-[#C9A050]/40' 
+                : 'text-gray-700 hover:text-amber-800 hover:bg-amber-500/10 border-gray-200 hover:border-amber-600 bg-white/80'
             }`}
           >
             <ArrowLeft className="w-4 h-4" />
             <span className="text-sm font-semibold">Back to Home</span>
           </button>
 
-          <div className="relative w-full sm:w-72">
+          <div className="relative w-full sm:w-80">
             <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
             <input 
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search articles, topics..."
-              className={`w-full pl-10 pr-4 py-2 text-sm rounded-full border outline-none transition-all ${
+              className={`w-full pl-10 pr-4 py-2.5 text-sm rounded-full border outline-none transition-all ${
                 isDark 
                   ? 'bg-[#18181C] border-[#2A2A2E] text-white focus:border-[#C9A050]' 
-                  : 'bg-white border-gray-200 text-gray-900 focus:border-amber-600'
+                  : 'bg-white border-gray-200 text-gray-900 focus:border-amber-600 shadow-sm'
               }`}
             />
             {searchQuery && (
@@ -101,33 +111,32 @@ export function BlogPage({ theme, onBack }: BlogPageProps) {
             )}
           </div>
         </div>
+      </div>
 
+      {/* Main Blog Content Container */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Title & Tagline */}
         <div className="text-center mb-12">
-          <div className="inline-flex items-center space-x-2 px-3.5 py-1 rounded-full bg-[#C9A050]/10 border border-[#C9A050]/30 text-[#C9A050] text-[11px] font-bold uppercase tracking-widest mb-4">
-            <Sparkles className="w-3.5 h-3.5" />
-            <span>Sacred Knowledge & Articles</span>
-          </div>
           <h1 className={`text-4xl sm:text-5xl font-serif font-bold mb-4 ${isDark ? 'text-[#F0ECE1]' : 'text-[#0D0D0F]'}`}>
             All <span className="italic font-light text-[#C9A050]">Blogs</span> & Insights
           </h1>
-          <p className={`text-sm sm:text-base max-w-2xl mx-auto ${isDark ? 'text-[#9E9A90]' : 'text-gray-600'}`}>
+          <p className={`text-sm sm:text-base max-w-4xl lg:max-w-5xl mx-auto mb-8 ${isDark ? 'text-[#9E9A90]' : 'text-gray-600'}`}>
             Explore authentic Vedic astrology, planetary yogas, kundli matching, and spiritual wisdom directly from our masters.
           </p>
 
           {/* Category Filter Pills */}
           {categories.length > 1 && (
-            <div className="flex flex-wrap items-center justify-center gap-2 mt-8">
+            <div className="flex flex-wrap items-center justify-center gap-2">
               {categories.map((cat) => (
                 <button
                   key={cat}
                   onClick={() => setSelectedCategory(cat)}
-                  className={`px-4 py-1.5 rounded-full text-xs font-semibold tracking-wide transition-all ${
+                  className={`px-4 py-1.5 rounded-full text-xs font-semibold tracking-wide transition-all cursor-pointer ${
                     selectedCategory === cat
                       ? 'bg-[#C9A050] text-[#0D0D0F] shadow-lg shadow-[#C9A050]/20'
                       : isDark
                         ? 'bg-[#18181C] text-[#9E9A90] hover:text-white border border-[#2A2A2E]'
-                        : 'bg-white text-gray-600 hover:text-black border border-gray-200'
+                        : 'bg-white text-gray-600 hover:text-black border border-gray-200 shadow-sm'
                   }`}
                 >
                   {cat}

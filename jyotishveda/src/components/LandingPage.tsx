@@ -8,7 +8,7 @@ import PanjikaCalendarView from './PanjikaCalendarView';
 import { ZodiacCompatibilityMatrix } from './ZodiacCompatibilityMatrix';
 import { Footer } from './Footer';
 import { FeaturePreviewModal, PREMIUM_FEATURES_CATALOG, PremiumFeatureDetail } from './FeaturePreviewModal';
-import { BlogCarousel } from './BlogCarousel';
+import { BlogCarousel, BlogPost } from './BlogCarousel';
 import { BlogPage } from './BlogPage';
 import { AncientTraditionLogo } from './AncientTraditionLogo';
 
@@ -64,6 +64,7 @@ export function LandingPage({
   });
 
   const [selectedFeatureForPreview, setSelectedFeatureForPreview] = useState<PremiumFeatureDetail | null>(null);
+  const [selectedBlogForPage, setSelectedBlogForPage] = useState<BlogPost | null>(null);
   const [currentView, setCurrentView] = useState<'landing' | 'blogs'>('landing');
   const chatEndRef = useRef<HTMLDivElement>(null);
 
@@ -433,7 +434,15 @@ export function LandingPage({
         </div>
 
         {currentView === 'blogs' ? (
-          <BlogPage theme={theme} onBack={() => setCurrentView('landing')} />
+          <BlogPage 
+            theme={theme} 
+            initialBlog={selectedBlogForPage}
+            onBack={() => {
+              setSelectedBlogForPage(null);
+              setCurrentView('landing');
+              window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+            }} 
+          />
         ) : (
           <div className="max-w-7xl mx-auto px-6 relative z-10">
             <div id="hero-section" className="scroll-mt-24 min-h-[calc(100vh-5rem)] py-8 lg:py-16 grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
@@ -446,10 +455,12 @@ export function LandingPage({
               </div>
 
               <h2 className="text-4xl sm:text-5xl lg:text-6xl font-serif font-bold leading-tight mb-6">
-                <span className={`${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
-                  Decode Your Destiny with
+                <span className={`block ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+                  Decode Your
                 </span>
-                <br />
+                <span className={`block ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+                  Destiny with
+                </span>
                 <span className="inline-flex mt-2 items-center flex-wrap justify-center lg:justify-start">
                   {"JYOTISH".split("").map((char, index) => (
                     <motion.span
@@ -571,8 +582,16 @@ export function LandingPage({
           <div id="blog-section" className="scroll-mt-24 w-full">
             <BlogCarousel 
               theme={theme} 
-              onSelectBlog={() => setCurrentView('blogs')}
-              onViewAll={() => setCurrentView('blogs')}
+              onSelectBlog={(blog) => {
+                setSelectedBlogForPage(blog);
+                setCurrentView('blogs');
+                window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+              }}
+              onViewAll={() => {
+                setSelectedBlogForPage(null);
+                setCurrentView('blogs');
+                window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+              }}
             />
           </div>
 

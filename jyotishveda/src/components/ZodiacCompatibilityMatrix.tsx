@@ -229,12 +229,12 @@ export const ZodiacCompatibilityMatrix: React.FC<ZodiacCompatibilityMatrixProps>
           </div>
 
           <div className={`p-3 rounded-lg border ${isDark ? 'bg-[#1C1C22] border-[#2A2A2E]/80' : 'bg-[#FFFFFF] border-[#E5E1D8]'}`}>
-            <span className={`font-semibold block mb-0.5 ${isDark ? 'text-rose-400' : 'text-rose-600'}`}>Romantic & Soul Synergy:</span>
+            <span className="font-semibold text-[#C9A050] block mb-0.5">Romantic & Soul Synergy:</span>
             <span className={`${isDark ? 'text-[#9E9A90]' : 'text-gray-600'}`}>{compatResult.romanceAnalysis}</span>
           </div>
 
           <div className={`p-3 rounded-lg border ${isDark ? 'bg-[#1C1C22] border-[#2A2A2E]/80' : 'bg-[#FFFFFF] border-[#E5E1D8]'}`}>
-            <span className={`font-semibold block mb-0.5 ${isDark ? 'text-emerald-400' : 'text-emerald-600'}`}>Evolution & Remedial Guidance:</span>
+            <span className="font-semibold text-[#C9A050] block mb-0.5">Evolution & Remedial Guidance:</span>
             <span className={`${isDark ? 'text-[#9E9A90]' : 'text-gray-600'}`}>{compatResult.remedialAdvice}</span>
           </div>
         </div>
