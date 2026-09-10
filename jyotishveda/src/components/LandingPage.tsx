@@ -582,8 +582,8 @@ export function LandingPage({
           <div id="blog-section" className="scroll-mt-24 w-full">
             <BlogCarousel 
               theme={theme} 
-              onSelectBlog={(blog) => {
-                setSelectedBlogForPage(blog);
+              onSelectBlog={() => {
+                setSelectedBlogForPage(null);
                 setCurrentView('blogs');
                 window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
               }}

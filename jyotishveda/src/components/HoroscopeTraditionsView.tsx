@@ -1712,38 +1712,38 @@ export const HoroscopeTraditionsView: React.FC<
               <div className={`${
                 isDark ? 'bg-[#141418] border-[#2A2A2E] text-[#E5E1D8]' : 'bg-[#FFFDF7] border-[#DECFA6] text-[#1E1B15]'
               } border rounded-2xl p-5 shadow-sm space-y-3`}>
-                <div className={`flex items-center justify-between pb-2 border-b ${
+                <div className={`flex items-center justify-between pb-2.5 border-b ${
                   isDark ? 'border-[#2A2A2E]' : 'border-[#DECFA6]/60'
                 }`}>
-                  <div className="flex items-center space-x-2 text-[#C9A050] font-serif font-bold text-xs">
+                  <div className="flex items-center space-x-2 text-[#C9A050] font-serif font-bold text-xs sm:text-sm">
                     <Sparkles className="w-4 h-4" />
                     <span>
                       Planetary Aspects (Drishti)
                     </span>
                   </div>
-                  <span className={`text-[10px] px-2.5 py-0.5 rounded-full font-mono font-semibold ${
+                  <span className={`text-[10px] sm:text-[11px] px-2.5 py-0.5 rounded-full font-mono font-semibold ${
                     isDark ? 'bg-[#C9A050]/15 text-[#C9A050] border border-[#C9A050]/30' : 'bg-[#FAF4E4] text-[#8C6D23] border border-[#DFC896]'
                   }`}>
                     {chartData.aspects.length} Drishtis
                   </span>
                 </div>
-                <div className="space-y-2 max-h-[260px] overflow-y-auto pr-1.5 custom-scrollbar">
+                <div className="space-y-2 max-h-[305px] overflow-y-auto pr-1.5 custom-scrollbar">
                   {chartData.aspects.map((asp, idx) => (
                     <div
                       key={idx}
-                      className={`p-2.5 rounded-lg border grid grid-cols-3 items-center transition ${
+                      className={`p-2.5 sm:p-3 rounded-xl border grid grid-cols-3 items-center transition hover:border-[#C9A050]/40 ${
                         isDark ? 'bg-[#1A1A1E] border-[#2A2A2E]' : 'bg-[#FAF7F0] border-[#DECFA6]'
                       }`}
                     >
-                      <span className={`text-[11px] font-semibold uppercase text-left truncate ${
+                      <span className={`text-xs font-bold uppercase text-left tracking-wide truncate ${
                         isDark ? 'text-[#E5E1D8]' : 'text-[#2C2825]'
                       }`}>
                         {asp.aspectingPlanet}
                       </span>
-                      <span className="text-[9.5px] font-semibold text-[#C9A050] bg-[#C9A050]/15 border border-[#C9A050]/30 px-2.5 py-0.5 rounded-full justify-self-center text-center whitespace-nowrap">
+                      <span className="text-[10px] font-bold text-[#C9A050] bg-[#C9A050]/15 border border-[#C9A050]/30 px-2.5 py-0.5 rounded-full justify-self-center text-center whitespace-nowrap">
                         {asp.aspectType}
                       </span>
-                      <span className="text-[11px] text-[#C9A050] font-semibold uppercase text-right truncate">
+                      <span className="text-xs text-[#C9A050] font-bold uppercase text-right tracking-wide truncate">
                         {asp.aspectedPlanet}
                       </span>
                     </div>

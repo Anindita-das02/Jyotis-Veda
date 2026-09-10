@@ -918,16 +918,16 @@ export const NumerologyView: React.FC<NumerologyViewProps> = ({
 
       {/* View 2: Lo Shu 3x3 Magic Grid */}
       {activeTab === 'loshu' && (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
           {/* Left 5 Cols: Visual Lo Shu Grid */}
-          <div className="lg:col-span-5 bg-[#141418] border border-[#2A2A2E] rounded-xl p-6 text-[#E5E1D8] shadow-xl flex flex-col items-center">
-            <div className="w-full flex items-center justify-between pb-3 border-b border-[#2A2A2E] mb-4 text-xs">
+          <div className="lg:col-span-5 bg-[#141418] border border-[#2A2A2E] rounded-xl p-6 text-[#E5E1D8] shadow-xl flex flex-col justify-between items-center h-full min-h-[485px]">
+            <div className="w-full flex items-center justify-between pb-3 border-b border-[#2A2A2E] mb-3 text-xs">
               <span className="font-serif font-bold text-[#F0ECE1]">Sacred 3x3 Lo Shu Matrix</span>
               <span className="text-[#C9A050] font-mono">Date: {profile.birthDate.replace(/-/g, '')}</span>
             </div>
 
             {/* 3x3 Grid */}
-            <div className="w-full max-w-[320px] aspect-square grid grid-cols-3 grid-rows-3 gap-2 p-3 bg-[#08080A] rounded-2xl border border-[#C9A050]/40 shadow-inner">
+            <div className="w-full max-w-[320px] aspect-square grid grid-cols-3 grid-rows-3 gap-2 p-3 bg-[#08080A] rounded-2xl border border-[#C9A050]/40 shadow-inner my-auto">
               {loShuPositions.map((row) =>
                 row.map((num) => {
                   const count = activeNumerology.loShuGrid[num] || 0;
@@ -957,21 +957,21 @@ export const NumerologyView: React.FC<NumerologyViewProps> = ({
               )}
             </div>
 
-            <div className="mt-4 text-xs text-[#9E9A90] text-center space-y-1 font-sans">
+            <div className="mt-3 text-xs text-[#9E9A90] text-center space-y-1 font-sans">
               <p>Numbers extracted directly from your complete birth date string ({profile.birthDate}).</p>
               <p className="text-[#C9A050]/90 font-medium">Missing numbers can be energetically balanced using spatial Vastu & crystal remedies.</p>
             </div>
           </div>
 
-          {/* Right 7 Cols: Lo Shu Planes & Strengths */}
-          <div className="lg:col-span-7 space-y-4">
-            <div className="bg-[#141418] border border-[#2A2A2E] rounded-xl p-6 text-[#E5E1D8] shadow-xl space-y-3">
-              <div className="flex items-center justify-between pb-3 border-b border-[#2A2A2E]">
+          {/* Right 7 Cols: Lo Shu Planes & Strengths with Scrollbar */}
+          <div className="lg:col-span-7">
+            <div className="bg-[#141418] border border-[#2A2A2E] rounded-xl p-6 text-[#E5E1D8] shadow-xl flex flex-col max-h-[485px]">
+              <div className="flex items-center justify-between pb-3 border-b border-[#2A2A2E] shrink-0 mb-3">
                 <h3 className="text-base font-bold text-[#F0ECE1]">Planes of Strength & Arrows of Destiny</h3>
                 <span className="text-xs text-[#C9A050] font-medium">8 Geometric Vectors</span>
               </div>
 
-              <div className="space-y-3 font-sans">
+              <div className="space-y-3 font-sans overflow-y-auto pr-1.5 custom-scrollbar">
                 {activeNumerology.loShuPlanes.map((plane) => (
                   <div key={plane.name} className="p-3.5 bg-[#1A1A1E] rounded-xl border border-[#2A2A2E] space-y-1.5">
                     <div className="flex justify-between items-center text-xs">

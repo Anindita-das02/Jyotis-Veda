@@ -132,40 +132,40 @@ export const BlogCarousel: React.FC<BlogCarouselProps> = ({ theme, onSelectBlog,
                     style={{
                       backgroundColor: isDark ? '#141418' : '#FFFFFF',
                     }}
-                    className={`p-6 md:p-7 flex-1 flex flex-col ${isDark ? 'bg-[#141418]' : 'bg-white'}`}
+                    className={`p-6 md:p-7 flex-1 flex flex-col ${isDark ? 'bg-[#141418]' : 'bg-[#FFFFFF]'}`}
                   >
                     <div className="flex items-center space-x-2 mb-3 flex-wrap gap-y-1">
-                      <span className={`text-[11px] font-extrabold uppercase tracking-[0.18em] ${isDark ? 'text-[#C9A050]' : 'text-black'}`}>
+                      <span className={`text-[11px] font-extrabold uppercase tracking-[0.18em] ${isDark ? 'text-[#C9A050]' : 'text-[#8C6218]'}`}>
                         {blog.category || 'VEDIC ASTROLOGY'}
                       </span>
-                      <span className={`text-[10px] ${isDark ? 'text-[#50505A]' : 'text-gray-600'}`}>•</span>
-                      <span className={`text-[11px] font-bold uppercase tracking-wider truncate max-w-[170px] ${isDark ? 'text-[#9E9A90]' : 'text-gray-900'}`}>
+                      <span className={`text-[10px] ${isDark ? 'text-[#50505A]' : 'text-[#A0988A]'}`}>•</span>
+                      <span className={`text-[11px] font-bold uppercase tracking-wider truncate max-w-[170px] ${isDark ? 'text-[#9E9A90]' : 'text-[#5A544A]'}`}>
                         {tagString}
                       </span>
                     </div>
 
                     <h4 className={`text-lg md:text-xl font-serif font-bold mb-3 leading-snug line-clamp-2 ${
-                      isDark ? 'text-[#F0ECE1]' : 'text-black'
+                      isDark ? 'text-[#F0ECE1]' : 'text-[#181614] group-hover:text-[#8C6218] transition-colors'
                     }`}>
                       {blog.title}
                     </h4>
                     
                     <p className={`text-xs md:text-sm leading-relaxed line-clamp-3 mb-4 mt-auto ${
-                      isDark ? 'text-[#D0CCC2] font-normal' : 'text-gray-950 font-medium'
+                      isDark ? 'text-[#D0CCC2] font-normal' : 'text-[#4D473E] font-medium'
                     }`}>
                       {cleanExcerpt}
                     </p>
 
                     <div className={`pt-3 border-t flex items-center justify-between text-xs font-semibold ${
-                      isDark ? 'border-white/10' : 'border-gray-200'
+                      isDark ? 'border-white/10' : 'border-[#EAE3D4]'
                     }`}>
                       <span className={`font-black uppercase tracking-wider ${
-                        isDark ? 'text-[#C9A050]' : 'text-black'
+                        isDark ? 'text-[#C9A050]' : 'text-[#8C6218] group-hover:text-[#63440B]'
                       }`}>
                         Read Article →
                       </span>
                       {blog.created_at && (
-                        <span className={`text-[11px] font-bold ${isDark ? 'text-gray-400' : 'text-gray-900'}`}>
+                        <span className={`text-[11px] font-semibold ${isDark ? 'text-gray-400' : 'text-[#7A7366]'}`}>
                           {new Date(blog.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                         </span>
                       )}

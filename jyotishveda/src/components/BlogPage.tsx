@@ -186,9 +186,9 @@ export function BlogPage({ theme, onBack, initialBlog = null }: BlogPageProps) {
         </div>
 
         {/* Article Reader Main Container */}
-        <article className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 sm:pt-12">
+        <article className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 sm:pt-8">
           {/* Header Metadata */}
-          <div className="mb-8">
+          <div className="mb-6">
             <div className="flex items-center space-x-3 mb-4 flex-wrap gap-y-2">
               <span className="px-3.5 py-1.5 rounded-full bg-[#C9A050] text-[#0D0D0F] text-xs font-bold uppercase tracking-widest shadow-md shadow-[#C9A050]/20">
                 {selectedBlog.category || 'Vedic Astrology'}
@@ -207,7 +207,7 @@ export function BlogPage({ theme, onBack, initialBlog = null }: BlogPageProps) {
             </div>
 
             {/* Main Title */}
-            <h1 className={`text-3xl sm:text-4xl md:text-5xl font-serif font-bold leading-tight mb-6 ${
+            <h1 className={`text-2xl sm:text-3xl md:text-[32px] lg:text-[34px] font-serif font-bold leading-snug mb-4 sm:mb-5 ${
               isDark ? 'text-[#F0ECE1]' : 'text-[#0D0D0F]'
             }`}>
               {selectedBlog.title}
@@ -364,30 +364,30 @@ export function BlogPage({ theme, onBack, initialBlog = null }: BlogPageProps) {
                     className={`rounded-2xl overflow-hidden flex flex-col cursor-pointer transition-all hover:-translate-y-1.5 duration-300 border shadow-lg group ${
                       isDark 
                         ? 'bg-[#141418] border-[#2A2A2E] hover:border-[#C9A050]/50' 
-                        : 'bg-white border-[#E2D9C8] hover:border-[#C9A050] shadow-amber-900/10'
+                        : 'bg-[#FFFFFF] border-[#E2D9C8] hover:border-[#C9A050] shadow-stone-900/10'
                     }`}
                   >
                     <div className="relative h-40 w-full overflow-hidden bg-black/20">
                       <img 
                         src={relBlog.image_url || '/blog_1.jpg'} 
-                        alt={relBlog.title}
+                        alt={relBlog.title} 
                         onError={(e) => {
                           (e.target as HTMLImageElement).src = '/blog_1.jpg';
                         }}
                         className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                       />
                     </div>
-                    <div className={`p-5 flex-1 flex flex-col ${isDark ? 'bg-[#141418]' : 'bg-white'}`}>
-                      <span className={`text-[10px] font-extrabold uppercase tracking-wider mb-2 ${isDark ? 'text-[#C9A050]' : 'text-black'}`}>
+                    <div className={`p-5 flex-1 flex flex-col ${isDark ? 'bg-[#141418]' : 'bg-[#FFFFFF]'}`}>
+                      <span className={`text-[10px] font-extrabold uppercase tracking-wider mb-2 ${isDark ? 'text-[#C9A050]' : 'text-[#8C6218]'}`}>
                         {relBlog.category || 'Vedic Wisdom'}
                       </span>
                       <h4 className={`text-sm font-semibold line-clamp-2 leading-snug mb-3 ${
-                        isDark ? 'text-[#F0ECE1]' : 'text-black'
+                        isDark ? 'text-[#F0ECE1]' : 'text-[#181614] group-hover:text-[#8C6218] transition-colors'
                       }`}>
                         {relBlog.title}
                       </h4>
                       <span className={`mt-auto text-[11px] font-black uppercase tracking-wider ${
-                        isDark ? 'text-[#C9A050]' : 'text-black'
+                        isDark ? 'text-[#C9A050]' : 'text-[#8C6218]'
                       }`}>
                         Read Post →
                       </span>
@@ -533,10 +533,10 @@ export function BlogPage({ theme, onBack, initialBlog = null }: BlogPageProps) {
                   style={{
                     backgroundColor: isDark ? '#141418' : '#FFFFFF',
                   }}
-                  className={`rounded-2xl sm:rounded-3xl overflow-hidden flex flex-col cursor-pointer transition-all hover:-translate-y-1.5 duration-300 shadow-xl border group ${
+                  className={`rounded-2xl sm:rounded-3xl overflow-hidden flex flex-col cursor-pointer transition-all hover:-translate-y-1.5 duration-300 shadow-xl border group relative z-10 ${
                     isDark 
                       ? 'bg-[#141418] border-[#2A2A2E] shadow-black/60 hover:border-[#C9A050]/60' 
-                      : 'bg-white border-[#E2D9C8] shadow-amber-900/10 hover:border-[#C9A050]'
+                      : 'bg-[#FFFFFF] border-[#E2D9C8] shadow-xl shadow-stone-900/10 hover:border-[#C9A050] hover:shadow-2xl'
                   }`}
                 >
                   {/* Card Image */}
@@ -557,47 +557,47 @@ export function BlogPage({ theme, onBack, initialBlog = null }: BlogPageProps) {
                     )}
                   </div>
                   
-                  {/* Card Content - 100% Solid background */}
+                  {/* Card Content - 100% Solid White background */}
                   <div 
                     style={{
                       backgroundColor: isDark ? '#141418' : '#FFFFFF',
                     }}
-                    className={`p-6 flex-1 flex flex-col ${isDark ? 'bg-[#141418]' : 'bg-white'}`}
+                    className={`p-6 flex-1 flex flex-col ${isDark ? 'bg-[#141418]' : 'bg-[#FFFFFF]'}`}
                   >
                     <div className="flex items-center space-x-2 mb-3 flex-wrap gap-y-1">
-                      <span className={`text-[11px] font-extrabold uppercase tracking-[0.15em] ${isDark ? 'text-[#C9A050]' : 'text-black'}`}>
+                      <span className={`text-[11px] font-extrabold uppercase tracking-[0.15em] ${isDark ? 'text-[#C9A050]' : 'text-[#8C6218]'}`}>
                         {blog.category || 'VEDIC ASTROLOGY'}
                       </span>
-                      <span className={`text-[10px] ${isDark ? 'text-[#50505A]' : 'text-gray-600'}`}>•</span>
-                      <span className={`text-[11px] font-bold uppercase tracking-wider truncate max-w-[170px] ${isDark ? 'text-[#9E9A90]' : 'text-gray-900'}`}>
+                      <span className={`text-[10px] ${isDark ? 'text-[#50505A]' : 'text-[#A0988A]'}`}>•</span>
+                      <span className={`text-[11px] font-bold uppercase tracking-wider truncate max-w-[170px] ${isDark ? 'text-[#9E9A90]' : 'text-[#5A544A]'}`}>
                         {tagString}
                       </span>
                     </div>
 
                     <h3 className={`text-lg sm:text-xl font-serif font-bold mb-3 leading-snug line-clamp-2 ${
-                      isDark ? 'text-[#F0ECE1]' : 'text-black'
+                      isDark ? 'text-[#F0ECE1]' : 'text-[#181614] group-hover:text-[#8C6218] transition-colors'
                     }`}>
                       {blog.title}
                     </h3>
                     
                     <p className={`text-xs sm:text-sm leading-relaxed mb-5 line-clamp-3 ${
-                      isDark ? 'text-[#D0CCC2] font-normal' : 'text-gray-950 font-medium'
+                      isDark ? 'text-[#D0CCC2] font-normal' : 'text-[#4D473E] font-medium'
                     }`}>
                       {cleanExcerpt}
                     </p>
 
                     <div className={`mt-auto pt-3.5 border-t flex items-center justify-between ${
-                      isDark ? 'border-white/10' : 'border-gray-200'
+                      isDark ? 'border-white/10' : 'border-[#EAE3D4]'
                     }`}>
                       <span className={`text-xs font-black uppercase tracking-wider flex items-center space-x-1.5 ${
-                        isDark ? 'text-[#C9A050]' : 'text-black'
+                        isDark ? 'text-[#C9A050]' : 'text-[#8C6218] group-hover:text-[#63440B]'
                       }`}>
                         <span>Read Article</span>
                         <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-1" />
                       </span>
 
                       {blog.created_at && (
-                        <div className={`flex items-center space-x-1.5 text-[11px] font-bold ${isDark ? 'text-gray-400' : 'text-gray-900'}`}>
+                        <div className={`flex items-center space-x-1.5 text-[11px] font-bold ${isDark ? 'text-gray-400' : 'text-[#7A7366]'}`}>
                           <Calendar className="w-3.5 h-3.5 text-[#C9A050]" />
                           <span>
                             {new Date(blog.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}

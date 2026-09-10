@@ -489,3 +489,59 @@ BEGIN
         (SELECT COUNT(*) FROM relationships) AS relationships;
 END //
 DELIMITER ;
+
+-- ============================================================
+-- 25-YEAR VEDIC DESTINY ROADMAP TABLES & PROCEDURES
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS `user_roadmaps` (
+  `id` VARCHAR(100) NOT NULL PRIMARY KEY,
+  `user_id` VARCHAR(100) NOT NULL,
+  `profile_name` VARCHAR(150) DEFAULT NULL,
+  `birth_date` VARCHAR(50) DEFAULT NULL,
+  `selected_horizon` VARCHAR(50) NOT NULL DEFAULT '0-5 Years',
+  `horizons_generated_json` JSON DEFAULT NULL,
+  `milestones_data` JSON NOT NULL,
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  INDEX `idx_user_roadmap` (`user_id`, `selected_horizon`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+DELIMITER //
+CREATE PROCEDURE IF NOT EXISTS `sp_upsert_user_roadmap`(
+    IN p_id VARCHAR(100),
+    IN p_user_id VARCHAR(100),
+    IN p_profile_name VARCHAR(150),
+    IN p_birth_date VARCHAR(50),
+    IN p_horizon VARCHAR(50),
+    IN p_horizons_json JSON,
+    IN p_milestones_json JSON
+)
+BEGIN
+    INSERT INTO `user_roadmaps` (
+        `id`, `user_id`, `profile_name`, `birth_date`, `selected_horizon`, `horizons_generated_json`, `milestones_data`
+    ) VALUES (
+        p_id, p_user_id, p_profile_name, p_birth_date, p_horizon, p_horizons_json, p_milestones_json
+    )
+    ON DUPLICATE KEY UPDATE
+        `profile_name` = VALUES(`profile_name`),
+        `birth_date` = VALUES(`birth_date`),
+        `selected_horizon` = VALUES(`selected_horizon`),
+        `horizons_generated_json` = VALUES(`horizons_generated_json`),
+        `milestones_data` = VALUES(`milestones_data`),
+        `updated_at` = CURRENT_TIMESTAMP;
+END //
+DELIMITER ;
+
+DELIMITER //
+CREATE PROCEDURE IF NOT EXISTS `sp_get_user_roadmap`(
+    IN p_user_id VARCHAR(100)
+)
+BEGIN
+    SELECT * FROM `user_roadmaps` 
+    WHERE `user_id` = p_user_id 
+    ORDER BY `updated_at` DESC 
+    LIMIT 1;
+END //
+DELIMITER ;
+

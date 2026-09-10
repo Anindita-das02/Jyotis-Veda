@@ -86,9 +86,22 @@ def calculate_ephemeris_chart():
 def post_interpret():
     return birth_chart_controller.post_interpret()
 
+@app.route("/ai/roadmap", methods=["GET"])
+@app.route("/api/roadmap", methods=["GET"])
+def get_user_roadmap():
+    return roadmap_controller.get_user_roadmap()
+
 @app.route("/ai/roadmap", methods=["POST"])
+@app.route("/api/roadmap/generate", methods=["POST"])
 def generate_roadmap():
     return roadmap_controller.post_roadmap_insights()
+
+@app.route("/ai/roadmap/download-pdf", methods=["POST"])
+@app.route("/api/roadmap/download-pdf", methods=["POST"])
+def download_roadmap_pdf():
+    return roadmap_controller.download_roadmap_pdf()
+
+
 
 
 

@@ -1063,11 +1063,11 @@ export const DailyHoroscopeView: React.FC<DailyHoroscopeViewProps> = ({
         doc.setLineWidth(0.4);
         doc.line(13, footerY, pageWidth - 13, footerY);
 
-        // Footer Details (Non-overlapping left and right)
+        // Footer Details
         doc.setFont('helvetica', 'normal');
-        doc.setFontSize(6.5);
-        doc.text(`Document ID: ${certId}  |  Confidential & Proprietary`, 14, footerY + 4);
-        doc.text(`Certified by JyotishVeda AstroEngine  |  Page ${i} of ${totalPages}`, pageWidth - 14, footerY + 4, { align: 'right' });
+        doc.setFontSize(7);
+        doc.setTextColor(110, 105, 95);
+        doc.text(`Page ${i} of ${totalPages}`, pageWidth - 14, footerY + 4, { align: 'right' });
       }
 
       // Save PDF
