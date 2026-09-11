@@ -418,12 +418,17 @@ def generate_pure_llm_facts():
     """
     return llm_generation_controller.start_llm_generation()    
 
-@app.route("/matchmaking/synthesis", methods=["POST"])
+  
+
 @app.route("/api/matchmaking/synthesis", methods=["POST"])
-@app.route("/ai-counsellor/matchmaking-synthesis", methods=["POST"])
-@app.route("/api/ai-counsellor/matchmaking-synthesis", methods=["POST"])
+@require_auth
 def post_match_synthesis():
-    return match_making.generate_ai_synthesis(None)    
+    return match_making.generate_ai_synthesis(request.user_id)
+
+
+@app.route("/api/matchmaking/ai-synthesis/<synthesis_id>/pdf",methods=["GET"])
+def download_ai_synthesis_pdf1(synthesis_id):
+    return match_making.download_ai_synthesis_pdf(synthesis_id) 
 
 if __name__ == "__main__":
     # Fail fast if MySQL isn't reachable, rather than starting silently broken.

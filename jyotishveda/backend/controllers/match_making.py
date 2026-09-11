@@ -11,12 +11,12 @@ from timezonefinder import TimezoneFinder
 
 import swisseph as swe
 from flask import request, jsonify, Response
-
+from io import BytesIO
 from database.db_connection import call_procedure
 from services.report_service import generate_match_report_pdf
 from services.llm_extractor1 import get_ai_response
 
-
+from services.report_service import generate_ai_synthesis_pdf
 # ============================================================
 # ASTROLOGICAL REFERENCE DATA
 # ============================================================
@@ -1506,218 +1506,187 @@ def download_match_report_pdf(user_id: str, report_id: str):
         return _error(f"Error generating PDF: {exc}", "PDF_ERROR", 500)
 
 
-# ============================================================
-# AI SYNTHESIS
-# ============================================================
-
-# def generate_ai_synthesis(user_id: str):
-#     body = request.get_json(silent=True) or {}
-
-  
-
-#     data = body.get("data", {})
-#     report = data.get("report", {})
-
-#     partner1 = report.get("partner1", {})
-#     partner2 = report.get("partner2", {})
-#     ashtaKoota = report.get("ashtaKoota", {})
-
-#     # ---------------------------------------------------------
-#     # Partner names
-#     # ---------------------------------------------------------
-
-#     p1_name = (
-#         partner1.get("fullName")
-#         or partner1.get("name")
-#         or data.get("partner1Name")
-#         or "Partner 1"
-#     )
-
-#     p2_name = (
-#         partner2.get("fullName")
-#         or partner2.get("name")
-#         or data.get("partner2Name")
-#         or "Partner 2"
-#     )
-
-#     # ---------------------------------------------------------
-#     # Total Ashta Koota score
-#     # ---------------------------------------------------------
-
-#     score = ashtaKoota.get(
-#         "totalPoints",
-#         ashtaKoota.get(
-#             "totalScore",
-#             report.get("totalScore", "Unknown")
-#         )
-#     )
-
-#     # ---------------------------------------------------------
-#     # System prompt
-#     # ---------------------------------------------------------
-
-#     system_prompt = """
-# You are an AI assistant for a Vedic astrology application.
-
-# Use ONLY the astrology data supplied in the request.
-# Do not invent planetary positions, Nakshatra, Rashi, Dosha or scores.
-# Explain that Ashta Koota is a traditional Jyotish matching framework,
-# not a scientific guarantee of relationship outcome.
-
-# Return ONLY valid JSON. No Markdown.
-# Required keys:
-# overall_compatibility,
-# guna_milan,
-# psychological_affinity,
-# emotional_resonance,
-# karmic_bond,
-# physical_harmonization,
-# manglik_dosha,
-# nadi_analysis,
-# bhakoot_analysis,
-# family_and_married_life,
-# wealth_and_prosperity,
-# major_strengths,
-# major_challenges,
-# conflict_resolution,
-# vedic_remedies,
-# final_assessment
-# """
-
-#     prompt = f"""
-# PARTNER 1:
-# {json.dumps(partner1, ensure_ascii=False, indent=2)}
-
-# PARTNER 2:
-# {json.dumps(partner2, ensure_ascii=False, indent=2)}
-
-# KUNDLI MILAN:
-# {json.dumps(ashtaKoota, ensure_ascii=False, indent=2)}
-
-# TOTAL ASHTA KOOTA SCORE: {score}/36
-
-# Provide a cautious Vedic-Jyotish-oriented synthesis for
-# {p1_name} and {p2_name}. Do not add astrology facts that are absent.
-# """
-
-#     try:
-#         synthesis = get_ai_response(
-#             system_prompt,
-#             [{"role": "user", "content": prompt}],
-#         )
-
-#         synthesis = synthesis.strip()
-#         if synthesis.startswith("```"):
-#             synthesis = re.sub(r"^```(?:json)?\s*", "", synthesis)
-#             synthesis = re.sub(r"\s*```$", "", synthesis)
-
-#         data = json.loads(synthesis)
-
-#         return jsonify({
-#             "success": True,
-#             "synthesis": data,
-#         })
-#     except Exception as exc:
-#         return _error(f"LLM Error: {exc}", "LLM_FAILED", 500)
 
 
 
 def generate_ai_synthesis(user_id: str):
-    body = request.get_json(silent=True) or {}
 
-    data = body.get("data", {})
-    report = data.get("report", {})
+    try:
 
-    partner1 = report.get("partner1", {})
-    partner2 = report.get("partner2", {})
-    ashtaKoota = report.get("ashtaKoota", {})
+       
+        # =====================================================
+        # READ REQUEST BODY
+        # =====================================================
 
-    # ---------------------------------------------------------
-    # Partner names
-    # ---------------------------------------------------------
+        body = request.get_json(silent=True) or {}
 
-    p1_name = (
-        partner1.get("fullName")
-        or partner1.get("name")
-        or data.get("partner1Name")
-        or "Partner 1"
-    )
+        if "matchResult" in body:
+            # Support direct call from frontend MatchmakingView
+            report = body.get("matchResult", {})
+            partner1 = body.get("partner1", {})
+            partner2 = body.get("partner2", {})
+            report_id = "unsaved"
+            data = body
+        else:
+            data = body.get("data", {})
+            if not isinstance(data, dict):
+                return _error(
+                    "data must be a JSON object",
+                    "INVALID_DATA",
+                    400
+                )
 
-    p2_name = (
-        partner2.get("fullName")
-        or partner2.get("name")
-        or data.get("partner2Name")
-        or "Partner 2"
-    )
+            report = data.get("report", {})
+            if not isinstance(report, dict):
+                return _error(
+                    "report must be a JSON object",
+                    "INVALID_REPORT",
+                    400
+                )
 
-    # ---------------------------------------------------------
-    # Total Ashta Koota score
-    # ---------------------------------------------------------
+            report_id = data.get("id")
+            if not report_id:
+                return _error(
+                    "id is required",
+                    "ID_REQUIRED",
+                    400
+                )
 
-    score = ashtaKoota.get("totalPoints")
+        # =====================================================
+        # PARTNER DATA
+        # =====================================================
 
-    if score is None:
-        score = ashtaKoota.get("totalScore")
+        partner1 = report.get("partner1", {})
 
-    if score is None:
-        score = report.get("totalScore")
+        partner2 = report.get("partner2", {})
 
-    if score is None:
-        score = data.get("totalScore", "Unknown")
+        ashtaKoota = report.get(
+            "ashtaKoota",
+            {}
+        )
 
-    # ---------------------------------------------------------
-    # Manglik Status
-    #
-    # IMPORTANT:
-    # Take the already calculated values DIRECTLY from data.
-    # DO NOT call calculate_kundli_milan() again.
-    # ---------------------------------------------------------
+        if not isinstance(partner1, dict):
+            partner1 = {}
 
-    partner1_manglik_status = (
-        data.get("partner1ManglikStatus")
-        or report.get("partner1ManglikStatus")
-        or "Manglik status unavailable"
-    )
+        if not isinstance(partner2, dict):
+            partner2 = {}
 
-    partner2_manglik_status = (
-        data.get("partner2ManglikStatus")
-        or report.get("partner2ManglikStatus")
-        or "Manglik status unavailable"
-    )
+        if not isinstance(ashtaKoota, dict):
+            ashtaKoota = {}
 
-    # ---------------------------------------------------------
-    # Determine whether Manglik Dosha is present
-    #
-    # Status was already calculated by the astrology engine.
-    # We are ONLY reading the supplied result.
-    # ---------------------------------------------------------
+        # =====================================================
+        # PARTNER 1 NAME
+        # =====================================================
 
-    p1_manglik_present = (
-        isinstance(partner1_manglik_status, str)
-        and "has Manglik Dosha" in partner1_manglik_status
-    )
+        p1_name = (
+            partner1.get("fullName")
+            or partner1.get("name")
+            or data.get("partner1Name")
+            or "Partner 1"
+        )
 
-    p2_manglik_present = (
-        isinstance(partner2_manglik_status, str)
-        and "has Manglik Dosha" in partner2_manglik_status
-    )
+        # =====================================================
+        # PARTNER 2 NAME
+        # =====================================================
 
-    manglik_present = (
-        p1_manglik_present or p2_manglik_present
-    )
+        p2_name = (
+            partner2.get("fullName")
+            or partner2.get("name")
+            or data.get("partner2Name")
+            or "Partner 2"
+        )
 
-    # Keep both partner statuses together for the AI/remedies.
-    manglik_status = {
-        "partner1": partner1_manglik_status,
-        "partner2": partner2_manglik_status
-    }
+        # =====================================================
+        # TOTAL ASHTA KOOTA SCORE
+        # =====================================================
 
-    # ---------------------------------------------------------
-    # System Prompt
-    # ---------------------------------------------------------
+        score = ashtaKoota.get("totalPoints")
 
-    system_prompt = """
-You are a Master Astrological Counsellor (Daivajna) for a Vedic astrology application.
+        if score is None:
+            score = ashtaKoota.get("totalScore")
+
+        if score is None:
+            score = report.get("totalPoints")
+
+        if score is None:
+            score = report.get("totalScore")
+
+        if score is None:
+            score = data.get("totalScore")
+
+        if score is None:
+            score = 0.0
+            
+        max_score = data.get("maxScore") or report.get("maxPoints") or 36.0
+        # =====================================================
+        # MANGLIK STATUS
+        #
+        # IMPORTANT:
+        # We ONLY read already calculated values.
+        # We DO NOT calculate Manglik again.
+        # =====================================================
+
+        partner1_manglik_status = (
+            data.get("partner1ManglikStatus")
+            or report.get("partner1ManglikStatus")
+            or "Manglik status unavailable"
+        )
+
+        partner2_manglik_status = (
+            data.get("partner2ManglikStatus")
+            or report.get("partner2ManglikStatus")
+            or "Manglik status unavailable"
+        )
+
+        # =====================================================
+        # DETERMINE MANGLIK PRESENCE
+        # =====================================================
+
+        p1_manglik_present = (
+            isinstance(
+                partner1_manglik_status,
+                str
+            )
+            and
+            "has Manglik Dosha"
+            in partner1_manglik_status
+        )
+
+        p2_manglik_present = (
+            isinstance(
+                partner2_manglik_status,
+                str
+            )
+            and
+            "has Manglik Dosha"
+            in partner2_manglik_status
+        )
+
+        manglik_present = (
+            p1_manglik_present
+            or
+            p2_manglik_present
+        )
+
+        # =====================================================
+        # MANGALIK STATUS OBJECT
+        # =====================================================
+
+        manglik_status = {
+
+            "partner1":
+                partner1_manglik_status,
+
+            "partner2":
+                partner2_manglik_status
+        }
+
+        # =====================================================
+        # SYSTEM PROMPT
+        # =====================================================
+
+        system_prompt = """
+You are an AI assistant for a Vedic astrology application.
 
 IMPORTANT RULES:
 
@@ -1735,16 +1704,22 @@ IMPORTANT RULES:
 
 6. Do not invent Manglik cancellation or neutralization rules.
 
-7. Ashta Koota is a traditional Jyotish matching framework,
+7. Do not modify or recalculate the supplied Ashta Koota score.
+
+8. Ashta Koota is a traditional Jyotish matching framework,
    not a scientifically proven guarantee of relationship outcome.
 
-8. If information is missing, clearly say that it is unavailable.
+9. If information is missing, clearly say that it is unavailable.
 
-9. Return ONLY valid JSON.
+10. Do not present astrology as scientific certainty.
 
-10. Do NOT return Markdown or ```json code fences.
+11. Return ONLY valid JSON.
 
-Required keys:
+12. Do NOT return Markdown.
+
+13. Do NOT return ```json code fences.
+
+Required JSON keys:
 
 overall_compatibility,
 guna_milan,
@@ -1764,19 +1739,31 @@ vedic_remedies,
 final_assessment
 """
 
-    # ---------------------------------------------------------
-    # User Prompt
-    # ---------------------------------------------------------
+        # =====================================================
+        # USER PROMPT
+        # =====================================================
 
-    prompt = f"""
+        prompt = f"""
 PARTNER 1:
-{json.dumps(partner1, ensure_ascii=False, indent=2)}
+{json.dumps(
+    partner1,
+    ensure_ascii=False,
+    indent=2
+)}
 
 PARTNER 2:
-{json.dumps(partner2, ensure_ascii=False, indent=2)}
+{json.dumps(
+    partner2,
+    ensure_ascii=False,
+    indent=2
+)}
 
 ASHTA KOOTA:
-{json.dumps(ashtaKoota, ensure_ascii=False, indent=2)}
+{json.dumps(
+    ashtaKoota,
+    ensure_ascii=False,
+    indent=2
+)}
 
 TOTAL ASHTA KOOTA SCORE:
 {score}/36
@@ -1810,17 +1797,18 @@ Manglik, describe the Manglik condition accordingly.
 If Manglik status indicates that there is no Manglik Dosha,
 do not claim that Manglik Dosha exists.
 
-The Manglik statuses are:
+The supplied Manglik statuses are:
 
-Partner 1: {partner1_manglik_status}
-Partner 2: {partner2_manglik_status}
+Partner 1:
+{partner1_manglik_status}
+
+Partner 2:
+{partner2_manglik_status}
 """
 
-    try:
-
-        # -----------------------------------------------------
-        # Generate Main AI Synthesis
-        # -----------------------------------------------------
+        # =====================================================
+        # CALL MAIN AI
+        # =====================================================
 
         synthesis = get_ai_response(
             system_prompt,
@@ -1829,20 +1817,28 @@ Partner 2: {partner2_manglik_status}
                     "role": "user",
                     "content": prompt
                 }
-            ],
+            ]
         )
+
+        if not synthesis:
+
+            raise RuntimeError(
+                "AI returned empty synthesis response"
+            )
 
         synthesis = synthesis.strip()
 
-        # -----------------------------------------------------
-        # Remove Markdown code fence if AI returns one
-        # -----------------------------------------------------
+        # =====================================================
+        # REMOVE MARKDOWN CODE FENCE
+        # =====================================================
 
         if synthesis.startswith("```"):
+
             synthesis = re.sub(
                 r"^```(?:json)?\s*",
                 "",
-                synthesis
+                synthesis,
+                flags=re.IGNORECASE
             )
 
             synthesis = re.sub(
@@ -1851,30 +1847,48 @@ Partner 2: {partner2_manglik_status}
                 synthesis
             )
 
-        # -----------------------------------------------------
-        # Parse AI JSON
-        # -----------------------------------------------------
+            synthesis = synthesis.strip()
 
-        synthesis_data = json.loads(synthesis)
+        # =====================================================
+        # PARSE AI JSON
+        # =====================================================
 
-        # -----------------------------------------------------
-        # Force ACTUAL supplied Manglik statuses
+        synthesis_data = json.loads(
+            synthesis
+        )
+
+        if not isinstance(
+            synthesis_data,
+            dict
+        ):
+
+            raise RuntimeError(
+                "AI synthesis must be a JSON object"
+            )
+
+        # =====================================================
+        # FORCE ACTUAL MANGLIK STATUS
         #
-        # Do not allow AI to change them.
-        # -----------------------------------------------------
+        # AI cannot change these values.
+        # =====================================================
 
-        synthesis_data["manglik_dosha"] = {
-            "present": manglik_present,
-            "partner1": partner1_manglik_status,
-            "partner2": partner2_manglik_status
+        synthesis_data[
+            "manglik_dosha"
+        ] = {
+
+            "present":
+                manglik_present,
+
+            "partner1":
+                partner1_manglik_status,
+
+            "partner2":
+                partner2_manglik_status
         }
 
-        # -----------------------------------------------------
-        # MANGALIK REMEDIES
-        #
-        # Generate remedies ONLY when at least one partner
-        # actually has Manglik Dosha.
-        # -----------------------------------------------------
+        # =====================================================
+        # MANGLIK REMEDIES
+        # =====================================================
 
         if manglik_present:
 
@@ -1884,56 +1898,132 @@ Partner 2: {partner2_manglik_status}
                 )
             )
 
-            if not isinstance(manglik_remedies, list):
+            if not isinstance(
+                manglik_remedies,
+                list
+            ):
+
                 raise RuntimeError(
                     "Manglik remedies must be a list"
                 )
 
-            if len(manglik_remedies) < 3:
+            if len(
+                manglik_remedies
+            ) < 4:
+
                 raise RuntimeError(
-                    "AI returned fewer than 3 Manglik remedies"
+                    "AI returned fewer than 4 "
+                    "Manglik remedies"
                 )
 
-            synthesis_data["vedic_remedies"] = (
-                manglik_remedies
-            )
+            synthesis_data[
+                "vedic_remedies"
+            ] = manglik_remedies
 
         else:
 
-            synthesis_data["vedic_remedies"] = []
+            synthesis_data[
+                "vedic_remedies"
+            ] = []
 
-        # -----------------------------------------------------
-        # Final Response
-        # -----------------------------------------------------
+        # =====================================================
+        # SAVE FINAL SYNTHESIS TO DATABASE
+        #
+        # THIS IS THE IMPORTANT PART
+        # =====================================================
+
+        synthesis_id = save_ai_synthesis(
+
+            user_id=user_id,
+
+            report_id=report_id,
+
+            p1_name=p1_name,
+
+            p2_name=p2_name,
+
+            score=score,
+
+            max_score=max_score,
+
+            partner1_manglik_status=(
+                partner1_manglik_status
+            ),
+
+            partner2_manglik_status=(
+                partner2_manglik_status
+            ),
+
+            synthesis_data=synthesis_data
+        )
+
+        # =====================================================
+        # FINAL RESPONSE
+        # =====================================================
 
         return jsonify({
+
             "success": True,
-            "synthesis": synthesis_data
-        })
+        
+            "synthesisId":
+                synthesis_id,
+            
+            "message":
+                "AI synthesis generated "
+                "and saved successfully",
+
+
+            "synthesis":
+                synthesis_data
+
+
+        }), 200
+
+    # =========================================================
+    # INVALID AI JSON
+    # =========================================================
 
     except json.JSONDecodeError as exc:
 
         return _error(
+
             f"AI returned invalid JSON: {exc}",
+
             "INVALID_AI_JSON",
+
             500
         )
+
+    # =========================================================
+    # RUNTIME / REMEDY ERROR
+    # =========================================================
 
     except RuntimeError as exc:
 
         return _error(
+
             str(exc),
-            "MANGALIK_REMEDY_FAILED",
+
+            "AI_SYNTHESIS_PROCESSING_FAILED",
+
             500
         )
+
+    # =========================================================
+    # DATABASE / OTHER ERROR
+    # =========================================================
 
     except Exception as exc:
 
         return _error(
-            f"LLM Error: {exc}",
-            "LLM_FAILED",
+
+            f"AI synthesis failed: {exc}",
+
+            "AI_SYNTHESIS_FAILED",
+
             500
         )
+        
 def generate_manglik_remedies_with_ai(manglik_status: dict) -> list:
 
     partner1_status = manglik_status.get(
@@ -2050,12 +2140,112 @@ Return ONLY valid JSON.
     ]
 
     # ---------------------------------------------------------
-    # Minimum 3 remedies
+    # Minimum 4 remedies
     # ---------------------------------------------------------
 
     if len(remedies) < 4:
         raise RuntimeError(
-            "AI returned fewer than 3 Manglik remedies"
+            "AI returned fewer than 4 Manglik remedies"
         )
 
     return remedies
+
+# ---------------------------------------------------------
+# Save synthesis into database
+# ---------------------------------------------------------
+
+def save_ai_synthesis(
+    user_id: str,
+    report_id: str,
+    p1_name: str,
+    p2_name: str,
+    score,
+    max_score,
+    partner1_manglik_status: str,
+    partner2_manglik_status: str,
+    synthesis_data: dict,
+) -> str:
+
+    synthesis_id = str(uuid.uuid4())
+    params = [
+        synthesis_id,
+        user_id,
+        report_id,
+        p1_name,
+        p2_name,
+        score,
+        max_score,
+        partner1_manglik_status,
+        partner2_manglik_status,
+        json.dumps(
+            synthesis_data,
+            ensure_ascii=False
+        ),
+    ]
+    
+    call_procedure(
+        "sp_save_matchmaking_ai_synthesis",
+        params
+    )
+
+    return synthesis_id
+
+
+def download_ai_synthesis_pdf(synthesis_id):
+
+    try:
+        rows = call_procedure(
+            "sp_get_matchmaking_ai_synthesis",
+            [synthesis_id]
+        )
+
+        if not rows:
+            return _error(
+                        "AI synthesis not found",
+                "NOT_FOUND",
+                404
+            )
+
+        row = dict(rows[0])
+
+        # Service function call
+        pdf_bytes = generate_ai_synthesis_pdf(row)
+
+        partner1_name = (
+            row.get("partner1_name") or "Partner1"
+        )
+
+        partner2_name = (
+            row.get("partner2_name") or "Partner2"
+        )
+
+        filename = (
+            f"AI_Matchmaking_Report_"
+            f"{partner1_name}_"
+            f"{partner2_name}.pdf"
+        )
+
+        filename = re.sub(
+            r"[^A-Za-z0-9_. -]",
+            "_",
+            filename
+        )
+
+        return Response(
+            pdf_bytes,
+            mimetype="application/pdf",
+            headers={
+                "Content-Disposition":
+                    f'attachment; filename="{filename}"',
+                "Content-Length":
+                    str(len(pdf_bytes)),
+                "Cache-Control": "no-store"
+            }
+        )
+
+    except Exception as exc:
+        return _error(
+            f"PDF download failed: {exc}",
+            "PDF_DOWNLOAD_FAILED",
+            500
+        )

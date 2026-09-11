@@ -9,6 +9,27 @@ from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.platypus import (
     SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image, PageBreak
 )
+from reportlab.lib.pagesizes import A4
+from reportlab.lib.units import mm
+from reportlab.lib import colors
+from reportlab.lib.styles import (
+    getSampleStyleSheet,
+    ParagraphStyle,
+)
+from reportlab.platypus import (
+    SimpleDocTemplate,
+    Paragraph,
+    Spacer,
+    Table,
+    TableStyle,
+    PageBreak,
+)
+from io import BytesIO
+from reportlab.lib.enums import TA_CENTER
+
+GOLD = colors.HexColor("#8C6D23")
+DARK = colors.HexColor("#1A1A1A")
+
 
 GOLD_DARK = colors.HexColor("#7E5F18")
 GOLD_MAIN = colors.HexColor("#C9A050")
@@ -20,489 +41,3233 @@ TEXT_MUTED = colors.HexColor("#5A554C")
 
 def _styles():
     styles = getSampleStyleSheet()
+
+    # =========================================================
+    # BRAND
+    # =========================================================
+
     styles.add(ParagraphStyle(
-        name="JVBrand", fontSize=21, leading=25, alignment=0,
+        name="JVBrand",
+        fontSize=21,
+        leading=25,
+        alignment=0,
+        fontName="Helvetica-Bold",
+        textColor=GOLD_DARK,
+    ))
+
+    styles.add(ParagraphStyle(
+        name="JVTitle",
+        fontSize=21,
+        leading=25,
+        alignment=1,
+        fontName="Helvetica-Bold",
+        textColor=GOLD_DARK,
+        spaceAfter=4,
+    ))
+
+    styles.add(ParagraphStyle(
+        name="JVSubtitle",
+        fontSize=9.5,
+        leading=13,
+        alignment=1,
+        textColor=GOLD_DARK,
+        fontName="Helvetica-Bold",
+        spaceAfter=10,
+    ))
+
+    # =========================================================
+    # SECTIONS
+    # =========================================================
+
+    styles.add(ParagraphStyle(
+        name="JVSection",
+        fontSize=10,
+        leading=13,
+        spaceBefore=4,
+        spaceAfter=3,
+        textColor=GOLD_DARK,
         fontName="Helvetica-Bold",
     ))
+
     styles.add(ParagraphStyle(
-        name="JVSubtitle", fontSize=9.5, leading=13, alignment=0,
-        textColor=GOLD_DARK, fontName="Helvetica-Bold",
-    ))
-    styles.add(ParagraphStyle(
-        name="JVCitation", fontSize=7.5, leading=10.5, alignment=0,
-        textColor=colors.HexColor("#6B655B"), fontName="Helvetica-Oblique",
-    ))
-    styles.add(ParagraphStyle(
-        name="JVSection", fontSize=10, leading=13, spaceBefore=4,
-        spaceAfter=3, textColor=GOLD_DARK, fontName="Helvetica-Bold",
-    ))
-    styles.add(ParagraphStyle(
-        name="JVBody", fontSize=8.5, leading=12, textColor=TEXT_DARK,
-    ))
-    styles.add(ParagraphStyle(
-        name="JVBodyBold", fontSize=9, leading=12.5, textColor=TEXT_DARK,
+        name="JVSubSection",
+        fontSize=9,
+        leading=12,
+        spaceBefore=5,
+        spaceAfter=3,
+        textColor=TEXT_DARK,
         fontName="Helvetica-Bold",
     ))
+
+    # =========================================================
+    # BODY
+    # =========================================================
+
     styles.add(ParagraphStyle(
-        name="JVBodyMuted", fontSize=8, leading=11, textColor=TEXT_MUTED,
+        name="JVBody",
+        fontSize=8.5,
+        leading=12,
+        textColor=TEXT_DARK,
     ))
+
     styles.add(ParagraphStyle(
-        name="JVTableHead", fontSize=8.5, leading=11.5, textColor=GOLD_DARK,
-        fontName="Helvetica-Bold", alignment=0,
+        name="JVBodyBold",
+        fontSize=9,
+        leading=12.5,
+        textColor=TEXT_DARK,
+        fontName="Helvetica-Bold",
     ))
+
     styles.add(ParagraphStyle(
-        name="JVTableHeadCenter", fontSize=8.5, leading=11.5, textColor=GOLD_DARK,
-        fontName="Helvetica-Bold", alignment=1,
+        name="JVBodyMuted",
+        fontSize=8,
+        leading=11,
+        textColor=TEXT_MUTED,
     ))
+
     styles.add(ParagraphStyle(
-        name="JVTableHeadRight", fontSize=8.5, leading=11.5, textColor=GOLD_DARK,
-        fontName="Helvetica-Bold", alignment=2,
+        name="JVSmall",
+        fontSize=7.5,
+        leading=10,
+        textColor=TEXT_DARK,
     ))
+
+    # =========================================================
+    # SCORE
+    # =========================================================
+
     styles.add(ParagraphStyle(
-        name="JVTableCellCenter", fontSize=8.5, leading=11.5, textColor=TEXT_DARK,
+        name="JVScore",
+        fontSize=18,
+        leading=22,
+        alignment=1,
+        textColor=GOLD_DARK,
+        fontName="Helvetica-Bold",
+    ))
+
+    styles.add(ParagraphStyle(
+        name="ScoreCenter",
+        parent=styles["JVBody"],
+        alignment=1,
+        leading=14,
+    ))
+
+    # =========================================================
+    # TABLE HEADERS
+    # =========================================================
+
+    styles.add(ParagraphStyle(
+        name="JVTableHead",
+        fontSize=8.5,
+        leading=11.5,
+        textColor=GOLD_DARK,
+        fontName="Helvetica-Bold",
+        alignment=0,
+    ))
+
+    styles.add(ParagraphStyle(
+        name="JVTableHeadCenter",
+        fontSize=8.5,
+        leading=11.5,
+        textColor=GOLD_DARK,
+        fontName="Helvetica-Bold",
         alignment=1,
     ))
+
     styles.add(ParagraphStyle(
-        name="JVTableCellRight", fontSize=8.5, leading=11.5, textColor=TEXT_DARK,
-        alignment=2, fontName="Helvetica-Bold",
+        name="JVTableHeadRight",
+        fontSize=8.5,
+        leading=11.5,
+        textColor=GOLD_DARK,
+        fontName="Helvetica-Bold",
+        alignment=2,
     ))
+
+    # =========================================================
+    # TABLE CELLS
+    # =========================================================
+
     styles.add(ParagraphStyle(
-        name="ScoreCenter", parent=styles["JVBody"], alignment=1, leading=14,
+        name="JVTableCellCenter",
+        fontSize=8.5,
+        leading=11.5,
+        textColor=TEXT_DARK,
+        alignment=1,
     ))
+
+    styles.add(ParagraphStyle(
+        name="JVTableCellRight",
+        fontSize=8.5,
+        leading=11.5,
+        textColor=TEXT_DARK,
+        alignment=2,
+        fontName="Helvetica-Bold",
+    ))
+
     return styles
 
+# ============================================================
+# HELPERS
+# ============================================================
 
-def generate_match_report_pdf(report: dict) -> bytes:
-    """Builds an official Vedic Kundli Milan Certificate
-    with full-page watermark background, brand logo, and 8 Koota breakdown."""
+def _value(data, *keys, default=None):
+    """
+    Return first available non-empty value.
+    """
+
+    if not isinstance(data, dict):
+        return default
+
+    for key in keys:
+        value = data.get(key)
+
+        if value is not None and str(value).strip() != "":
+            return value
+
+    return default
+
+
+def _text(value, default="N/A"):
+    if value is None:
+        return default
+
+    if isinstance(value, bool):
+        return "Yes" if value else "No"
+
+    value = str(value).strip()
+
+    return value if value else default
+
+
+def _number(value, default="0"):
+    """
+    7.0 -> 7
+    7.50 -> 7.5
+    """
+
+    if value is None:
+        return default
+
+    try:
+        number = float(value)
+
+        if number.is_integer():
+            return str(int(number))
+
+        return f"{number:.2f}".rstrip("0").rstrip(".")
+
+    except (ValueError, TypeError):
+        return _text(value, default)
+
+
+def _safe_paragraph(value, styles):
+    """
+    Convert arbitrary value into a ReportLab Paragraph.
+    """
+
+    return Paragraph(
+        _text(value),
+        styles["JVSmall"],
+    )
+
+
+# ============================================================
+# PARSE REPORT JSON
+# ============================================================
+
+def _get_report_json(report):
+
+    report_json = report.get("report_json") or {}
+
+    if isinstance(report_json, str):
+
+        try:
+            report_json = json.loads(report_json)
+
+        except json.JSONDecodeError:
+            report_json = {}
+
+    if not isinstance(report_json, dict):
+        report_json = {}
+
+    return report_json
+
+
+# ============================================================
+# PARTNER INFORMATION
+# ============================================================
+
+def _get_partner(report_json, report, partner_key):
+
+    # Direct partner data
+    direct_partner = report_json.get(partner_key)
+
+    if not isinstance(direct_partner, dict):
+        direct_partner = {}
+
+    # Matching-specific partner data
+    # Example:
+    # report_json["partners"]["partner1"]
+    partners = report_json.get("partners")
+
+    if not isinstance(partners, dict):
+        partners = {}
+
+    nested_partner = partners.get(partner_key)
+
+    if not isinstance(nested_partner, dict):
+        nested_partner = {}
+
+    # Merge both sources
+    # nested_partner values will override direct_partner values
+    partner = {
+        **direct_partner,
+        **nested_partner,
+    }
+
+    db_prefix = partner_key
+
+    return {
+        "fullName": _value(
+            partner,
+            "fullName",
+            "name",
+            default=report.get(
+                f"{db_prefix}_name",
+                "N/A",
+            ),
+        ),
+
+        "dob": _value(
+            partner,
+            "birthDate",
+            "dob",
+            default=report.get(
+                f"{db_prefix}_birth_date",
+                "N/A",
+            ),
+        ),
+
+        "birthTime": _value(
+            partner,
+            "birthTime",
+            "time",
+            default=report.get(
+                f"{db_prefix}_birth_time",
+                "N/A",
+            ),
+        ),
+
+        "birthPlace": _value(
+            partner,
+            "birthPlace",
+            "place",
+            default=report.get(
+                f"{db_prefix}_birth_place",
+                "N/A",
+            ),
+        ),
+
+        "rashi": _value(
+            partner,
+            "rashi",
+            "rashiName",
+            default="N/A",
+        ),
+
+        "nakshatra": _value(
+            partner,
+            "nakshatra",
+            "nakshatraName",
+            default="N/A",
+        ),
+
+        "nakshatraPada": _value(
+            partner,
+            "nakshatraPada",
+            "pada",
+            default="N/A",
+        ),
+    }
+# ============================================================
+# GET STATUS
+# ============================================================
+
+def _get_partner_status(
+    report_json,
+    partner_key,
+):
+
+    # --------------------------------------------------------
+    # First check partner itself
+    # --------------------------------------------------------
+
+    partner = report_json.get(partner_key)
+
+    if isinstance(partner, dict):
+
+        status = _value(
+            partner,
+            "status",
+            "manglikStatus",
+            default=None,
+        )
+
+        if status is not None:
+            return status
+
+    # --------------------------------------------------------
+    # Then check manglik.status
+    # --------------------------------------------------------
+
+    manglik = report_json.get("manglik")
+
+    if isinstance(manglik, dict):
+
+        status = manglik.get("status")
+
+        if isinstance(status, dict):
+
+            value = status.get(partner_key)
+
+            if value is not None:
+                return value
+
+    return "N/A"
+
+
+# ============================================================
+# NUMEROLOGY / MULANK
+# ============================================================
+
+def _get_mulank(report_json, partner_key):
+
+    numerology = report_json.get("numerologyMilan")
+
+    if not isinstance(numerology, dict):
+        return "N/A"
+
+    partner = numerology.get(partner_key)
+
+    if not isinstance(partner, dict):
+        return "N/A"
+
+    return _value(
+        partner,
+        "mulank",
+        default="N/A",
+    )
+
+
+# ============================================================
+# PARTNER INFORMATION TABLE
+# ============================================================
+
+def _partner_information_table(
+    report_json,
+    report,
+    partner1,
+    partner2,
+    styles,
+):
+
+    p1_status = _get_partner_status(
+        report_json,
+        "partner1",
+    )
+
+    p2_status = _get_partner_status(
+        report_json,
+        "partner2",
+    )
+
+    p1_mulank = _get_mulank(
+        report_json,
+        "partner1",
+    )
+
+    p2_mulank = _get_mulank(
+        report_json,
+        "partner2",
+    )
+
+    rows = [
+        [
+            Paragraph(
+                "<b>Information</b>",
+                styles["JVSmall"],
+            ),
+
+            Paragraph(
+                "<b>Partner 1</b>",
+                styles["JVSmall"],
+            ),
+
+            Paragraph(
+                "<b>Partner 2</b>",
+                styles["JVSmall"],
+            ),
+        ],
+
+        [
+            "Full Name",
+            _text(partner1["fullName"]),
+            _text(partner2["fullName"]),
+        ],
+
+        [
+            "Date of Birth",
+            _text(partner1["dob"]),
+            _text(partner2["dob"]),
+        ],
+
+        [
+            "Birth Time",
+            _text(partner1["birthTime"]),
+            _text(partner2["birthTime"]),
+        ],
+
+        [
+            "Birth Place",
+            _text(partner1["birthPlace"]),
+            _text(partner2["birthPlace"]),
+        ],
+
+        [
+            "Rashi",
+            _text(partner1["rashi"]),
+            _text(partner2["rashi"]),
+        ],
+
+        [
+            "Nakshatra",
+            _text(partner1["nakshatra"]),
+            _text(partner2["nakshatra"]),
+        ],
+
+        [
+            "Nakshatra Pada",
+            _text(partner1["nakshatraPada"]),
+            _text(partner2["nakshatraPada"]),
+        ],
+
+        [
+            "Status",
+            _text(p1_status),
+            _text(p2_status),
+        ],
+
+        [
+            "Mulank",
+            _number(p1_mulank),
+            _number(p2_mulank),
+        ],
+    ]
+
+    table = Table(
+        rows,
+        colWidths=[
+            55 * mm,
+            62 * mm,
+            62 * mm,
+        ],
+        repeatRows=1,
+    )
+
+    table.setStyle(TableStyle([
+
+        (
+            "BACKGROUND",
+            (0, 0),
+            (-1, 0),
+            colors.HexColor("#F0E6C8"),
+        ),
+
+        (
+            "FONTNAME",
+            (0, 0),
+            (-1, 0),
+            "Helvetica-Bold",
+        ),
+
+        (
+            "FONTNAME",
+            (0, 1),
+            (0, -1),
+            "Helvetica-Bold",
+        ),
+
+        (
+            "FONTSIZE",
+            (0, 0),
+            (-1, -1),
+            8.5,
+        ),
+
+        (
+            "GRID",
+            (0, 0),
+            (-1, -1),
+            0.4,
+            colors.lightgrey,
+        ),
+
+        (
+            "VALIGN",
+            (0, 0),
+            (-1, -1),
+            "TOP",
+        ),
+
+        (
+            "LEFTPADDING",
+            (0, 0),
+            (-1, -1),
+            6,
+        ),
+
+        (
+            "RIGHTPADDING",
+            (0, 0),
+            (-1, -1),
+            6,
+        ),
+
+        (
+            "TOPPADDING",
+            (0, 0),
+            (-1, -1),
+            6,
+        ),
+
+        (
+            "BOTTOMPADDING",
+            (0, 0),
+            (-1, -1),
+            6,
+        ),
+    ]))
+
+    return table
+
+
+# ============================================================
+# ASHTA KOOTA
+# ============================================================
+
+def _get_kootas(report_json):
+
+    # --------------------------------------------------------
+    # Preferred:
+    #
+    # kootas: [...]
+    # --------------------------------------------------------
+
+    kootas = report_json.get("kootas")
+
+    if isinstance(kootas, list) and kootas:
+        return kootas
+
+    # --------------------------------------------------------
+    # Your JSON:
+    #
+    # ashtaKoota: {
+    #     gana: {...},
+    #     nadi: {...},
+    #     ...
+    # }
+    # --------------------------------------------------------
+
+    ashta = report_json.get("ashtaKoota")
+
+    if isinstance(ashta, dict):
+
+        result = []
+
+        # Desired display order
+        order = [
+            "varna",
+            "vashya",
+            "tara",
+            "yoni",
+            "grahaMaitri",
+            "gana",
+            "bhakoot",
+            "nadi",
+        ]
+
+        for key in order:
+
+            value = ashta.get(key)
+
+            if isinstance(value, dict):
+
+                item = dict(value)
+
+                item["_key"] = key
+
+                if not item.get("name"):
+                    item["name"] = key
+
+                result.append(item)
+
+        return result
+
+    return []
+
+
+# ============================================================
+# KOOTA DISPLAY NAME
+# ============================================================
+
+def _koota_name(koota):
+
+    name = _value(
+        koota,
+        "name",
+        "area",
+        "sanskritName",
+        default=None,
+    )
+
+    if name:
+        return str(name)
+
+    key = koota.get("_key")
+
+    names = {
+        "varna": "Varna",
+        "vashya": "Vashya",
+        "tara": "Tara",
+        "yoni": "Yoni",
+        "grahaMaitri": "Graha Maitri",
+        "gana": "Gana",
+        "bhakoot": "Bhakoot",
+        "nadi": "Nadi",
+    }
+
+    return names.get(
+        key,
+        "Koota",
+    )
+
+
+# ============================================================
+# KOOTA PARTNER VALUES
+# ============================================================
+
+def _koota_partner_values(koota):
+
+    key = koota.get("_key")
+
+    p1 = "N/A"
+    p2 = "N/A"
+
+    # --------------------------------------------------------
+    # Generic structure
+    # --------------------------------------------------------
+
+    generic_p1 = _value(
+        koota,
+        "p1Value",
+        "partner1Value",
+        default=None,
+    )
+
+    generic_p2 = _value(
+        koota,
+        "p2Value",
+        "partner2Value",
+        default=None,
+    )
+
+    if generic_p1 is not None:
+        p1 = generic_p1
+
+    if generic_p2 is not None:
+        p2 = generic_p2
+
+    # --------------------------------------------------------
+    # Specific ashtaKoota structures from your JSON
+    # --------------------------------------------------------
+
+    if key == "yoni":
+
+        p1 = _value(
+            koota,
+            "yoni1",
+            default=p1,
+        )
+
+        p2 = _value(
+            koota,
+            "yoni2",
+            default=p2,
+        )
+
+    elif key == "vashya":
+
+        p1 = _value(
+            koota,
+            "class1",
+            default=p1,
+        )
+
+        p2 = _value(
+            koota,
+            "class2",
+            default=p2,
+        )
+
+    elif key == "grahaMaitri":
+
+        p1 = _value(
+            koota,
+            "lord1",
+            default=p1,
+        )
+
+        p2 = _value(
+            koota,
+            "lord2",
+            default=p2,
+        )
+
+    elif key == "tara":
+
+        tara1 = _value(
+            koota,
+            "tara1",
+            default=None,
+        )
+
+        tara2 = _value(
+            koota,
+            "tara2",
+            default=None,
+        )
+
+        if tara1 is not None:
+            p1 = tara1
+
+        if tara2 is not None:
+            p2 = tara2
+
+    elif key == "bhakoot":
+
+        relation = _value(
+            koota,
+            "relation",
+            default=None,
+        )
+
+        if relation:
+            p1 = relation
+            p2 = relation
+
+    elif key == "nadi":
+
+        same_nadi = _value(
+            koota,
+            "sameNadi",
+            default=None,
+        )
+
+        if same_nadi is not None:
+            p1 = "Same Nadi" if same_nadi else "Different Nadi"
+            p2 = "Same Nadi" if same_nadi else "Different Nadi"
+
+    return p1, p2
+
+
+# ============================================================
+# KOOTA DESCRIPTION
+# ============================================================
+
+def _koota_description(koota):
+
+    key = koota.get("_key")
+
+    description = _value(
+        koota,
+        "description",
+        "verdict",
+        "note",
+        "notes",
+        "result",
+        default=None,
+    )
+
+    if description:
+        return description
+
+    # --------------------------------------------------------
+    # Automatically describe available raw information
+    # --------------------------------------------------------
+
+    if key == "tara":
+
+        tara1 = _value(
+            koota,
+            "tara1",
+            default="N/A",
+        )
+
+        tara2 = _value(
+            koota,
+            "tara2",
+            default="N/A",
+        )
+
+        return (
+            f"Tara values: Partner 1 = {tara1}, "
+            f"Partner 2 = {tara2}."
+        )
+
+    if key == "bhakoot":
+
+        relation = _value(
+            koota,
+            "relation",
+            default="N/A",
+        )
+
+        dosha = _value(
+            koota,
+            "dosha",
+            default=None,
+        )
+
+        cancellation = _value(
+            koota,
+            "cancellationApplied",
+            default=None,
+        )
+
+        result = f"Relation: {relation}."
+
+        if dosha is not None:
+            result += f" Dosha: {'Yes' if dosha else 'No'}."
+
+        if cancellation is not None:
+            result += (
+                f" Cancellation applied: "
+                f"{'Yes' if cancellation else 'No'}."
+            )
+
+        return result
+
+    if key == "nadi":
+
+        same_nadi = _value(
+            koota,
+            "sameNadi",
+            default=None,
+        )
+
+        cancellation = _value(
+            koota,
+            "cancellationApplied",
+            default=None,
+        )
+
+        result = ""
+
+        if same_nadi is not None:
+            result += (
+                f"Same Nadi: "
+                f"{'Yes' if same_nadi else 'No'}."
+            )
+
+        if cancellation is not None:
+            result += (
+                f" Cancellation applied: "
+                f"{'Yes' if cancellation else 'No'}."
+            )
+
+        return result or "N/A"
+
+    return "N/A"
+
+
+# ============================================================
+# ASHTA KOOTA TABLE
+# ============================================================
+
+def _build_koota_table(report_json, styles):
+
+    kootas = _get_kootas(report_json)
+
+    if not kootas:
+        return None
+
+    rows = [
+        [
+            Paragraph("<b>Koota</b>", styles["JVSmall"]),
+            Paragraph("<b>Partner 1</b>", styles["JVSmall"]),
+            Paragraph("<b>Partner 2</b>", styles["JVSmall"]),
+            Paragraph("<b>Score</b>", styles["JVSmall"]),
+            Paragraph("<b>Max</b>", styles["JVSmall"]),
+            Paragraph(
+                "<b>Description / Result</b>",
+                styles["JVSmall"],
+            ),
+        ]
+    ]
+
+    for koota in kootas:
+
+        if not isinstance(koota, dict):
+            continue
+
+        name = _koota_name(koota)
+
+        p1, p2 = _koota_partner_values(
+            koota
+        )
+
+        score = _value(
+            koota,
+            "score",
+            "points",
+            "obtainedPoints",
+            default=0,
+        )
+
+        max_score = _value(
+            koota,
+            "maxScore",
+            "maxPoints",
+            "max",
+            default=0,
+        )
+
+        description = _koota_description(
+            koota
+        )
+
+        rows.append([
+            Paragraph(
+                _text(name),
+                styles["JVSmall"],
+            ),
+
+            Paragraph(
+                _text(p1),
+                styles["JVSmall"],
+            ),
+
+            Paragraph(
+                _text(p2),
+                styles["JVSmall"],
+            ),
+
+            Paragraph(
+                _number(score),
+                styles["JVSmall"],
+            ),
+
+            Paragraph(
+                _number(max_score),
+                styles["JVSmall"],
+            ),
+
+            Paragraph(
+                _text(description),
+                styles["JVSmall"],
+            ),
+        ])
+
+    table = Table(
+        rows,
+        colWidths=[
+            27 * mm,
+            29 * mm,
+            29 * mm,
+            17 * mm,
+            17 * mm,
+            61 * mm,
+        ],
+        repeatRows=1,
+    )
+
+    table.setStyle(TableStyle([
+
+        (
+            "BACKGROUND",
+            (0, 0),
+            (-1, 0),
+            colors.HexColor("#F0E6C8"),
+        ),
+
+        (
+            "FONTNAME",
+            (0, 0),
+            (-1, 0),
+            "Helvetica-Bold",
+        ),
+
+        (
+            "GRID",
+            (0, 0),
+            (-1, -1),
+            0.4,
+            colors.lightgrey,
+        ),
+
+        (
+            "VALIGN",
+            (0, 0),
+            (-1, -1),
+            "TOP",
+        ),
+
+        (
+            "ALIGN",
+            (3, 1),
+            (4, -1),
+            "CENTER",
+        ),
+
+        (
+            "LEFTPADDING",
+            (0, 0),
+            (-1, -1),
+            4,
+        ),
+
+        (
+            "RIGHTPADDING",
+            (0, 0),
+            (-1, -1),
+            4,
+        ),
+
+        (
+            "TOPPADDING",
+            (0, 0),
+            (-1, -1),
+            5,
+        ),
+
+        (
+            "BOTTOMPADDING",
+            (0, 0),
+            (-1, -1),
+            5,
+        ),
+    ]))
+
+    return table
+
+
+# ============================================================
+# OVERALL SCORE
+# ============================================================
+
+def _get_overall_score(
+    report_json,
+    report,
+):
+
+    summary = report_json.get("summary")
+
+    if not isinstance(summary, dict):
+        summary = {}
+
+    total = _value(
+        report_json,
+        "totalPoints",
+        "totalScore",
+        default=None,
+    )
+
+    if total is None:
+
+        total = _value(
+            summary,
+            "totalScore",
+            "totalPoints",
+            default=None,
+        )
+
+    if total is None:
+        total = report.get(
+            "total_score",
+            0,
+        )
+
+    max_points = _value(
+        report_json,
+        "maxPoints",
+        "maxScore",
+        default=None,
+    )
+
+    if max_points is None:
+
+        max_points = _value(
+            summary,
+            "maxScore",
+            "maxPoints",
+            default=None,
+        )
+
+    if max_points is None:
+        max_points = report.get(
+            "max_score",
+            36,
+        )
+
+    percentage = _value(
+        report_json,
+        "percentage",
+        default=None,
+    )
+
+    if percentage is None:
+
+        percentage = _value(
+            summary,
+            "percentage",
+            default=None,
+        )
+
+    if percentage is None:
+
+        try:
+
+            if float(max_points) > 0:
+
+                percentage = (
+                    float(total)
+                    / float(max_points)
+                    * 100
+                )
+
+            else:
+                percentage = 0
+
+        except (
+            ValueError,
+            TypeError,
+            ZeroDivisionError,
+        ):
+            percentage = 0
+
+    return (
+        total,
+        max_points,
+        percentage,
+    )
+
+
+# ============================================================
+# CHART HELPERS
+# ============================================================
+
+def _get_chart(report_json, partner_key):
+
+    charts = report_json.get("charts")
+
+    if not isinstance(charts, dict):
+        return {}
+
+    chart = charts.get(partner_key)
+
+    if not isinstance(chart, dict):
+        return {}
+
+    return chart
+
+
+# ============================================================
+# CHART PARTNER BASIC INFORMATION
+# ============================================================
+
+def _build_chart_basic_info(
+    chart,
+    styles,
+):
+
+    partner = chart.get("partner")
+
+    if not isinstance(partner, dict):
+        partner = {}
+
+    rows = [
+        [
+            Paragraph(
+                "<b>Chart Information</b>",
+                styles["JVSmall"],
+            ),
+            Paragraph(
+                "<b>Value</b>",
+                styles["JVSmall"],
+            ),
+        ],
+
+        [
+            "Name",
+            _safe_paragraph(
+                _value(
+                    partner,
+                    "fullName",
+                    "name",
+                ),
+                styles,
+            ),
+        ],
+
+        [
+            "Date of Birth",
+            _safe_paragraph(
+                _value(
+                    partner,
+                    "birthDate",
+                    "dob",
+                ),
+                styles,
+            ),
+        ],
+
+        [
+            "Birth Time",
+            _safe_paragraph(
+                _value(
+                    partner,
+                    "birthTime",
+                    "time",
+                ),
+                styles,
+            ),
+        ],
+
+        [
+            "Birth Place",
+            _safe_paragraph(
+                _value(
+                    partner,
+                    "birthPlace",
+                    "place",
+                ),
+                styles,
+            ),
+        ],
+
+        [
+            "Timezone",
+            _safe_paragraph(
+                partner.get("timezone"),
+                styles,
+            ),
+        ],
+
+        [
+            "Latitude",
+            _safe_paragraph(
+                partner.get("latitude"),
+                styles,
+            ),
+        ],
+
+        [
+            "Longitude",
+            _safe_paragraph(
+                partner.get("longitude"),
+                styles,
+            ),
+        ],
+
+        [
+            "House System",
+            _safe_paragraph(
+                partner.get("houseSystem"),
+                styles,
+            ),
+        ],
+
+        [
+            "Horoscope System",
+            _safe_paragraph(
+                partner.get("horoscopeSystem"),
+                styles,
+            ),
+        ],
+
+        [
+            "Node Type",
+            _safe_paragraph(
+                partner.get("nodeType"),
+                styles,
+            ),
+        ],
+    ]
+
+    table = Table(
+        rows,
+        colWidths=[
+            55 * mm,
+            125 * mm,
+        ],
+    )
+
+    table.setStyle(TableStyle([
+
+        (
+            "BACKGROUND",
+            (0, 0),
+            (-1, 0),
+            colors.HexColor("#F0E6C8"),
+        ),
+
+        (
+            "FONTNAME",
+            (0, 0),
+            (-1, 0),
+            "Helvetica-Bold",
+        ),
+
+        (
+            "FONTNAME",
+            (0, 1),
+            (0, -1),
+            "Helvetica-Bold",
+        ),
+
+        (
+            "GRID",
+            (0, 0),
+            (-1, -1),
+            0.4,
+            colors.lightgrey,
+        ),
+
+        (
+            "VALIGN",
+            (0, 0),
+            (-1, -1),
+            "TOP",
+        ),
+
+        (
+            "FONTSIZE",
+            (0, 0),
+            (-1, -1),
+            8,
+        ),
+
+        (
+            "LEFTPADDING",
+            (0, 0),
+            (-1, -1),
+            5,
+        ),
+
+        (
+            "RIGHTPADDING",
+            (0, 0),
+            (-1, -1),
+            5,
+        ),
+
+        (
+            "TOPPADDING",
+            (0, 0),
+            (-1, -1),
+            5,
+        ),
+
+        (
+            "BOTTOMPADDING",
+            (0, 0),
+            (-1, -1),
+            5,
+        ),
+    ]))
+
+    return table
+
+
+# ============================================================
+# ASCENDANT TABLE
+# ============================================================
+
+def _build_ascendant_table(
+    chart,
+    styles,
+):
+
+    ascendant = chart.get("ascendant")
+
+    if not isinstance(ascendant, dict):
+        return None
+
+    rows = [
+        [
+            Paragraph(
+                "<b>Ascendant</b>",
+                styles["JVSmall"],
+            ),
+            Paragraph(
+                "<b>Value</b>",
+                styles["JVSmall"],
+            ),
+        ],
+
+        [
+            "Sign",
+            _safe_paragraph(
+                ascendant.get("signName"),
+                styles,
+            ),
+        ],
+
+        [
+            "Sign Sanskrit",
+            _safe_paragraph(
+                ascendant.get("signSanskrit"),
+                styles,
+            ),
+        ],
+
+        [
+            "Degree",
+            _safe_paragraph(
+                ascendant.get("degree"),
+                styles,
+            ),
+        ],
+
+        [
+            "Degree DMS",
+            _safe_paragraph(
+                ascendant.get("degreeDMS"),
+                styles,
+            ),
+        ],
+
+        [
+            "Nakshatra",
+            _safe_paragraph(
+                ascendant.get("nakshatra"),
+                styles,
+            ),
+        ],
+
+        [
+            "Nakshatra Lord",
+            _safe_paragraph(
+                ascendant.get("nakshatraLord"),
+                styles,
+            ),
+        ],
+
+        [
+            "Pada",
+            _safe_paragraph(
+                ascendant.get("pada"),
+                styles,
+            ),
+        ],
+    ]
+
+    table = Table(
+        rows,
+        colWidths=[
+            55 * mm,
+            125 * mm,
+        ],
+    )
+
+    table.setStyle(TableStyle([
+
+        (
+            "BACKGROUND",
+            (0, 0),
+            (-1, 0),
+            colors.HexColor("#F0E6C8"),
+        ),
+
+        (
+            "FONTNAME",
+            (0, 0),
+            (-1, 0),
+            "Helvetica-Bold",
+        ),
+
+        (
+            "FONTNAME",
+            (0, 1),
+            (0, -1),
+            "Helvetica-Bold",
+        ),
+
+        (
+            "GRID",
+            (0, 0),
+            (-1, -1),
+            0.4,
+            colors.lightgrey,
+        ),
+
+        (
+            "FONTSIZE",
+            (0, 0),
+            (-1, -1),
+            8,
+        ),
+
+        (
+            "VALIGN",
+            (0, 0),
+            (-1, -1),
+            "TOP",
+        ),
+
+        (
+            "LEFTPADDING",
+            (0, 0),
+            (-1, -1),
+            5,
+        ),
+
+        (
+            "RIGHTPADDING",
+            (0, 0),
+            (-1, -1),
+            5,
+        ),
+
+        (
+            "TOPPADDING",
+            (0, 0),
+            (-1, -1),
+            5,
+        ),
+
+        (
+            "BOTTOMPADDING",
+            (0, 0),
+            (-1, -1),
+            5,
+        ),
+    ]))
+
+    return table
+
+
+# ============================================================
+# PLANET TABLE
+# ============================================================
+
+def _build_planet_table(
+    chart,
+    styles,
+):
+
+    planets = chart.get("planets")
+
+    if not isinstance(planets, list):
+        return None
+
+    if not planets:
+        return None
+
+    rows = [
+        [
+            Paragraph("<b>Planet</b>", styles["JVSmall"]),
+            Paragraph("<b>Sign</b>", styles["JVSmall"]),
+            Paragraph("<b>Degree</b>", styles["JVSmall"]),
+            Paragraph("<b>House</b>", styles["JVSmall"]),
+            Paragraph("<b>Nakshatra</b>", styles["JVSmall"]),
+            Paragraph("<b>Pada</b>", styles["JVSmall"]),
+            Paragraph("<b>Retro</b>", styles["JVSmall"]),
+        ]
+    ]
+
+    for planet in planets:
+
+        if not isinstance(planet, dict):
+            continue
+
+        rows.append([
+            _safe_paragraph(
+                _value(
+                    planet,
+                    "name",
+                    "sanskritName",
+                ),
+                styles,
+            ),
+
+            _safe_paragraph(
+                _value(
+                    planet,
+                    "signName",
+                    "sign",
+                ),
+                styles,
+            ),
+
+            _safe_paragraph(
+                _value(
+                    planet,
+                    "degreeDMS",
+                    "degree",
+                ),
+                styles,
+            ),
+
+            _safe_paragraph(
+                planet.get("house"),
+                styles,
+            ),
+
+            _safe_paragraph(
+                planet.get("nakshatra"),
+                styles,
+            ),
+
+            _safe_paragraph(
+                planet.get("pada"),
+                styles,
+            ),
+
+            _safe_paragraph(
+                planet.get("retrograde"),
+                styles,
+            ),
+        ])
+
+    table = Table(
+        rows,
+        colWidths=[
+            27 * mm,
+            27 * mm,
+            28 * mm,
+            18 * mm,
+            39 * mm,
+            15 * mm,
+            18 * mm,
+        ],
+        repeatRows=1,
+    )
+
+    table.setStyle(TableStyle([
+
+        (
+            "BACKGROUND",
+            (0, 0),
+            (-1, 0),
+            colors.HexColor("#F0E6C8"),
+        ),
+
+        (
+            "FONTNAME",
+            (0, 0),
+            (-1, 0),
+            "Helvetica-Bold",
+        ),
+
+        (
+            "GRID",
+            (0, 0),
+            (-1, -1),
+            0.4,
+            colors.lightgrey,
+        ),
+
+        (
+            "VALIGN",
+            (0, 0),
+            (-1, -1),
+            "TOP",
+        ),
+
+        (
+            "FONTSIZE",
+            (0, 0),
+            (-1, -1),
+            7,
+        ),
+
+        (
+            "ALIGN",
+            (3, 1),
+            (3, -1),
+            "CENTER",
+        ),
+
+        (
+            "ALIGN",
+            (5, 1),
+            (6, -1),
+            "CENTER",
+        ),
+
+        (
+            "LEFTPADDING",
+            (0, 0),
+            (-1, -1),
+            3,
+        ),
+
+        (
+            "RIGHTPADDING",
+            (0, 0),
+            (-1, -1),
+            3,
+        ),
+
+        (
+            "TOPPADDING",
+            (0, 0),
+            (-1, -1),
+            4,
+        ),
+
+        (
+            "BOTTOMPADDING",
+            (0, 0),
+            (-1, -1),
+            4,
+        ),
+    ]))
+
+    return table
+
+
+# ============================================================
+# HOUSE CUSPS
+# ============================================================
+
+def _build_house_cusp_table(
+    chart,
+    styles,
+):
+
+    cusps = chart.get("houseCusps")
+
+    if not isinstance(cusps, list):
+        return None
+
+    if not cusps:
+        return None
+
+    rows = [
+        [
+            Paragraph("<b>House</b>", styles["JVSmall"]),
+            Paragraph("<b>Sign</b>", styles["JVSmall"]),
+            Paragraph("<b>Degree</b>", styles["JVSmall"]),
+            Paragraph(
+                "<b>Sidereal Longitude</b>",
+                styles["JVSmall"],
+            ),
+        ]
+    ]
+
+    for cusp in cusps:
+
+        if not isinstance(cusp, dict):
+            continue
+
+        rows.append([
+            _safe_paragraph(
+                cusp.get("house"),
+                styles,
+            ),
+
+            _safe_paragraph(
+                cusp.get("signName"),
+                styles,
+            ),
+
+            _safe_paragraph(
+                cusp.get("degree"),
+                styles,
+            ),
+
+            _safe_paragraph(
+                cusp.get("longitudeSidereal"),
+                styles,
+            ),
+        ])
+
+    table = Table(
+        rows,
+        colWidths=[
+            30 * mm,
+            55 * mm,
+            45 * mm,
+            50 * mm,
+        ],
+        repeatRows=1,
+    )
+
+    table.setStyle(TableStyle([
+
+        (
+            "BACKGROUND",
+            (0, 0),
+            (-1, 0),
+            colors.HexColor("#F0E6C8"),
+        ),
+
+        (
+            "FONTNAME",
+            (0, 0),
+            (-1, 0),
+            "Helvetica-Bold",
+        ),
+
+        (
+            "GRID",
+            (0, 0),
+            (-1, -1),
+            0.4,
+            colors.lightgrey,
+        ),
+
+        (
+            "VALIGN",
+            (0, 0),
+            (-1, -1),
+            "TOP",
+        ),
+
+        (
+            "FONTSIZE",
+            (0, 0),
+            (-1, -1),
+            7.5,
+        ),
+
+        (
+            "ALIGN",
+            (0, 1),
+            (0, -1),
+            "CENTER",
+        ),
+
+        (
+            "LEFTPADDING",
+            (0, 0),
+            (-1, -1),
+            4,
+        ),
+
+        (
+            "RIGHTPADDING",
+            (0, 0),
+            (-1, -1),
+            4,
+        ),
+
+        (
+            "TOPPADDING",
+            (0, 0),
+            (-1, -1),
+            4,
+        ),
+
+        (
+            "BOTTOMPADDING",
+            (0, 0),
+            (-1, -1),
+            4,
+        ),
+    ]))
+
+    return table
+
+
+# ============================================================
+# CALCULATION INFORMATION
+# ============================================================
+
+def _build_calculation_table(
+    chart,
+    styles,
+):
+
+    calculation = chart.get("calculation")
+
+    if not isinstance(calculation, dict):
+        return None
+
+    rows = [
+        [
+            Paragraph(
+                "<b>Calculation Parameter</b>",
+                styles["JVSmall"],
+            ),
+            Paragraph(
+                "<b>Value</b>",
+                styles["JVSmall"],
+            ),
+        ]
+    ]
+
+    preferred_keys = [
+        "engine",
+        "zodiac",
+        "ayanamsha",
+        "latitude",
+        "longitude",
+        "timezone",
+        "houseSystem",
+        "nodeType",
+        "julianDayUT",
+        "ephemerisFlags",
+        "coordinateFrame",
+    ]
+
+    for key in preferred_keys:
+
+        if key not in calculation:
+            continue
+
+        value = calculation.get(key)
+
+        # Don't show huge nested structures here
+        if isinstance(value, (dict, list)):
+            value = json.dumps(
+                value,
+                ensure_ascii=False,
+            )
+
+        rows.append([
+            Paragraph(
+                str(key),
+                styles["JVSmall"],
+            ),
+
+            Paragraph(
+                _text(value),
+                styles["JVSmall"],
+            ),
+        ])
+
+    if len(rows) == 1:
+        return None
+
+    table = Table(
+        rows,
+        colWidths=[
+            65 * mm,
+            115 * mm,
+        ],
+        repeatRows=1,
+    )
+
+    table.setStyle(TableStyle([
+
+        (
+            "BACKGROUND",
+            (0, 0),
+            (-1, 0),
+            colors.HexColor("#F0E6C8"),
+        ),
+
+        (
+            "FONTNAME",
+            (0, 0),
+            (-1, 0),
+            "Helvetica-Bold",
+        ),
+
+        (
+            "FONTNAME",
+            (0, 1),
+            (0, -1),
+            "Helvetica-Bold",
+        ),
+
+        (
+            "GRID",
+            (0, 0),
+            (-1, -1),
+            0.4,
+            colors.lightgrey,
+        ),
+
+        (
+            "FONTSIZE",
+            (0, 0),
+            (-1, -1),
+            7.5,
+        ),
+
+        (
+            "VALIGN",
+            (0, 0),
+            (-1, -1),
+            "TOP",
+        ),
+
+        (
+            "LEFTPADDING",
+            (0, 0),
+            (-1, -1),
+            5,
+        ),
+
+        (
+            "RIGHTPADDING",
+            (0, 0),
+            (-1, -1),
+            5,
+        ),
+
+        (
+            "TOPPADDING",
+            (0, 0),
+            (-1, -1),
+            4,
+        ),
+
+        (
+            "BOTTOMPADDING",
+            (0, 0),
+            (-1, -1),
+            4,
+        ),
+    ]))
+
+    return table
+
+
+# ============================================================
+# FULL CHART SECTION
+# ============================================================
+
+def _build_chart_section(
+    report_json,
+    partner_key,
+    partner_label,
+    styles,
+):
+
+    chart = _get_chart(
+        report_json,
+        partner_key,
+    )
+
+    if not chart:
+        return []
+
+    story = []
+
+    story.append(
+        Paragraph(
+            partner_label,
+            styles["JVSection"],
+        )
+    )
+
+    # --------------------------------------------------------
+    # Basic birth information
+    # --------------------------------------------------------
+
+    basic_table = _build_chart_basic_info(
+        chart,
+        styles,
+    )
+
+    if basic_table:
+        story.append(basic_table)
+        story.append(Spacer(1, 7))
+
+    # --------------------------------------------------------
+    # Ascendant
+    # --------------------------------------------------------
+
+    ascendant_table = _build_ascendant_table(
+        chart,
+        styles,
+    )
+
+    if ascendant_table:
+
+        story.append(
+            Paragraph(
+                "Ascendant",
+                styles["JVSubSection"],
+            )
+        )
+
+        story.append(
+            ascendant_table
+        )
+
+        story.append(
+            Spacer(1, 7)
+        )
+
+    # --------------------------------------------------------
+    # Planets
+    # --------------------------------------------------------
+
+    planet_table = _build_planet_table(
+        chart,
+        styles,
+    )
+
+    if planet_table:
+
+        story.append(
+            Paragraph(
+                "Planetary Positions",
+                styles["JVSubSection"],
+            )
+        )
+
+        story.append(
+            planet_table
+        )
+
+        story.append(
+            Spacer(1, 7)
+        )
+
+    # --------------------------------------------------------
+    # House Cusps
+    # --------------------------------------------------------
+
+    house_table = _build_house_cusp_table(
+        chart,
+        styles,
+    )
+
+    if house_table:
+
+        story.append(
+            Paragraph(
+                "House Cusps",
+                styles["JVSubSection"],
+            )
+        )
+
+        story.append(
+            house_table
+        )
+
+        story.append(
+            Spacer(1, 7)
+        )
+
+    # --------------------------------------------------------
+    # Calculation
+    # --------------------------------------------------------
+
+    calculation_table = _build_calculation_table(
+        chart,
+        styles,
+    )
+
+    if calculation_table:
+
+        story.append(
+            Paragraph(
+                "Calculation Details",
+                styles["JVSubSection"],
+            )
+        )
+
+        story.append(
+            calculation_table
+        )
+
+    return story
+
+
+# ============================================================
+# MAIN PDF FUNCTION
+# ============================================================
+
+def generate_match_report_pdf(
+    report: dict
+) -> bytes:
+
     styles = _styles()
+
     buffer = io.BytesIO()
+
     doc = SimpleDocTemplate(
         buffer,
         pagesize=A4,
-        topMargin=10 * mm,
+
+        topMargin=20 * mm,
         bottomMargin=18 * mm,
-        leftMargin=13 * mm,
-        rightMargin=13 * mm,
+
+        leftMargin=18 * mm,
+        rightMargin=18 * mm,
+
         title="JyotishVeda Kundli Milan Report",
+        author="JyotishVeda",
     )
 
     story = []
 
-    # 1. Header Title & Brand with Logo Icon
-    logo_candidates = [
-        os.path.abspath(os.path.join(os.path.dirname(__file__), "jyotishveda_logo.png")),
-        os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "public", "jyotishveda_logo.png")),
-        os.path.abspath(os.path.join("public", "jyotishveda_logo.png")),
-        os.path.abspath("jyotishveda_logo.png"),
-    ]
-    logo_path = next((p for p in logo_candidates if os.path.exists(p)), None)
+    # ========================================================
+    # JSON
+    # ========================================================
 
-    brand_html = (
-        '<b><font size="19" color="#111111">JYOTISH</font><font size="19" color="#B58328">VEDA</font></b><br/>'
-        '<font size="9" color="#7E5F18"><b>VEDIC KUNDLI MILAN &amp; ASHTA KOOTA COMPATIBILITY CERTIFICATE</b></font><br/>'
-        '<font size="7.5" color="#666666"><i>Calculated in accordance with Brihat Parashara Hora Shastra &amp; Classical Jyotish Sutras</i></font>'
+    report_json = _get_report_json(
+        report
     )
-    brand_p = Paragraph(brand_html, ParagraphStyle(
-        name="JVHeaderBlock",
-        fontName="Helvetica-Bold",
-        fontSize=17,
-        leading=15,
-        alignment=0,
-    ))
 
-    if logo_path:
-        logo_img = Image(logo_path, width=16 * mm, height=16 * mm)
-        header_table = Table([[logo_img, brand_p]], colWidths=[18 * mm, 166 * mm])
-        header_table.setStyle(TableStyle([
-            ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-            ("LEFTPADDING", (0, 0), (-1, -1), 0),
-            ("RIGHTPADDING", (0, 0), (-1, -1), 0),
-            ("TOPPADDING", (0, 0), (-1, -1), 0),
-            ("BOTTOMPADDING", (0, 0), (-1, -1), 0),
-        ]))
-        story.append(header_table)
-    else:
-        story.append(brand_p)
+    # ========================================================
+    # PARTNERS
+    # ========================================================
 
-    story.append(Spacer(1, 4.5 * mm))
-
-    # 2. Couple Information Box (Partner 1 & Partner 2)
-    p1_name = str(report.get("partner1_name", "Partner 1"))
-    p2_name = str(report.get("partner2_name", "Partner 2"))
-    p1_dob = str(report.get("partner1_birth_date", "N/A"))
-    p2_dob = str(report.get("partner2_birth_date", "N/A"))
-    p1_time = str(report.get("partner1_birth_time", ""))
-    p2_time = str(report.get("partner2_birth_time", ""))
-    p1_place = str(report.get("partner1_birth_place", ""))
-    p2_place = str(report.get("partner2_birth_place", ""))
-
-    p1_extra = f"Born: {p1_dob}" + (f" at {p1_time}" if p1_time else "") + (f", {p1_place}" if p1_place else "")
-    p2_extra = f"Born: {p2_dob}" + (f" at {p2_time}" if p2_time else "") + (f", {p2_place}" if p2_place else "")
-
-    couple_data = [
-        [
-            Paragraph(f"<font size=8.5 color='#7E5F18'><b>GROOM / PARTNER A</b></font><br/><font size=11.5 color='#1A1A1E'><b>{p1_name}</b></font><br/><font size=8 color='#555555'>{p1_extra}</font>", styles["JVBody"]),
-            Paragraph(f"<font size=8.5 color='#7E5F18'><b>BRIDE / PARTNER B</b></font><br/><font size=11.5 color='#1A1A1E'><b>{p2_name}</b></font><br/><font size=8 color='#555555'>{p2_extra}</font>", styles["JVBody"]),
-        ]
-    ]
-    couple_table = Table(couple_data, colWidths=[92 * mm, 92 * mm])
-    couple_table.setStyle(TableStyle([
-        ("BACKGROUND", (0, 0), (-1, -1), GOLD_LIGHT),
-        ("BOX", (0, 0), (-1, -1), 0.6, GOLD_BORDER),
-        ("LINEBEFORE", (1, 0), (1, -1), 0.6, GOLD_BORDER),
-        ("TOPPADDING", (0, 0), (-1, -1), 8),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 8),
-        ("LEFTPADDING", (0, 0), (-1, -1), 10),
-        ("RIGHTPADDING", (0, 0), (-1, -1), 10),
-    ]))
-    story.append(couple_table)
-    story.append(Spacer(1, 4.5 * mm))
-
-    # 3. Total Compatibility Score Banner
-    total = float(report.get("total_score", 0))
-    max_score = float(report.get("max_score", 36))
-    pct = (total / max_score * 100) if max_score > 0 else 0
-
-    report_json = report.get("report_json") or {}
-    verdict_title = report_json.get("verdictTitle") or ("AUSPICIOUS MATCH" if total >= 18 else "AVERAGE MATCH")
-    summary_text = report_json.get("summary") or "Vedic synastry points calculated across Moon Nakshatras."
-
-    score_data = [
-        [
-            Paragraph(
-                f"<font size=8.5 color='#7E5F18'><b>TOTAL COMPATIBILITY SCORE</b></font><br/>"
-                f"<font size=18 color='#7E5F18'><b>{total:g} / {max_score:g} Gunas ({pct:.0f}%)</b></font><br/>"
-                f"<font size=10 color='#1A1A1E'><b>{verdict_title.upper()}</b></font><br/>"
-                f"<font size=8.2 color='#555555'><i>\"{summary_text[:190]}\"</i></font>",
-                styles["ScoreCenter"]
-            )
-        ]
-    ]
-    score_table = Table(score_data, colWidths=[184 * mm])
-    score_table.setStyle(TableStyle([
-        ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#FFFFFF")),
-        ("BOX", (0, 0), (-1, -1), 0.8, GOLD_MAIN),
-        ("ALIGN", (0, 0), (-1, -1), "CENTER"),
-        ("TOPPADDING", (0, 0), (-1, -1), 8),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 8),
-        ("LEFTPADDING", (0, 0), (-1, -1), 10),
-        ("RIGHTPADDING", (0, 0), (-1, -1), 10),
-    ]))
-    story.append(score_table)
-    story.append(Spacer(1, 4.5 * mm))
-
-    # 4. Ashta Koota Points Breakdown Table
-    story.append(Paragraph("ASHTA KOOTA POINTS BREAKDOWN", styles["JVSection"]))
-    kootas = report_json.get("kootas") or []
-    
-    rows = [[
-        Paragraph("<b>Koota</b>", styles["JVTableHead"]),
-        Paragraph("<b>Significance</b>", styles["JVTableHead"]),
-        Paragraph(f"<b>{p1_name.split()[0]}</b>", styles["JVTableHeadCenter"]),
-        Paragraph(f"<b>{p2_name.split()[0]}</b>", styles["JVTableHeadCenter"]),
-        Paragraph("<b>Points</b>", styles["JVTableHeadRight"]),
-    ]]
-
-    if isinstance(kootas, list) and kootas:
-        for idx, k in enumerate(kootas):
-            k_name = str(k.get("name", ""))
-            k_area = str(k.get("area", k.get("description", "")))[:45]
-            p1_v = str(k.get("p1Value", "-"))
-            p2_v = str(k.get("p2Value", "-"))
-            score_v = float(k.get("obtainedPoints", k.get("score", 0)))
-            max_v = float(k.get("maxPoints", k.get("max", 0)))
-            pts_text = f"<b>{score_v:g} / {max_v:g}</b>"
-
-            pts_style = ParagraphStyle(
-                name=f"Pts_{idx}",
-                parent=styles["JVTableCellRight"],
-                textColor=GOLD_DARK,
-            )
-
-            rows.append([
-                Paragraph(f"<b>{k_name}</b>", styles["JVBodyBold"]),
-                Paragraph(k_area, styles["JVBodyMuted"]),
-                Paragraph(p1_v, styles["JVTableCellCenter"]),
-                Paragraph(p2_v, styles["JVTableCellCenter"]),
-                Paragraph(pts_text, pts_style),
-            ])
-
-    koota_table = Table(rows, colWidths=[33 * mm, 57 * mm, 35 * mm, 35 * mm, 24 * mm])
-    t_style = [
-        ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#FAF7F0")),
-        ("LINEBELOW", (0, 0), (-1, -1), 0.4, colors.HexColor("#E5DCBE")),
-        ("BOX", (0, 0), (-1, -1), 0.6, GOLD_BORDER),
-        ("TOPPADDING", (0, 0), (-1, -1), 5.5),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 5.5),
-        ("LEFTPADDING", (0, 0), (-1, -1), 7),
-        ("RIGHTPADDING", (0, 0), (-1, -1), 7),
-        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-    ]
-    for r_i in range(1, len(rows)):
-        if r_i % 2 == 0:
-            t_style.append(("BACKGROUND", (0, r_i), (-1, r_i), colors.HexColor("#FAF8F2")))
-    koota_table.setStyle(TableStyle(t_style))
-    story.append(koota_table)
-    story.append(Spacer(1, 4.5 * mm))
-
-    # 5. Critical Dosha & Vitality Assessment
-    story.append(Paragraph("CRITICAL DOSHA &amp; VITALITY ASSESSMENT", styles["JVSection"]))
-    manglik = report_json.get("manglik") or {}
-    m_verdict = manglik.get("verdict") or report.get("manglik_status") or "Non-Manglik"
-    m_exp = manglik.get("explanation") or manglik.get("conclusion") or "Planetary Kuja influence analyzed between both birth charts."
-    
-    nadi = report_json.get("nadiDosha") or {}
-    bhakoot = report_json.get("bhakootDosha") or {}
-    vitality_text = f"Nadi: {nadi.get('reason', 'Balanced')}. Bhakoot: {bhakoot.get('reason', 'Auspicious harmony')}."
-
-    dosha_data = [
-        [
-            Paragraph(f"<b>Manglik (Kuja) Dosha:</b><br/><font size=8.5 color='#7E5F18'><b>Verdict: {m_verdict}</b></font><br/><font size=8 color='#555555'>{m_exp[:150]}</font>", styles["JVBody"]),
-            Paragraph(f"<b>Nadi &amp; Bhakoot Vitality:</b><br/><font size=8 color='#555555'>{vitality_text[:170]}</font>", styles["JVBody"]),
-        ]
-    ]
-    dosha_table = Table(dosha_data, colWidths=[92 * mm, 92 * mm])
-    dosha_table.setStyle(TableStyle([
-        ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#FFFFFF")),
-        ("BOX", (0, 0), (-1, -1), 0.6, GOLD_BORDER),
-        ("LINEBEFORE", (1, 0), (1, -1), 0.6, GOLD_BORDER),
-        ("TOPPADDING", (0, 0), (-1, -1), 7),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 7),
-        ("LEFTPADDING", (0, 0), (-1, -1), 9),
-        ("RIGHTPADDING", (0, 0), (-1, -1), 9),
-        ("VALIGN", (0, 0), (-1, -1), "TOP"),
-    ]))
-    story.append(dosha_table)
-    story.append(Spacer(1, 4.5 * mm))
-
-    # 6. Auspicious Remedies & Muhurat Section
-    remedies = report_json.get("remedies") or [
-        "Perform Joint Gauri-Shankar Puja on Shukla Paksha Mondays to evoke divine marital grace.",
-        "Chant the sacred Shukra Beej Mantra (Om Shum Shukraya Namaha) for enduring sweetness.",
-        "Light a pure cow-ghee lamp during sunset on Thursdays for spiritual harmony."
-    ]
-    rem_lines = "<br/>".join([f"{i+1}. {r[:140]}" for i, r in enumerate(remedies[:3])])
-    muhurat_str = report_json.get("auspiciousMuhuratAdvice") or "Auspicious wedding & partnership dates ideal during Shukla Paksha under Rohini, Uttara Phalguni, or Revati Nakshatras."
-    
-    rem_style = ParagraphStyle(
-        name="JVRemedies",
-        parent=styles["JVBody"],
-        fontSize=8.2,
-        leading=12,
-        textColor=colors.HexColor("#3A3A3C"),
+    partner1 = _get_partner(
+        report_json,
+        report,
+        "partner1",
     )
-    rem_table = Table([[
-        Paragraph(f"<font size=9 color='#7E5F18'><b>AUSPICIOUS VEDIC REMEDIES &amp; MUHURAT</b></font><br/>{rem_lines}<br/><font size=7.8 color='#666666'><b>Muhurat Guidance:</b> {muhurat_str[:150]}</font>", rem_style)
-    ]], colWidths=[184 * mm])
-    rem_table.setStyle(TableStyle([
-        ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#FFFFFF")),
-        ("BOX", (0, 0), (-1, -1), 0.6, GOLD_MAIN),
-        ("TOPPADDING", (0, 0), (-1, -1), 7),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 7),
-        ("LEFTPADDING", (0, 0), (-1, -1), 9),
-        ("RIGHTPADDING", (0, 0), (-1, -1), 9),
-    ]))
-    story.append(rem_table)
 
-    # ============================================================
-    # PAGE 2: WESTERN SYNASTRY, ELEMENTS & AI RELATIONSHIP COUNSEL
-    # ============================================================
-    synastry_list = report_json.get("synastry") or []
-    elem_balance = report_json.get("elementalBalance") or {}
-    num_milan = report_json.get("numerologyMilan") or {}
-    ai_synth = report_json.get("ai_synthesis") or report.get("ai_synthesis") or {}
-    if isinstance(ai_synth, str):
-        try:
-            ai_synth = json.loads(ai_synth)
-        except Exception:
-            ai_synth = {}
+    partner2 = _get_partner(
+        report_json,
+        report,
+        "partner2",
+    )
 
-    story.append(PageBreak())
-    story.append(Spacer(1, 3 * mm))
+    # ========================================================
+    # HEADER
+    # ========================================================
 
-    # Western Synastry & Elements Section
-    story.append(Paragraph("WESTERN SYNASTRY &amp; COSMIC ELEMENTS", styles["JVSection"]))
-    
-    syn_rows = []
-    if synastry_list and isinstance(synastry_list, list):
-        for s in synastry_list[:3]:
-            s_title = s.get("title", "Aspect")
-            s_planets = s.get("planets", "")
-            s_score = s.get("harmonyScore", 80)
-            s_verdict = s.get("verdict", "")
-            s_desc = s.get("description", "")
-            syn_rows.append(Paragraph(
-                f"<b>{s_title} ({s_planets}):</b> <font color='#7E5F18'><b>{s_score}% • {s_verdict}</b></font><br/>"
-                f"<font size=8.5 color='#555555'>{s_desc[:150]}</font>",
-                styles["JVBody"]
-            ))
-
-    elem_text = f"<b>Elemental Synergy ({elem_balance.get('score', 80)}%):</b><br/><font size=8.5 color='#555555'>{elem_balance.get('synergy', 'Harmonious elemental polarity')}.</font>"
-    num_text = f"<b>Numerology Harmony ({num_milan.get('harmonyScore', 85)}%):</b><br/><font size=8.5 color='#555555'>{num_milan.get('description', 'Favorable psychic numbers')[:150]}</font>"
-
-    syn_table_data = [
-        [
-            syn_rows[0] if len(syn_rows) > 0 else Paragraph(elem_text, styles["JVBody"]),
-            syn_rows[1] if len(syn_rows) > 1 else Paragraph(num_text, styles["JVBody"]),
-        ],
-        [
-            Paragraph(elem_text, styles["JVBody"]),
-            Paragraph(num_text, styles["JVBody"]),
-        ]
-    ]
-    syn_table = Table(syn_table_data, colWidths=[92 * mm, 92 * mm])
-    syn_table.setStyle(TableStyle([
-        ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#FFFFFF")),
-        ("BOX", (0, 0), (-1, -1), 0.6, GOLD_BORDER),
-        ("LINEBEFORE", (1, 0), (1, -1), 0.6, GOLD_BORDER),
-        ("LINEBELOW", (0, 0), (-1, 0), 0.6, GOLD_BORDER),
-        ("TOPPADDING", (0, 0), (-1, -1), 9.5),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 9.5),
-        ("LEFTPADDING", (0, 0), (-1, -1), 10),
-        ("RIGHTPADDING", (0, 0), (-1, -1), 10),
-    ]))
-    story.append(syn_table)
-    story.append(Spacer(1, 7 * mm))
-
-    # Daivajna Relationship Synthesis Section
-    story.append(Paragraph("DAIVAJNA DEEP RELATIONSHIP SYNTHESIS", styles["JVSection"]))
-    
-    ai_overall = ai_synth.get("overall_compatibility") or "Harmonious celestial resonance across emotional, spiritual, and material domains."
-    ai_psych = ai_synth.get("psychological_affinity") or "Strong intellectual rapport, fluid communication, and high mutual respect."
-    ai_emot = ai_synth.get("emotional_resonance") or "Emotionally supportive dynamic with tender intuition and shared sensitivity."
-    ai_karmic = ai_synth.get("karmic_bond") or "Favorable karmic alignment supporting longevity, spiritual growth, and shared destiny."
-    ai_phys = ai_synth.get("physical_harmonization") or "Harmonious physical vitality, natural biological accord, and mutual fondness."
-    ai_family = ai_synth.get("family_and_married_life") or "Auspicious planetary indicators for lasting domestic peace and family integration."
-    ai_wealth = ai_synth.get("wealth_and_prosperity") or "Planetary trines indicate joint financial prosperity, abundance, and domestic bliss."
-    ai_final = ai_synth.get("final_assessment") or f"A promising Vedic Kundli Milan for {p1_name} and {p2_name}. Practicing traditional remedies ensures enduring joy, prosperity, and blissful companionship."
-
-    ai_strengths = ai_synth.get("major_strengths") or ["High mutual respect & commitment", "Strong emotional alignment", "Shared life vision"]
-    ai_challenges = ai_synth.get("major_challenges") or ["Balancing communication during stressful cycles"]
-    ai_conflict = ai_synth.get("conflict_resolution") or ["Practice open dialogue before major decisions"]
-
-    str_bullets = "<br/>".join([f"• {s[:110]}" for s in ai_strengths[:3]])
-    ch_bullets = "<br/>".join([f"• {c[:110]}" for c in ai_challenges[:2]])
-    cr_bullets = "<br/>".join([f"• {r[:110]}" for r in ai_conflict[:2]])
-
-    ai_grid_data = [
-        [
-            Paragraph(f"<b>Overall Compatibility:</b><br/><font size=8.5 color='#444444'>{ai_overall[:180]}</font>", styles["JVBody"]),
-            Paragraph(f"<b>Psychological Affinity:</b><br/><font size=8.5 color='#444444'>{ai_psych[:180]}</font>", styles["JVBody"]),
-        ],
-        [
-            Paragraph(f"<b>Emotional Resonance:</b><br/><font size=8.5 color='#444444'>{ai_emot[:180]}</font>", styles["JVBody"]),
-            Paragraph(f"<b>Karmic Bond &amp; Destiny:</b><br/><font size=8.5 color='#444444'>{ai_karmic[:180]}</font>", styles["JVBody"]),
-        ],
-        [
-            Paragraph(f"<b>Physical &amp; Bio Harmony:</b><br/><font size=8.5 color='#444444'>{ai_phys[:180]}</font>", styles["JVBody"]),
-            Paragraph(f"<b>Family &amp; Wealth Prosperity:</b><br/><font size=8.5 color='#444444'>{ai_wealth[:180]}</font>", styles["JVBody"]),
-        ],
-        [
-            Paragraph(f"<font color='#7E5F18'><b>Major Relationship Strengths:</b></font><br/><font size=8.2 color='#333333'>{str_bullets}</font>", styles["JVBody"]),
-            Paragraph(f"<font color='#7E5F18'><b>Challenges &amp; Conflict Resolution:</b></font><br/><font size=8.2 color='#333333'>{ch_bullets}<br/>{cr_bullets}</font>", styles["JVBody"]),
-        ],
-    ]
-
-    ai_table = Table(ai_grid_data, colWidths=[92 * mm, 92 * mm])
-    ai_table.setStyle(TableStyle([
-        ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#FFFFFF")),
-        ("BOX", (0, 0), (-1, -1), 0.6, GOLD_MAIN),
-        ("LINEBELOW", (0, 0), (-1, -2), 0.4, GOLD_BORDER),
-        ("LINEBEFORE", (1, 0), (1, -1), 0.4, GOLD_BORDER),
-        ("TOPPADDING", (0, 0), (-1, -1), 9),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 9),
-        ("LEFTPADDING", (0, 0), (-1, -1), 10),
-        ("RIGHTPADDING", (0, 0), (-1, -1), 10),
-        ("VALIGN", (0, 0), (-1, -1), "TOP"),
-    ]))
-    story.append(ai_table)
-    story.append(Spacer(1, 7 * mm))
-
-    # Final Assessment Box
-    final_box = Table([[
+    story.append(
         Paragraph(
-            f"<font size=10 color='#7E5F18'><b>DAIVAJNA FINAL ASSESSMENT &amp; BLESSINGS</b></font><br/>"
-            f"<font size=9 color='#222222'><i>\"{ai_final[:280]}\"</i></font>",
-            styles["ScoreCenter"]
+            "JYOTISHVEDA",
+            styles["JVTitle"],
         )
-    ]], colWidths=[184 * mm])
-    final_box.setStyle(TableStyle([
-        ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#FFFFFF")),
-        ("BOX", (0, 0), (-1, -1), 0.7, GOLD_DARK),
-        ("TOPPADDING", (0, 0), (-1, -1), 12),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 12),
-        ("LEFTPADDING", (0, 0), (-1, -1), 12),
-        ("RIGHTPADDING", (0, 0), (-1, -1), 12),
+    )
+
+    story.append(
+        Paragraph(
+            "Official Vedic Kundli Milan &amp; "
+            "Ashta Koota Compatibility Report",
+            styles["JVSubtitle"],
+        )
+    )
+
+    # ========================================================
+    # PARTNER INFORMATION
+    # ========================================================
+
+    story.append(
+        Paragraph(
+            "Partner Information",
+            styles["JVSection"],
+        )
+    )
+
+    story.append(
+        _partner_information_table(
+            report_json,
+            report,
+            partner1,
+            partner2,
+            styles,
+        )
+    )
+
+    story.append(
+        Spacer(1, 10)
+    )
+
+    # ========================================================
+    # OVERALL SCORE
+    # ========================================================
+
+    total, max_points, percentage = (
+        _get_overall_score(
+            report_json,
+            report,
+        )
+    )
+
+    story.append(
+        Paragraph(
+            "Overall Compatibility",
+            styles["JVSection"],
+        )
+    )
+
+    score_table = Table(
+        [
+            [
+                Paragraph(
+                    _number(total),
+                    styles["JVScore"],
+                ),
+
+                Paragraph(
+                    _number(max_points),
+                    styles["JVScore"],
+                ),
+
+                Paragraph(
+                    f"{float(percentage):.2f}%",
+                    styles["JVScore"],
+                ),
+            ],
+
+            [
+                "Total Points",
+                "Maximum Points",
+                "Percentage",
+            ],
+        ],
+
+        colWidths=[
+            60 * mm,
+            60 * mm,
+            60 * mm,
+        ],
+    )
+
+    score_table.setStyle(TableStyle([
+
+        (
+            "BACKGROUND",
+            (0, 0),
+            (-1, 0),
+            colors.HexColor("#FFF9E8"),
+        ),
+
+        (
+            "GRID",
+            (0, 0),
+            (-1, -1),
+            0.5,
+            colors.lightgrey,
+        ),
+
+        (
+            "ALIGN",
+            (0, 0),
+            (-1, -1),
+            "CENTER",
+        ),
+
+        (
+            "VALIGN",
+            (0, 0),
+            (-1, -1),
+            "MIDDLE",
+        ),
+
+        (
+            "FONTNAME",
+            (0, 1),
+            (-1, 1),
+            "Helvetica-Bold",
+        ),
+
+        (
+            "FONTSIZE",
+            (0, 1),
+            (-1, 1),
+            8,
+        ),
+
+        (
+            "TOPPADDING",
+            (0, 0),
+            (-1, 0),
+            10,
+        ),
+
+        (
+            "BOTTOMPADDING",
+            (0, 0),
+            (-1, 0),
+            10,
+        ),
+
+        (
+            "TOPPADDING",
+            (0, 1),
+            (-1, 1),
+            6,
+        ),
+
+        (
+            "BOTTOMPADDING",
+            (0, 1),
+            (-1, 1),
+            6,
+        ),
     ]))
-    story.append(final_box)
 
-    # 7. Decorative Canvas Decorator: Full Page Watermark + Borders + Raised Footer
-    def _draw_page_decorations(canvas, doc_):
-        canvas.saveState()
-        
-        # 1. Full Page Background Astrologer / Sage Image Watermark
-        img_candidates = [
-            os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "public", "astrologer_bg.jpg")),
-            os.path.abspath(os.path.join("public", "astrologer_bg.jpg")),
-            os.path.abspath("astrologer_bg.jpg"),
-        ]
-        img_path = next((p for p in img_candidates if os.path.exists(p)), None)
-        
-        if img_path:
-            try:
-                canvas.setFillAlpha(0.09)
-                # Full page watermark across the entire 210mm x 297mm page
-                canvas.drawImage(
-                    img_path,
-                    0,
-                    0,
-                    width=210 * mm,
-                    height=297 * mm,
-                    preserveAspectRatio=False,
-                    mask='auto'
+    story.append(
+        score_table
+    )
+
+    # ========================================================
+    # VERDICT
+    # ========================================================
+
+    summary = report_json.get(
+        "summary"
+    )
+
+    if not isinstance(summary, dict):
+        summary = {}
+
+    verdict_title = _value(
+        report_json,
+        "verdictTitle",
+        default=None,
+    )
+
+
+    if verdict_title is None:
+
+        verdict_title = _value(
+            summary,
+            "verdictTitle",
+            default=None,
+        )
+
+    description = _value(
+        report_json,
+        "description",
+        "verdictDescription",
+        default=None,
+    )
+
+    if description is None:
+
+        description = _value(
+            summary,
+            "description",
+            "verdictDescription",
+            default=None,
+        )
+
+    if verdict_title or description:
+
+        story.append(
+            Paragraph(
+                "Overall Result",
+                styles["JVSection"],
+            )
+        )
+
+        if verdict_title:
+
+            story.append(
+                Paragraph(
+                    f"<b>Verdict: {_text(verdict_title)}</b>",
+                    styles["JVBody"],
                 )
-            except Exception:
-                pass
+            )
 
-        # Outer Decorative Golden Double Border
-        canvas.setFillAlpha(1.0)
-        canvas.setStrokeColor(GOLD_MAIN)
-        canvas.setLineWidth(1.2)
-        canvas.rect(8 * mm, 8 * mm, (210 - 16) * mm, (297 - 16) * mm)
-        canvas.setLineWidth(0.4)
-        canvas.rect(10 * mm, 10 * mm, (210 - 20) * mm, (297 - 20) * mm)
+        if description:
 
-        # Corner Golden Rosettes
-        canvas.setFillColor(GOLD_MAIN)
-        canvas.circle(10 * mm, 10 * mm, 1.2 * mm, fill=1, stroke=0)
-        canvas.circle((210 - 10) * mm, 10 * mm, 1.2 * mm, fill=1, stroke=0)
-        canvas.circle(10 * mm, (297 - 10) * mm, 1.2 * mm, fill=1, stroke=0)
-        canvas.circle((210 - 10) * mm, (297 - 10) * mm, 1.2 * mm, fill=1, stroke=0)
+            story.append(
+                Paragraph(
+                    _text(description),
+                    styles["JVBody"],
+                )
+            )
 
-        # Raised Footer Divider Line
-        canvas.setStrokeColor(GOLD_BORDER)
-        canvas.setLineWidth(0.5)
-        canvas.line(13 * mm, 19 * mm, (210 - 13) * mm, 19 * mm)
+    # ========================================================
+    # ASHTA KOOTA
+    # ========================================================
 
-        # Raised Footer Details (comfortably positioned above the bottom border)
-        canvas.setFont("Helvetica", 7)
-        canvas.setFillColor(colors.HexColor("#666666"))
-        cert_id = f"JV-KM-{datetime.utcnow().strftime('%Y%m%d')}-{str(report.get('id', 'CERT'))[:6].upper()}"
-        canvas.drawString(14 * mm, 15 * mm, f"Certificate ID: {cert_id}  |  Generated: {datetime.utcnow().strftime('%d %B %Y')}")
-        canvas.drawString(14 * mm, 12 * mm, "Certified via JyotishVeda Mathematical AstroEngine & Classical Ephemeris")
+    story.append(
+        Paragraph(
+            "Ashta Koota Analysis",
+            styles["JVSection"],
+        )
+    )
 
-        canvas.setFont("Helvetica-Bold", 8)
-        canvas.setFillColor(GOLD_DARK)
-        canvas.drawRightString((210 - 14) * mm, 15 * mm, "DAIVAJNA ASTROLOGICAL SEAL")
-        canvas.setFont("Helvetica", 6.5)
-        canvas.setFillColor(colors.HexColor("#777777"))
-        canvas.drawRightString((210 - 14) * mm, 12 * mm, f"Page {doc_.page} | Digitally Verified & Certified")
+    koota_table = _build_koota_table(
+        report_json,
+        styles,
+    )
+
+    if koota_table:
+
+        story.append(
+            koota_table
+        )
+
+    else:
+
+        story.append(
+            Paragraph(
+                "Ashta Koota result is not available.",
+                styles["JVBody"],
+            )
+        )
+
+    # ========================================================
+    # CHARTS
+    # ========================================================
+
+    charts_exist = isinstance(
+        report_json.get("charts"),
+        dict,
+    )
+
+    if charts_exist:
+
+        story.append(
+            PageBreak()
+        )
+
+        story.append(
+            Paragraph(
+                "Kundli Charts",
+                styles["JVSection"],
+            )
+        )
+
+        # ----------------------------------------------------
+        # Partner 1 Chart
+        # ----------------------------------------------------
+
+        story.extend(
+            _build_chart_section(
+                report_json,
+                "partner1",
+                "Partner 1 - Kundli Chart",
+                styles,
+            )
+        )
+
+        # ----------------------------------------------------
+        # Partner 2 Chart
+        # ----------------------------------------------------
+
+        story.append(
+            Spacer(1, 12)
+        )
+
+        story.extend(
+            _build_chart_section(
+                report_json,
+                "partner2",
+                "Partner 2 - Kundli Chart",
+                styles,
+            )
+        )
+
+
+
+    # ========================================================
+    # DISCLAIMER
+    # ========================================================
+
+    story.append(
+        Spacer(1, 16)
+    )
+
+    story.append(
+        Paragraph(
+            "Disclaimer",
+            styles["JVSection"],
+        )
+    )
+
+    story.append(
+        Paragraph(
+            "This report reflects traditional Vedic astrological "
+            "interpretation and is provided for informational and "
+            "cultural purposes. It does not constitute a guaranteed "
+            "prediction and is not a substitute for professional "
+            "medical, legal, or financial advice. Final decisions "
+            "rest with the individuals concerned.",
+            styles["JVBody"],
+        )
+    )
+
+    # ========================================================
+    # PAGE NUMBER
+    # ========================================================
+
+    def _add_page_number(
+        canvas,
+        doc_,
+    ):
+
+        canvas.saveState()
+
+        canvas.setFont(
+            "Helvetica",
+            8,
+        )
+
+        canvas.setFillColor(
+            colors.grey
+        )
+
+        canvas.drawRightString(
+            200 * mm,
+            10 * mm,
+            f"Page {doc_.page}",
+        )
+
+        canvas.drawString(
+            18 * mm,
+            10 * mm,
+            "JyotishVeda • AI Daivajna",
+        )
 
         canvas.restoreState()
 
-    doc.build(story, onFirstPage=_draw_page_decorations, onLaterPages=_draw_page_decorations)
+    # ========================================================
+    # BUILD PDF
+    # ========================================================
+
+    doc.build(
+        story,
+        onFirstPage=_add_page_number,
+        onLaterPages=_add_page_number,
+    )
+
     return buffer.getvalue()
+def _pdf_text(value, default=""):
+    """
+    Safely convert a value into text for PDF rendering.
+    Handles None, dict, list and normal values.
+    """
+
+    if value is None:
+        return default
+
+    if isinstance(value, (dict, list)):
+        return json.dumps(
+            value,
+            ensure_ascii=False,
+            indent=2
+        )
+
+    return str(value)
+
+def generate_ai_synthesis_pdf(row: dict) -> bytes:
+
+    buffer = BytesIO()
+
+    doc = SimpleDocTemplate(
+        buffer,
+        pagesize=A4,
+        topMargin=20 * mm,
+        bottomMargin=18 * mm,
+        leftMargin=18 * mm,
+        rightMargin=18 * mm,
+        title="JyotishVeda AI Compatibility Synthesis",
+    )
+
+    styles = _styles()
+
+    title_style = styles["JVTitle"]
+    subtitle_style = styles["JVSubtitle"]
+    heading_style = styles["JVSection"]
+    body_style = styles["JVBody"]
+
+    bullet_style = ParagraphStyle(
+        "AIBullet",
+        parent=styles["JVBody"],
+        leftIndent=15,
+        firstLineIndent=-10,
+        spaceAfter=6,
+    )
+
+    story = []
+
+    # =========================================================
+    # BASIC DATA
+    # =========================================================
+
+    partner1_name = (
+        row.get("partner1_name")
+        or "Partner 1"
+    )
+
+    partner2_name = (
+        row.get("partner2_name")
+        or "Partner 2"
+    )
+
+    total_score = (
+        row.get("total_score")
+        if row.get("total_score") is not None
+        else "N/A"
+    )
+
+    max_score = (
+        row.get("max_score")
+        if row.get("max_score") is not None
+        else 36
+    )
+
+    # =========================================================
+    # SYNTHESIS JSON
+    # =========================================================
+
+    synthesis_json = row.get("synthesis_json")
+
+    if isinstance(synthesis_json, str):
+
+        synthesis = json.loads(
+            synthesis_json
+        )
+
+    elif isinstance(synthesis_json, dict):
+
+        synthesis = synthesis_json
+
+    else:
+
+        synthesis = {}
+
+    # =========================================================
+    # TITLE
+    # =========================================================
+
+    story.append(
+        Paragraph(
+            "JYOTISHVEDA",
+            title_style
+        )
+    )
+
+    story.append(
+        Paragraph(
+            "Daivajna Deep Relationship Synthesis<br/>"
+            f"for <b>{_pdf_text(partner1_name)}</b> &amp; <b>{_pdf_text(partner2_name)}</b>",
+            subtitle_style
+        )
+    )
+
+    # =========================================================
+    # ASHTA KOOTA SCORE
+    # =========================================================
+
+    story.append(
+        Paragraph(
+            "Ashta Koota Score",
+            heading_style
+        )
+    )
+
+    score_table = Table(
+        [
+            [
+                "Total Score",
+                "Maximum Score"
+            ],
+            [
+                str(total_score),
+                str(max_score)
+            ]
+        ],
+        colWidths=[
+            75 * mm,
+            75 * mm
+        ]
+    )
+
+    score_table.setStyle(
+        TableStyle([
+            ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#FFF9E8")),
+            ("TEXTCOLOR", (0, 0), (-1, 0), GOLD_DARK),
+            ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+            ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+            ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+            ("FONTSIZE", (0, 0), (-1, -1), 9),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 8),
+            ("TOPPADDING", (0, 0), (-1, -1), 8),
+            ("INNERGRID", (0, 0), (-1, -1), 0.5, colors.lightgrey),
+            ("BOX", (0, 0), (-1, -1), 0.5, colors.lightgrey),
+        ])
+    )
+
+    story.append(score_table)
+
+    story.append(Spacer(1, 8))
+
+    # =========================================================
+    # MANGLIK DOSHA
+    # =========================================================
+
+    story.append(
+        Paragraph(
+            "Manglik Dosha",
+            heading_style
+        )
+    )
+
+    manglik = synthesis.get(
+        "manglik_dosha",
+        {}
+    )
+
+    if not isinstance(manglik, dict):
+        manglik = {}
+
+    p1_manglik = (
+        manglik.get("partner1")
+        or row.get("partner1_manglik_status")
+        or "Manglik status unavailable"
+    )
+
+    p2_manglik = (
+        manglik.get("partner2")
+        or row.get("partner2_manglik_status")
+        or "Manglik status unavailable"
+    )
+
+    manglik_present = manglik.get(
+        "present",
+        False
+    )
+
+    manglik_table = Table(
+        [
+            [
+                "Partner",
+                "Manglik Status"
+            ],
+            [
+                str(partner1_name),
+                str(p1_manglik)
+            ],
+            [
+                str(partner2_name),
+                str(p2_manglik)
+            ],
+            [
+                "Dosha Present",
+                "Yes" if manglik_present else "No"
+            ]
+        ],
+        colWidths=[
+            60 * mm,
+            90 * mm
+        ]
+    )
+
+    manglik_table.setStyle(
+        TableStyle([
+            ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#FFF9E8")),
+            ("TEXTCOLOR", (0, 0), (-1, 0), GOLD_DARK),
+            ("ALIGN", (0, 0), (-1, -1), "LEFT"),
+            ("VALIGN", (0, 0), (-1, -1), "TOP"),
+            ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+            ("FONTSIZE", (0, 0), (-1, -1), 9),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 8),
+            ("TOPPADDING", (0, 0), (-1, -1), 8),
+            ("INNERGRID", (0, 0), (-1, -1), 0.5, colors.lightgrey),
+            ("BOX", (0, 0), (-1, -1), 0.5, colors.lightgrey),
+        ])
+    )
+
+    story.append(manglik_table)
+
+    # =========================================================
+    # AI SYNTHESIS SECTIONS
+    # =========================================================
+
+    sections = [
+
+        (
+            "Overall Compatibility",
+            "overall_compatibility"
+        ),
+
+        (
+            "Guna Milan",
+            "guna_milan"
+        ),
+
+        (
+            "Psychological Affinity",
+            "psychological_affinity"
+        ),
+
+        (
+            "Emotional Resonance",
+            "emotional_resonance"
+        ),
+
+        (
+            "Karmic Bond",
+            "karmic_bond"
+        ),
+
+        (
+            "Physical Harmonization",
+            "physical_harmonization"
+        ),
+
+        (
+            "Nadi Analysis",
+            "nadi_analysis"
+        ),
+
+        (
+            "Bhakoot Analysis",
+            "bhakoot_analysis"
+        ),
+
+        (
+            "Family and Married Life",
+            "family_and_married_life"
+        ),
+
+        (
+            "Wealth and Prosperity",
+            "wealth_and_prosperity"
+        ),
+
+        (
+            "Major Strengths",
+            "major_strengths"
+        ),
+
+        (
+            "Major Challenges",
+            "major_challenges"
+        ),
+
+        (
+            "Conflict Resolution",
+            "conflict_resolution"
+        ),
+
+        (
+            "Vedic Remedies",
+            "vedic_remedies"
+        ),
+
+        (
+            "Final Assessment",
+            "final_assessment"
+        ),
+    ]
+
+    # =========================================================
+    # RENDER SECTIONS
+    # =========================================================
+
+    for title, key in sections:
+
+        value = synthesis.get(key)
+
+        if value is None:
+            continue
+
+        story.append(
+            Paragraph(
+                _pdf_text(title),
+                heading_style
+            )
+        )
+
+        # -----------------------------------------------------
+        # LIST
+        # -----------------------------------------------------
+
+        if isinstance(value, list):
+
+            if not value:
+
+                story.append(
+                    Paragraph(
+                        "No information available.",
+                        body_style
+                    )
+                )
+
+                continue
+
+            for item in value:
+
+                if isinstance(item, dict):
+
+                    parts = []
+
+                    for k, v in item.items():
+
+                        if isinstance(v, list):
+
+                            v = ", ".join(
+                                str(x)
+                                for x in v
+                            )
+
+                        parts.append(
+                            f"<b>{_pdf_text(k)}:</b> "
+                            f"{_pdf_text(v)}"
+                        )
+
+                    text = "<br/>".join(parts)
+
+                else:
+
+                    text = _pdf_text(item)
+
+                story.append(
+                    Paragraph(
+                        f"• {text}",
+                        bullet_style
+                    )
+                )
+
+        # -----------------------------------------------------
+        # DICTIONARY
+        # -----------------------------------------------------
+
+        elif isinstance(value, dict):
+
+            for k, v in value.items():
+
+                if isinstance(v, list):
+
+                    if v:
+
+                        v = ", ".join(
+                            str(x)
+                            for x in v
+                        )
+
+                    else:
+
+                        v = "None"
+
+                elif isinstance(v, dict):
+
+                    v = json.dumps(
+                        v,
+                        ensure_ascii=False
+                    )
+
+                story.append(
+                    Paragraph(
+                        (
+                            f"<b>{_pdf_text(k)}:</b> "
+                            f"{_pdf_text(v)}"
+                        ),
+                        body_style
+                    )
+                )
+
+        # -----------------------------------------------------
+        # STRING / NUMBER
+        # -----------------------------------------------------
+
+        else:
+
+            story.append(
+                Paragraph(
+                    _pdf_text(value),
+                    body_style
+                )
+            )
+
+    # =========================================================
+    # DISCLAIMER
+    # =========================================================
+
+    story.append(
+        Spacer(1, 12)
+    )
+
+    story.append(
+        Paragraph(
+            (
+                "<b>Disclaimer:</b> "
+                "This report is based on the supplied "
+                "Vedic astrology data and traditional "
+                "Jyotish compatibility framework. "
+                "It should not be considered a scientifically "
+                "proven guarantee of relationship or marital "
+                "outcomes."
+            ),
+            body_style
+        )
+    )
+
+    # =========================================================
+    # BUILD PDF
+    # =========================================================
+
+    doc.build(story, onFirstPage=_draw_page_decorations, onLaterPages=_draw_page_decorations)
+
+    pdf_bytes = buffer.getvalue()
+
+    buffer.close()
+
+    return pdf_bytes
+
+# 7. Decorative Canvas Decorator: Full Page Watermark + Borders + Raised Footer
+def _draw_page_decorations(canvas, doc_):
+    canvas.saveState()
+        
+    # 1. Full Page Background Astrologer / Sage Image Watermark
+    img_candidates = [
+        os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "public", "astrologer_bg.jpg")),
+        os.path.abspath(os.path.join("public", "astrologer_bg.jpg")),
+        os.path.abspath("astrologer_bg.jpg"),
+    ]
+    img_path = next((p for p in img_candidates if os.path.exists(p)), None)
+        
+    if img_path:
+        try:
+            canvas.setFillAlpha(0.09)
+            # Full page watermark across the entire 210mm x 297mm page
+            canvas.drawImage(
+                img_path,
+                0,
+                0,
+                width=210 * mm,
+                height=297 * mm,
+                preserveAspectRatio=False,
+                mask='auto'
+            )
+        except Exception:
+            pass
+
+    # Outer Decorative Golden Double Border
+    canvas.setFillAlpha(1.0)
+    canvas.setStrokeColor(GOLD_MAIN)
+    canvas.setLineWidth(1.2)
+    canvas.rect(8 * mm, 8 * mm, (210 - 16) * mm, (297 - 16) * mm)
+    canvas.setLineWidth(0.4)
+    canvas.rect(10 * mm, 10 * mm, (210 - 20) * mm, (297 - 20) * mm)
+
+    # Corner Golden Rosettes
+    canvas.setFillColor(GOLD_MAIN)
+    canvas.circle(10 * mm, 10 * mm, 1.2 * mm, fill=1, stroke=0)
+    canvas.circle((210 - 10) * mm, 10 * mm, 1.2 * mm, fill=1, stroke=0)
+    canvas.circle(10 * mm, (297 - 10) * mm, 1.2 * mm, fill=1, stroke=0)
+    canvas.circle((210 - 10) * mm, (297 - 10) * mm, 1.2 * mm, fill=1, stroke=0)
+
+    # Footer Divider Line
+    canvas.setStrokeColor(GOLD_BORDER)
+    canvas.setLineWidth(0.4)
+    canvas.line(13 * mm, 16 * mm, (210 - 13) * mm, 16 * mm)
+
+    # Footer Details (Only Generation Date and Page Number)
+    gen_date = datetime.utcnow().strftime("%d %b %Y")
+    canvas.setFont("Helvetica", 7.5)
+    canvas.setFillColor(colors.HexColor("#666666"))
+    canvas.drawString(14 * mm, 11.5 * mm, f"Generated: {gen_date}")
+    canvas.drawRightString((210 - 14) * mm, 11.5 * mm, f"Page {doc_.page}")
+
+    canvas.restoreState()
+
+
+
+
 
 
 def generate_roadmap_report_pdf(payload: dict) -> bytes:
@@ -774,4 +3539,4 @@ def generate_roadmap_report_pdf(payload: dict) -> bytes:
         canvas.restoreState()
 
     doc.build(story, onFirstPage=_draw_roadmap_decorations, onLaterPages=_draw_roadmap_decorations)
-    return buffer.getvalue()
+    return buffer.getvalue()

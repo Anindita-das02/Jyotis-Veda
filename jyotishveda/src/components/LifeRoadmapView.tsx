@@ -44,8 +44,8 @@ export const LifeRoadmapView: React.FC<LifeRoadmapViewProps> = ({
   onNavigateToConsultations,
   theme = 'dark',
 }) => {
-  const [selectedCategory, setSelectedCategory] = useState<string>('all');
-  const [selectedHorizon, setSelectedHorizon] = useState<string>('0-5 Years');
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [selectedHorizon, setSelectedHorizon] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedHorizons, setGeneratedHorizons] = useState<Record<string, boolean>>({});
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
@@ -78,8 +78,6 @@ export const LifeRoadmapView: React.FC<LifeRoadmapViewProps> = ({
 
     if (!hasLoadedCache && (!roadmap || roadmap.length < 15)) {
       setRoadmap(generateCustomRoadmap(profile, chartData));
-      // Auto-trigger generation and database save for 0-5 Years
-      handleGenerateHorizon('0-5 Years');
     }
   }, [profile?.name, profile?.birthDate]);
 
@@ -110,7 +108,6 @@ export const LifeRoadmapView: React.FC<LifeRoadmapViewProps> = ({
   };
 
   const categories = [
-    { id: 'all', label: 'All Life Spheres', icon: Milestone },
     { id: 'Career', label: 'Career & Executive', icon: Briefcase },
     { id: 'Wealth', label: 'Wealth & Real Estate', icon: DollarSign },
     { id: 'Relationships', label: 'Love & Family', icon: Heart },
@@ -121,8 +118,8 @@ export const LifeRoadmapView: React.FC<LifeRoadmapViewProps> = ({
   const horizons = ['0-5 Years', '5-10 Years', '10-15 Years', '15-20 Years', '20-25 Years'];
 
   const handleGenerateHorizon = async (horizonToGen?: string) => {
-    const targetHorizon = horizonToGen || selectedHorizon || '0-5 Years';
-    if (isGenerating || targetHorizon === '15-20 Years' || targetHorizon === '20-25 Years') return;
+    const targetHorizon = horizonToGen || selectedHorizon;
+    if (!targetHorizon || isGenerating || targetHorizon === '15-20 Years' || targetHorizon === '20-25 Years') return;
 
     if (!selectedHorizon) {
       setSelectedHorizon(targetHorizon);
@@ -272,7 +269,7 @@ export const LifeRoadmapView: React.FC<LifeRoadmapViewProps> = ({
 
   const filteredRoadmap = sortedRoadmap.filter((m) => {
     if (!m) return false;
-    const matchCat = selectedCategory === 'all' || m.category === selectedCategory;
+    const matchCat = !selectedCategory || selectedCategory === 'all' || m.category === selectedCategory;
     const matchHor = !selectedHorizon || selectedHorizon === 'all' || m.timeframe === selectedHorizon;
     return matchCat && matchHor;
   });
@@ -738,7 +735,7 @@ export const LifeRoadmapView: React.FC<LifeRoadmapViewProps> = ({
             return (
               <button
                 key={cat.id}
-                onClick={() => setSelectedCategory(cat.id)}
+                onClick={() => setSelectedCategory(isSelected ? null : cat.id)}
                 className={`px-2.5 py-1 rounded-md text-[11px] font-medium transition cursor-pointer shrink-0 flex items-center space-x-1 border ${
                   isSelected
                     ? 'bg-[#C9A050]/20 text-[#C9A050] border-[#C9A050]/50 font-semibold'
@@ -803,6 +800,21 @@ export const LifeRoadmapView: React.FC<LifeRoadmapViewProps> = ({
             >
               Consultations & Gateway
             </button>
+          </div>
+        ) : !selectedHorizon ? (
+          <div className={`border rounded-xl p-16 sm:p-24 flex flex-col items-center justify-center min-h-[340px] text-center shadow-xl space-y-4 ${
+            theme === 'dark' ? 'bg-[#141418] border-[#2A2A2E]' : 'bg-white border-[#E5E1D8]'
+          }`}>
+            <h3 className={`font-serif font-bold text-base sm:text-lg ${
+              theme === 'dark' ? 'text-[#F0ECE1]' : 'text-gray-900'
+            }`}>
+              Select a Time Horizon
+            </h3>
+            <p className={`text-xs font-sans max-w-sm mx-auto ${
+              theme === 'dark' ? 'text-[#9E9A90]' : 'text-gray-500'
+            }`}>
+              Please select a time horizon and a life sphere from the filters above to generate your Vedic Destiny Roadmap.
+            </p>
           </div>
         ) : generatedHorizons[selectedHorizon] ? (
           <>

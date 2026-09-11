@@ -159,6 +159,7 @@ export const MatchmakingView: React.FC<MatchmakingViewProps> = ({
 
   const [isGeneratingAI, setIsGeneratingAI] = useState(false);
   const [aiSynthesis, setAiSynthesis] = useState<any | null>(null);
+  const [aiSynthesisId, setAiSynthesisId] = useState<string | null>(null);
   const [copiedText, setCopiedText] = useState(false);
   const [isPrinting, setIsPrinting] = useState(false);
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
@@ -198,59 +199,7 @@ export const MatchmakingView: React.FC<MatchmakingViewProps> = ({
     }
   }, [profileId, historyKey]);
 
-  // Real-time automatic recalculation & refresh whenever partner data is entered or edited
-  useEffect(() => {
-    // Both partners must have a birthDate for Kundli Milan
-    if (!partner1.birthDate || !partner2.birthDate) {
-      return;
-    }
-
-    setIsAutoRefreshing(true);
-    const debounceTimer = setTimeout(async () => {
-      try {
-        let result = calculateKundliMilan(partner1, partner2);
-        try {
-          const backendReport = await calculateMatchReportBackend(partner1, partner2);
-          if (backendReport) {
-            result = {
-              ...result,
-              totalPoints: backendReport.totalPoints ?? (backendReport as any).totalScore ?? result.totalPoints,
-              maxPoints: backendReport.maxPoints ?? (backendReport as any).maxScore ?? 36,
-              percentage: backendReport.percentage ?? (backendReport.summary as any)?.percentage ?? result.percentage,
-              verdictTitle: backendReport.verdictTitle ?? (backendReport.summary as any)?.verdictTitle ?? result.verdictTitle,
-              summary: backendReport.summary ?? result.summary,
-            };
-          }
-        } catch {}
-
-        setMatchResult(result);
-        setLastAutoRefreshedAt(new Date());
-        saveToHistoryList(result, partner1, partner2);
-
-        // If AI Counsel tab is active or AI synthesis already exists, refresh AI synthesis in background
-        if (activeTab === 'ai_counsel' || aiSynthesis) {
-          handleGenerateAISynthesis(result, partner1, partner2);
-        }
-      } catch (err) {
-        console.error('Error auto-refreshing Kundli Milan calculation:', err);
-      } finally {
-        setIsAutoRefreshing(false);
-      }
-    }, 300);
-
-    return () => clearTimeout(debounceTimer);
-  }, [
-    partner1.fullName,
-    partner1.birthDate,
-    partner1.birthTime,
-    partner1.birthPlace,
-    partner1.gender,
-    partner2.fullName,
-    partner2.birthDate,
-    partner2.birthTime,
-    partner2.birthPlace,
-    partner2.gender,
-  ]);
+  // (Auto-refresh on typing removed to prevent unwanted API calls before clicking Generate)
 
   // Auto-scroll down smoothly to the Generate button when both partners are saved
   useEffect(() => {
@@ -403,8 +352,7 @@ export const MatchmakingView: React.FC<MatchmakingViewProps> = ({
         setAiSynthesis(null);
         saveToHistoryList(result, p1, p2);
 
-        // Auto-fetch AI relationship synthesis in background
-        handleGenerateAISynthesis(result, p1, p2);
+        // (AI synthesis is no longer fetched automatically in the background)
 
         // Smooth scroll to score hero results
         setTimeout(() => {
@@ -451,7 +399,10 @@ export const MatchmakingView: React.FC<MatchmakingViewProps> = ({
     try {
       const response = await fetch(`${API_BASE_URL}/api/matchmaking/synthesis`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('jyotish_auth_token') || ''}`
+        },
         body: JSON.stringify({
           partner1: p1,
           partner2: p2,
@@ -463,6 +414,9 @@ export const MatchmakingView: React.FC<MatchmakingViewProps> = ({
       const data = await response.json();
       if ((data.success || data.status === 'success') && data.synthesis) {
         let synth = data.synthesis;
+        if (data.synthesisId) {
+          setAiSynthesisId(data.synthesisId);
+        }
         if (typeof synth === 'string') {
           try {
             synth = JSON.parse(synth);
@@ -481,12 +435,7 @@ export const MatchmakingView: React.FC<MatchmakingViewProps> = ({
     }
   };
 
-  // If user opens AI Counsel tab and synthesis is not yet generated, auto-fetch it
-  useEffect(() => {
-    if (activeTab === 'ai_counsel' && !aiSynthesis && !isGeneratingAI && matchResult) {
-      handleGenerateAISynthesis(matchResult, partner1, partner2);
-    }
-  }, [activeTab, aiSynthesis, isGeneratingAI, matchResult, partner1, partner2]);
+
 
   const handleCopyAISynthesis = () => {
     if (!aiSynthesis) return;
@@ -519,6 +468,43 @@ export const MatchmakingView: React.FC<MatchmakingViewProps> = ({
   };
 
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
+
+  const handleDownloadAICounselPDF = async () => {
+    if (!aiSynthesisId) {
+      alert("AI Counsel PDF requires the synthesis ID. Please regenerate the counsel.");
+      return;
+    }
+    
+    setIsGeneratingPdf(true);
+    const cleanP1 = (partner1.fullName || 'Partner1').trim().replace(/\s+/g, '_');
+    const cleanP2 = (partner2.fullName || 'Partner2').trim().replace(/\s+/g, '_');
+    const fileName = `Astrological_Counsel_${cleanP1}_and_${cleanP2}.pdf`;
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/matchmaking/ai-synthesis/${aiSynthesisId}/pdf`, {
+        method: 'GET'
+      });
+
+      if (response.ok) {
+        const blob = await response.blob();
+        const downloadUrl = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = downloadUrl;
+        link.download = fileName;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        window.URL.revokeObjectURL(downloadUrl);
+        return;
+      }
+      throw new Error(`Backend PDF API responded with status ${response.status}`);
+    } catch (backendErr) {
+      console.warn('Backend API PDF generation failed:', backendErr);
+      alert("Failed to generate AI Counsel PDF.");
+    } finally {
+      setIsGeneratingPdf(false);
+    }
+  };
 
   // Helper to load image as base64 DataURL for jsPDF canvas rendering
   const loadImageBase64 = (url: string): Promise<string | null> => {
@@ -1606,20 +1592,6 @@ Issued by JyotishVeda Daivajna Astrological Intelligence Engine
           <ShieldCheck className="w-4 h-4" />
           <span>Remedies &amp; Muhurat</span>
         </button>
-
-        <button
-          onClick={() => setActiveTab('download')}
-          className={`flex items-center space-x-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold whitespace-nowrap transition cursor-pointer ${
-            activeTab === 'download'
-              ? 'bg-[#C9A050] text-[#0D0D0F] shadow-md shadow-[#C9A050]/20 font-bold'
-              : theme === 'dark'
-              ? 'bg-[#141418] text-[#9E9A90] hover:text-[#E5E1D8] border border-[#2A2A2E]'
-              : 'bg-[#F9F7F1] text-[#544B3D] hover:text-[#0D0D0F] hover:bg-[#F0ECE1] border border-[#E5E1D8]'
-          }`}
-        >
-          <Download className="w-4 h-4" />
-          <span>Download &amp; Export Report</span>
-        </button>
       </div>
 
       {/* Tab 1: 8 Kootas Detailed Breakdown Table & Cards */}
@@ -2008,23 +1980,24 @@ Issued by JyotishVeda Daivajna Astrological Intelligence Engine
             <div className="flex items-center space-x-2.5 shrink-0">
               {aiSynthesis && (
                 <button
-                  onClick={handleCopyAISynthesis}
-                  className={`flex items-center space-x-1.5 px-4 py-2.5 rounded-xl border text-xs sm:text-sm font-semibold transition cursor-pointer ${
+                  onClick={handleDownloadAICounselPDF}
+                  disabled={isGeneratingPdf}
+                  className={`flex items-center space-x-1.5 px-4 py-2.5 rounded-xl border text-xs sm:text-sm font-semibold transition cursor-pointer disabled:opacity-50 ${
                     theme === 'dark'
                       ? 'bg-[#1C1C22] hover:bg-[#25252E] text-[#E5E1D8] border-[#3A3A42]'
                       : 'bg-[#F9F7F1] hover:bg-[#F0ECE1] text-[#2A2A2E] border-[#E5E1D8]'
                   }`}
-                  title="Copy counsel report"
+                  title="Download counsel report as PDF"
                 >
-                  {copiedText ? (
+                  {isGeneratingPdf ? (
                     <>
-                      <Check className="w-4 h-4 text-emerald-500" />
-                      <span className="text-emerald-500 font-bold">Copied</span>
+                      <RefreshCw className="w-4 h-4 animate-spin text-[#C9A050]" />
+                      <span>Generating PDF...</span>
                     </>
                   ) : (
                     <>
-                      <Copy className="w-4 h-4 text-[#C9A050]" />
-                      <span>Copy Report</span>
+                      <Download className="w-4 h-4 text-[#C9A050]" />
+                      <span>Download Report</span>
                     </>
                   )}
                 </button>
@@ -2464,70 +2437,6 @@ Issued by JyotishVeda Daivajna Astrological Intelligence Engine
         </div>
       )}
 
-      {/* Tab 6: Dedicated Match Report Download & Export Center */}
-      {activeTab === 'download' && (
-        <div className="space-y-6">
-          <div className={`${
-            theme === 'dark' 
-              ? 'bg-[#141418] border-[#2A2A2E]' 
-              : 'bg-white border-[#E5E1D8] shadow-sm'
-          } border rounded-2xl p-6 sm:p-8`}>
-            <div className="max-w-2xl">
-              <div className="inline-flex items-center space-x-2 px-3.5 py-1.5 rounded-full bg-gradient-to-r from-[#C9A050]/20 to-transparent border border-[#C9A050]/30 text-[#C9A050] text-[10px] sm:text-xs font-bold uppercase tracking-widest mb-2.5 backdrop-blur-md">
-                <Download className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#C9A050]" />
-                <span>Match Report Export &amp; Archival</span>
-              </div>
-              <h3 className={`text-2xl sm:text-3xl font-serif font-bold ${theme === 'dark' ? 'text-[#F0ECE1]' : 'text-[#0D0D0F]'}`}>
-                Download Kundli Milan Dossier
-              </h3>
-              <p className={`text-xs sm:text-sm ${theme === 'dark' ? 'text-[#9E9A90]' : 'text-[#544B3D]'} mt-1.5 leading-relaxed`}>
-                Export high-resolution printable certificates and formatted PDF reports for family consultation.
-              </p>
-            </div>
-
-            {/* Export Card - Full Width Banner */}
-            <div className="mt-6 w-full">
-              <div className={`p-6 sm:p-8 rounded-2xl border transition flex flex-col md:flex-row md:items-center justify-between gap-6 ${
-                theme === 'dark' 
-                  ? 'bg-[#0D0D0F] border-[#2A2A2E] hover:border-[#C9A050]/60 shadow-lg' 
-                  : 'bg-[#F9F7F1] border-[#E5E1D8] hover:border-[#C9A050] shadow-sm'
-              }`}>
-                <div className="flex items-start space-x-4">
-                  <div className="w-12 h-12 rounded-2xl bg-[#C9A050]/15 border border-[#C9A050]/30 flex items-center justify-center text-[#C9A050] shrink-0 shadow-sm">
-                    <Download className="w-6 h-6" />
-                  </div>
-                  <div className="space-y-1.5">
-                    <h4 className={`text-lg sm:text-xl font-serif font-bold ${theme === 'dark' ? 'text-[#F0ECE1]' : 'text-[#0D0D0F]'}`}>
-                      Download Official Kundli Milan PDF Certificate
-                    </h4>
-                    <p className={`text-xs sm:text-sm ${theme === 'dark' ? 'text-[#9E9A90]' : 'text-[#544B3D]'} leading-relaxed max-w-2xl`}>
-                      High-resolution printable document with traditional Vedic double borders, authentication seal, 8 Kootas matrix score, and Pandit verification signature line.
-                    </p>
-                  </div>
-                </div>
-
-                <button
-                  onClick={handleDownloadPDF}
-                  disabled={isGeneratingPdf}
-                  className="w-full md:w-auto px-8 py-3.5 rounded-xl bg-[#C9A050] hover:bg-[#D4AF37] text-[#0D0D0F] font-bold text-xs sm:text-sm tracking-wide shadow-lg shadow-[#C9A050]/25 transition cursor-pointer flex items-center justify-center space-x-2 shrink-0 hover:scale-[1.02] active:scale-95"
-                >
-                  {isGeneratingPdf ? (
-                    <>
-                      <RefreshCw className="w-4 h-4 animate-spin" />
-                      <span>Generating PDF...</span>
-                    </>
-                  ) : (
-                    <>
-                      <Download className="w-4 h-4" />
-                      <span>Download PDF Certificate</span>
-                    </>
-                  )}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
       </div>
 
       {/* ========================================================================= */}
