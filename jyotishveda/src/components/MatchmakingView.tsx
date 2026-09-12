@@ -342,9 +342,9 @@ export const MatchmakingView: React.FC<MatchmakingViewProps> = ({
               percentage: backendReport.percentage ?? (backendReport.summary as any)?.percentage ?? result.percentage,
               verdictTitle: backendReport.verdictTitle ?? (backendReport.summary as any)?.verdictTitle ?? result.verdictTitle,
               summary: backendReport.summary ?? result.summary,
-              partner1ManglikStatus: (backendReport as any).partner1ManglikStatus ?? (backendReport.report as any)?.manglik?.status?.partner1,
-              partner2ManglikStatus: (backendReport as any).partner2ManglikStatus ?? (backendReport.report as any)?.manglik?.status?.partner2,
-            };
+              partner1ManglikStatus: (backendReport as any).partner1ManglikStatus ?? (backendReport as any).report?.manglik?.status?.partner1,
+              partner2ManglikStatus: (backendReport as any).partner2ManglikStatus ?? (backendReport as any).report?.manglik?.status?.partner2,
+            } as any;
           }
         } catch (apiErr) {
           console.warn('Backend API calculation fallback:', apiErr);
