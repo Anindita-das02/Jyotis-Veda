@@ -426,9 +426,15 @@ def post_match_synthesis():
     return match_making.generate_ai_synthesis(request.user_id)
 
 
-@app.route("/api/matchmaking/ai-synthesis/<synthesis_id>/pdf",methods=["GET"])
+@app.route("/api/matchmaking/ai-synthesis/<synthesis_id>/pdf", methods=["GET"])
 def download_ai_synthesis_pdf1(synthesis_id):
-    return match_making.download_ai_synthesis_pdf(synthesis_id) 
+    return match_making.download_ai_synthesis_pdf(synthesis_id)
+
+
+@app.route("/api/matchmaking/ai-synthesis/generate-pdf", methods=["POST"])
+def generate_direct_ai_synthesis_pdf1():
+    return match_making.generate_direct_ai_synthesis_pdf()
+
 
 if __name__ == "__main__":
     # Fail fast if MySQL isn't reachable, rather than starting silently broken.

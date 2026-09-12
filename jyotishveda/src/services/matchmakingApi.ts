@@ -87,3 +87,9 @@ export async function calculateMatchReportBackend(
   return null;
 }
 
+export function getMatchReportPdfUrl(reportId: string): string {
+  const token = getToken();
+  const base = `${API_ENDPOINTS.MATCHMAKING.REPORTS}/${reportId}/pdf`;
+  return token ? `${base}?token=${encodeURIComponent(token)}` : base;
+}
+

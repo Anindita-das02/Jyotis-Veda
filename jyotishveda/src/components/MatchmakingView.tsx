@@ -342,6 +342,8 @@ export const MatchmakingView: React.FC<MatchmakingViewProps> = ({
               percentage: backendReport.percentage ?? (backendReport.summary as any)?.percentage ?? result.percentage,
               verdictTitle: backendReport.verdictTitle ?? (backendReport.summary as any)?.verdictTitle ?? result.verdictTitle,
               summary: backendReport.summary ?? result.summary,
+              partner1ManglikStatus: (backendReport as any).partner1ManglikStatus ?? (backendReport.report as any)?.manglik?.status?.partner1,
+              partner2ManglikStatus: (backendReport as any).partner2ManglikStatus ?? (backendReport.report as any)?.manglik?.status?.partner2,
             };
           }
         } catch (apiErr) {
@@ -470,37 +472,359 @@ export const MatchmakingView: React.FC<MatchmakingViewProps> = ({
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
 
   const handleDownloadAICounselPDF = async () => {
-    if (!aiSynthesisId) {
-      alert("AI Counsel PDF requires the synthesis ID. Please regenerate the counsel.");
-      return;
-    }
-    
+    if (!aiSynthesis) return;
     setIsGeneratingPdf(true);
+
     const cleanP1 = (partner1.fullName || 'Partner1').trim().replace(/\s+/g, '_');
     const cleanP2 = (partner2.fullName || 'Partner2').trim().replace(/\s+/g, '_');
     const fileName = `Astrological_Counsel_${cleanP1}_and_${cleanP2}.pdf`;
 
+    // 1. First attempt: Official Backend PDF Engine
     try {
-      const response = await fetch(`${API_BASE_URL}/api/matchmaking/ai-synthesis/${aiSynthesisId}/pdf`, {
-        method: 'GET'
-      });
+      const token = localStorage.getItem('jyotish_auth_token') || '';
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
 
-      if (response.ok) {
+      let response: Response | null = null;
+      if (aiSynthesisId) {
+        response = await fetch(`${API_BASE_URL}/api/matchmaking/ai-synthesis/${aiSynthesisId}/pdf`, {
+          method: 'GET',
+          headers,
+        });
+      }
+      if (!response || !response.ok) {
+        response = await fetch(`${API_BASE_URL}/api/matchmaking/ai-synthesis/generate-pdf`, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({
+            synthesisId: aiSynthesisId,
+            partner1_name: partner1.fullName || 'Partner 1',
+            partner2_name: partner2.fullName || 'Partner 2',
+            score: matchResult?.totalPoints ?? 0,
+            max_score: matchResult?.maxPoints ?? 36,
+            partner1_manglik_status: (matchResult as any)?.partner1ManglikStatus,
+            partner2_manglik_status: (matchResult as any)?.partner2ManglikStatus,
+            synthesis: aiSynthesis,
+          }),
+        });
+      }
+
+      if (response && response.ok) {
         const blob = await response.blob();
-        const downloadUrl = window.URL.createObjectURL(blob);
+        const blobUrl = window.URL.createObjectURL(blob);
         const link = document.createElement('a');
-        link.href = downloadUrl;
+        link.href = blobUrl;
         link.download = fileName;
         document.body.appendChild(link);
         link.click();
         link.remove();
-        window.URL.revokeObjectURL(downloadUrl);
+        setTimeout(() => window.URL.revokeObjectURL(blobUrl), 10000);
+        setIsGeneratingPdf(false);
         return;
       }
-      throw new Error(`Backend PDF API responded with status ${response.status}`);
-    } catch (backendErr) {
-      console.warn('Backend API PDF generation failed:', backendErr);
-      alert("Failed to generate AI Counsel PDF.");
+    } catch (apiErr) {
+      console.warn('Backend AI Counsel PDF endpoint error or offline, falling back to client-side:', apiErr);
+    }
+
+    // 2. Client-side fallback jsPDF AI Counsel Report
+    try {
+      const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+      const pageWidth  = doc.internal.pageSize.getWidth();
+      const pageHeight = doc.internal.pageSize.getHeight();
+
+      const bgBase64   = await loadImageBase64('/astrologer_bg.jpg');
+      const logoBase64 = await loadImageBase64('/jyotishveda_logo.png');
+
+      const san = (text: any): string => {
+        if (!text) return '';
+        return String(text).replace(/[^\x20-\x7E]/g, '').replace(/\s+/g, ' ').trim();
+      };
+      const safeAI = (val: any): string => san(renderSafeAiText(val));
+
+      const certId  = `JV-AC-${Date.now().toString(36).toUpperCase()}`;
+      const genDate = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+      const p1Name  = san(partner1.fullName) || 'Partner A';
+      const p2Name  = san(partner2.fullName) || 'Partner B';
+      const score   = matchResult ? `${matchResult.totalPoints}/36 (${matchResult.percentage}%)` : 'N/A';
+
+      // ── Shared page chrome ────────────────────────────────────────────────
+      const drawChrome = (pageNum: number, totalPages: number) => {
+        doc.setFillColor(255, 255, 255);
+        doc.rect(0, 0, pageWidth, pageHeight, 'F');
+        if (bgBase64) {
+          try {
+            if (typeof (doc as any).setGState === 'function' && (doc as any).GState)
+              (doc as any).setGState(new (doc as any).GState({ opacity: 0.07 }));
+          } catch {}
+          doc.addImage(bgBase64, 'JPEG', 0, 0, pageWidth, pageHeight);
+          try {
+            if (typeof (doc as any).setGState === 'function' && (doc as any).GState)
+              (doc as any).setGState(new (doc as any).GState({ opacity: 1.0 }));
+          } catch {}
+        }
+        doc.setDrawColor(201, 160, 80); doc.setLineWidth(1.2);
+        doc.rect(8, 8, pageWidth - 16, pageHeight - 16);
+        doc.setLineWidth(0.4);
+        doc.rect(10, 10, pageWidth - 20, pageHeight - 20);
+        doc.setFillColor(201, 160, 80);
+        doc.circle(10, 10, 1.2, 'F'); doc.circle(pageWidth - 10, 10, 1.2, 'F');
+        doc.circle(10, pageHeight - 10, 1.2, 'F'); doc.circle(pageWidth - 10, pageHeight - 10, 1.2, 'F');
+        const footerY = pageHeight - 16;
+        doc.setDrawColor(226, 211, 176); doc.setLineWidth(0.4);
+        doc.line(13, footerY, pageWidth - 13, footerY);
+        doc.setFont('helvetica', 'normal'); doc.setFontSize(7); doc.setTextColor(110, 110, 110);
+        doc.text(`Certificate ID: ${certId}  |  Generated: ${genDate}`, 14, footerY + 5);
+        doc.text(`Page ${pageNum} of ${totalPages}`, pageWidth - 14, footerY + 5, { align: 'right' });
+        doc.setFont('helvetica', 'italic'); doc.setFontSize(6.5); doc.setTextColor(140, 130, 100);
+        doc.text('JyotishVeda Daivajna AI Engine  |  Vedic Relationship Intelligence', 14, footerY + 9.5);
+      };
+
+      // ── Shared section title helper ───────────────────────────────────────
+      const sectionTitle = (label: string, xRight: string, y: number) => {
+        doc.setFont('helvetica', 'bold'); doc.setFontSize(8); doc.setTextColor(126, 95, 24);
+        doc.text(label, 13, y);
+        doc.setFont('helvetica', 'italic'); doc.setFontSize(6.5); doc.setTextColor(150, 120, 55);
+        doc.text(xRight, pageWidth - 13, y, { align: 'right' });
+      };
+
+      // ── AI synthesis field card helper ────────────────────────────────────
+      const drawCard = (title: string, content: string, x: number, y: number, w: number, h: number) => {
+        doc.setFillColor(255, 255, 255); doc.setDrawColor(226, 211, 176); doc.setLineWidth(0.35);
+        doc.roundedRect(x, y, w, h, 1.5, 1.5, 'FD');
+        doc.setFont('helvetica', 'bold'); doc.setFontSize(6.5); doc.setTextColor(126, 95, 24);
+        doc.text(title.toUpperCase(), x + 3, y + 5);
+        doc.setFont('helvetica', 'normal'); doc.setFontSize(6.8); doc.setTextColor(45, 45, 50);
+        const lines = doc.splitTextToSize(content, w - 6);
+        doc.text(lines.slice(0, Math.floor((h - 8) / 3.6)), x + 3, y + 9.5);
+      };
+
+      // ════════════════════════════════════════════════════════════════════
+      // PAGE 1 — Header + Couple Info + Score + Overall + Core Dimensions
+      // ════════════════════════════════════════════════════════════════════
+      drawChrome(1, 2);
+
+      // Header
+      if (logoBase64) doc.addImage(logoBase64, 'PNG', 14, 13, 16, 16);
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(19); doc.setTextColor(17, 17, 17);
+      doc.text('JYOTISH', 33, 20);
+      doc.setTextColor(181, 131, 40);
+      doc.text('VEDA', 33 + doc.getTextWidth('JYOTISH') + 0.5, 20);
+      doc.setFontSize(8.5); doc.setTextColor(126, 95, 24);
+      doc.text('DAIVAJNA DEEP RELATIONSHIP SYNTHESIS & ASTROLOGICAL COUNSEL', 33, 24.5);
+      doc.setFont('helvetica', 'italic'); doc.setFontSize(7); doc.setTextColor(100, 95, 85);
+      doc.text('Multidimensional Karmic Counsel  |  AI Vedic Intelligence Engine  |  Lahiri Ephemeris', 33, 28);
+
+      let yPos = 33;
+
+      // Couple Info Box
+      doc.setFillColor(255, 255, 255); doc.setDrawColor(226, 211, 176); doc.setLineWidth(0.4);
+      doc.roundedRect(13, yPos, pageWidth - 26, 22, 2, 2, 'FD');
+      doc.line(pageWidth / 2, yPos, pageWidth / 2, yPos + 22);
+
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(7); doc.setTextColor(126, 95, 24);
+      doc.text('GROOM / PARTNER A', 17, yPos + 5.5);
+      doc.setFontSize(10.5); doc.setTextColor(26, 26, 30);
+      doc.text(p1Name, 17, yPos + 11);
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(6.8); doc.setTextColor(80, 80, 80);
+      const p1b = `Born: ${san(partner1.birthDate) || 'N/A'}${partner1.birthTime ? ` at ${san(partner1.birthTime)}` : ''}`;
+      doc.text(doc.splitTextToSize(p1b, (pageWidth - 36) / 2)[0] || p1b, 17, yPos + 16);
+      if (partner1.birthPlace) doc.text(san(partner1.birthPlace).slice(0, 35), 17, yPos + 19.5);
+
+      const col2 = pageWidth / 2 + 5;
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(7); doc.setTextColor(126, 95, 24);
+      doc.text('BRIDE / PARTNER B', col2, yPos + 5.5);
+      doc.setFontSize(10.5); doc.setTextColor(26, 26, 30);
+      doc.text(p2Name, col2, yPos + 11);
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(6.8); doc.setTextColor(80, 80, 80);
+      const p2b = `Born: ${san(partner2.birthDate) || 'N/A'}${partner2.birthTime ? ` at ${san(partner2.birthTime)}` : ''}`;
+      doc.text(doc.splitTextToSize(p2b, (pageWidth - 36) / 2)[0] || p2b, col2, yPos + 16);
+      if (partner2.birthPlace) doc.text(san(partner2.birthPlace).slice(0, 35), col2, yPos + 19.5);
+
+      yPos += 26;
+
+      // Score & Report Banner
+      doc.setFillColor(255, 255, 255); doc.setDrawColor(201, 160, 80); doc.setLineWidth(0.5);
+      doc.roundedRect(13, yPos, pageWidth - 26, 17, 2, 2, 'FD');
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(7.5); doc.setTextColor(126, 95, 24);
+      doc.text('ASHTA KOOTA SCORE', 17, yPos + 6);
+      doc.setFontSize(11); doc.setTextColor(181, 131, 40);
+      doc.text(score, 17, yPos + 12.5);
+      if (matchResult) {
+        doc.setFont('helvetica', 'bold'); doc.setFontSize(8); doc.setTextColor(26, 26, 30);
+        doc.text(san(matchResult.verdictTitle).toUpperCase(), pageWidth / 2, yPos + 6.5, { align: 'center' });
+        doc.setFont('helvetica', 'italic'); doc.setFontSize(7); doc.setTextColor(90, 85, 70);
+        const sLines = doc.splitTextToSize(`"${san(matchResult.summary)}"`, 90);
+        doc.text(sLines[0] || '', pageWidth / 2, yPos + 12, { align: 'center' });
+      }
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(7.5); doc.setTextColor(126, 95, 24);
+      doc.text('REPORT TYPE', pageWidth - 17, yPos + 6, { align: 'right' });
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(7); doc.setTextColor(60, 60, 60);
+      doc.text('AI Daivajna Synthesis', pageWidth - 17, yPos + 11, { align: 'right' });
+
+      yPos += 21;
+
+      // Section: Overall Compatibility (wide card)
+      if (aiSynthesis?.overall_compatibility) {
+        const ocText = safeAI(aiSynthesis.overall_compatibility);
+        const ocLines = doc.splitTextToSize(ocText, pageWidth - 34);
+        const ocBoxH = Math.min(32, Math.max(18, 9 + ocLines.length * 3.8));
+        doc.setFillColor(250, 247, 238); doc.setDrawColor(201, 160, 80); doc.setLineWidth(0.5);
+        doc.roundedRect(13, yPos, pageWidth - 26, ocBoxH, 1.5, 1.5, 'FD');
+        doc.setFont('helvetica', 'bold'); doc.setFontSize(8); doc.setTextColor(126, 95, 24);
+        doc.text('OVERALL ASTROLOGICAL COMPATIBILITY', 17, yPos + 5.5);
+        doc.setFont('helvetica', 'italic'); doc.setFontSize(6.2); doc.setTextColor(155, 125, 60);
+        doc.text('Core Vedic Synthesis', pageWidth - 17, yPos + 5.5, { align: 'right' });
+        doc.setFont('helvetica', 'normal'); doc.setFontSize(7); doc.setTextColor(40, 40, 45);
+        doc.text(ocLines.slice(0, 7), 17, yPos + 10);
+        yPos += ocBoxH + 4;
+      }
+
+      // Section: Core Dimensions 2x2 grid (Guna Milan, Manglik, Nadi, Bhakoot)
+      sectionTitle('CORE VEDIC COMPATIBILITY DIMENSIONS', 'Classical Ashta Koota Analysis', yPos);
+      yPos += 3;
+      const cardW = (pageWidth - 28) / 2;
+      const coreCards = [
+        { title: 'Guna Milan & Cosmic Alignment',     content: safeAI(aiSynthesis?.guna_milan) },
+        { title: 'Manglik (Kuja) Dosha Evaluation',   content: safeAI(aiSynthesis?.manglik_dosha) },
+        { title: 'Nadi Koota & Genetic Prana Harmony', content: safeAI(aiSynthesis?.nadi_analysis) },
+        { title: 'Bhakoot Harmony & Emotional Rhythm', content: safeAI(aiSynthesis?.bhakoot_analysis) },
+      ].filter(c => c.content);
+
+      let col = 0;
+      let rowStartY = yPos;
+      const cCardH = 36;
+      coreCards.forEach((c, i) => {
+        col = i % 2;
+        if (i > 0 && col === 0) rowStartY += cCardH + 2;
+        const cx = 13 + col * (cardW + 2);
+        drawCard(c.title, c.content, cx, rowStartY, cardW, cCardH);
+      });
+      yPos = rowStartY + cCardH + 5;
+
+      // ════════════════════════════════════════════════════════════════════
+      // PAGE 2 — Advanced Dimensions + Strengths/Challenges + Remedies + Seal
+      // ════════════════════════════════════════════════════════════════════
+      doc.addPage();
+      drawChrome(2, 2);
+
+      // Compact page 2 header
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(8); doc.setTextColor(126, 95, 24);
+      doc.text('JYOTISHVEDA  •  DAIVAJNA DEEP RELATIONSHIP SYNTHESIS', 14, 17);
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(7.5); doc.setTextColor(100, 100, 100);
+      doc.text(`${p1Name}  &  ${p2Name}  |  Score: ${score}`, pageWidth - 14, 17, { align: 'right' });
+      doc.setDrawColor(226, 211, 176); doc.setLineWidth(0.3);
+      doc.line(13, 19.5, pageWidth - 13, 19.5);
+
+      let y2 = 24;
+
+      // Advanced Dimensions grid (psychological, emotional, karmic, physical, family, wealth)
+      const advCards = [
+        { title: 'Psychological & Intellectual Affinity', content: safeAI(aiSynthesis?.psychological_affinity) },
+        { title: 'Emotional Resonance & Temperament',     content: safeAI(aiSynthesis?.emotional_resonance) },
+        { title: 'Karmic Bond & Destiny Connection',      content: safeAI(aiSynthesis?.karmic_bond) },
+        { title: 'Physical Harmonization & Vitality',     content: safeAI(aiSynthesis?.physical_harmonization) },
+        { title: 'Family Life & Married Harmony',          content: safeAI(aiSynthesis?.family_and_married_life) },
+        { title: 'Wealth, Prosperity & Shared Goals',     content: safeAI(aiSynthesis?.wealth_and_prosperity) },
+      ].filter(c => c.content);
+
+      if (advCards.length > 0) {
+        sectionTitle('ADVANCED VEDIC DIMENSIONS', 'Multidimensional Karmic Analysis', y2);
+        y2 += 3;
+        const aCardH = 30;
+        const aCardW = (pageWidth - 28) / 2;
+        let aRowY = y2;
+        advCards.forEach((c, i) => {
+          const aC = i % 2;
+          if (i > 0 && aC === 0) aRowY += aCardH + 2;
+          drawCard(c.title, c.content, 13 + aC * (aCardW + 2), aRowY, aCardW, aCardH);
+        });
+        y2 = aRowY + aCardH + 5;
+      }
+
+      // Major Strengths & Challenges (2-column)
+      const strengths  = Array.isArray(aiSynthesis?.major_strengths) ? aiSynthesis.major_strengths.map((s: any) => safeAI(s)).filter(Boolean) : [];
+      const challenges = Array.isArray(aiSynthesis?.major_challenges) ? aiSynthesis.major_challenges.map((s: any) => safeAI(s)).filter(Boolean) : [];
+      if (strengths.length > 0 || challenges.length > 0) {
+        sectionTitle('MAJOR STRENGTHS & POTENTIAL CHALLENGES', 'Jyotish Assessment', y2);
+        y2 += 3;
+        const scW = (pageWidth - 28) / 2;
+        const scH = Math.max(10, 7 + Math.max(strengths.length, challenges.length) * 6.5);
+        // Strengths card
+        doc.setFillColor(245, 255, 250); doc.setDrawColor(16, 120, 80); doc.setLineWidth(0.35);
+        doc.roundedRect(13, y2, scW, scH, 1.5, 1.5, 'FD');
+        doc.setFont('helvetica', 'bold'); doc.setFontSize(7); doc.setTextColor(16, 100, 65);
+        doc.text('MAJOR STRENGTHS', 16, y2 + 5);
+        strengths.slice(0, 4).forEach((s, i) => {
+          doc.setFillColor(16, 120, 80); doc.circle(17, y2 + 10.5 + i * 6.5 - 1.2, 1, 'F');
+          doc.setFont('helvetica', 'normal'); doc.setFontSize(6.8); doc.setTextColor(35, 50, 40);
+          doc.text(doc.splitTextToSize(s, scW - 9)[0] || s, 20, y2 + 10.5 + i * 6.5);
+        });
+        // Challenges card
+        const c2X = 13 + scW + 2;
+        doc.setFillColor(255, 250, 245); doc.setDrawColor(180, 80, 40); doc.setLineWidth(0.35);
+        doc.roundedRect(c2X, y2, scW, scH, 1.5, 1.5, 'FD');
+        doc.setFont('helvetica', 'bold'); doc.setFontSize(7); doc.setTextColor(160, 65, 30);
+        doc.text('POTENTIAL CHALLENGES', c2X + 3, y2 + 5);
+        challenges.slice(0, 4).forEach((s, i) => {
+          doc.setFillColor(180, 80, 40); doc.circle(c2X + 4, y2 + 10.5 + i * 6.5 - 1.2, 1, 'F');
+          doc.setFont('helvetica', 'normal'); doc.setFontSize(6.8); doc.setTextColor(55, 35, 25);
+          doc.text(doc.splitTextToSize(s, scW - 9)[0] || s, c2X + 7, y2 + 10.5 + i * 6.5);
+        });
+        y2 += scH + 5;
+      }
+
+      // Vedic Remedies
+      const vedRemeds = Array.isArray(aiSynthesis?.vedic_remedies) ? aiSynthesis.vedic_remedies.map((r: any) => safeAI(r)).filter(Boolean) :
+                        Array.isArray(aiSynthesis?.conflict_resolution) ? aiSynthesis.conflict_resolution.map((r: any) => safeAI(r)).filter(Boolean) : [];
+      if (vedRemeds.length > 0 && y2 + 40 < pageHeight - 22) {
+        sectionTitle('VEDIC REMEDIES & CONFLICT RESOLUTION', 'Shanti Upaya Prescriptions', y2);
+        y2 += 3;
+        const rBoxH = Math.min(40, 8 + vedRemeds.slice(0, 5).length * 7);
+        doc.setFillColor(255, 255, 255); doc.setDrawColor(201, 160, 80); doc.setLineWidth(0.4);
+        doc.roundedRect(13, y2, pageWidth - 26, rBoxH, 1.5, 1.5, 'FD');
+        vedRemeds.slice(0, 5).forEach((rem, i) => {
+          const rY = y2 + 6 + i * 7;
+          doc.setFillColor(181, 131, 40); doc.circle(17, rY - 1.2, 1, 'F');
+          doc.setFont('helvetica', 'normal'); doc.setFontSize(7); doc.setTextColor(40, 40, 45);
+          doc.text(doc.splitTextToSize(rem, pageWidth - 44)[0] || rem, 20, rY);
+        });
+        y2 += rBoxH + 5;
+      }
+
+      // Final Assessment
+      if (aiSynthesis?.final_assessment && y2 + 22 < pageHeight - 22) {
+        const faText = safeAI(aiSynthesis.final_assessment);
+        const faLines = doc.splitTextToSize(faText, pageWidth - 34);
+        const faBoxH = Math.min(30, Math.max(16, 9 + faLines.length * 3.8));
+        doc.setFillColor(250, 247, 238); doc.setDrawColor(201, 160, 80); doc.setLineWidth(0.4);
+        doc.roundedRect(13, y2, pageWidth - 26, faBoxH, 1.5, 1.5, 'FD');
+        doc.setFont('helvetica', 'bold'); doc.setFontSize(8); doc.setTextColor(126, 95, 24);
+        doc.text('FINAL DAIVAJNA ASSESSMENT', 17, y2 + 5.5);
+        doc.setFont('helvetica', 'normal'); doc.setFontSize(7); doc.setTextColor(40, 38, 32);
+        doc.text(faLines.slice(0, 6), 17, y2 + 10);
+        y2 += faBoxH + 5;
+      }
+
+      // Authentication Seal
+      if (y2 + 18 < pageHeight - 22) {
+        doc.setFillColor(250, 247, 238); doc.setDrawColor(201, 160, 80); doc.setLineWidth(0.5);
+        doc.roundedRect(13, y2, pageWidth - 26, 16, 2, 2, 'FD');
+        doc.setFont('helvetica', 'bold'); doc.setFontSize(8); doc.setTextColor(126, 95, 24);
+        doc.text('DAIVAJNA ASTROLOGICAL AUTHENTICITY SEAL', pageWidth / 2, y2 + 6.5, { align: 'center' });
+        doc.setFont('helvetica', 'italic'); doc.setFontSize(6.8); doc.setTextColor(90, 85, 70);
+        doc.text(
+          '"Om Shri Gurubhyo Namah — This sacred relationship synthesis was generated through JyotishVeda AI Intelligence aligned with classical Vedic Jyotish sutras and Lahiri Ayanamsa."',
+          pageWidth / 2, y2 + 11.5, { align: 'center', maxWidth: pageWidth - 36 }
+        );
+      }
+
+      doc.save(fileName);
+    } catch (err) {
+      console.error('Fatal AI Counsel PDF generation error:', err);
     } finally {
       setIsGeneratingPdf(false);
     }
@@ -532,7 +856,7 @@ export const MatchmakingView: React.FC<MatchmakingViewProps> = ({
     });
   };
 
-  // Direct High-Res PDF Generation & Download via Backend API (with client fallback)
+  // Premium 2-Page Client-Side PDF Generation (direct, skipping backend plain PDF)
   const handleDownloadPDF = async () => {
     if (!matchResult) return;
     setIsGeneratingPdf(true);
@@ -541,321 +865,455 @@ export const MatchmakingView: React.FC<MatchmakingViewProps> = ({
     const cleanP2 = (partner2.fullName || 'Partner2').trim().replace(/\s+/g, '_');
     const fileName = `Kundli_Milan_${cleanP1}_and_${cleanP2}.pdf`;
 
+    // 1. First attempt: Official Backend PDF Engine (ReportLab 5-page Kundli Milan Dossier)
     try {
-      // 1. Hit Backend Python API for direct PDF generation & streaming
+      const token = localStorage.getItem('jyotish_auth_token') || '';
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
+      const p1Tz = (partner1 as any).timezoneIana || 'Asia/Kolkata';
+      const p2Tz = (partner2 as any).timezoneIana || 'Asia/Kolkata';
+
       const response = await fetch(`${API_BASE_URL}/api/matchmaking/generate-pdf`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers,
         body: JSON.stringify({
-          partner1_name: partner1.fullName || 'Person A',
-          partner1_birth_date: partner1.birthDate || '',
-          partner1_birth_time: partner1.birthTime || '',
-          partner1_birth_place: partner1.birthPlace || '',
-          partner2_name: partner2.fullName || 'Person B',
-          partner2_birth_date: partner2.birthDate || '',
-          partner2_birth_time: partner2.birthTime || '',
-          partner2_birth_place: partner2.birthPlace || '',
-          total_score: matchResult.totalPoints,
-          max_score: 36,
-          manglik_status: matchResult.manglik.verdict,
-          report_json: {
-            ...matchResult,
-            ai_synthesis: aiSynthesis,
+          partner1: {
+            fullName: partner1.fullName || 'Partner 1',
+            birthDate: partner1.birthDate || '',
+            birthTime: partner1.birthTime || '12:00',
+            birthPlace: partner1.birthPlace || 'Delhi, India',
+            latitude: partner1.latitude || 28.6139,
+            longitude: partner1.longitude || 77.2090,
+            timezone: p1Tz,
           },
-          ai_synthesis: aiSynthesis,
+          partner2: {
+            fullName: partner2.fullName || 'Partner 2',
+            birthDate: partner2.birthDate || '',
+            birthTime: partner2.birthTime || '12:00',
+            birthPlace: partner2.birthPlace || 'Mumbai, India',
+            latitude: partner2.latitude || 19.0760,
+            longitude: partner2.longitude || 72.8777,
+            timezone: p2Tz,
+          },
+          matchResult,
         }),
       });
 
       if (response.ok) {
         const blob = await response.blob();
-        const downloadUrl = window.URL.createObjectURL(blob);
+        const blobUrl = window.URL.createObjectURL(blob);
         const link = document.createElement('a');
-        link.href = downloadUrl;
+        link.href = blobUrl;
         link.download = fileName;
         document.body.appendChild(link);
         link.click();
         link.remove();
-        window.URL.revokeObjectURL(downloadUrl);
+        setTimeout(() => window.URL.revokeObjectURL(blobUrl), 10000);
+        setIsGeneratingPdf(false);
         return;
+      } else {
+        const errJson = await response.json().catch(() => null);
+        console.error('Backend PDF generation failed:', response.status, errJson);
       }
-      throw new Error(`Backend PDF API responded with status ${response.status}`);
-    } catch (backendErr) {
-      console.warn('Backend API PDF generation fallback to client jsPDF:', backendErr);
+    } catch (apiErr) {
+      console.warn('Backend Kundli Milan PDF endpoint error or offline, falling back to client-side:', apiErr);
+    }
 
-      // 2. High-speed vector jsPDF fallback with Full Page Sage Watermark & Website Logo
+    // 2. Client-side fallback jsPDF
+    {
+      console.log('Generating client-side fallback Kundli Milan PDF...');
       try {
-        const doc = new jsPDF({
-          orientation: 'portrait',
-          unit: 'mm',
-          format: 'a4',
-        });
-
-        const pageWidth = doc.internal.pageSize.getWidth(); // 210mm
+        const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+        const pageWidth = doc.internal.pageSize.getWidth();   // 210mm
         const pageHeight = doc.internal.pageSize.getHeight(); // 297mm
 
-        // Background canvas fill
-        doc.setFillColor(255, 255, 255);
-        doc.rect(0, 0, pageWidth, pageHeight, 'F');
+        // ── Load Assets ──────────────────────────────────────────────────
+        const bgBase64   = await loadImageBase64('/astrologer_bg.jpg');
+        const logoBase64 = await loadImageBase64('/jyotishveda_logo.png');
 
-        // 1. Draw Full Page Background Watermark Image of the Meditating Astrologer / Sage
-        try {
-          const bgBase64 = await loadImageBase64('/astrologer_bg.jpg');
+        // ASCII Sanitization Helper (matching other pages)
+        const sanitize = (text: any): string => {
+          if (!text) return '';
+          return String(text).replace(/[^\x20-\x7E]/g, '').replace(/\s+/g, ' ').trim();
+        };
+
+        const certId  = `JV-KM-${Date.now().toString(36).toUpperCase()}`;
+        const genDate = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+
+        // ── Helper: draw shared page chrome (bg, border, footer) ─────────
+        const drawPageChrome = (pageNum: number, totalPages: number) => {
+          // White base
+          doc.setFillColor(255, 255, 255);
+          doc.rect(0, 0, pageWidth, pageHeight, 'F');
+          // Subtle astrologer watermark
           if (bgBase64) {
             try {
-              if (typeof (doc as any).setGState === 'function' && (doc as any).GState) {
-                (doc as any).setGState(new (doc as any).GState({ opacity: 0.09 }));
-              }
+              if (typeof (doc as any).setGState === 'function' && (doc as any).GState)
+                (doc as any).setGState(new (doc as any).GState({ opacity: 0.07 }));
             } catch {}
             doc.addImage(bgBase64, 'JPEG', 0, 0, pageWidth, pageHeight);
             try {
-              if (typeof (doc as any).setGState === 'function' && (doc as any).GState) {
+              if (typeof (doc as any).setGState === 'function' && (doc as any).GState)
                 (doc as any).setGState(new (doc as any).GState({ opacity: 1.0 }));
-              }
             } catch {}
           }
-        } catch {}
+          // Outer golden double border
+          doc.setDrawColor(201, 160, 80); doc.setLineWidth(1.2);
+          doc.rect(8, 8, pageWidth - 16, pageHeight - 16);
+          doc.setLineWidth(0.4);
+          doc.rect(10, 10, pageWidth - 20, pageHeight - 20);
+          // Corner gold dots
+          doc.setFillColor(201, 160, 80);
+          doc.circle(10, 10, 1.2, 'F');
+          doc.circle(pageWidth - 10, 10, 1.2, 'F');
+          doc.circle(10, pageHeight - 10, 1.2, 'F');
+          doc.circle(pageWidth - 10, pageHeight - 10, 1.2, 'F');
+          // Footer divider
+          const footerY = pageHeight - 16;
+          doc.setDrawColor(226, 211, 176); doc.setLineWidth(0.4);
+          doc.line(13, footerY, pageWidth - 13, footerY);
+          doc.setFont('helvetica', 'normal'); doc.setFontSize(7); doc.setTextColor(110, 110, 110);
+          doc.text(`Certificate ID: ${certId}  |  Generated: ${genDate}`, 14, footerY + 5);
+          doc.text(`Page ${pageNum} of ${totalPages}`, pageWidth - 14, footerY + 5, { align: 'right' });
+          doc.setFont('helvetica', 'italic'); doc.setFontSize(6.5); doc.setTextColor(140, 130, 100);
+          doc.text('JyotishVeda Daivajna AstroEngine  |  Certified via Classical Ephemeris', 14, footerY + 9.5);
+        };
 
-        // Outer Decorative Golden Double Border
-        doc.setDrawColor(201, 160, 80);
-        doc.setLineWidth(1.2);
-        doc.rect(8, 8, pageWidth - 16, pageHeight - 16);
-        doc.setLineWidth(0.4);
-        doc.rect(10, 10, pageWidth - 20, pageHeight - 20);
-
-        // Corner decorative gold dots
-        doc.setFillColor(201, 160, 80);
-        doc.circle(10, 10, 1.2, 'F');
-        doc.circle(pageWidth - 10, 10, 1.2, 'F');
-        doc.circle(10, pageHeight - 10, 1.2, 'F');
-        doc.circle(pageWidth - 10, pageHeight - 10, 1.2, 'F');
-
-        // Header Brand & Logo Emblem (Matching Image 2)
-        try {
-          const logoBase64 = await loadImageBase64('/jyotishveda_logo.png');
-          if (logoBase64) {
-            doc.addImage(logoBase64, 'PNG', 14, 13, 16, 16);
+        // ── Helper: draw shared page header ──────────────────────────────
+        const drawPageHeader = (isFirstPage: boolean) => {
+          if (isFirstPage) {
+            if (logoBase64) doc.addImage(logoBase64, 'PNG', 14, 13, 16, 16);
+            doc.setFont('helvetica', 'bold'); doc.setFontSize(19); doc.setTextColor(17, 17, 17);
+            doc.text('JYOTISH', 33, 20);
+            doc.setTextColor(181, 131, 40);
+            doc.text('VEDA', 33 + doc.getTextWidth('JYOTISH') + 0.5, 20);
+            doc.setFontSize(8.5); doc.setTextColor(126, 95, 24);
+            doc.text('VEDIC KUNDLI MILAN & ASHTA KOOTA COMPATIBILITY CERTIFICATE', 33, 24.5);
+            doc.setFont('helvetica', 'italic'); doc.setFontSize(7); doc.setTextColor(100, 95, 85);
+            doc.text('Calculated in accordance with Brihat Parashara Hora Shastra & Classical Jyotish Sutras', 33, 28);
+          } else {
+            // Compact header for page 2+
+            doc.setFont('helvetica', 'bold'); doc.setFontSize(8); doc.setTextColor(126, 95, 24);
+            doc.text('JYOTISHVEDA  •  KUNDLI MILAN & ASHTA KOOTA COMPATIBILITY REPORT', 14, 17);
+            doc.setFont('helvetica', 'normal'); doc.setFontSize(7.5); doc.setTextColor(100, 100, 100);
+            doc.text(
+              `${sanitize(partner1.fullName) || 'Partner A'}  &  ${sanitize(partner2.fullName) || 'Partner B'}  |  Score: ${matchResult.totalPoints}/36 (${matchResult.percentage}%)`,
+              pageWidth - 14, 17, { align: 'right' }
+            );
+            doc.setDrawColor(226, 211, 176); doc.setLineWidth(0.3);
+            doc.line(13, 19.5, pageWidth - 13, 19.5);
           }
-        } catch {}
+        };
 
-        // Brand Title "JYOTISH" (black) + "VEDA" (gold)
-        doc.setFont('helvetica', 'bold');
-        doc.setFontSize(20);
-        doc.setTextColor(17, 17, 17);
-        doc.text('JYOTISH', 33, 20);
-        doc.setTextColor(181, 131, 40);
-        doc.text('VEDA', 33 + doc.getTextWidth('JYOTISH') + 0.5, 20);
+        // ════════════════════════════════════════════════════════════════
+        // PAGE 1 — Cover + Couple Info + Score Banner + Ashta Koota Table
+        // ════════════════════════════════════════════════════════════════
+        drawPageChrome(1, 2);
+        drawPageHeader(true);
 
-        doc.setFontSize(8.5);
-        doc.setTextColor(126, 95, 24);
-        doc.text('VEDIC KUNDLI MILAN & ASHTA KOOTA COMPATIBILITY CERTIFICATE', 33, 24.5);
+        let yPos = 33;
 
-        doc.setFont('helvetica', 'italic');
-        doc.setFontSize(7);
-        doc.setTextColor(100, 95, 85);
-        doc.text('Calculated in accordance with Brihat Parashara Hora Shastra & Classical Jyotish Sutras', 33, 28);
+        // ── Couple Information Box (2-column) ────────────────────────────
+        doc.setFillColor(255, 255, 255); doc.setDrawColor(226, 211, 176); doc.setLineWidth(0.4);
+        doc.roundedRect(13, yPos, pageWidth - 26, 26, 2, 2, 'FD');
+        doc.line(pageWidth / 2, yPos, pageWidth / 2, yPos + 26);
 
-        // Couple Information Box
-        doc.setFillColor(255, 255, 255);
-        doc.setDrawColor(226, 211, 176);
-        doc.setLineWidth(0.4);
-        doc.roundedRect(13, 33, pageWidth - 26, 25, 2, 2, 'FD');
-        doc.line(pageWidth / 2, 33, pageWidth / 2, 58);
+        // Partner 1
+        doc.setFont('helvetica', 'bold'); doc.setFontSize(7.5); doc.setTextColor(126, 95, 24);
+        doc.text('GROOM / PARTNER A', 17, yPos + 5.5);
+        doc.setFontSize(11); doc.setTextColor(26, 26, 30);
+        doc.text(sanitize(partner1.fullName) || 'Person A', 17, yPos + 11);
+        doc.setFont('helvetica', 'normal'); doc.setFontSize(7); doc.setTextColor(80, 80, 80);
+        const p1Born = `Born: ${sanitize(partner1.birthDate) || 'N/A'}${partner1.birthTime ? ` at ${sanitize(partner1.birthTime)}` : ''}`;
+        doc.text(doc.splitTextToSize(p1Born, (pageWidth - 36) / 2)[0] || p1Born, 17, yPos + 16);
+        if (partner1.birthPlace) {
+          doc.text(doc.splitTextToSize(sanitize(partner1.birthPlace), (pageWidth - 36) / 2)[0] || '', 17, yPos + 20.5);
+        }
 
-        // Groom (Partner 1)
-        doc.setFont('helvetica', 'bold');
-        doc.setFontSize(8);
-        doc.setTextColor(126, 95, 24);
-        doc.text('GROOM / PARTNER A', 17, 39);
-        doc.setFontSize(11);
-        doc.setTextColor(26, 26, 30);
-        doc.text(partner1.fullName || 'Person A', 17, 45);
-        doc.setFont('helvetica', 'normal');
-        doc.setFontSize(7.5);
-        doc.setTextColor(80, 80, 80);
-        const p1Info = `Born: ${partner1.birthDate || 'N/A'}${partner1.birthTime ? ` at ${partner1.birthTime}` : ''}${partner1.birthPlace ? `, ${partner1.birthPlace}` : ''}`;
-        doc.text(doc.splitTextToSize(p1Info, (pageWidth - 36) / 2)[0] || '', 17, 50.5);
+        // Partner 2
+        const col2X = pageWidth / 2 + 5;
+        doc.setFont('helvetica', 'bold'); doc.setFontSize(7.5); doc.setTextColor(126, 95, 24);
+        doc.text('BRIDE / PARTNER B', col2X, yPos + 5.5);
+        doc.setFontSize(11); doc.setTextColor(26, 26, 30);
+        doc.text(sanitize(partner2.fullName) || 'Person B', col2X, yPos + 11);
+        doc.setFont('helvetica', 'normal'); doc.setFontSize(7); doc.setTextColor(80, 80, 80);
+        const p2Born = `Born: ${sanitize(partner2.birthDate) || 'N/A'}${partner2.birthTime ? ` at ${sanitize(partner2.birthTime)}` : ''}`;
+        doc.text(doc.splitTextToSize(p2Born, (pageWidth - 36) / 2)[0] || p2Born, col2X, yPos + 16);
+        if (partner2.birthPlace) {
+          doc.text(doc.splitTextToSize(sanitize(partner2.birthPlace), (pageWidth - 36) / 2)[0] || '', col2X, yPos + 20.5);
+        }
 
-        // Bride (Partner 2)
-        doc.setFont('helvetica', 'bold');
-        doc.setFontSize(8);
-        doc.setTextColor(126, 95, 24);
-        doc.text('BRIDE / PARTNER B', pageWidth / 2 + 5, 39);
-        doc.setFontSize(11);
-        doc.setTextColor(26, 26, 30);
-        doc.text(partner2.fullName || 'Person B', pageWidth / 2 + 5, 45);
-        doc.setFont('helvetica', 'normal');
-        doc.setFontSize(7.5);
-        doc.setTextColor(80, 80, 80);
-        const p2Info = `Born: ${partner2.birthDate || 'N/A'}${partner2.birthTime ? ` at ${partner2.birthTime}` : ''}${partner2.birthPlace ? `, ${partner2.birthPlace}` : ''}`;
-        doc.text(doc.splitTextToSize(p2Info, (pageWidth - 36) / 2)[0] || '', pageWidth / 2 + 5, 50.5);
+        yPos += 30;
 
-        // Score & Verdict Highlight Box
-        doc.setFillColor(255, 255, 255);
-        doc.setDrawColor(201, 160, 80);
-        doc.setLineWidth(0.6);
-        doc.roundedRect(13, 62, pageWidth - 26, 26, 2, 2, 'FD');
+        // ── Score & Verdict Banner ───────────────────────────────────────
+        doc.setFillColor(255, 255, 255); doc.setDrawColor(201, 160, 80); doc.setLineWidth(0.5);
+        doc.roundedRect(13, yPos, pageWidth - 26, 30, 2, 2, 'FD');
 
-        doc.setFont('helvetica', 'bold');
-        doc.setFontSize(8.5);
-        doc.setTextColor(126, 95, 24);
-        doc.text('TOTAL COMPATIBILITY SCORE', pageWidth / 2, 68, { align: 'center' });
+        // Score circle/badge at left
+        doc.setFillColor(250, 246, 235); doc.setDrawColor(201, 160, 80); doc.setLineWidth(0.8);
+        doc.circle(36, yPos + 15, 12, 'FD');
+        doc.setFont('helvetica', 'bold'); doc.setFontSize(13); doc.setTextColor(126, 95, 24);
+        doc.text(String(matchResult.totalPoints), 36, yPos + 12.5, { align: 'center' });
+        doc.setFontSize(6); doc.setTextColor(140, 105, 30);
+        doc.text('/ 36', 36, yPos + 17.5, { align: 'center' });
+        doc.setFontSize(5); doc.setTextColor(160, 130, 60);
+        doc.text('GUNAS', 36, yPos + 21, { align: 'center' });
 
-        doc.setFontSize(18);
-        doc.setTextColor(126, 95, 24);
-        doc.text(`${matchResult.totalPoints} / 36 Gunas (${matchResult.percentage}%)`, pageWidth / 2, 75.5, { align: 'center' });
+        // Score details (right of badge)
+        doc.setFont('helvetica', 'bold'); doc.setFontSize(7.5); doc.setTextColor(126, 95, 24);
+        doc.text('TOTAL ASHTA KOOTA COMPATIBILITY SCORE', 52, yPos + 6);
+        doc.setFontSize(15); doc.setTextColor(181, 131, 40);
+        doc.text(`${matchResult.percentage}%`, 52, yPos + 15);
+        doc.setFontSize(9); doc.setTextColor(26, 26, 30);
+        doc.text(sanitize(matchResult.verdictTitle).toUpperCase(), 52, yPos + 20.5);
+        doc.setFont('helvetica', 'italic'); doc.setFontSize(7); doc.setTextColor(90, 85, 75);
+        const verdictSummaryLines = doc.splitTextToSize(`"${sanitize(matchResult.summary)}"`, pageWidth - 80);
+        doc.text(verdictSummaryLines.slice(0, 2), 52, yPos + 25);
 
-        doc.setFontSize(10);
-        doc.setTextColor(26, 26, 30);
-        doc.text(matchResult.verdictTitle.toUpperCase(), pageWidth / 2, 81, { align: 'center' });
+        yPos += 34;
 
-        doc.setFont('helvetica', 'italic');
-        doc.setFontSize(7.8);
-        doc.setTextColor(90, 85, 75);
-        const summaryLines = doc.splitTextToSize(`"${matchResult.summary}"`, pageWidth - 36);
-        doc.text(summaryLines.slice(0, 1), pageWidth / 2, 85.5, { align: 'center' });
+        // ── Ashta Koota Table ────────────────────────────────────────────
+        doc.setFont('helvetica', 'bold'); doc.setFontSize(8.5); doc.setTextColor(126, 95, 24);
+        doc.text('ASHTA KOOTA MILAN — DETAILED GUNA POINTS BREAKDOWN', 13, yPos);
+        doc.setFont('helvetica', 'italic'); doc.setFontSize(6.5); doc.setTextColor(140, 115, 55);
+        doc.text('Classical 8-fold Vedic compatibility analysis | Lahiri Ayanamsa Sidereal Calculation', pageWidth - 13, yPos, { align: 'right' });
+        yPos += 3;
 
-        // 8 Kootas Table Header
-        doc.setFont('helvetica', 'bold');
-        doc.setFontSize(9.5);
-        doc.setTextColor(126, 95, 24);
-        doc.text('ASHTA KOOTA POINTS BREAKDOWN', 13, 93.5);
+        // Table header row
+        doc.setFillColor(250, 247, 240); doc.setDrawColor(201, 160, 80); doc.setLineWidth(0.3);
+        doc.roundedRect(13, yPos, pageWidth - 26, 7, 1, 1, 'FD');
+        doc.setFont('helvetica', 'bold'); doc.setFontSize(7.5); doc.setTextColor(126, 95, 24);
+        doc.text('Koota (Factor)', 16, yPos + 4.8);
+        doc.text('Area of Life', 58, yPos + 4.8);
+        const p1Short = sanitize(partner1.fullName || '').split(' ')[0] || 'P1';
+        const p2Short = sanitize(partner2.fullName || '').split(' ')[0] || 'P2';
+        doc.text(p1Short, 122, yPos + 4.8, { align: 'center' });
+        doc.text(p2Short, 148, yPos + 4.8, { align: 'center' });
+        doc.text('Score', pageWidth - 15, yPos + 4.8, { align: 'right' });
+        yPos += 8;
 
-        // Table Column Headers
-        doc.setFillColor(250, 247, 240);
-        doc.rect(13, 96, pageWidth - 26, 6.5, 'F');
-        doc.setFontSize(8);
-        doc.setTextColor(126, 95, 24);
-        doc.text('Koota', 15, 100.5);
-        doc.text('Significance', 48, 100.5);
-        doc.text(partner1.fullName ? partner1.fullName.split(' ')[0] : 'P1', 118, 100.5, { align: 'center' });
-        doc.text(partner2.fullName ? partner2.fullName.split(' ')[0] : 'P2', 153, 100.5, { align: 'center' });
-        doc.text('Points', pageWidth - 15, 100.5, { align: 'right' });
-
-        // Table Rows
-        let startY = 108;
-        doc.setFont('helvetica', 'normal');
-        doc.setFontSize(8);
-
+        // Table rows (8 kootas)
         matchResult.kootas.forEach((k, idx) => {
-          const rowY = startY + idx * 7.5;
-          if (idx % 2 === 1) {
-            doc.setFillColor(253, 252, 250);
-            doc.rect(13, rowY - 5, pageWidth - 26, 7.5, 'F');
+          const rowH = 8;
+          if (idx % 2 === 0) {
+            doc.setFillColor(255, 255, 255);
+          } else {
+            doc.setFillColor(252, 250, 245);
           }
-          doc.setDrawColor(229, 220, 190);
-          doc.setLineWidth(0.3);
-          doc.line(13, rowY + 2.5, pageWidth - 13, rowY + 2.5);
+          doc.setDrawColor(232, 222, 195); doc.setLineWidth(0.25);
+          doc.roundedRect(13, yPos, pageWidth - 26, rowH, 0.5, 0.5, 'FD');
 
-          doc.setFont('helvetica', 'bold');
-          doc.setTextColor(26, 26, 30);
-          doc.text(`${k.name}`, 15, rowY);
+          // Koota name
+          doc.setFont('helvetica', 'bold'); doc.setFontSize(7.5); doc.setTextColor(26, 26, 30);
+          doc.text(sanitize(k.name), 16, yPos + 5.2);
 
-          doc.setFont('helvetica', 'normal');
-          doc.setTextColor(90, 85, 76);
-          doc.text(k.area.slice(0, 36), 48, rowY);
-          doc.text(String(k.p1Value || '-'), 118, rowY, { align: 'center' });
-          doc.text(String(k.p2Value || '-'), 153, rowY, { align: 'center' });
+          // Max points badge
+          doc.setFont('helvetica', 'normal'); doc.setFontSize(6.5); doc.setTextColor(150, 130, 80);
+          doc.text(`(max ${k.maxPoints})`, 16 + doc.getTextWidth(sanitize(k.name)) + 1.2, yPos + 5.2);
 
-          doc.setFont('helvetica', 'bold');
-          doc.setTextColor(126, 95, 24);
-          doc.text(`${k.obtainedPoints} / ${k.maxPoints}`, pageWidth - 15, rowY, { align: 'right' });
+          // Area
+          doc.setFont('helvetica', 'normal'); doc.setFontSize(7); doc.setTextColor(80, 75, 65);
+          doc.text((sanitize(k.area) || '').slice(0, 30), 58, yPos + 5.2);
+
+          // P1 & P2 values
+          doc.setFont('helvetica', 'normal'); doc.setFontSize(7.2); doc.setTextColor(60, 60, 65);
+          doc.text(sanitize(String(k.p1Value || '-')), 122, yPos + 5.2, { align: 'center' });
+          doc.text(sanitize(String(k.p2Value || '-')), 148, yPos + 5.2, { align: 'center' });
+
+          // Score (colored by performance)
+          const ratio = k.obtainedPoints / k.maxPoints;
+          if (ratio >= 0.67) doc.setTextColor(16, 120, 80);
+          else if (ratio >= 0.4) doc.setTextColor(181, 131, 40);
+          else doc.setTextColor(180, 60, 50);
+          doc.setFont('helvetica', 'bold'); doc.setFontSize(8);
+          doc.text(`${k.obtainedPoints}/${k.maxPoints}`, pageWidth - 15, yPos + 5.2, { align: 'right' });
+
+          yPos += rowH + 1.5;
         });
 
-        // Dosha & Vitality Assessment Section
-        const doshaStartY = startY + 8 * 7.5 + 4;
-        doc.setFont('helvetica', 'bold');
-        doc.setFontSize(9.5);
-        doc.setTextColor(126, 95, 24);
-        doc.text('CRITICAL DOSHA & VITALITY ASSESSMENT', 13, doshaStartY);
+        // Total row
+        doc.setFillColor(248, 244, 232); doc.setDrawColor(201, 160, 80); doc.setLineWidth(0.5);
+        doc.roundedRect(13, yPos, pageWidth - 26, 9, 1, 1, 'FD');
+        doc.setFont('helvetica', 'bold'); doc.setFontSize(8.5); doc.setTextColor(126, 95, 24);
+        doc.text('TOTAL GUNAS MATCHED', 16, yPos + 6);
+        doc.setFontSize(10); doc.setTextColor(181, 131, 40);
+        doc.text(`${matchResult.totalPoints} / 36  (${matchResult.percentage}%)`, pageWidth - 15, yPos + 6.2, { align: 'right' });
 
-        // Dosha Boxes
-        const boxWidth = (pageWidth - 30) / 2;
-        doc.setFillColor(255, 255, 255);
-        doc.setDrawColor(226, 211, 176);
-        doc.roundedRect(13, doshaStartY + 2.5, boxWidth, 23, 2, 2, 'FD');
-        doc.roundedRect(13 + boxWidth + 4, doshaStartY + 2.5, boxWidth, 23, 2, 2, 'FD');
+        // ════════════════════════════════════════════════════════════════
+        // PAGE 2 — Dosha + Numerology + AI Synthesis + Remedies + Seal
+        // ════════════════════════════════════════════════════════════════
+        doc.addPage();
+        drawPageChrome(2, 2);
+        drawPageHeader(false);
 
-        // Manglik box
-        doc.setFont('helvetica', 'bold');
-        doc.setFontSize(8);
-        doc.setTextColor(26, 26, 30);
-        doc.text('Manglik (Kuja) Dosha:', 17, doshaStartY + 7.5);
-        doc.setFontSize(7.8);
-        doc.setTextColor(126, 95, 24);
-        doc.text(`Verdict: ${matchResult.manglik.verdict}`, 17, doshaStartY + 12);
-        doc.setFont('helvetica', 'normal');
-        doc.setFontSize(7.5);
-        doc.setTextColor(80, 80, 80);
-        const manglikExp = doc.splitTextToSize(matchResult.manglik.explanation, boxWidth - 8);
-        doc.text(manglikExp.slice(0, 2), 17, doshaStartY + 16.5);
+        let y2 = 25;
 
-        // Nadi & Bhakoot box
-        const rightBoxX = 13 + boxWidth + 4;
-        doc.setFont('helvetica', 'bold');
-        doc.setFontSize(8);
-        doc.setTextColor(26, 26, 30);
-        doc.text('Nadi & Bhakoot Vitality:', rightBoxX + 4, doshaStartY + 7.5);
-        doc.setFont('helvetica', 'normal');
-        doc.setFontSize(7.5);
-        doc.setTextColor(80, 80, 80);
-        const nadiText = doc.splitTextToSize(`Nadi: ${matchResult.nadiDosha.reason}. Bhakoot: ${matchResult.bhakootDosha.reason}.`, boxWidth - 8);
-        doc.text(nadiText.slice(0, 3), rightBoxX + 4, doshaStartY + 12.5);
+        // ── Section 1: Critical Dosha & Vitality Assessment (3-column) ──
+        doc.setFont('helvetica', 'bold'); doc.setFontSize(8.5); doc.setTextColor(126, 95, 24);
+        doc.text('CRITICAL DOSHA & VITALITY ASSESSMENT', 13, y2);
+        doc.setFont('helvetica', 'italic'); doc.setFontSize(6.5); doc.setTextColor(140, 115, 55);
+        doc.text('Manglik (Kuja) Dosha  |  Nadi Dosha  |  Bhakoot Dosha', pageWidth - 13, y2, { align: 'right' });
+        y2 += 3;
 
-        // Remedies Section
-        const remedyY = doshaStartY + 28.5;
-        doc.setFont('helvetica', 'bold');
-        doc.setFontSize(9.5);
-        doc.setTextColor(126, 95, 24);
-        doc.text('AUSPICIOUS VEDIC REMEDIES & GUIDANCE', 13, remedyY);
+        const doshaColW = (pageWidth - 30) / 3;
+        const doshaBoxH = 30;
 
-        doc.setFillColor(255, 255, 255);
-        doc.setDrawColor(201, 160, 80);
-        doc.roundedRect(13, remedyY + 2.5, pageWidth - 26, 21, 2, 2, 'FD');
+        // Manglik Dosha card
+        doc.setFillColor(255, 255, 255); doc.setDrawColor(226, 211, 176); doc.setLineWidth(0.4);
+        doc.roundedRect(13, y2, doshaColW, doshaBoxH, 1.5, 1.5, 'FD');
+        doc.setFont('helvetica', 'bold'); doc.setFontSize(7); doc.setTextColor(126, 95, 24);
+        doc.text('MANGLIK (KUJA) DOSHA', 16, y2 + 5.5);
+        doc.setFontSize(8); doc.setTextColor(26, 26, 30);
+        doc.text(sanitize(matchResult.manglik.verdict), 16, y2 + 11);
+        doc.setFont('helvetica', 'normal'); doc.setFontSize(6.5); doc.setTextColor(80, 80, 80);
+        const manglikLines = doc.splitTextToSize(sanitize(matchResult.manglik.explanation), doshaColW - 6);
+        doc.text(manglikLines.slice(0, 4), 16, y2 + 16);
 
-        doc.setFont('helvetica', 'bold');
-        doc.setFontSize(8.2);
-        doc.setTextColor(126, 95, 24);
-        doc.text('AUSPICIOUS VEDIC REMEDIES & GUIDANCE', 17, remedyY + 7.5);
+        // Nadi Dosha card
+        const d2X = 13 + doshaColW + 2;
+        doc.setFillColor(255, 255, 255); doc.setDrawColor(226, 211, 176); doc.setLineWidth(0.4);
+        doc.roundedRect(d2X, y2, doshaColW, doshaBoxH, 1.5, 1.5, 'FD');
+        doc.setFont('helvetica', 'bold'); doc.setFontSize(7); doc.setTextColor(126, 95, 24);
+        doc.text('NADI DOSHA (GENETIC VITALITY)', d2X + 3, y2 + 5.5);
+        doc.setFontSize(8); doc.setTextColor(26, 26, 30);
+        doc.text(matchResult.nadiDosha.hasDosha ? 'Dosha Present' : 'No Nadi Dosha', d2X + 3, y2 + 11);
+        doc.setFont('helvetica', 'normal'); doc.setFontSize(6.5); doc.setTextColor(80, 80, 80);
+        const nadiLines = doc.splitTextToSize(sanitize(matchResult.nadiDosha.reason), doshaColW - 6);
+        doc.text(nadiLines.slice(0, 4), d2X + 3, y2 + 16);
 
-        doc.setFont('helvetica', 'normal');
-        doc.setFontSize(7.8);
-        doc.setTextColor(60, 60, 60);
-        const remediesText = matchResult.remedies.slice(0, 3).map((r, i) => `${i + 1}. ${r}`);
-        remediesText.forEach((rem, i) => {
-          doc.text(rem, 17, remedyY + 12 + i * 4);
+        // Bhakoot Dosha card
+        const d3X = 13 + 2 * (doshaColW + 2);
+        doc.setFillColor(255, 255, 255); doc.setDrawColor(226, 211, 176); doc.setLineWidth(0.4);
+        doc.roundedRect(d3X, y2, doshaColW, doshaBoxH, 1.5, 1.5, 'FD');
+        doc.setFont('helvetica', 'bold'); doc.setFontSize(7); doc.setTextColor(126, 95, 24);
+        doc.text('BHAKOOT DOSHA (EMOTIONAL)', d3X + 3, y2 + 5.5);
+        doc.setFontSize(8); doc.setTextColor(26, 26, 30);
+        doc.text(matchResult.bhakootDosha.hasDosha ? 'Dosha Present' : 'Harmonious', d3X + 3, y2 + 11);
+        doc.setFont('helvetica', 'normal'); doc.setFontSize(6.5); doc.setTextColor(80, 80, 80);
+        const bhakootLines = doc.splitTextToSize(sanitize(matchResult.bhakootDosha.reason), doshaColW - 6);
+        doc.text(bhakootLines.slice(0, 4), d3X + 3, y2 + 16);
+
+        y2 += doshaBoxH + 5;
+
+        // ── Section 2: Numerology & Elemental Synergy (2-column) ─────────
+        doc.setFont('helvetica', 'bold'); doc.setFontSize(8.5); doc.setTextColor(126, 95, 24);
+        doc.text('NUMEROLOGY & ELEMENTAL SYNERGY ANALYSIS', 13, y2);
+        y2 += 3;
+
+        const synColW = (pageWidth - 28) / 2;
+        const synBoxH = 26;
+
+        // Numerology Milan card
+        doc.setFillColor(255, 255, 255); doc.setDrawColor(226, 211, 176); doc.setLineWidth(0.4);
+        doc.roundedRect(13, y2, synColW, synBoxH, 1.5, 1.5, 'FD');
+        doc.setFont('helvetica', 'bold'); doc.setFontSize(7); doc.setTextColor(126, 95, 24);
+        doc.text('NUMEROLOGICAL MULANK MILAN', 16, y2 + 5.5);
+        doc.setFont('helvetica', 'normal'); doc.setFontSize(7.2); doc.setTextColor(26, 26, 30);
+        const numMulanks = `${p1Short}: Mulank ${matchResult.numerologyMilan?.partner1Mulank ?? '-'}   |   ${p2Short}: Mulank ${matchResult.numerologyMilan?.partner2Mulank ?? '-'}`;
+        doc.text(numMulanks, 16, y2 + 11);
+        doc.setFontSize(7.5); doc.setFont('helvetica', 'bold'); doc.setTextColor(181, 131, 40);
+        doc.text(`Harmony Score: ${matchResult.numerologyMilan?.harmonyScore ?? '-'}%`, 16, y2 + 16.5);
+        doc.setFont('helvetica', 'normal'); doc.setFontSize(6.5); doc.setTextColor(80, 80, 80);
+        const numDesc = sanitize(matchResult.numerologyMilan?.description || 'Numerological vibration alignment between partners.');
+        doc.text(doc.splitTextToSize(numDesc, synColW - 6).slice(0, 3), 16, y2 + 21);
+
+        // Elemental Balance card
+        const e2X = 13 + synColW + 2;
+        doc.setFillColor(255, 255, 255); doc.setDrawColor(226, 211, 176); doc.setLineWidth(0.4);
+        doc.roundedRect(e2X, y2, synColW, synBoxH, 1.5, 1.5, 'FD');
+        doc.setFont('helvetica', 'bold'); doc.setFontSize(7); doc.setTextColor(126, 95, 24);
+        doc.text('PANCHA BHUTA ELEMENTAL BALANCE', e2X + 3, y2 + 5.5);
+        doc.setFont('helvetica', 'bold'); doc.setFontSize(7.5); doc.setTextColor(181, 131, 40);
+        doc.text(`Synergy: ${sanitize(matchResult.elementalBalance?.synergy || 'Balanced')}  (${matchResult.elementalBalance?.score ?? '-'}%)`, e2X + 3, y2 + 11);
+        doc.setFont('helvetica', 'normal'); doc.setFontSize(6.5); doc.setTextColor(80, 80, 80);
+        const elemDesc = sanitize(`${matchResult.elementalBalance?.partner1Element || 'Element A'} & ${matchResult.elementalBalance?.partner2Element || 'Element B'} — Five-element cosmic balance between the couple.`);
+        doc.text(doc.splitTextToSize(elemDesc, synColW - 6).slice(0, 3), e2X + 3, y2 + 16.5);
+        doc.setFontSize(7.2); doc.setTextColor(126, 95, 24); doc.setFont('helvetica', 'bold');
+        const elemScore = matchResult.elementalBalance?.score ?? 0;
+        const elemVerdict = elemScore >= 75 ? 'Highly Auspicious' : elemScore >= 50 ? 'Moderately Compatible' : 'Needs Attention';
+        doc.text(elemVerdict, e2X + 3, y2 + 22);
+
+        y2 += synBoxH + 5;
+
+        // ── Section 3: AI Planetary Synthesis Card ───────────────────────
+        const aiText = sanitize(
+          typeof aiSynthesis === 'string'
+            ? aiSynthesis
+            : (aiSynthesis as any)?.synthesis || (aiSynthesis as any)?.summary || ''
+        );
+        if (aiText) {
+          doc.setFillColor(255, 255, 255); doc.setDrawColor(201, 160, 80); doc.setLineWidth(0.4);
+          const aiLines   = doc.splitTextToSize(aiText, pageWidth - 34);
+          const aiBoxH    = Math.min(48, Math.max(22, 10 + aiLines.length * 3.8));
+          doc.roundedRect(13, y2, pageWidth - 26, aiBoxH, 1.5, 1.5, 'FD');
+          doc.setFont('helvetica', 'bold'); doc.setFontSize(8); doc.setTextColor(126, 95, 24);
+          doc.text('AI VEDIC PLANETARY SYNTHESIS & PARTNERSHIP COUNSEL', 17, y2 + 5.5);
+          doc.setFont('helvetica', 'italic'); doc.setFontSize(6.2); doc.setTextColor(155, 125, 60);
+          doc.text('Personalized Jyotish Intelligence | Daivajna Analysis Engine', pageWidth - 17, y2 + 5.5, { align: 'right' });
+          doc.setFont('helvetica', 'normal'); doc.setFontSize(6.8); doc.setTextColor(45, 45, 50);
+          doc.text(aiLines.slice(0, 10), 17, y2 + 10);
+          y2 += aiBoxH + 5;
+        }
+
+        // ── Section 4: Auspicious Vedic Remedies & Guidance ─────────────
+        doc.setFont('helvetica', 'bold'); doc.setFontSize(8.5); doc.setTextColor(126, 95, 24);
+        doc.text('AUSPICIOUS VEDIC REMEDIES & SHANTI UPAYAS', 13, y2);
+        doc.setFont('helvetica', 'italic'); doc.setFontSize(6.5); doc.setTextColor(140, 115, 55);
+        doc.text('Classical Jyotish prescriptions for harmonious union', pageWidth - 13, y2, { align: 'right' });
+        y2 += 3;
+
+        const remedyBoxH = Math.min(45, 8 + matchResult.remedies.slice(0, 5).length * 7.5);
+        doc.setFillColor(255, 255, 255); doc.setDrawColor(201, 160, 80); doc.setLineWidth(0.4);
+        doc.roundedRect(13, y2, pageWidth - 26, remedyBoxH, 1.5, 1.5, 'FD');
+
+        matchResult.remedies.slice(0, 5).forEach((rem, i) => {
+          const rY = y2 + 6 + i * 7.5;
+          // Small golden bullet
+          doc.setFillColor(181, 131, 40); doc.circle(17, rY - 1.2, 1, 'F');
+          doc.setFont('helvetica', 'normal'); doc.setFontSize(7); doc.setTextColor(40, 40, 45);
+          const remLines = doc.splitTextToSize(sanitize(rem), pageWidth - 44);
+          doc.text(remLines[0] || '', 20, rY);
+          if (remLines[1]) doc.text(remLines[1], 20, rY + 3.5);
         });
 
-        // Certificate Footer & Authentication Seal (Raised up cleanly)
-        const footerY = pageHeight - 19;
-        doc.setDrawColor(226, 211, 176);
-        doc.setLineWidth(0.5);
-        doc.line(13, footerY, pageWidth - 13, footerY);
+        y2 += remedyBoxH + 5;
 
-        doc.setFont('helvetica', 'normal');
-        doc.setFontSize(7);
-        doc.setTextColor(100, 100, 100);
-        doc.text(`Certificate ID: JV-KM-${Date.now().toString(36).toUpperCase()}`, 14, footerY + 4.5);
-        doc.text(`Generated: ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}`, 14, footerY + 8);
-        doc.text('Certified via JyotishVeda Mathematical AstroEngine & Classical Ephemeris', 14, footerY + 11.5);
+        // ── Section 5: Muhurat Guidance ──────────────────────────────────
+        if (matchResult.auspiciousMuhuratAdvice && y2 + 18 < pageHeight - 25) {
+          doc.setFillColor(250, 247, 238); doc.setDrawColor(201, 160, 80); doc.setLineWidth(0.4);
+          doc.roundedRect(13, y2, pageWidth - 26, 16, 1.5, 1.5, 'FD');
+          doc.setFont('helvetica', 'bold'); doc.setFontSize(7.5); doc.setTextColor(126, 95, 24);
+          doc.text('AUSPICIOUS MUHURAT GUIDANCE FOR WEDDING DATE SELECTION', 17, y2 + 5.5);
+          doc.setFont('helvetica', 'normal'); doc.setFontSize(7); doc.setTextColor(55, 50, 45);
+          const muhuratLines = doc.splitTextToSize(sanitize(matchResult.auspiciousMuhuratAdvice), pageWidth - 34);
+          doc.text(muhuratLines.slice(0, 2), 17, y2 + 10.5);
+          y2 += 20;
+        }
 
-        doc.setFont('helvetica', 'bold');
-        doc.setFontSize(8);
-        doc.setTextColor(126, 95, 24);
-        doc.text('DAIVAJNA ASTROLOGICAL SEAL', pageWidth - 14, footerY + 4.5, { align: 'right' });
-        doc.setFont('helvetica', 'normal');
-        doc.setFontSize(6.5);
-        doc.setTextColor(120, 120, 120);
-        doc.text('Digitally Verified & Certified', pageWidth - 14, footerY + 8, { align: 'right' });
+        // ── Section 6: Authentication Seal ──────────────────────────────
+        if (y2 + 20 < pageHeight - 22) {
+          doc.setFillColor(250, 247, 238); doc.setDrawColor(201, 160, 80); doc.setLineWidth(0.5);
+          doc.roundedRect(13, y2, pageWidth - 26, 18, 2, 2, 'FD');
+          doc.setFont('helvetica', 'bold'); doc.setFontSize(8); doc.setTextColor(126, 95, 24);
+          doc.text('DAIVAJNA ASTROLOGICAL AUTHENTICITY SEAL', pageWidth / 2, y2 + 6.5, { align: 'center' });
+          doc.setFont('helvetica', 'italic'); doc.setFontSize(7); doc.setTextColor(90, 85, 70);
+          doc.text(
+            '"Om Shri Gurubhyo Namah — This sacred Kundli Milan has been computed through classical Vedic AstroEngine aligned with Lahiri Ayanamsa, Brihat Parashara Hora Shastra, and traditional Ashta Koota sutras."',
+            pageWidth / 2, y2 + 12, { align: 'center', maxWidth: pageWidth - 36 }
+          );
+        }
 
         doc.save(fileName);
       } catch (clientErr) {
         console.error('Fatal PDF generation error:', clientErr);
       }
-    } finally {
-      setIsGeneratingPdf(false);
     }
+    setIsGeneratingPdf(false);
   };
 
   // Trigger browser print for certificate fallback

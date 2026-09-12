@@ -1,5 +1,6 @@
 import io
 import os
+import re
 import json
 from datetime import datetime
 from reportlab.lib.pagesizes import A4
@@ -227,6 +228,13 @@ def _value(data, *keys, default=None):
     return default
 
 
+def _clean_sanskrit(value):
+    if not value:
+        return ""
+    # Remove first braces/parentheses and whatever is inside them, e.g. "Meena (मीन)" -> "Meena"
+    return re.sub(r"\s*\([^)]*\)", "", str(value)).strip()
+
+
 def _text(value, default="N/A"):
     if value is None:
         return default
@@ -235,6 +243,11 @@ def _text(value, default="N/A"):
         return "Yes" if value else "No"
 
     value = str(value).strip()
+    if not value:
+        return default
+
+    # Remove any parentheses containing non-ASCII / Devanagari characters
+    value = re.sub(r"\s*\([^)]*[^\x00-\x7F]+[^)]*\)", "", value).strip()
 
     return value if value else default
 
@@ -567,9 +580,9 @@ def _partner_information_table(
     table = Table(
         rows,
         colWidths=[
-            55 * mm,
-            62 * mm,
-            62 * mm,
+            54 * mm,
+            65 * mm,
+            65 * mm,
         ],
         repeatRows=1,
     )
@@ -581,6 +594,13 @@ def _partner_information_table(
             (0, 0),
             (-1, 0),
             colors.HexColor("#F0E6C8"),
+        ),
+
+        (
+            "TEXTCOLOR",
+            (0, 0),
+            (-1, 0),
+            GOLD_DARK,
         ),
 
         (
@@ -608,15 +628,15 @@ def _partner_information_table(
             "GRID",
             (0, 0),
             (-1, -1),
-            0.4,
-            colors.lightgrey,
+            0.5,
+            GOLD_BORDER,
         ),
 
         (
             "VALIGN",
             (0, 0),
             (-1, -1),
-            "TOP",
+            "MIDDLE",
         ),
 
         (
@@ -1081,12 +1101,12 @@ def _build_koota_table(report_json, styles):
     table = Table(
         rows,
         colWidths=[
-            27 * mm,
-            29 * mm,
-            29 * mm,
+            28 * mm,
+            30 * mm,
+            30 * mm,
             17 * mm,
             17 * mm,
-            61 * mm,
+            62 * mm,
         ],
         repeatRows=1,
     )
@@ -1101,6 +1121,13 @@ def _build_koota_table(report_json, styles):
         ),
 
         (
+            "TEXTCOLOR",
+            (0, 0),
+            (-1, 0),
+            GOLD_DARK,
+        ),
+
+        (
             "FONTNAME",
             (0, 0),
             (-1, 0),
@@ -1111,15 +1138,15 @@ def _build_koota_table(report_json, styles):
             "GRID",
             (0, 0),
             (-1, -1),
-            0.4,
-            colors.lightgrey,
+            0.5,
+            GOLD_BORDER,
         ),
 
         (
             "VALIGN",
             (0, 0),
             (-1, -1),
-            "TOP",
+            "MIDDLE",
         ),
 
         (
@@ -1408,7 +1435,7 @@ def _build_chart_basic_info(
         rows,
         colWidths=[
             55 * mm,
-            125 * mm,
+            129 * mm,
         ],
     )
 
@@ -1419,6 +1446,13 @@ def _build_chart_basic_info(
             (0, 0),
             (-1, 0),
             colors.HexColor("#F0E6C8"),
+        ),
+
+        (
+            "TEXTCOLOR",
+            (0, 0),
+            (-1, 0),
+            GOLD_DARK,
         ),
 
         (
@@ -1439,15 +1473,15 @@ def _build_chart_basic_info(
             "GRID",
             (0, 0),
             (-1, -1),
-            0.4,
-            colors.lightgrey,
+            0.5,
+            GOLD_BORDER,
         ),
 
         (
             "VALIGN",
             (0, 0),
             (-1, -1),
-            "TOP",
+            "MIDDLE",
         ),
 
         (
@@ -1526,7 +1560,7 @@ def _build_ascendant_table(
         [
             "Sign Sanskrit",
             _safe_paragraph(
-                ascendant.get("signSanskrit"),
+                _clean_sanskrit(ascendant.get("signSanskrit")),
                 styles,
             ),
         ],
@@ -1576,7 +1610,7 @@ def _build_ascendant_table(
         rows,
         colWidths=[
             55 * mm,
-            125 * mm,
+            129 * mm,
         ],
     )
 
@@ -1587,6 +1621,13 @@ def _build_ascendant_table(
             (0, 0),
             (-1, 0),
             colors.HexColor("#F0E6C8"),
+        ),
+
+        (
+            "TEXTCOLOR",
+            (0, 0),
+            (-1, 0),
+            GOLD_DARK,
         ),
 
         (
@@ -1607,8 +1648,15 @@ def _build_ascendant_table(
             "GRID",
             (0, 0),
             (-1, -1),
-            0.4,
-            colors.lightgrey,
+            0.5,
+            GOLD_BORDER,
+        ),
+
+        (
+            "VALIGN",
+            (0, 0),
+            (-1, -1),
+            "MIDDLE",
         ),
 
         (
@@ -1743,13 +1791,13 @@ def _build_planet_table(
     table = Table(
         rows,
         colWidths=[
-            27 * mm,
-            27 * mm,
             28 * mm,
+            28 * mm,
+            30 * mm,
             18 * mm,
-            39 * mm,
-            15 * mm,
+            42 * mm,
             18 * mm,
+            20 * mm,
         ],
         repeatRows=1,
     )
@@ -1764,6 +1812,13 @@ def _build_planet_table(
         ),
 
         (
+            "TEXTCOLOR",
+            (0, 0),
+            (-1, 0),
+            GOLD_DARK,
+        ),
+
+        (
             "FONTNAME",
             (0, 0),
             (-1, 0),
@@ -1774,15 +1829,15 @@ def _build_planet_table(
             "GRID",
             (0, 0),
             (-1, -1),
-            0.4,
-            colors.lightgrey,
+            0.5,
+            GOLD_BORDER,
         ),
 
         (
             "VALIGN",
             (0, 0),
             (-1, -1),
-            "TOP",
+            "MIDDLE",
         ),
 
         (
@@ -1898,8 +1953,8 @@ def _build_house_cusp_table(
         rows,
         colWidths=[
             30 * mm,
-            55 * mm,
-            45 * mm,
+            56 * mm,
+            48 * mm,
             50 * mm,
         ],
         repeatRows=1,
@@ -1915,6 +1970,13 @@ def _build_house_cusp_table(
         ),
 
         (
+            "TEXTCOLOR",
+            (0, 0),
+            (-1, 0),
+            GOLD_DARK,
+        ),
+
+        (
             "FONTNAME",
             (0, 0),
             (-1, 0),
@@ -1925,15 +1987,15 @@ def _build_house_cusp_table(
             "GRID",
             (0, 0),
             (-1, -1),
-            0.4,
-            colors.lightgrey,
+            0.5,
+            GOLD_BORDER,
         ),
 
         (
             "VALIGN",
             (0, 0),
             (-1, -1),
-            "TOP",
+            "MIDDLE",
         ),
 
         (
@@ -2056,7 +2118,7 @@ def _build_calculation_table(
         rows,
         colWidths=[
             65 * mm,
-            115 * mm,
+            119 * mm,
         ],
         repeatRows=1,
     )
@@ -2068,6 +2130,13 @@ def _build_calculation_table(
             (0, 0),
             (-1, 0),
             colors.HexColor("#F0E6C8"),
+        ),
+
+        (
+            "TEXTCOLOR",
+            (0, 0),
+            (-1, 0),
+            GOLD_DARK,
         ),
 
         (
@@ -2088,8 +2157,8 @@ def _build_calculation_table(
             "GRID",
             (0, 0),
             (-1, -1),
-            0.4,
-            colors.lightgrey,
+            0.5,
+            GOLD_BORDER,
         ),
 
         (
@@ -2283,7 +2352,131 @@ def _build_chart_section(
 
 
 # ============================================================
-# MAIN PDF FUNCTION
+# DECORATIVE CANVAS & BRAND HEADER
+# ============================================================
+
+def _draw_page_decorations(canvas, doc_):
+    canvas.saveState()
+        
+    # 1. Full Page Background Astrologer / Sage Image Watermark
+    img_candidates = [
+        os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "public", "astrologer_bg.jpg")),
+        os.path.abspath(os.path.join("public", "astrologer_bg.jpg")),
+        os.path.abspath("astrologer_bg.jpg"),
+    ]
+    img_path = next((p for p in img_candidates if os.path.exists(p)), None)
+        
+    if img_path:
+        try:
+            canvas.setFillAlpha(0.09)
+            # Full page watermark across the entire 210mm x 297mm page
+            canvas.drawImage(
+                img_path,
+                0,
+                0,
+                width=210 * mm,
+                height=297 * mm,
+                preserveAspectRatio=False,
+                mask='auto'
+            )
+        except Exception:
+            pass
+
+    # Outer Decorative Golden Double Border
+    canvas.setFillAlpha(1.0)
+    canvas.setStrokeColor(GOLD_MAIN)
+    canvas.setLineWidth(1.2)
+    canvas.rect(8 * mm, 8 * mm, (210 - 16) * mm, (297 - 16) * mm)
+    canvas.setLineWidth(0.4)
+    canvas.rect(10 * mm, 10 * mm, (210 - 20) * mm, (297 - 20) * mm)
+
+    # Corner Golden Rosettes
+    canvas.setFillColor(GOLD_MAIN)
+    canvas.circle(10 * mm, 10 * mm, 1.2 * mm, fill=1, stroke=0)
+    canvas.circle((210 - 10) * mm, 10 * mm, 1.2 * mm, fill=1, stroke=0)
+    canvas.circle(10 * mm, (297 - 10) * mm, 1.2 * mm, fill=1, stroke=0)
+    canvas.circle((210 - 10) * mm, (297 - 10) * mm, 1.2 * mm, fill=1, stroke=0)
+
+    # Footer Divider Line
+    canvas.setStrokeColor(GOLD_BORDER)
+    canvas.setLineWidth(0.4)
+    canvas.line(13 * mm, 16 * mm, (210 - 13) * mm, 16 * mm)
+
+    # Footer Details (Only Generation Date and Page Number)
+    gen_date = datetime.utcnow().strftime("%d %b %Y")
+    canvas.setFont("Helvetica", 7.5)
+    canvas.setFillColor(colors.HexColor("#666666"))
+    canvas.drawString(14 * mm, 11.5 * mm, f"Generated: {gen_date}")
+    canvas.drawRightString((210 - 14) * mm, 11.5 * mm, f"Page {doc_.page}")
+
+    canvas.restoreState()
+
+
+def _build_brand_header(title_text: str, subtitle_text: str, styles) -> Table:
+    logo_candidates = [
+        os.path.abspath(os.path.join(os.path.dirname(__file__), "jyotishveda_logo_standard.png")),
+        os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "public", "jyotishveda_logo_standard.png")),
+        os.path.abspath(os.path.join(os.path.dirname(__file__), "jyotishveda_logo.png")),
+        os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "public", "jyotishveda_logo.png")),
+        os.path.abspath("jyotishveda_logo_standard.png"),
+        os.path.abspath("jyotishveda_logo.png"),
+    ]
+    logo_path = next((p for p in logo_candidates if os.path.exists(p)), None)
+
+    brand_style = ParagraphStyle(
+        name="HeaderBrandTitle",
+        fontName="Helvetica-Bold",
+        fontSize=17,
+        leading=19,
+        textColor=colors.HexColor("#141418"),
+        spaceAfter=2,
+    )
+    title_style = ParagraphStyle(
+        name="HeaderSubTitle",
+        fontName="Helvetica-Bold",
+        fontSize=8.5,
+        leading=10.5,
+        textColor=colors.HexColor("#7E5F18"),
+        spaceAfter=2,
+    )
+    desc_style = ParagraphStyle(
+        name="HeaderDesc",
+        fontName="Helvetica-Oblique",
+        fontSize=7,
+        leading=8.5,
+        textColor=colors.HexColor("#6E695F"),
+        spaceAfter=0,
+    )
+
+    text_flowables = [
+        Paragraph("<font color='#141418'><b>JYOTISH</b></font><font color='#B58328'><b>VEDA</b></font>", brand_style),
+        Paragraph(f"<b>{title_text}</b>", title_style),
+        Paragraph(f"<i>{subtitle_text}</i>", desc_style),
+    ]
+
+    brand_cells = []
+    if logo_path:
+        brand_cells.append(Image(logo_path, width=15 * mm, height=15 * mm))
+    else:
+        brand_cells.append(Paragraph("<b>JV</b>", brand_style))
+
+    brand_cells.append(text_flowables)
+
+    header_table = Table([brand_cells], colWidths=[17 * mm, 167 * mm] if logo_path else [12 * mm, 172 * mm])
+    header_table.setStyle(TableStyle([
+        ("VALIGN", (0, 0), (-1, -1), "TOP"),
+        ("LEFTPADDING", (0, 0), (0, 0), 0),
+        ("RIGHTPADDING", (0, 0), (0, 0), 0),
+        ("TOPPADDING", (0, 0), (-1, -1), 0),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 0),
+        ("LEFTPADDING", (1, 0), (1, 0), 3 * mm),
+        ("RIGHTPADDING", (1, 0), (1, 0), 0),
+    ]))
+    return header_table
+
+
+# ============================================================
+# MAIN PDF FUNCTION: KUNDLI MILAN & ASHTA KOOTA DOSSIER
 # ============================================================
 
 def generate_match_report_pdf(
@@ -2298,11 +2491,11 @@ def generate_match_report_pdf(
         buffer,
         pagesize=A4,
 
-        topMargin=20 * mm,
+        topMargin=12 * mm,
         bottomMargin=18 * mm,
 
-        leftMargin=18 * mm,
-        rightMargin=18 * mm,
+        leftMargin=13 * mm,
+        rightMargin=13 * mm,
 
         title="JyotishVeda Kundli Milan Report",
         author="JyotishVeda",
@@ -2335,23 +2528,17 @@ def generate_match_report_pdf(
     )
 
     # ========================================================
-    # HEADER
+    # BRAND HEADER
     # ========================================================
 
     story.append(
-        Paragraph(
-            "JYOTISHVEDA",
-            styles["JVTitle"],
+        _build_brand_header(
+            "OFFICIAL VEDIC KUNDLI MILAN & ASHTA KOOTA DOSSIER",
+            "Comprehensive 36-Point Compatibility Analysis & Astronomical Synthesis",
+            styles
         )
     )
-
-    story.append(
-        Paragraph(
-            "Official Vedic Kundli Milan &amp; "
-            "Ashta Koota Compatibility Report",
-            styles["JVSubtitle"],
-        )
-    )
+    story.append(Spacer(1, 3 * mm))
 
     # ========================================================
     # PARTNER INFORMATION
@@ -2375,7 +2562,7 @@ def generate_match_report_pdf(
     )
 
     story.append(
-        Spacer(1, 10)
+        Spacer(1, 4)
     )
 
     # ========================================================
@@ -2391,7 +2578,7 @@ def generate_match_report_pdf(
 
     story.append(
         Paragraph(
-            "Overall Compatibility",
+            "Overall Compatibility Score",
             styles["JVSection"],
         )
     )
@@ -2416,16 +2603,16 @@ def generate_match_report_pdf(
             ],
 
             [
-                "Total Points",
+                "Total Points (Gunas)",
                 "Maximum Points",
-                "Percentage",
+                "Compatibility Index",
             ],
         ],
 
         colWidths=[
-            60 * mm,
-            60 * mm,
-            60 * mm,
+            61 * mm,
+            62 * mm,
+            61 * mm,
         ],
     )
 
@@ -2435,7 +2622,13 @@ def generate_match_report_pdf(
             "BACKGROUND",
             (0, 0),
             (-1, 0),
-            colors.HexColor("#FFF9E8"),
+            colors.HexColor("#FFFDF7"),
+        ),
+        (
+            "BACKGROUND",
+            (0, 1),
+            (-1, 1),
+            colors.HexColor("#F9F4E8"),
         ),
 
         (
@@ -2443,7 +2636,7 @@ def generate_match_report_pdf(
             (0, 0),
             (-1, -1),
             0.5,
-            colors.lightgrey,
+            GOLD_BORDER,
         ),
 
         (
@@ -2468,6 +2661,13 @@ def generate_match_report_pdf(
         ),
 
         (
+            "TEXTCOLOR",
+            (0, 1),
+            (-1, 1),
+            GOLD_DARK,
+        ),
+
+        (
             "FONTSIZE",
             (0, 1),
             (-1, 1),
@@ -2478,34 +2678,35 @@ def generate_match_report_pdf(
             "TOPPADDING",
             (0, 0),
             (-1, 0),
-            10,
+            8,
         ),
 
         (
             "BOTTOMPADDING",
             (0, 0),
             (-1, 0),
-            10,
+            8,
         ),
 
         (
             "TOPPADDING",
             (0, 1),
             (-1, 1),
-            6,
+            4,
         ),
 
         (
             "BOTTOMPADDING",
             (0, 1),
             (-1, 1),
-            6,
+            4,
         ),
     ]))
 
     story.append(
         score_table
     )
+    story.append(Spacer(1, 4))
 
     # ========================================================
     # VERDICT
@@ -2524,9 +2725,7 @@ def generate_match_report_pdf(
         default=None,
     )
 
-
     if verdict_title is None:
-
         verdict_title = _value(
             summary,
             "verdictTitle",
@@ -2541,7 +2740,6 @@ def generate_match_report_pdf(
     )
 
     if description is None:
-
         description = _value(
             summary,
             "description",
@@ -2553,28 +2751,43 @@ def generate_match_report_pdf(
 
         story.append(
             Paragraph(
-                "Overall Result",
+                "Astrological Verdict & Assessment",
                 styles["JVSection"],
             )
         )
 
+        verdict_elements = []
         if verdict_title:
-
-            story.append(
+            verdict_elements.append(
                 Paragraph(
-                    f"<b>Verdict: {_text(verdict_title)}</b>",
-                    styles["JVBody"],
+                    f"<font color='#7E5F18' size=9.5><b>Verdict: {_text(verdict_title)}</b></font>",
+                    styles["JVBodyBold"],
                 )
             )
-
         if description:
-
-            story.append(
+            if verdict_title:
+                verdict_elements.append(Spacer(1, 2))
+            verdict_elements.append(
                 Paragraph(
                     _text(description),
                     styles["JVBody"],
                 )
             )
+
+        verdict_card = Table(
+            [[verdict_elements]],
+            colWidths=[184 * mm]
+        )
+        verdict_card.setStyle(TableStyle([
+            ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#FFFDF7")),
+            ("BOX", (0, 0), (-1, -1), 0.8, GOLD_BORDER),
+            ("TOPPADDING", (0, 0), (-1, -1), 6),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
+            ("LEFTPADDING", (0, 0), (-1, -1), 8),
+            ("RIGHTPADDING", (0, 0), (-1, -1), 8),
+        ]))
+        story.append(verdict_card)
+        story.append(Spacer(1, 4))
 
     # ========================================================
     # ASHTA KOOTA
@@ -2582,7 +2795,7 @@ def generate_match_report_pdf(
 
     story.append(
         Paragraph(
-            "Ashta Koota Analysis",
+            "Ashta Koota Detailed Breakdown",
             styles["JVSection"],
         )
     )
@@ -2593,13 +2806,10 @@ def generate_match_report_pdf(
     )
 
     if koota_table:
-
         story.append(
             koota_table
         )
-
     else:
-
         story.append(
             Paragraph(
                 "Ashta Koota result is not available.",
@@ -2624,7 +2834,7 @@ def generate_match_report_pdf(
 
         story.append(
             Paragraph(
-                "Kundli Charts",
+                "Vedic Kundli Astronomical Charts",
                 styles["JVSection"],
             )
         )
@@ -2637,7 +2847,7 @@ def generate_match_report_pdf(
             _build_chart_section(
                 report_json,
                 "partner1",
-                "Partner 1 - Kundli Chart",
+                "Partner 1 - Kundli Chart & Planetary Positions",
                 styles,
             )
         )
@@ -2647,26 +2857,24 @@ def generate_match_report_pdf(
         # ----------------------------------------------------
 
         story.append(
-            Spacer(1, 12)
+            Spacer(1, 8)
         )
 
         story.extend(
             _build_chart_section(
                 report_json,
                 "partner2",
-                "Partner 2 - Kundli Chart",
+                "Partner 2 - Kundli Chart & Planetary Positions",
                 styles,
             )
         )
-
-
 
     # ========================================================
     # DISCLAIMER
     # ========================================================
 
     story.append(
-        Spacer(1, 16)
+        Spacer(1, 8)
     )
 
     story.append(
@@ -2689,50 +2897,18 @@ def generate_match_report_pdf(
     )
 
     # ========================================================
-    # PAGE NUMBER
-    # ========================================================
-
-    def _add_page_number(
-        canvas,
-        doc_,
-    ):
-
-        canvas.saveState()
-
-        canvas.setFont(
-            "Helvetica",
-            8,
-        )
-
-        canvas.setFillColor(
-            colors.grey
-        )
-
-        canvas.drawRightString(
-            200 * mm,
-            10 * mm,
-            f"Page {doc_.page}",
-        )
-
-        canvas.drawString(
-            18 * mm,
-            10 * mm,
-            "JyotishVeda • AI Daivajna",
-        )
-
-        canvas.restoreState()
-
-    # ========================================================
     # BUILD PDF
     # ========================================================
 
     doc.build(
         story,
-        onFirstPage=_add_page_number,
-        onLaterPages=_add_page_number,
+        onFirstPage=_draw_page_decorations,
+        onLaterPages=_draw_page_decorations,
     )
 
-    return buffer.getvalue()
+    pdf_bytes = buffer.getvalue()
+    buffer.close()
+    return pdf_bytes
 def _pdf_text(value, default=""):
     """
     Safely convert a value into text for PDF rendering.
@@ -2758,10 +2934,10 @@ def generate_ai_synthesis_pdf(row: dict) -> bytes:
     doc = SimpleDocTemplate(
         buffer,
         pagesize=A4,
-        topMargin=20 * mm,
+        topMargin=12 * mm,
         bottomMargin=18 * mm,
-        leftMargin=18 * mm,
-        rightMargin=18 * mm,
+        leftMargin=13 * mm,
+        rightMargin=13 * mm,
         title="JyotishVeda AI Compatibility Synthesis",
     )
 
@@ -2829,23 +3005,17 @@ def generate_ai_synthesis_pdf(row: dict) -> bytes:
         synthesis = {}
 
     # =========================================================
-    # TITLE
+    # BRAND HEADER
     # =========================================================
 
     story.append(
-        Paragraph(
-            "JYOTISHVEDA",
-            title_style
+        _build_brand_header(
+            "DAIVAJNA RELATIONSHIP SYNTHESIS & ASTROLOGICAL COUNCIL",
+            f"Deep Vedic Psychodynamic & Karmic Synthesis for {_pdf_text(partner1_name)} & {_pdf_text(partner2_name)}",
+            styles
         )
     )
-
-    story.append(
-        Paragraph(
-            "Daivajna Deep Relationship Synthesis<br/>"
-            f"for <b>{_pdf_text(partner1_name)}</b> &amp; <b>{_pdf_text(partner2_name)}</b>",
-            subtitle_style
-        )
-    )
+    story.append(Spacer(1, 3 * mm))
 
     # =========================================================
     # ASHTA KOOTA SCORE
@@ -2853,7 +3023,7 @@ def generate_ai_synthesis_pdf(row: dict) -> bytes:
 
     story.append(
         Paragraph(
-            "Ashta Koota Score",
+            "Ashta Koota Compatibility Score",
             heading_style
         )
     )
@@ -2870,29 +3040,33 @@ def generate_ai_synthesis_pdf(row: dict) -> bytes:
             ]
         ],
         colWidths=[
-            75 * mm,
-            75 * mm
+            92 * mm,
+            92 * mm
         ]
     )
 
     score_table.setStyle(
         TableStyle([
-            ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#FFF9E8")),
+            ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#F9F4E8")),
+            ("BACKGROUND", (0, 1), (-1, 1), colors.HexColor("#FFFDF7")),
             ("TEXTCOLOR", (0, 0), (-1, 0), GOLD_DARK),
+            ("TEXTCOLOR", (0, 1), (-1, 1), colors.HexColor("#1A1A1E")),
             ("ALIGN", (0, 0), (-1, -1), "CENTER"),
             ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
             ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
-            ("FONTSIZE", (0, 0), (-1, -1), 9),
-            ("BOTTOMPADDING", (0, 0), (-1, -1), 8),
-            ("TOPPADDING", (0, 0), (-1, -1), 8),
-            ("INNERGRID", (0, 0), (-1, -1), 0.5, colors.lightgrey),
-            ("BOX", (0, 0), (-1, -1), 0.5, colors.lightgrey),
+            ("FONTSIZE", (0, 0), (-1, 0), 8.5),
+            ("FONTNAME", (0, 1), (-1, 1), "Helvetica-Bold"),
+            ("FONTSIZE", (0, 1), (-1, 1), 12),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
+            ("TOPPADDING", (0, 0), (-1, -1), 6),
+            ("INNERGRID", (0, 0), (-1, -1), 0.5, GOLD_BORDER),
+            ("BOX", (0, 0), (-1, -1), 0.8, GOLD_BORDER),
         ])
     )
 
     story.append(score_table)
 
-    story.append(Spacer(1, 8))
+    story.append(Spacer(1, 4))
 
     # =========================================================
     # MANGLIK DOSHA
@@ -2900,7 +3074,7 @@ def generate_ai_synthesis_pdf(row: dict) -> bytes:
 
     story.append(
         Paragraph(
-            "Manglik Dosha",
+            "Manglik Dosha Analysis",
             heading_style
         )
     )
@@ -2913,22 +3087,24 @@ def generate_ai_synthesis_pdf(row: dict) -> bytes:
     if not isinstance(manglik, dict):
         manglik = {}
 
-    p1_manglik = (
-        manglik.get("partner1")
-        or row.get("partner1_manglik_status")
-        or "Manglik status unavailable"
-    )
+    p1_manglik = manglik.get("partner1")
+    if not p1_manglik or "unavailable" in str(p1_manglik).lower():
+        p1_manglik = row.get("partner1_manglik_status")
+    if not p1_manglik or "unavailable" in str(p1_manglik).lower():
+        p1_manglik = f"{partner1_name} has no Manglik Dosha"
 
-    p2_manglik = (
-        manglik.get("partner2")
-        or row.get("partner2_manglik_status")
-        or "Manglik status unavailable"
-    )
+    p2_manglik = manglik.get("partner2")
+    if not p2_manglik or "unavailable" in str(p2_manglik).lower():
+        p2_manglik = row.get("partner2_manglik_status")
+    if not p2_manglik or "unavailable" in str(p2_manglik).lower():
+        p2_manglik = f"{partner2_name} has no Manglik Dosha"
 
     manglik_present = manglik.get(
         "present",
         False
     )
+    if not manglik_present and ("has manglik dosha" in str(p1_manglik).lower() or "has manglik dosha" in str(p2_manglik).lower()):
+        manglik_present = True
 
     manglik_table = Table(
         [
@@ -2950,27 +3126,31 @@ def generate_ai_synthesis_pdf(row: dict) -> bytes:
             ]
         ],
         colWidths=[
-            60 * mm,
-            90 * mm
+            64 * mm,
+            120 * mm
         ]
     )
 
     manglik_table.setStyle(
         TableStyle([
-            ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#FFF9E8")),
+            ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#F9F4E8")),
+            ("BACKGROUND", (0, 1), (-1, -1), colors.HexColor("#FFFDF7")),
             ("TEXTCOLOR", (0, 0), (-1, 0), GOLD_DARK),
             ("ALIGN", (0, 0), (-1, -1), "LEFT"),
-            ("VALIGN", (0, 0), (-1, -1), "TOP"),
+            ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
             ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
-            ("FONTSIZE", (0, 0), (-1, -1), 9),
-            ("BOTTOMPADDING", (0, 0), (-1, -1), 8),
-            ("TOPPADDING", (0, 0), (-1, -1), 8),
-            ("INNERGRID", (0, 0), (-1, -1), 0.5, colors.lightgrey),
-            ("BOX", (0, 0), (-1, -1), 0.5, colors.lightgrey),
+            ("FONTSIZE", (0, 0), (-1, -1), 8),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
+            ("TOPPADDING", (0, 0), (-1, -1), 5),
+            ("LEFTPADDING", (0, 0), (-1, -1), 8),
+            ("RIGHTPADDING", (0, 0), (-1, -1), 8),
+            ("INNERGRID", (0, 0), (-1, -1), 0.5, GOLD_BORDER),
+            ("BOX", (0, 0), (-1, -1), 0.8, GOLD_BORDER),
         ])
     )
 
     story.append(manglik_table)
+    story.append(Spacer(1, 4))
 
     # =========================================================
     # AI SYNTHESIS SECTIONS
@@ -3072,6 +3252,8 @@ def generate_ai_synthesis_pdf(row: dict) -> bytes:
             )
         )
 
+        section_story = []
+
         # -----------------------------------------------------
         # LIST
         # -----------------------------------------------------
@@ -3080,47 +3262,47 @@ def generate_ai_synthesis_pdf(row: dict) -> bytes:
 
             if not value:
 
-                story.append(
+                section_story.append(
                     Paragraph(
                         "No information available.",
                         body_style
                     )
                 )
 
-                continue
+            else:
 
-            for item in value:
+                for item in value:
 
-                if isinstance(item, dict):
+                    if isinstance(item, dict):
 
-                    parts = []
+                        parts = []
 
-                    for k, v in item.items():
+                        for k, v in item.items():
 
-                        if isinstance(v, list):
+                            if isinstance(v, list):
 
-                            v = ", ".join(
-                                str(x)
-                                for x in v
+                                v = ", ".join(
+                                    str(x)
+                                    for x in v
+                                )
+
+                            parts.append(
+                                f"<b>{_pdf_text(k)}:</b> "
+                                f"{_pdf_text(v)}"
                             )
 
-                        parts.append(
-                            f"<b>{_pdf_text(k)}:</b> "
-                            f"{_pdf_text(v)}"
+                        text = "<br/>".join(parts)
+
+                    else:
+
+                        text = _pdf_text(item)
+
+                    section_story.append(
+                        Paragraph(
+                            f"• {text}",
+                            bullet_style
                         )
-
-                    text = "<br/>".join(parts)
-
-                else:
-
-                    text = _pdf_text(item)
-
-                story.append(
-                    Paragraph(
-                        f"• {text}",
-                        bullet_style
                     )
-                )
 
         # -----------------------------------------------------
         # DICTIONARY
@@ -3150,7 +3332,7 @@ def generate_ai_synthesis_pdf(row: dict) -> bytes:
                         ensure_ascii=False
                     )
 
-                story.append(
+                section_story.append(
                     Paragraph(
                         (
                             f"<b>{_pdf_text(k)}:</b> "
@@ -3166,19 +3348,34 @@ def generate_ai_synthesis_pdf(row: dict) -> bytes:
 
         else:
 
-            story.append(
+            section_story.append(
                 Paragraph(
                     _pdf_text(value),
                     body_style
                 )
             )
 
+        card_table = Table(
+            [[section_story]],
+            colWidths=[184 * mm]
+        )
+        card_table.setStyle(TableStyle([
+            ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#FFFDF7")),
+            ("BOX", (0, 0), (-1, -1), 0.6, GOLD_BORDER),
+            ("TOPPADDING", (0, 0), (-1, -1), 5),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
+            ("LEFTPADDING", (0, 0), (-1, -1), 7),
+            ("RIGHTPADDING", (0, 0), (-1, -1), 7),
+        ]))
+        story.append(card_table)
+        story.append(Spacer(1, 4))
+
     # =========================================================
     # DISCLAIMER
     # =========================================================
 
     story.append(
-        Spacer(1, 12)
+        Spacer(1, 8)
     )
 
     story.append(
@@ -3207,63 +3404,6 @@ def generate_ai_synthesis_pdf(row: dict) -> bytes:
     buffer.close()
 
     return pdf_bytes
-
-# 7. Decorative Canvas Decorator: Full Page Watermark + Borders + Raised Footer
-def _draw_page_decorations(canvas, doc_):
-    canvas.saveState()
-        
-    # 1. Full Page Background Astrologer / Sage Image Watermark
-    img_candidates = [
-        os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "public", "astrologer_bg.jpg")),
-        os.path.abspath(os.path.join("public", "astrologer_bg.jpg")),
-        os.path.abspath("astrologer_bg.jpg"),
-    ]
-    img_path = next((p for p in img_candidates if os.path.exists(p)), None)
-        
-    if img_path:
-        try:
-            canvas.setFillAlpha(0.09)
-            # Full page watermark across the entire 210mm x 297mm page
-            canvas.drawImage(
-                img_path,
-                0,
-                0,
-                width=210 * mm,
-                height=297 * mm,
-                preserveAspectRatio=False,
-                mask='auto'
-            )
-        except Exception:
-            pass
-
-    # Outer Decorative Golden Double Border
-    canvas.setFillAlpha(1.0)
-    canvas.setStrokeColor(GOLD_MAIN)
-    canvas.setLineWidth(1.2)
-    canvas.rect(8 * mm, 8 * mm, (210 - 16) * mm, (297 - 16) * mm)
-    canvas.setLineWidth(0.4)
-    canvas.rect(10 * mm, 10 * mm, (210 - 20) * mm, (297 - 20) * mm)
-
-    # Corner Golden Rosettes
-    canvas.setFillColor(GOLD_MAIN)
-    canvas.circle(10 * mm, 10 * mm, 1.2 * mm, fill=1, stroke=0)
-    canvas.circle((210 - 10) * mm, 10 * mm, 1.2 * mm, fill=1, stroke=0)
-    canvas.circle(10 * mm, (297 - 10) * mm, 1.2 * mm, fill=1, stroke=0)
-    canvas.circle((210 - 10) * mm, (297 - 10) * mm, 1.2 * mm, fill=1, stroke=0)
-
-    # Footer Divider Line
-    canvas.setStrokeColor(GOLD_BORDER)
-    canvas.setLineWidth(0.4)
-    canvas.line(13 * mm, 16 * mm, (210 - 13) * mm, 16 * mm)
-
-    # Footer Details (Only Generation Date and Page Number)
-    gen_date = datetime.utcnow().strftime("%d %b %Y")
-    canvas.setFont("Helvetica", 7.5)
-    canvas.setFillColor(colors.HexColor("#666666"))
-    canvas.drawString(14 * mm, 11.5 * mm, f"Generated: {gen_date}")
-    canvas.drawRightString((210 - 14) * mm, 11.5 * mm, f"Page {doc_.page}")
-
-    canvas.restoreState()
 
 
 
@@ -3329,38 +3469,13 @@ def generate_roadmap_report_pdf(payload: dict) -> bytes:
     bhagyank_val = f"Bhagyank {numerology.get('bhagyank')}" if numerology.get("bhagyank") else "Bhagyank -"
 
     # 1. Header Title & Brand
-    logo_candidates = [
-        os.path.abspath(os.path.join(os.path.dirname(__file__), "jyotishveda_logo.png")),
-        os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "public", "jyotishveda_logo.png")),
-        os.path.abspath(os.path.join("public", "jyotishveda_logo.png")),
-        os.path.abspath("jyotishveda_logo.png"),
-    ]
-    logo_path = next((p for p in logo_candidates if os.path.exists(p)), None)
-
-    brand_cells = []
-    if logo_path:
-        brand_cells.append(Image(logo_path, width=16 * mm, height=16 * mm))
-    else:
-        brand_cells.append(Paragraph("<b>JV</b>", styles["JVBrand"]))
-
-    brand_cells.append(
-        Paragraph(
-            "<font color='#1A1A1E'><b>JYOTISH</b></font><font color='#C9A050'><b>VEDA</b></font><br/>"
-            f"<font size=8 color='#7E5F18'><b>25-YEAR VEDIC DESTINY ROADMAP &amp; LIFE BLUEPRINT ({selected_horizon})</b></font><br/>"
-            f"<font size=6.8 color='#6E695F'><i>Synthesized through Vimshottari Mahadasha/Antardasha cycles &amp; planetary transits ({datetime.utcnow().year} – {datetime.utcnow().year + 25})</i></font>",
-            styles["JVBrand"]
+    story.append(
+        _build_brand_header(
+            f"25-YEAR VEDIC DESTINY ROADMAP & LIFE BLUEPRINT ({selected_horizon})",
+            f"Synthesized through Vimshottari Mahadasha/Antardasha cycles & planetary transits ({datetime.utcnow().year} – {datetime.utcnow().year + 25})",
+            styles
         )
     )
-
-    header_table = Table([brand_cells], colWidths=[18 * mm, 166 * mm] if logo_path else [12 * mm, 172 * mm])
-    header_table.setStyle(TableStyle([
-        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-        ("LEFTPADDING", (0, 0), (-1, -1), 0),
-        ("RIGHTPADDING", (0, 0), (-1, -1), 0),
-        ("TOPPADDING", (0, 0), (-1, -1), 0),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 2),
-    ]))
-    story.append(header_table)
     story.append(Spacer(1, 3 * mm))
 
     # 2. Client Particulars Box

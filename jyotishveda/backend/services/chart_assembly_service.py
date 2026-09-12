@@ -14,18 +14,18 @@ _ZODIAC_CACHE = None  # module-level cache (populated once per server lifetime)
 
 # Fallback if DB is unavailable
 _ZODIAC_FALLBACK = [
-    {"name": "Aries",       "sanskrit": "Mesha (मेष)",        "lord": "Mars",    "element": "Fire",  "symbol": "♈"},
-    {"name": "Taurus",      "sanskrit": "Vrishabha (वृषभ)",   "lord": "Venus",   "element": "Earth", "symbol": "♉"},
-    {"name": "Gemini",      "sanskrit": "Mithuna (मिथुन)",    "lord": "Mercury", "element": "Air",   "symbol": "♊"},
-    {"name": "Cancer",      "sanskrit": "Karka (कर्क)",       "lord": "Moon",    "element": "Water", "symbol": "♋"},
-    {"name": "Leo",         "sanskrit": "Simha (सिंह)",       "lord": "Sun",     "element": "Fire",  "symbol": "♌"},
-    {"name": "Virgo",       "sanskrit": "Kanya (कन्या)",      "lord": "Mercury", "element": "Earth", "symbol": "♍"},
-    {"name": "Libra",       "sanskrit": "Tula (तुला)",        "lord": "Venus",   "element": "Air",   "symbol": "♎"},
-    {"name": "Scorpio",     "sanskrit": "Vrishchika (वृश्चिक)","lord": "Mars",   "element": "Water", "symbol": "♏"},
-    {"name": "Sagittarius", "sanskrit": "Dhanu (धनु)",        "lord": "Jupiter", "element": "Fire",  "symbol": "♐"},
-    {"name": "Capricorn",   "sanskrit": "Makara (मकर)",       "lord": "Saturn",  "element": "Earth", "symbol": "♑"},
-    {"name": "Aquarius",    "sanskrit": "Kumbha (कुम्भ)",     "lord": "Saturn",  "element": "Air",   "symbol": "♒"},
-    {"name": "Pisces",      "sanskrit": "Meena (मीन)",        "lord": "Jupiter", "element": "Water", "symbol": "♓"},
+    {"name": "Aries",       "sanskrit": "Mesha",        "lord": "Mars",    "element": "Fire",  "symbol": "♈"},
+    {"name": "Taurus",      "sanskrit": "Vrishabha",   "lord": "Venus",   "element": "Earth", "symbol": "♉"},
+    {"name": "Gemini",      "sanskrit": "Mithuna",    "lord": "Mercury", "element": "Air",   "symbol": "♊"},
+    {"name": "Cancer",      "sanskrit": "Karka",       "lord": "Moon",    "element": "Water", "symbol": "♋"},
+    {"name": "Leo",         "sanskrit": "Simha",       "lord": "Sun",     "element": "Fire",  "symbol": "♌"},
+    {"name": "Virgo",       "sanskrit": "Kanya",      "lord": "Mercury", "element": "Earth", "symbol": "♍"},
+    {"name": "Libra",       "sanskrit": "Tula",        "lord": "Venus",   "element": "Air",   "symbol": "♎"},
+    {"name": "Scorpio",     "sanskrit": "Vrishchika",  "lord": "Mars",   "element": "Water", "symbol": "♏"},
+    {"name": "Sagittarius", "sanskrit": "Dhanu",        "lord": "Jupiter", "element": "Fire",  "symbol": "♐"},
+    {"name": "Capricorn",   "sanskrit": "Makara",       "lord": "Saturn",  "element": "Earth", "symbol": "♑"},
+    {"name": "Aquarius",    "sanskrit": "Kumbha",     "lord": "Saturn",  "element": "Air",   "symbol": "♒"},
+    {"name": "Pisces",      "sanskrit": "Meena",        "lord": "Jupiter", "element": "Water", "symbol": "♓"},
 ]
 
 # Ordered by sidereal sign index (Aries=0 to Pisces=11)

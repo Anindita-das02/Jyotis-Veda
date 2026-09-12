@@ -22,18 +22,18 @@ from services.report_service import generate_ai_synthesis_pdf
 # ============================================================
 
 ZODIAC_SIGNS = [
-    {"name": "Aries", "sanskrit": "Mesha (मेष)", "lord": "Mars", "element": "Fire", "symbol": "♈"},
-    {"name": "Taurus", "sanskrit": "Vrishabha (वृषभ)", "lord": "Venus", "element": "Earth", "symbol": "♉"},
-    {"name": "Gemini", "sanskrit": "Mithuna (मिथुन)", "lord": "Mercury", "element": "Air", "symbol": "♊"},
-    {"name": "Cancer", "sanskrit": "Karka (कर्क)", "lord": "Moon", "element": "Water", "symbol": "♋"},
-    {"name": "Leo", "sanskrit": "Simha (सिंह)", "lord": "Sun", "element": "Fire", "symbol": "♌"},
-    {"name": "Virgo", "sanskrit": "Kanya (कन्या)", "lord": "Mercury", "element": "Earth", "symbol": "♍"},
-    {"name": "Libra", "sanskrit": "Tula (तुला)", "lord": "Venus", "element": "Air", "symbol": "♎"},
-    {"name": "Scorpio", "sanskrit": "Vrishchika (वृश्चिक)", "lord": "Mars", "element": "Water", "symbol": "♏"},
-    {"name": "Sagittarius", "sanskrit": "Dhanu (धनु)", "lord": "Jupiter", "element": "Fire", "symbol": "♐"},
-    {"name": "Capricorn", "sanskrit": "Makara (मকর)", "lord": "Saturn", "element": "Earth", "symbol": "♑"},
-    {"name": "Aquarius", "sanskrit": "Kumbha (कुम्भ)", "lord": "Saturn", "element": "Air", "symbol": "♒"},
-    {"name": "Pisces", "sanskrit": "Meena (मीन)", "lord": "Jupiter", "element": "Water", "symbol": "♓"},
+    {"name": "Aries", "sanskrit": "Mesha", "lord": "Mars", "element": "Fire", "symbol": "♈"},
+    {"name": "Taurus", "sanskrit": "Vrishabha", "lord": "Venus", "element": "Earth", "symbol": "♉"},
+    {"name": "Gemini", "sanskrit": "Mithuna", "lord": "Mercury", "element": "Air", "symbol": "♊"},
+    {"name": "Cancer", "sanskrit": "Karka", "lord": "Moon", "element": "Water", "symbol": "♋"},
+    {"name": "Leo", "sanskrit": "Simha", "lord": "Sun", "element": "Fire", "symbol": "♌"},
+    {"name": "Virgo", "sanskrit": "Kanya", "lord": "Mercury", "element": "Earth", "symbol": "♍"},
+    {"name": "Libra", "sanskrit": "Tula", "lord": "Venus", "element": "Air", "symbol": "♎"},
+    {"name": "Scorpio", "sanskrit": "Vrishchika", "lord": "Mars", "element": "Water", "symbol": "♏"},
+    {"name": "Sagittarius", "sanskrit": "Dhanu", "lord": "Jupiter", "element": "Fire", "symbol": "♐"},
+    {"name": "Capricorn", "sanskrit": "Makara", "lord": "Saturn", "element": "Earth", "symbol": "♑"},
+    {"name": "Aquarius", "sanskrit": "Kumbha", "lord": "Saturn", "element": "Air", "symbol": "♒"},
+    {"name": "Pisces", "sanskrit": "Meena", "lord": "Jupiter", "element": "Water", "symbol": "♓"},
 ]
 
 # Exact 27 Nakshatras, each 13°20′.
@@ -222,9 +222,40 @@ def prepare_partner(partner: dict) -> dict:
     if not q.get("place"):
         q["place"] = q.get("birthPlace")
 
-    if q.get("latitude") is None or q.get("longitude") is None or not q.get("timezone"):
-        q.update(resolve_birth_place(q.get("place")))
+    tz = q.get("timezone") or q.get("timeZone")
+    if not isinstance(tz, str) or "/" not in tz:
+        # Timezone is numeric (like 5.5) or invalid -> resolve via lat/lon or default to Asia/Kolkata
+        lat = q.get("latitude")
+        lon = q.get("longitude")
+        if lat is not None and lon is not None:
+            try:
+                tf = TimezoneFinder()
+                resolved_tz = tf.timezone_at(lat=float(lat), lng=float(lon))
+                q["timezone"] = resolved_tz or "Asia/Kolkata"
+            except Exception:
+                q["timezone"] = "Asia/Kolkata"
+        elif q.get("place"):
+            try:
+                q.update(resolve_birth_place(q.get("place")))
+            except Exception:
+                q["timezone"] = "Asia/Kolkata"
+        else:
+            q["timezone"] = "Asia/Kolkata"
+
+    if q.get("latitude") is None or q.get("longitude") is None:
+        try:
+            q.update(resolve_birth_place(q.get("place") or "Delhi, India"))
+        except Exception:
+            if q.get("latitude") is None:
+                q["latitude"] = 28.6139
+            if q.get("longitude") is None:
+                q["longitude"] = 77.2090
+
+    if not isinstance(q.get("timezone"), str) or "/" not in str(q.get("timezone")):
+        q["timezone"] = "Asia/Kolkata"
+
     return q
+
 
 
 # ============================================================
@@ -1506,6 +1537,153 @@ def download_match_report_pdf(user_id: str, report_id: str):
         return _error(f"Error generating PDF: {exc}", "PDF_ERROR", 500)
 
 
+def generate_direct_pdf():
+    try:
+        body = request.get_json(silent=True) or {}
+
+        partner1 = body.get("partner1")
+        partner2 = body.get("partner2")
+
+        if not partner1:
+            partner1 = {
+                "name": body.get("partner1_name") or body.get("partner1Name") or "Partner 1",
+                "dob": body.get("partner1_birth_date") or body.get("partner1BirthDate") or "",
+                "time": body.get("partner1_birth_time") or body.get("partner1BirthTime") or "12:00",
+                "place": body.get("partner1_birth_place") or body.get("partner1BirthPlace") or body.get("partner1Place") or "Delhi, India",
+                "latitude": body.get("partner1_latitude") or body.get("partner1Latitude"),
+                "longitude": body.get("partner1_longitude") or body.get("partner1Longitude"),
+                "timezone": body.get("partner1_timezone") or body.get("partner1Timezone", 5.5),
+                "houseSystem": body.get("partner1HouseSystem", "W"),
+                "nodeType": body.get("partner1NodeType", "true"),
+            }
+
+        if not partner2:
+            partner2 = {
+                "name": body.get("partner2_name") or body.get("partner2Name") or "Partner 2",
+                "dob": body.get("partner2_birth_date") or body.get("partner2BirthDate") or "",
+                "time": body.get("partner2_birth_time") or body.get("partner2BirthTime") or "12:00",
+                "place": body.get("partner2_birth_place") or body.get("partner2BirthPlace") or body.get("partner2Place") or "Mumbai, India",
+                "latitude": body.get("partner2_latitude") or body.get("partner2Latitude"),
+                "longitude": body.get("partner2_longitude") or body.get("partner2Longitude"),
+                "timezone": body.get("partner2_timezone") or body.get("partner2Timezone", 5.5),
+                "houseSystem": body.get("partner2HouseSystem", "W"),
+                "nodeType": body.get("partner2NodeType", "true"),
+            }
+
+        # Resolve lat/lon/timezone if not supplied
+        partner1 = prepare_partner(partner1)
+        partner2 = prepare_partner(partner2)
+
+        err1 = validate_partner(partner1, "partner1")
+        if err1:
+            return _error(err1, "VALIDATION_ERROR")
+        err2 = validate_partner(partner2, "partner2")
+        if err2:
+            return _error(err2, "VALIDATION_ERROR")
+
+        # Full Vedic calculation via Swiss Ephemeris engine
+        result = calculate_kundli_milan(partner1, partner2)
+        report_data = result.get("report") or {}
+
+        p1_name = partner1.get("name") or "Partner 1"
+        p2_name = partner2.get("name") or "Partner 2"
+
+        row = {
+            "report_json": report_data,
+            "partner1_name": p1_name,
+            "partner1_birth_date": partner1.get("dob") or "",
+            "partner1_birth_time": partner1.get("time") or "",
+            "partner1_birth_place": partner1.get("place") or "",
+            "partner2_name": p2_name,
+            "partner2_birth_date": partner2.get("dob") or "",
+            "partner2_birth_time": partner2.get("time") or "",
+            "partner2_birth_place": partner2.get("place") or "",
+            "total_score": float(result.get("totalScore", 0)),
+            "max_score": float(result.get("maxScore", 36)),
+        }
+
+        pdf_bytes = generate_match_report_pdf(row)
+
+        clean_p1 = "".join(c for c in p1_name if c.isalnum() or c in (" ", "_", "-")).strip().replace(" ", "_")
+        clean_p2 = "".join(c for c in p2_name if c.isalnum() or c in (" ", "_", "-")).strip().replace(" ", "_")
+        filename = f"JyotishVeda_Kundli_Milan_{clean_p1}_and_{clean_p2}.pdf"
+
+        return Response(
+            pdf_bytes,
+            mimetype="application/pdf",
+            headers={
+                "Content-Disposition": f'attachment; filename="{filename}"',
+                "Content-Length": str(len(pdf_bytes)),
+                "Cache-Control": "no-store",
+            },
+        )
+    except Exception as exc:
+        print(f"Error generating direct match PDF: {exc}")
+        return _error(f"Error generating PDF: {exc}", "PDF_ERROR", 500)
+
+
+def generate_direct_ai_synthesis_pdf():
+    try:
+        body = request.get_json(silent=True) or {}
+        synthesis_id = body.get("synthesisId") or body.get("id")
+
+        if synthesis_id:
+            return download_ai_synthesis_pdf(synthesis_id)
+
+        p1_name = body.get("partner1_name") or body.get("partner1Name") or (body.get("partner1") or {}).get("fullName") or "Partner 1"
+        p2_name = body.get("partner2_name") or body.get("partner2Name") or (body.get("partner2") or {}).get("fullName") or "Partner 2"
+        synthesis_data = body.get("synthesis") or body.get("aiSynthesis") or {}
+        score = body.get("score") or body.get("totalScore") or 0
+        max_score = body.get("max_score") or body.get("maxScore") or 36
+
+        manglik_obj = synthesis_data.get("manglik_dosha") if isinstance(synthesis_data, dict) else {}
+        p1_manglik = (
+            (manglik_obj.get("partner1") if isinstance(manglik_obj, dict) else None)
+            or body.get("partner1_manglik_status")
+            or body.get("partner1ManglikStatus")
+        )
+        p2_manglik = (
+            (manglik_obj.get("partner2") if isinstance(manglik_obj, dict) else None)
+            or body.get("partner2_manglik_status")
+            or body.get("partner2ManglikStatus")
+        )
+
+        if not p1_manglik or "unavailable" in str(p1_manglik).lower():
+            p1_manglik = f"{p1_name} has no Manglik Dosha"
+        if not p2_manglik or "unavailable" in str(p2_manglik).lower():
+            p2_manglik = f"{p2_name} has no Manglik Dosha"
+
+        row = {
+            "partner1_name": p1_name,
+            "partner2_name": p2_name,
+            "total_score": score,
+            "max_score": max_score,
+            "partner1_manglik_status": p1_manglik,
+            "partner2_manglik_status": p2_manglik,
+            "synthesis_json": synthesis_data if isinstance(synthesis_data, str) else json.dumps(synthesis_data, ensure_ascii=False),
+        }
+
+        pdf_bytes = generate_ai_synthesis_pdf(row)
+
+        clean_p1 = "".join(c for c in p1_name if c.isalnum() or c in (" ", "_", "-")).strip().replace(" ", "_")
+        clean_p2 = "".join(c for c in p2_name if c.isalnum() or c in (" ", "_", "-")).strip().replace(" ", "_")
+        filename = f"JyotishVeda_AI_Counsel_{clean_p1}_and_{clean_p2}.pdf"
+
+        return Response(
+            pdf_bytes,
+            mimetype="application/pdf",
+            headers={
+                "Content-Disposition": f'attachment; filename="{filename}"',
+                "Content-Length": str(len(pdf_bytes)),
+                "Cache-Control": "no-store",
+            },
+        )
+    except Exception as exc:
+        print(f"Error generating direct AI synthesis PDF: {exc}")
+        return _error(f"Error generating AI synthesis PDF: {exc}", "PDF_ERROR", 500)
+
+
+
 
 
 
@@ -1556,14 +1734,11 @@ def generate_ai_synthesis(user_id: str):
         # PARTNER DATA
         # =====================================================
 
-        partner1 = report.get("partner1", {})
+        partner1 = report.get("partner1") or body.get("partner1") or {}
 
-        partner2 = report.get("partner2", {})
+        partner2 = report.get("partner2") or body.get("partner2") or {}
 
-        ashtaKoota = report.get(
-            "ashtaKoota",
-            {}
-        )
+        ashtaKoota = report.get("ashtaKoota") or report.get("kootas") or {}
 
         if not isinstance(partner1, dict):
             partner1 = {}
@@ -1571,7 +1746,7 @@ def generate_ai_synthesis(user_id: str):
         if not isinstance(partner2, dict):
             partner2 = {}
 
-        if not isinstance(ashtaKoota, dict):
+        if not isinstance(ashtaKoota, (dict, list)):
             ashtaKoota = {}
 
         # =====================================================
@@ -1581,6 +1756,7 @@ def generate_ai_synthesis(user_id: str):
         p1_name = (
             partner1.get("fullName")
             or partner1.get("name")
+            or body.get("partner1Name")
             or data.get("partner1Name")
             or "Partner 1"
         )
@@ -1592,6 +1768,7 @@ def generate_ai_synthesis(user_id: str):
         p2_name = (
             partner2.get("fullName")
             or partner2.get("name")
+            or body.get("partner2Name")
             or data.get("partner2Name")
             or "Partner 2"
         )
@@ -1600,10 +1777,11 @@ def generate_ai_synthesis(user_id: str):
         # TOTAL ASHTA KOOTA SCORE
         # =====================================================
 
-        score = ashtaKoota.get("totalPoints")
-
-        if score is None:
-            score = ashtaKoota.get("totalScore")
+        score = None
+        if isinstance(ashtaKoota, dict):
+            score = ashtaKoota.get("totalPoints") or ashtaKoota.get("totalScore")
+        elif isinstance(ashtaKoota, list):
+            score = sum(float(k.get("obtainedPoints") or k.get("obtained") or 0) for k in ashtaKoota if isinstance(k, dict))
 
         if score is None:
             score = report.get("totalPoints")
@@ -1620,23 +1798,51 @@ def generate_ai_synthesis(user_id: str):
         max_score = data.get("maxScore") or report.get("maxPoints") or 36.0
         # =====================================================
         # MANGLIK STATUS
-        #
-        # IMPORTANT:
-        # We ONLY read already calculated values.
-        # We DO NOT calculate Manglik again.
         # =====================================================
 
         partner1_manglik_status = (
             data.get("partner1ManglikStatus")
             or report.get("partner1ManglikStatus")
-            or "Manglik status unavailable"
+            or (report.get("manglik") or {}).get("status", {}).get("partner1")
         )
 
         partner2_manglik_status = (
             data.get("partner2ManglikStatus")
             or report.get("partner2ManglikStatus")
-            or "Manglik status unavailable"
+            or (report.get("manglik") or {}).get("status", {}).get("partner2")
         )
+
+        # If missing or unavailable, calculate automatically with Swiss Ephemeris engine
+        if (
+            not partner1_manglik_status
+            or "unavailable" in str(partner1_manglik_status).lower()
+            or not partner2_manglik_status
+            or "unavailable" in str(partner2_manglik_status).lower()
+            or not ashtaKoota
+        ):
+            try:
+                p1_candidate = partner1 if (partner1.get("dob") or partner1.get("birthDate")) else (body.get("partner1") or {})
+                p2_candidate = partner2 if (partner2.get("dob") or partner2.get("birthDate")) else (body.get("partner2") or {})
+                if (p1_candidate.get("dob") or p1_candidate.get("birthDate")) and (p2_candidate.get("dob") or p2_candidate.get("birthDate")):
+                    p1_prep = prepare_partner(p1_candidate)
+                    p2_prep = prepare_partner(p2_candidate)
+                    calc_res = calculate_kundli_milan(p1_prep, p2_prep)
+                    if calc_res:
+                        if not partner1_manglik_status or "unavailable" in str(partner1_manglik_status).lower():
+                            partner1_manglik_status = calc_res.get("partner1ManglikStatus")
+                        if not partner2_manglik_status or "unavailable" in str(partner2_manglik_status).lower():
+                            partner2_manglik_status = calc_res.get("partner2ManglikStatus")
+                        if not ashtaKoota:
+                            ashtaKoota = (calc_res.get("report") or {}).get("ashtaKoota") or {}
+                        if not score:
+                            score = calc_res.get("totalScore") or score
+            except Exception as auto_calc_err:
+                print(f"Auto Kundli Milan calculation in synthesis: {auto_calc_err}")
+
+        if not partner1_manglik_status or "unavailable" in str(partner1_manglik_status).lower():
+            partner1_manglik_status = f"{p1_name} has no Manglik Dosha"
+        if not partner2_manglik_status or "unavailable" in str(partner2_manglik_status).lower():
+            partner2_manglik_status = f"{p2_name} has no Manglik Dosha"
 
         # =====================================================
         # DETERMINE MANGLIK PRESENCE
@@ -2028,12 +2234,12 @@ def generate_manglik_remedies_with_ai(manglik_status: dict) -> list:
 
     partner1_status = manglik_status.get(
         "partner1",
-        "Manglik status unavailable"
+        "No Manglik Dosha detected"
     )
 
     partner2_status = manglik_status.get(
         "partner2",
-        "Manglik status unavailable"
+        "No Manglik Dosha detected"
     )
 
     prompt = f"""
