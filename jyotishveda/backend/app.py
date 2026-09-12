@@ -19,6 +19,7 @@ from controllers import admin_controller
 from utils.security import require_auth, decode_token
 from controllers import knowledge_graph_controller
 from controllers import llm_generation_controller
+from controllers import full_report_controller
 import jwt as pyjwt
 
 app = Flask(__name__)
@@ -100,6 +101,13 @@ def generate_roadmap():
 @app.route("/api/roadmap/download-pdf", methods=["POST"])
 def download_roadmap_pdf():
     return roadmap_controller.download_roadmap_pdf()
+
+# ==========================================
+# 🌟 UNIFIED MASTER REPORT DATA API
+# ==========================================
+@app.route("/api/reports/full-report-data", methods=["POST"])
+def get_full_report_data():
+    return full_report_controller.get_full_report_data()
 
 
 

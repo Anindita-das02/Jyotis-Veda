@@ -354,7 +354,9 @@ export const DailyHoroscopeView: React.FC<DailyHoroscopeViewProps> = ({
       const loveText = sanitize(currentAi?.love || (auspiciousScore >= 80 ? "Harmonious planetary aspects encourage deep emotional bonding, empathetic dialogue, and joyful social companionship." : auspiciousScore >= 60 ? "Balanced vibrations nurture mutual respect, shared domestic responsibilities, and supportive listening." : "Practice mindful communication to avert minor misunderstandings caused by transit sensitivity."));
       const healthText = sanitize(currentAi?.health || (auspiciousScore >= 80 ? "Optimal vital prana; harness this vibrant energy through balanced physical activity and nutritious whole foods." : auspiciousScore >= 60 ? "Stable physical equilibrium; maintain hydration and gentle restorative yoga or morning walks." : "Pranic vitality may fluctuate; ensure sufficient restorative sleep and avoid heavy stimulants."));
 
-      const todayStr = sanitize(new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }));
+      const now = new Date();
+      const todayStr = sanitize(now.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }));
+      const generatedTimestamp = `${now.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}, ${now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })}`;
       const certId = `JV-DAILY-${(profile.id || 'CLIENT').slice(0, 4).toUpperCase()}-${Date.now().toString(36).toUpperCase()}`;
 
       // ==========================================
@@ -415,17 +417,18 @@ export const DailyHoroscopeView: React.FC<DailyHoroscopeViewProps> = ({
       doc.text(`Destiny Number (Bhagyank): ${bhagyank}  |  Name Number (Namank): ${namank}`, 17, yPos + 24);
 
       // Right Column: Core Vedic Identity Highlights (Lagna, Moon Sign, Mulank, Nakshatra)
-      const rightColX = pageWidth / 2 + 4;
+      const rightColX = pageWidth / 2 + 3;
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(7.2);
       doc.setTextColor(126, 95, 24);
       doc.text('CORE CELESTIAL IDENTITY & HARMONIC VIBRATION', rightColX, yPos + 5.5);
 
-      // 4 Distinct Golden Highlight Badge Pills (2x2 Grid)
-      const badgeW = (pageWidth - 26 - 12) / 4; // ~42.5mm
+      // 4 Distinct Golden Highlight Badge Pills (2x2 Grid) neatly fitted inside card
+      const badgeW = 41.5;
       const badgeH = 8.5;
       const bRow1Y = yPos + 8;
       const bRow2Y = yPos + 18;
+      const b2X = rightColX + badgeW + 2.5;
 
       // Badge 1: LAGNA RASHI (ASCENDANT)
       doc.setFillColor(255, 255, 255);
@@ -436,12 +439,11 @@ export const DailyHoroscopeView: React.FC<DailyHoroscopeViewProps> = ({
       doc.setFontSize(5);
       doc.setTextColor(140, 95, 20);
       doc.text('LAGNA RASHI (ASCENDANT)', rightColX + 2.5, bRow1Y + 3.2);
-      doc.setFontSize(7.2);
+      doc.setFontSize(7.0);
       doc.setTextColor(26, 26, 30);
       doc.text(`${ascSign} (${ascSanskrit})`, rightColX + 2.5, bRow1Y + 7);
 
       // Badge 2: CHANDRA RASHI (MOON SIGN)
-      const b2X = rightColX + badgeW + 3;
       doc.setFillColor(255, 255, 255);
       doc.setDrawColor(201, 160, 80);
       doc.setLineWidth(0.4);
@@ -450,20 +452,20 @@ export const DailyHoroscopeView: React.FC<DailyHoroscopeViewProps> = ({
       doc.setFontSize(5);
       doc.setTextColor(140, 95, 20);
       doc.text('CHANDRA RASHI (MOON SIGN)', b2X + 2.5, bRow1Y + 3.2);
-      doc.setFontSize(7.2);
+      doc.setFontSize(7.0);
       doc.setTextColor(26, 26, 30);
       doc.text(moonSign, b2X + 2.5, bRow1Y + 7);
 
       // Badge 3: MULANK (PSYCHIC ROOT)
       doc.setFillColor(255, 255, 255);
       doc.setDrawColor(190, 135, 40);
-      doc.setLineWidth(0.5);
+      doc.setLineWidth(0.4);
       doc.roundedRect(rightColX, bRow2Y, badgeW, badgeH, 1.2, 1.2, 'FD');
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(5);
       doc.setTextColor(150, 80, 10);
       doc.text('MULANK (PSYCHIC ROOT)', rightColX + 2.5, bRow2Y + 3.2);
-      doc.setFontSize(7.4);
+      doc.setFontSize(7.0);
       doc.setTextColor(130, 65, 10);
       doc.text(`Mulank ${mulank} (${mulankPlanet})`, rightColX + 2.5, bRow2Y + 7);
 
@@ -476,9 +478,11 @@ export const DailyHoroscopeView: React.FC<DailyHoroscopeViewProps> = ({
       doc.setFontSize(5);
       doc.setTextColor(140, 95, 20);
       doc.text('NAKSHATRA & HARMONY', b2X + 2.5, bRow2Y + 3.2);
-      doc.setFontSize(7.2);
+      const cleanNakshatra = nakshatra.replace(/\s*\(Lord:[^)]*\)/i, '').trim();
+      const nakshatraDisplay = `${cleanNakshatra} (${auspiciousScore}%)`;
+      doc.setFontSize(nakshatraDisplay.length > 20 ? 6.0 : 6.8);
       doc.setTextColor(181, 131, 40);
-      doc.text(`${nakshatra} (${auspiciousScore}%)`, b2X + 2.5, bRow2Y + 7);
+      doc.text(doc.splitTextToSize(nakshatraDisplay, badgeW - 4)[0] || nakshatraDisplay, b2X + 2.5, bRow2Y + 7);
 
       yPos += sec2H + 4;
 
@@ -534,7 +538,7 @@ export const DailyHoroscopeView: React.FC<DailyHoroscopeViewProps> = ({
       doc.setFont('helvetica', 'italic');
       doc.setFontSize(6.2);
       doc.setTextColor(160, 130, 70);
-      doc.text('Personalized Transit Analysis | Lahiri Ephemeris & Vedic Model', pageWidth - 17, yPos + 5.2, { align: 'right' });
+      doc.text('Lahiri Ephemeris & Vedic Model', pageWidth - 17, yPos + 5.2, { align: 'right' });
 
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(6.8);
@@ -811,24 +815,21 @@ export const DailyHoroscopeView: React.FC<DailyHoroscopeViewProps> = ({
         const isMoon = p.name?.toLowerCase() === 'moon' || p.sanskritName?.toLowerCase() === 'chandra';
 
         if (isLagna || isMoon) {
-          // Highlight row with warm gold background and left gold indicator
           doc.setFillColor(252, 249, 240);
           doc.rect(17, rowY - 1, pageWidth - 34, 5.9, 'F');
-          doc.setFillColor(181, 131, 40);
-          doc.rect(17, rowY - 1, 2.2, 5.9, 'F');
         } else if (pIdx % 2 === 1) {
           doc.setFillColor(253, 252, 250);
           doc.rect(17, rowY - 1, pageWidth - 34, 5.9, 'F');
         }
 
-        doc.setFont('helvetica', 'bold');
+        doc.setFont('helvetica', (isLagna || isMoon) ? 'bold' : 'normal');
         doc.setFontSize(6.4);
         if (isLagna) {
           doc.setTextColor(140, 80, 10);
-          doc.text('Ascendant (Lagna) *', 20.5, rowY + 3.1);
+          doc.text('Ascendant (Lagna)', 20, rowY + 3.1);
         } else if (isMoon) {
           doc.setTextColor(140, 80, 10);
-          doc.text('Moon (Janma Rashi) *', 20.5, rowY + 3.1);
+          doc.text('Moon (Janma Rashi)', 20, rowY + 3.1);
         } else {
           doc.setTextColor(26, 26, 30);
           doc.text(p.name + (p.isRetrograde ? ' (R)' : ''), 20, rowY + 3.1);
@@ -1047,11 +1048,6 @@ export const DailyHoroscopeView: React.FC<DailyHoroscopeViewProps> = ({
           doc.setTextColor(126, 95, 24);
           doc.text('JYOTISHVEDA | DAILY VEDIC TRANSIT & PANCHANG REPORT', 14, 14);
 
-          doc.setFont('helvetica', 'normal');
-          doc.setFontSize(7);
-          doc.setTextColor(100, 100, 100);
-          doc.text(`Client: ${sanitize(profile.fullName) || 'Seeker'}  |  Lagna: ${ascSign}  |  Transit: ${todayStr}`, pageWidth - 14, 14, { align: 'right' });
-
           doc.setDrawColor(226, 211, 176);
           doc.setLineWidth(0.3);
           doc.line(13, 16.5, pageWidth - 13, 16.5);
@@ -1065,8 +1061,9 @@ export const DailyHoroscopeView: React.FC<DailyHoroscopeViewProps> = ({
 
         // Footer Details
         doc.setFont('helvetica', 'normal');
-        doc.setFontSize(7);
+        doc.setFontSize(6.8);
         doc.setTextColor(110, 105, 95);
+        doc.text(`Generated on: ${generatedTimestamp}`, 14, footerY + 4);
         doc.text(`Page ${i} of ${totalPages}`, pageWidth - 14, footerY + 4, { align: 'right' });
       }
 

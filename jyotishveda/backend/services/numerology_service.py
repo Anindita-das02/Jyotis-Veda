@@ -267,3 +267,5 @@ def calculate_numerology_report(full_name: str, dob_str: str) -> Dict[str, Any]:
         "remedies": remedies,
         "missingNumbers": missing_numbers
     }
+
+calculate_numerology_details = calculate_numerology_report

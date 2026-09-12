@@ -837,7 +837,9 @@ export const MatchmakingView: React.FC<MatchmakingViewProps> = ({
         doc.setFontSize(7);
         doc.setTextColor(100, 100, 100);
         doc.text(`Certificate ID: JV-KM-${Date.now().toString(36).toUpperCase()}`, 14, footerY + 4.5);
-        doc.text(`Generated: ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}`, 14, footerY + 8);
+        const now = new Date();
+        const generatedTimestamp = `${now.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}, ${now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })}`;
+        doc.text(`Generated on: ${generatedTimestamp}`, 14, footerY + 8);
         doc.text('Certified via JyotishVeda Mathematical AstroEngine & Classical Ephemeris', 14, footerY + 11.5);
 
         doc.setFont('helvetica', 'bold');

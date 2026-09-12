@@ -28,10 +28,12 @@ import {
   X,
   Shield,
   Home,
+  Loader2,
 } from 'lucide-react';
 import { UserProfile, HoroscopeTradition } from '../types';
 import { AncientTraditionLogo } from './AncientTraditionLogo';
 import { SUPPORTED_LANGUAGES, getTranslation } from '../services/translations';
+import { generateMasterFullReportPdf } from '../services/fullReportGenerator';
 
 interface NavbarProps {
   activeTab: string;
@@ -73,8 +75,28 @@ export const Navbar: React.FC<NavbarProps> = ({
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const profileMenuRef = useRef<HTMLDivElement>(null);
   const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
+  const [isGeneratingFullReport, setIsGeneratingFullReport] = useState(false);
 
-  const t = (key: string) => getTranslation(key, language);
+  const t = (key: string, fallback?: string) => {
+    const val = getTranslation(key, language);
+    return val === key && fallback ? fallback : val;
+  };
+
+  const handleDownloadFullReport = async () => {
+    if (isGeneratingFullReport) return;
+    setIsGeneratingFullReport(true);
+    try {
+      await generateMasterFullReportPdf({
+        profile: currentProfile,
+        tradition,
+        language,
+      });
+    } catch (err) {
+      console.error('Failed to generate master full report:', err);
+    } finally {
+      setIsGeneratingFullReport(false);
+    }
+  };
 
   const currentLangObj = SUPPORTED_LANGUAGES.find((l) => l.code === language) || SUPPORTED_LANGUAGES[0];
 
@@ -333,6 +355,31 @@ export const Navbar: React.FC<NavbarProps> = ({
                 </button>
               </div>
 
+              {/* Desktop Quick Action: Download Master Full Report */}
+              <button
+                onClick={handleDownloadFullReport}
+                disabled={isGeneratingFullReport}
+                title="Download Comprehensive Master Vedic Report (All 4 Pillars)"
+                className={`hidden md:flex items-center space-x-1.5 px-3 py-1.5 rounded-lg font-bold text-xs shadow-md transition-all duration-300 cursor-pointer shrink-0 hover:-translate-y-0.5 hover:scale-105 ${
+                  isGeneratingFullReport ? 'opacity-70 cursor-wait' : ''
+                } ${
+                  theme === 'dark'
+                    ? 'bg-[#1C1A14] border border-[#C9A050]/60 text-[#E8C470] hover:border-[#C9A050] hover:bg-[#252219] shadow-[#C9A050]/15'
+                    : 'bg-[#FAF5E6] border border-[#C9A050] text-[#8C6218] hover:bg-[#F3EACB] shadow-sm'
+                }`}
+              >
+                {isGeneratingFullReport ? (
+                  <Loader2 className="w-3.5 h-3.5 text-[#C9A050] animate-spin" />
+                ) : (
+                  <FileText className="w-3.5 h-3.5 text-[#C9A050]" />
+                )}
+                <span>
+                  {isGeneratingFullReport
+                    ? 'Generating...'
+                    : t('header.download_full_report', 'Download Full Report')}
+                </span>
+              </button>
+
               {/* Desktop Quick Action: Ask AI */}
               <button
                 onClick={() => setActiveTab('counsellor')}
@@ -500,13 +547,34 @@ export const Navbar: React.FC<NavbarProps> = ({
                   );
                 })}
 
+                {/* Download Master Full Report (Mobile) */}
+                <button
+                  onClick={() => {
+                    handleDownloadFullReport();
+                    setIsMobileDrawerOpen(false);
+                  }}
+                  disabled={isGeneratingFullReport}
+                  className="w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl text-xs font-bold transition cursor-pointer text-left mt-2 bg-[#C9A050]/20 text-[#E8C470] border border-[#C9A050]/50 hover:bg-[#C9A050]/30"
+                >
+                  {isGeneratingFullReport ? (
+                    <Loader2 className="w-4 h-4 text-[#C9A050] animate-spin" />
+                  ) : (
+                    <FileText className="w-4 h-4 text-[#C9A050]" />
+                  )}
+                  <span>
+                    {isGeneratingFullReport
+                      ? 'Generating Report...'
+                      : t('header.download_full_report', 'Download Full Report')}
+                  </span>
+                </button>
+
                 {/* Daivajna Consultation Link */}
                 <button
                   onClick={() => {
                     setActiveTab('counsellor');
                     setIsMobileDrawerOpen(false);
                   }}
-                  className={`w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl text-xs font-medium transition cursor-pointer text-left mt-2 ${
+                  className={`w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl text-xs font-medium transition cursor-pointer text-left mt-1.5 ${
                     activeTab === 'counsellor'
                       ? 'bg-[#C9A050]/20 text-[#C9A050] font-bold border border-[#C9A050]/30'
                       : 'text-[#C9A050] bg-[#C9A050]/10 hover:bg-[#C9A050]/20'
