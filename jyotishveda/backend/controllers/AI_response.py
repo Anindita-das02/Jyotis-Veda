@@ -54,9 +54,14 @@ def extract_auto_user_and_session():
         user_id = f"user_{ip_addr.replace('.', '_')}"
 
     if not session_id:
-        session_id = f"session_{ip_addr.replace('.', '_')}"
+        if user_id and not user_id.startswith("user_"):
+            session_id = f"session_{user_id[:8]}"
+        else:
+            session_id = "default_session"
 
     return user_id, session_id
+
+
 
 
 def extract_msg_content(msg):
