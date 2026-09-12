@@ -11,6 +11,7 @@ import { FeaturePreviewModal, PREMIUM_FEATURES_CATALOG, PremiumFeatureDetail } f
 import { BlogCarousel, BlogPost } from './BlogCarousel';
 import { BlogPage } from './BlogPage';
 import { AncientTraditionLogo } from './AncientTraditionLogo';
+import { VedicRemediesSection } from './VedicRemediesSection';
 
 interface LandingPageProps {
   onLoginClick: () => void;
@@ -123,7 +124,7 @@ export function LandingPage({
     if (currentView !== 'landing') return;
 
     const handleScroll = () => {
-      const sections = ['hero-section', 'zodiac-section', 'panjika-section', 'blog-section', 'premium-section'];
+      const sections = ['hero-section', 'zodiac-section', 'panjika-section', 'remedies-section', 'blog-section', 'premium-section'];
       const scrollPosition = window.scrollY + 120;
 
       let currentSection = 'hero-section';
@@ -352,6 +353,16 @@ export function LandingPage({
                 <span>Panjika</span>
               </button>
               <button
+                onClick={() => scrollToSection('remedies-section')}
+                className={`flex items-center space-x-1.5 px-4 py-2 rounded-full text-[13px] font-semibold transition-all cursor-pointer ${currentView === 'landing' && activeSection === 'remedies-section'
+                    ? 'text-[#0D0D0F] bg-[#C9A050] shadow-md shadow-[#C9A050]/20'
+                    : theme === 'dark' ? 'text-[#9E9A90] hover:text-[#E5E1D8] hover:bg-white/5' : 'text-gray-600 hover:text-[#0D0D0F] hover:bg-black/5'
+                  }`}
+              >
+                <Sparkles className="w-3.5 h-3.5" />
+                <span>Remedies</span>
+              </button>
+              <button
                 onClick={() => scrollToSection('blog-section')}
                 className={`flex items-center space-x-1.5 px-4 py-2 rounded-full text-[13px] font-semibold transition-all cursor-pointer ${currentView === 'landing' && activeSection === 'blog-section'
                     ? 'text-[#0D0D0F] bg-[#C9A050] shadow-md shadow-[#C9A050]/20'
@@ -577,6 +588,14 @@ export function LandingPage({
               
               <ZodiacCompatibilityMatrix theme={theme} />
             </div>
+          </div>
+
+          {/* Sacred Vedic Remedies Section (4 Hardcoded Remedies) */}
+          <div id="remedies-section" className="scroll-mt-24 w-full">
+            <VedicRemediesSection
+              theme={theme}
+              onAskAI={handleAskAIForSign}
+            />
           </div>
 
           <div id="blog-section" className="scroll-mt-24 w-full">
