@@ -19,6 +19,8 @@ from controllers import admin_controller
 from utils.security import require_auth, decode_token
 from controllers import knowledge_graph_controller
 from controllers import llm_generation_controller
+from controllers import full_report_controller
+from controllers import AI_response
 import jwt as pyjwt
 
 app = Flask(__name__)
@@ -100,6 +102,13 @@ def generate_roadmap():
 @app.route("/api/roadmap/download-pdf", methods=["POST"])
 def download_roadmap_pdf():
     return roadmap_controller.download_roadmap_pdf()
+
+# ==========================================
+# 🌟 UNIFIED MASTER REPORT DATA API
+# ==========================================
+@app.route("/api/reports/full-report-data", methods=["POST"])
+def get_full_report_data():
+    return full_report_controller.get_full_report_data()
 
 
 
@@ -434,6 +443,30 @@ def download_ai_synthesis_pdf1(synthesis_id):
 @app.route("/api/matchmaking/ai-synthesis/generate-pdf", methods=["POST"])
 def generate_direct_ai_synthesis_pdf1():
     return match_making.generate_direct_ai_synthesis_pdf()
+
+
+@app.route("/api/ai/response_generate", methods=["POST"])
+@require_auth
+def direct_response_generate1():
+    return AI_response.direct_response_generate()
+
+
+@app.route("/api/ai/history", methods=["GET"])
+@require_auth
+def get_ai_history():
+    return AI_response.get_chat_history()
+
+
+@app.route("/api/ai/history/<user_id>", methods=["GET"])
+def get_ai_history_by_user(user_id):
+    return AI_response.get_chat_history(target_user_id=user_id)
+
+
+@app.route("/api/ai/history", methods=["DELETE"])
+@require_auth
+def clear_ai_history():
+    return AI_response.clear_chat_history()
+
 
 
 if __name__ == "__main__":

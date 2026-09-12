@@ -41,6 +41,7 @@ export const TRANSLATIONS: Record<string, Record<string, string>> = {
     'header.active_dasha': 'Active Dasha',
     'header.disclaimer': 'Ethical Disclaimer',
     'header.ask_ai': 'Ask Daivajna',
+    'header.download_full_report': 'Download Full Report',
     'header.add_profile': 'Add Profile',
     'header.switch_lang': 'Language',
     'header.theme_light': 'Light Mode',

@@ -674,15 +674,6 @@ export const NumerologyView: React.FC<NumerologyViewProps> = ({
           doc.setFontSize(8);
           doc.setTextColor(126, 95, 24);
           doc.text('JYOTISHVEDA • SACRED NUMEROLOGY & LO SHU REPORT', 14, 14);
-          doc.setFont('helvetica', 'normal');
-          doc.setFontSize(7.5);
-          doc.setTextColor(100, 100, 100);
-          doc.text(
-            `Client: ${profile.fullName || 'Seeker'}  |  Mulank ${mulank} • Bhagyank ${bhagyank}`,
-            pageWidth - 14,
-            14,
-            { align: 'right' }
-          );
           doc.setDrawColor(226, 211, 176);
           doc.setLineWidth(0.3);
           doc.line(13, 16, pageWidth - 13, 16);
@@ -694,9 +685,13 @@ export const NumerologyView: React.FC<NumerologyViewProps> = ({
         doc.setLineWidth(0.4);
         doc.line(13, footerY, pageWidth - 13, footerY);
 
+        const now = new Date();
+        const generatedTimestamp = `${now.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}, ${now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })}`;
+
         doc.setFont('helvetica', 'normal');
-        doc.setFontSize(7);
+        doc.setFontSize(6.8);
         doc.setTextColor(110, 105, 95);
+        doc.text(`Generated on: ${generatedTimestamp}`, 14, footerY + 4);
         doc.text(
           `Page ${i} of ${totalPages}`,
           pageWidth - 14,

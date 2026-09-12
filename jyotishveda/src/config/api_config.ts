@@ -40,5 +40,10 @@ export const API_ENDPOINTS = {
     CONVERT: '/calendar/convert',
     MONTH: '/calendar/month',
     FULL_PANJIKA: '/calendar/full-panjika'
+  },
+  AI: {
+    GENERATE_RESPONSE: '/ai/response_generate',
+    GET_HISTORY: '/ai/history',
+    CLEAR_HISTORY: '/ai/history',
   }
 };

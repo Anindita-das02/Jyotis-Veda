@@ -164,6 +164,7 @@ export interface ChatMessage {
   remediesRecommended?: string[];
   actionableStep?: string;
   audioGenerated?: boolean;
+  suggestedQuestions?: string[];
 }
 
 export interface RoadmapMilestone {

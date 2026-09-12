@@ -612,15 +612,6 @@ export const LifeRoadmapView: React.FC<LifeRoadmapViewProps> = ({
           doc.setFontSize(8);
           doc.setTextColor(126, 95, 24);
           doc.text(`JYOTISHVEDA • 25-YEAR VEDIC DESTINY ROADMAP (${selectedHorizon})`, 14, 14);
-          doc.setFont('helvetica', 'normal');
-          doc.setFontSize(7.5);
-          doc.setTextColor(100, 100, 100);
-          doc.text(
-            `Client: ${profile.fullName || 'Seeker'}  |  Lagna: ${ascSign}`,
-            pageWidth - 14,
-            14,
-            { align: 'right' }
-          );
           doc.setDrawColor(226, 211, 176);
           doc.setLineWidth(0.3);
           doc.line(13, 16, pageWidth - 13, 16);
@@ -631,17 +622,14 @@ export const LifeRoadmapView: React.FC<LifeRoadmapViewProps> = ({
         doc.setLineWidth(0.4);
         doc.line(13, footerY, pageWidth - 13, footerY);
 
-        const genDateStr = new Date().toLocaleDateString('en-GB', {
-          day: '2-digit',
-          month: 'short',
-          year: 'numeric',
-        });
+        const now = new Date();
+        const generatedTimestamp = `${now.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}, ${now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })}`;
 
         doc.setFont('helvetica', 'normal');
-        doc.setFontSize(7.5);
-        doc.setTextColor(100, 100, 100);
-        doc.text(`Generated: ${genDateStr}`, 14, footerY + 5.5);
-        doc.text(`Page ${i} of ${totalPages}`, pageWidth - 14, footerY + 5.5, {
+        doc.setFontSize(6.8);
+        doc.setTextColor(110, 105, 95);
+        doc.text(`Generated on: ${generatedTimestamp}`, 14, footerY + 5);
+        doc.text(`Page ${i} of ${totalPages}`, pageWidth - 14, footerY + 5, {
           align: 'right',
         });
       }
