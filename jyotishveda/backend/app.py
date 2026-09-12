@@ -20,6 +20,7 @@ from utils.security import require_auth, decode_token
 from controllers import knowledge_graph_controller
 from controllers import llm_generation_controller
 from controllers import full_report_controller
+from controllers import AI_response
 import jwt as pyjwt
 
 app = Flask(__name__)
@@ -437,6 +438,30 @@ def post_match_synthesis():
 @app.route("/api/matchmaking/ai-synthesis/<synthesis_id>/pdf",methods=["GET"])
 def download_ai_synthesis_pdf1(synthesis_id):
     return match_making.download_ai_synthesis_pdf(synthesis_id) 
+
+@app.route("/api/ai/response_generate", methods=["POST"])
+@require_auth
+def direct_response_generate1():
+    return AI_response.direct_response_generate()
+
+
+@app.route("/api/ai/history", methods=["GET"])
+@require_auth
+def get_ai_history():
+    return AI_response.get_chat_history()
+
+
+@app.route("/api/ai/history/<user_id>", methods=["GET"])
+def get_ai_history_by_user(user_id):
+    return AI_response.get_chat_history(target_user_id=user_id)
+
+
+@app.route("/api/ai/history", methods=["DELETE"])
+@require_auth
+def clear_ai_history():
+    return AI_response.clear_chat_history()
+
+
 
 if __name__ == "__main__":
     # Fail fast if MySQL isn't reachable, rather than starting silently broken.

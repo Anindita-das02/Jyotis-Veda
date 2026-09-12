@@ -16,6 +16,8 @@ import {
   Pencil,
   X,
   Loader2,
+  HelpCircle,
+  ChevronRight,
 } from 'lucide-react';
 import { UserProfile, ChatMessage, HoroscopeTradition, NumerologyReport } from '../types';
 import { AncientTraditionLogo } from './AncientTraditionLogo';
@@ -23,6 +25,7 @@ import { getTranslation } from '../services/translations';
 import { API_ENDPOINTS } from '../config/api_config';
 import { API_BASE_URL } from '../services/api';
 import * as counsellingApi from '../services/counsellingApi';
+import { generateAIResponse, fetchChatHistory, clearChatHistory } from '../services/aiChatService';
 import { ApiError } from '../services/api';
 
 interface AICounsellorChatProps {
@@ -52,6 +55,12 @@ const PRESET_QUESTIONS: Record<string, string[]> = {
     'मेरी कुंडली में कौन से राजयोग या धनयोग सबसे प्रबल हैं?',
     'क्या मेरी कुंडली में मांगलिक दोष या साढ़ेसाती है, और इसके प्रामाणिक उपाय क्या हैं?',
     'मेरे लग्न और मूलांक के लिए कौन सा रत्न सबसे शुभ है?',
+  ],
+  bn: [
+    'আমার দশম ভাব ও বর্তমান দশা অনুযায়ী ক্যারিয়ারে বড় সাফল্য কবে আসবে?',
+    'আমার সপ্তম ভাব ও শুভ বিবাহ সময়ের জ্যোতিষীয় বিশ্লেষণ করুন।',
+    'আমার জন্মকুণ্ডলীতে কোন কোন শুভ রাজযোগ বা ধনযোগ রয়েছে?',
+    'আমার লগ্ন ও মূলাঙ্কের জন্য কোন রত্ন বা প্রতিকার সবচেয়ে ফলদায়ী?',
   ],
   es: [
     '¿Cuándo alcanzará mi carrera su próximo gran avance según mi casa 10 y dasha?',
@@ -117,6 +126,54 @@ export const AICounsellorChat: React.FC<AICounsellorChatProps> = ({
   const [renamingSessionId, setRenamingSessionId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState('');
 
+  // 1. Initial Load of Saved History from MySQL DB
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadInitialHistory = async () => {
+      try {
+        const historyData = await fetchChatHistory(profile.id);
+        if (isMounted && historyData && historyData.length > 0) {
+          const loadedMsgs: ChatMessage[] = [];
+          historyData.forEach((item) => {
+            const timeStr = item.created_at
+              ? new Date(item.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+              : new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+            if (item.user_query) {
+              loadedMsgs.push({
+                id: `hist-u-${item.id}`,
+                role: 'user',
+                content: item.user_query,
+                timestamp: timeStr,
+              });
+            }
+            if (item.response) {
+              loadedMsgs.push({
+                id: `hist-a-${item.id}`,
+                role: 'assistant',
+                content: item.response,
+                timestamp: timeStr,
+              });
+            }
+          });
+
+          if (loadedMsgs.length > 0) {
+            setMessages(loadedMsgs);
+          }
+        }
+      } catch (err) {
+        console.warn('Initial chat history fetch note:', err);
+      }
+    };
+
+    loadInitialHistory();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [profile.id, setMessages]);
+
   const loadSessions = () => {
     if (!isAuthenticated) return;
     counsellingApi
@@ -128,7 +185,6 @@ export const AICounsellorChat: React.FC<AICounsellorChatProps> = ({
   useEffect(() => {
     loadSessions();
     setActiveSessionId(null);
-    setMessages([]);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAuthenticated, profile.id]);
 
@@ -177,17 +233,6 @@ export const AICounsellorChat: React.FC<AICounsellorChatProps> = ({
     }
   };
 
-  const buildChartSummary = (): string => {
-    if (!chartData) return '';
-    const asc = chartData.ascendant;
-    return asc
-      ? `Ascendant: ${asc.signName} ${asc.degree}°, Nakshatra: ${asc.nakshatra}. System: ${chartData.systemTitle}.`
-      : '';
-  };
-
-  const buildNumerologySummary = (): string =>
-    `Mulank ${numerology.mulank} (${numerology.mulankPlanet}), Bhagyank ${numerology.bhagyank}, Chaldean Namank ${numerology.namankChaldean}.`;
-
   const t = (key: string) => getTranslation(key, language);
   const activeQuestions = PRESET_QUESTIONS[language] || PRESET_QUESTIONS['en'];
 
@@ -197,7 +242,7 @@ export const AICounsellorChat: React.FC<AICounsellorChatProps> = ({
     if (chatContainerRef.current) {
       chatContainerRef.current.scrollTo({
         top: chatContainerRef.current.scrollHeight,
-        behavior: 'smooth'
+        behavior: 'smooth',
       });
     }
   };
@@ -206,6 +251,7 @@ export const AICounsellorChat: React.FC<AICounsellorChatProps> = ({
     scrollToBottom();
   }, [messages, isLoading]);
 
+  // Handle Send Message (calling new AI_response controller API)
   const handleSendMessage = async (textToSend?: string) => {
     const text = textToSend || inputText;
     if (!text.trim() || isLoading) return;
@@ -221,94 +267,44 @@ export const AICounsellorChat: React.FC<AICounsellorChatProps> = ({
     setInputText('');
     setIsLoading(true);
 
-    if (isAuthenticated) {
-      try {
-        let sessionId = activeSessionId;
-        if (!sessionId) {
-          const session = await counsellingApi.createSession(
-            profile.id,
-            tradition,
-            text.trim().slice(0, 60),
-          );
-          sessionId = session.id;
-          setActiveSessionId(sessionId);
-        }
+    // Build chat turns for context memory
+    const historyPayload = messages.slice(-8).map((m) => ({
+      role: m.role === 'user' ? 'User' : 'Assistant',
+      content: m.content,
+    }));
 
-        const { message: assistantMsg } = await counsellingApi.sendMessage(
-          sessionId,
-          text.trim(),
-          buildChartSummary(),
-          buildNumerologySummary(),
-        );
-
-        setMessages((prev) => [
-          ...prev,
-          {
-            id: assistantMsg.id,
-            role: 'assistant',
-            content: assistantMsg.content,
-            timestamp: new Date(assistantMsg.createdAt).toLocaleTimeString([], {
-              hour: '2-digit',
-              minute: '2-digit',
-            }),
-          },
-        ]);
-        loadSessions();
-      } catch (err) {
-        // Surface the real error — never fabricate a reply when the LLM
-        // is unavailable or misconfigured.
-        const message =
-          err instanceof ApiError
-            ? err.message
-            : 'Could not reach the Daivajna counselling service. Please try again.';
-        setMessages((prev) => [
-          ...prev,
-          {
-            id: `msg-err-${Date.now()}`,
-            role: 'assistant',
-            content: `⚠️ ${message}`,
-            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-          },
-        ]);
-      } finally {
-        setIsLoading(false);
-      }
-      return;
-    }
-
-    // Not logged in — fall back to the demo Gemini proxy, unchanged.
     try {
-      const res = await fetch(`${API_BASE_URL}${API_ENDPOINTS.COUNSELLOR.DEFAULT_MESSAGES}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          message: text.trim(),
-          history: messages.map((m) => ({ role: m.role, content: m.content })),
-          profile,
-          tradition,
-          chartData,
-          numerology,
-          language,
-        }),
-      });
+      const result = await generateAIResponse(
+        text.trim(),
+        historyPayload,
+        profile.id,
+        activeSessionId || undefined
+      );
 
-      const data = await res.json();
-      const replyContent = data.response || data.reply || data.interpretation || 'I am analyzing your celestial placements. Please inquire further.';
+      const replyContent = Array.isArray(result.response)
+        ? result.response.join('\n\n')
+        : String(result.response || 'I am analyzing your celestial placements.');
 
       const assistantMessage: ChatMessage = {
         id: `msg-ai-${Date.now()}`,
         role: 'assistant',
         content: replyContent,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        suggestedQuestions: result.suggested_questions || [],
       };
 
       setMessages((prev) => [...prev, assistantMessage]);
-    } catch (e) {
-      console.error(e);
+      loadSessions();
+    } catch (err: any) {
+      console.error('Error generating AI response:', err);
+      const isGuardrail = err?.message?.includes('This is not my content');
+
       const errorMessage: ChatMessage = {
         id: `msg-err-${Date.now()}`,
         role: 'assistant',
-        content: 'A momentary celestial calculation variance occurred. Please try asking again.',
+        content: isGuardrail
+          ? '⚠️ This is not my content, I am an astro AI. Please ask questions related to astrology, horoscopes, planets, or numerology.'
+          : (err?.message || 'A momentary celestial calculation variance occurred. Please try asking again.'),
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       };
       setMessages((prev) => [...prev, errorMessage]);
@@ -329,7 +325,7 @@ export const AICounsellorChat: React.FC<AICounsellorChatProps> = ({
     window.speechSynthesis.cancel();
     const clean = text.replace(/[#*`_>-]/g, ' ');
     const utterance = new SpeechSynthesisUtterance(clean);
-    
+
     const langMap: Record<string, string> = {
       hi: 'hi-IN',
       ta: 'ta-IN',
@@ -376,9 +372,15 @@ export const AICounsellorChat: React.FC<AICounsellorChatProps> = ({
     link.click();
   };
 
-  const handleClearHistory = () => {
-    if (confirm('Clear consultation session transcript?')) {
-      setMessages([]);
+  const handleClearHistory = async () => {
+    if (confirm('Clear consultation session history and transcript from database?')) {
+      try {
+        await clearChatHistory(profile.id, activeSessionId || undefined);
+        setMessages([]);
+      } catch (e) {
+        console.warn('Could not clear remote history, resetting local state:', e);
+        setMessages([]);
+      }
     }
   };
 
@@ -396,7 +398,7 @@ export const AICounsellorChat: React.FC<AICounsellorChatProps> = ({
               </span>
             </h2>
             <p className="text-xs text-[#9E9A90] mt-0.5">
-              Live consultation grounded in {profile.fullName}’s chart ({chartData?.ascendant?.signName} Lagna, Mulank {numerology.mulank})
+              Live consultation grounded in {profile.fullName}’s chart ({chartData?.ascendant?.signName || 'Vedic'} Lagna, Mulank {numerology.mulank})
             </p>
           </div>
         </div>
@@ -528,7 +530,7 @@ export const AICounsellorChat: React.FC<AICounsellorChatProps> = ({
       </div>
 
       {/* Chat Messages Container */}
-      <div 
+      <div
         ref={chatContainerRef}
         className="bg-[#141418] border border-[#2A2A2E] rounded-xl p-3.5 sm:p-6 text-[#E5E1D8] shadow-xl min-h-[380px] sm:min-h-[480px] max-h-[65vh] sm:max-h-[600px] overflow-y-auto flex flex-col space-y-3.5 sm:space-y-4 touch-pan-y"
       >
@@ -563,13 +565,39 @@ export const AICounsellorChat: React.FC<AICounsellorChatProps> = ({
 
                 {/* Message Bubble */}
                 <div
-                  className={`rounded-xl p-4 max-w-[85%] text-xs sm:text-sm leading-relaxed shadow-md space-y-2 ${
+                  className={`rounded-xl p-4 max-w-[85%] text-xs sm:text-sm leading-relaxed shadow-md space-y-2.5 ${
                     isUser
                       ? 'bg-[#C9A050] text-[#0D0D0F] font-medium rounded-tr-none'
                       : 'bg-[#1C1C22] text-[#E5E1D8] border border-[#2A2A2E] rounded-tl-none'
                   }`}
                 >
                   <div className="whitespace-pre-wrap">{msg.content}</div>
+
+                  {/* Interactive Suggested Questions Chips (for Assistant) */}
+                  {!isUser && msg.suggestedQuestions && msg.suggestedQuestions.length > 0 && (
+                    <div className="pt-2.5 border-t border-[#2A2A2E]/60 space-y-1.5 mt-2">
+                      <div className="flex items-center space-x-1.5 text-[11px] font-semibold text-[#C9A050]">
+                        <HelpCircle className="w-3.5 h-3.5 text-[#C9A050]" />
+                        <span>Suggested Follow-Up Questions:</span>
+                      </div>
+                      <div className="flex flex-col gap-1.5 pt-1">
+                        {msg.suggestedQuestions.map((sq, sqIdx) => (
+                          <button
+                            key={sqIdx}
+                            onClick={() => handleSendMessage(sq)}
+                            disabled={isLoading}
+                            className="group text-left text-xs px-3 py-2 rounded-lg bg-[#141418] hover:bg-[#C9A050]/15 border border-[#2A2A2E] hover:border-[#C9A050]/40 text-[#E5E1D8] hover:text-[#F0ECE1] transition cursor-pointer flex items-center justify-between space-x-2"
+                          >
+                            <div className="flex items-center space-x-2 overflow-hidden">
+                              <span className="w-1.5 h-1.5 rounded-full bg-[#C9A050] shrink-0 group-hover:scale-125 transition" />
+                              <span className="truncate">{sq}</span>
+                            </div>
+                            <ChevronRight className="w-3.5 h-3.5 text-[#9E9A90] group-hover:text-[#C9A050] shrink-0 transition" />
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
 
                   {/* Actions for Assistant messages */}
                   {!isUser && (
@@ -613,7 +641,7 @@ export const AICounsellorChat: React.FC<AICounsellorChatProps> = ({
             </div>
             <div className="bg-[#1C1C22] p-3 rounded-xl border border-[#2A2A2E] text-xs text-[#9E9A90] flex items-center space-x-2">
               <Sparkles className="w-3.5 h-3.5 text-[#C9A050] animate-pulse" />
-              <span>Daivajna is analyzing ephemeris transits & natal alignments...</span>
+              <span>Daivajna is consulting classical ephemeris & formulating astrological guidance...</span>
             </div>
           </div>
         )}
