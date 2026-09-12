@@ -229,6 +229,9 @@ export async function generateMasterFullReportPdf({
   const bhagyank = numerology?.bhagyank || 1;
   const namank = numerology?.namankChaldean || numerology?.namankPythagorean || 1;
   const auspiciousScore = panchang?.auspiciousScore || 78;
+  const luckyColorVal = sanitize(panchang?.luckyData?.luckyColor || numerology?.luckyColors?.[0] || 'Bright Yellow');
+  const abhijitVal = sanitize((panchang?.timings?.abhijitMuhurta || panchang?.abhijitMuhurta || '11:53 AM - 12:41 PM').split('(')[0].trim());
+  const rahuVal = sanitize((panchang?.timings?.rahuKaal || panchang?.rahuKaal || '09:10 AM - 10:44 AM').split('(')[0].trim());
 
   const now = new Date();
   const todayStr = sanitize(now.toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' }));
@@ -304,9 +307,6 @@ export async function generateMasterFullReportPdf({
   // 2. Auspicious Transit Strip (4 Cards)
   const colWidth = (pageWidth - 26 - 9) / 4;
   const cardH = 14;
-  const luckyColorVal = sanitize(panchang.luckyData?.luckyColor || numerology?.luckyColors?.[0] || 'Bright Yellow');
-  const abhijitVal = sanitize((panchang.timings?.abhijitMuhurta || panchang.abhijitMuhurta || '11:53 AM - 12:41 PM').split('(')[0].trim());
-  const rahuVal = sanitize((panchang.timings?.rahuKaal || panchang.rahuKaal || '09:10 AM - 10:44 AM').split('(')[0].trim());
 
   const metrics = [
     { label: 'LUCKY NUMBER', val: `${panchang.luckyData?.luckyNumber || mulank}`, sub: `Ruled by ${mulankPlanet}` },
@@ -1314,57 +1314,63 @@ export async function generateMasterFullReportPdf({
 
   let yP7 = 33;
 
-  // 4 Detailed 25-Year Horizon Phases covering all 5 core life domains
+  // 5 Standard 5-Year Horizons covering the full 25-Year Life Arc: 0-5, 5-10, 10-15, 15-20, 20-25 Years
   const horizons = [
     {
-      phase: `PHASE 1: YEARS 0 – 5 (${currentYear} – ${currentYear + 5})`,
+      phase: `HORIZON 1: 0 – 5 YEARS (${currentYear} – ${currentYear + 5})`,
       theme: 'Foundation & Professional Ascension',
       items: [
         { label: 'Career & Enterprise', text: 'Executive visibility stimulates promotions and venture expansion. Strategic transits activate 10th and 11th houses, conferring leadership authority.' },
-        { label: 'Wealth & Assets', text: 'Strong liquidity growth; favorable alignments support conservative asset allocation, index funds, and initial commercial/residential real estate evaluation.' },
+        { label: 'Wealth & Real Estate', text: 'Strong liquidity growth; favorable alignments support conservative asset allocation, index funds, and initial commercial/residential real estate evaluation.' },
         { label: 'Family & Relationships', text: 'Harmonious domestic period; favorable alignments for marriage, family celebrations, and deep emotional companionship with domestic peace.' },
-        { label: 'Health & Vitality', text: 'High physical stamina; balance circadian rhythm with morning Surya Namaskar, copper vessel hydration, and mindful stress reduction.' },
-        { label: 'Dharma & Upayas', text: 'Gayatri Mantra chanting at sunrise; chant Brihaspati Beej Mantra on Thursdays and donate yellow lentils for sustained planetary grace.' }
+        { label: 'Health & Spiritual Upaya', text: 'High physical stamina; balance circadian rhythm with morning Surya Namaskar, Gayatri Japa at sunrise, and Brihaspati Beej Mantra on Thursdays.' }
       ]
     },
     {
-      phase: `PHASE 2: YEARS 5 – 10 (${currentYear + 5} – ${currentYear + 10})`,
-      theme: 'Expansion, Wealth & Real Estate Compounding',
+      phase: `HORIZON 2: 5 – 10 YEARS (${currentYear + 5} – ${currentYear + 10})`,
+      theme: 'Expansion, Wealth & Real Estate',
       items: [
         { label: 'Career & Enterprise', text: 'Institutional recognition and executive board elevation; international collaborations and multi-venture expansion under benefic Jupiter-Saturn Gochara.' },
         { label: 'Wealth & Real Estate', text: 'Prime wealth accumulation window; profitable commercial real estate acquisitions, equity compounding, and sovereign estate structuring.' },
         { label: 'Family & Relationships', text: 'Darakaraka auspiciousness confers deep marital maturity, lineage blessings, family celebrations, and joyful milestones with children.' },
-        { label: 'Health & Longevity', text: 'Targeted yogic pranayama and seasonal Panchakarma maintain cellular rejuvenation, metabolic vitality, and high-pressure stress resilience.' },
-        { label: 'Dharma & Upayas', text: 'Sacred Himalayan or temple pilgrimages; Annadanam (food charity) on Saturdays balances Saturnian karmic debts and accelerates prosperity.' }
+        { label: 'Health & Spiritual Upaya', text: 'Targeted yogic pranayama preserves metabolic vitality; sacred Himalayan pilgrimages and Annadanam charity on Saturdays balance karmic debts.' }
       ]
     },
     {
-      phase: `PHASE 3: YEARS 10 – 18 (${currentYear + 10} – ${currentYear + 18})`,
+      phase: `HORIZON 3: 10 – 15 YEARS (${currentYear + 10} – ${currentYear + 15})`,
       theme: 'Leadership, Authority & Mentorship',
       items: [
         { label: 'Career & Enterprise', text: 'Transition from operational execution to senior advisory stewardship; mentoring emerging industry leaders and shaping timeless institutional impact.' },
-        { label: 'Wealth & Assets', text: 'Consolidation of multi-generational family trusts, sovereign asset holdings, and high-yield estate preservation for future generations.' },
+        { label: 'Wealth & Real Estate', text: 'Consolidation of multi-generational family trusts, sovereign asset holdings, and high-yield estate preservation for future generations.' },
         { label: 'Family & Relationships', text: 'Deep contentment surrounded by flourishing next generation; harmonious family lineage blessings and peaceful domestic harmony.' },
-        { label: 'Health & Longevity', text: 'Mind-body longevity through serene natural living, Ayurvedic herbal rasayanas, and daily quiet contemplation to preserve prana.' },
-        { label: 'Dharma & Upayas', text: 'Establishment of charitable trust or educational endowments; daily Maha Mrityunjaya meditation for spiritual protection and peace.' }
+        { label: 'Health & Spiritual Upaya', text: 'Mind-body longevity through serene natural living and daily silence (Mauna); daily Maha Mrityunjaya meditation provides spiritual protection.' }
       ]
     },
     {
-      phase: `PHASE 4: YEARS 18 – 25 (${currentYear + 18} – ${currentYear + 25})`,
-      theme: 'Wisdom, Legacy & Spiritual Fulfillment',
+      phase: `HORIZON 4: 15 – 20 YEARS (${currentYear + 15} – ${currentYear + 20})`,
+      theme: 'Legacy Building & Dharmic Impact',
       items: [
-        { label: 'Career & Enterprise', text: 'Revered elder statesmanship; enduring societal impact, philosophical advisory, and timeless life legacy across community institutions.' },
-        { label: 'Wealth & Assets', text: 'Complete financial sovereignty; inheritance structures secured, debt-free self-sustaining family trusts, and sovereign tranquility.' },
-        { label: 'Family & Relationships', text: 'Deep peace and gratitude; celebrated family dynasty, honoring ancestral traditions, and joyful multigenerational gatherings.' },
-        { label: 'Health & Longevity', text: 'Peaceful physical harmony; gentle walks, sattvic diet, and mental tranquility preserve graceful longevity and inner calmness.' },
-        { label: 'Dharma & Upayas', text: 'Moksha-oriented spiritual integration; deep surrender to divine consciousness, higher meditative absorption, and timeless bliss.' }
+        { label: 'Career & Enterprise', text: 'Revered advisory roles and societal influence; guiding institutions and community foundations with proven wisdom and visionary direction.' },
+        { label: 'Wealth & Real Estate', text: 'Multi-generational asset security; debt-free self-sustaining family trusts finalized, sovereign tranquility, and philanthropic endowments.' },
+        { label: 'Family & Relationships', text: 'Celebrated family dynasty, honoring ancestral traditions, and peaceful contentment with children and grandchildren prospering.' },
+        { label: 'Health & Spiritual Upaya', text: 'Holistic restorative wellness; gentle walks, sattvic nutrition, and spiritual seva sustaining radiant inner peace and mental clarity.' }
+      ]
+    },
+    {
+      phase: `HORIZON 5: 20 – 25 YEARS (${currentYear + 20} – ${currentYear + 25})`,
+      theme: 'Wisdom, Fulfillment & Spiritual Liberation',
+      items: [
+        { label: 'Career & Enterprise', text: 'Venerated elder statesmanship; timeless lifetime achievement, honored by community, providing philosophical counsel to seekers.' },
+        { label: 'Wealth & Real Estate', text: 'Complete financial sovereignty and peace of mind; generational inheritance completed, enduring tranquility and detachment from worldly stress.' },
+        { label: 'Family & Relationships', text: 'Widespread family respect, deep domestic serenity, and profound gratitude seeing the family lineage thrive across all domains.' },
+        { label: 'Health & Spiritual Upaya', text: 'Moksha-oriented spiritual integration; deep surrender to divine consciousness, higher meditative absorption, and timeless bliss.' }
       ]
     }
   ];
 
   horizons.forEach((h, hIdx) => {
-    const cardY = yP7 + hIdx * 58;
-    const cardH = 55;
+    const cardY = yP7 + hIdx * 48;
+    const cardH = 45;
     doc.setFillColor(255, 255, 255);
     doc.setDrawColor(201, 160, 80);
     doc.setLineWidth(0.4);
@@ -1372,24 +1378,24 @@ export async function generateMasterFullReportPdf({
 
     // Header strip inside card
     doc.setFillColor(252, 250, 245);
-    doc.rect(13.4, cardY + 0.4, pageWidth - 26.8, 7, 'F');
+    doc.rect(13.4, cardY + 0.4, pageWidth - 26.8, 6.5, 'F');
     doc.setDrawColor(226, 211, 176);
     doc.setLineWidth(0.3);
-    doc.line(13, cardY + 7.5, pageWidth - 13, cardY + 7.5);
+    doc.line(13, cardY + 6.9, pageWidth - 13, cardY + 6.9);
 
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(7.2);
     doc.setTextColor(140, 80, 10);
-    doc.text(h.phase, 18, cardY + 5.2);
+    doc.text(h.phase, 18, cardY + 4.8);
 
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(6.8);
     doc.setTextColor(26, 26, 30);
-    doc.text(`[ ${h.theme} ]`, pageWidth - 18, cardY + 5.2, { align: 'right' });
+    doc.text(`[ ${h.theme} ]`, pageWidth - 18, cardY + 4.8, { align: 'right' });
 
-    // 5 Domain Items
+    // 4 Domain Items
     h.items.forEach((item, itemIdx) => {
-      const itemY = cardY + 12 + itemIdx * 8.5;
+      const itemY = cardY + 11.2 + itemIdx * 8.2;
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(6.2);
       doc.setTextColor(181, 131, 40);
