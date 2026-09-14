@@ -405,6 +405,56 @@ export const MatchmakingView: React.FC<MatchmakingViewProps> = ({
               };
             }
 
+            // Harmonize Nadi Dosha from Swiss Ephemeris Backend into frontend format
+            const beNadi = rep.ashtaKoota?.nadi;
+            const nadiKoota = (rep.kootas || []).find((k: any) => k.id === 'nadi');
+            const p1Nak = rep.partners?.partner1?.nakshatra || rep.charts?.partner1?.planetsById?.moon?.nakshatra || '';
+            const p2Nak = rep.partners?.partner2?.nakshatra || rep.charts?.partner2?.planetsById?.moon?.nakshatra || '';
+            
+            let harmonizedNadiDosha = result.nadiDosha;
+            if (beNadi || nadiKoota) {
+              const p1NadiName = beNadi?.partner1Nadi || nadiKoota?.p1Value?.split(' ')[0] || 'Madhya';
+              const p2NadiName = beNadi?.partner2Nadi || nadiKoota?.p2Value?.split(' ')[0] || 'Madhya';
+              const hasDosha = Boolean(beNadi?.sameNadi ?? (nadiKoota?.obtainedPoints === 0));
+              const isCancelled = Boolean(beNadi?.cancellationApplied);
+
+              harmonizedNadiDosha = {
+                hasDosha,
+                isCancelled,
+                partner1Nadi: p1Nak ? `${p1NadiName} (${p1Nak})` : p1NadiName,
+                partner2Nadi: p2Nak ? `${p2NadiName} (${p2Nak})` : p2NadiName,
+                reason: beNadi?.reason || nadiKoota?.details || (!hasDosha ? `Different Nadis (${p1NadiName} & ${p2NadiName}) - Harmonious Genetic Accord` : `Both share ${p1NadiName} Nadi`),
+                remedy: beNadi?.note || (hasDosha && !isCancelled
+                  ? 'Perform Maha Mrityunjaya Japa (108 chants), donate gold/grains, and recite Swasti Suktam on auspicious nakshatra days.'
+                  : 'No specific remedy required as Nadis are naturally distinct and harmonious.'),
+              };
+            }
+
+            // Harmonize Bhakoot Dosha from Swiss Ephemeris Backend into frontend format
+            const beBhakoot = rep.ashtaKoota?.bhakoot;
+            const bhakootKoota = (rep.kootas || []).find((k: any) => k.id === 'bhakoot');
+            const p1Rashi = rep.partners?.partner1?.rashi || rep.charts?.partner1?.planetsById?.moon?.signName || '';
+            const p2Rashi = rep.partners?.partner2?.rashi || rep.charts?.partner2?.planetsById?.moon?.signName || '';
+
+            let harmonizedBhakootDosha = result.bhakootDosha;
+            if (beBhakoot || bhakootKoota) {
+              const hasDosha = Boolean(beBhakoot?.dosha ?? (bhakootKoota?.obtainedPoints === 0));
+              const isCancelled = Boolean(beBhakoot?.cancellationApplied);
+              const relation = beBhakoot?.relation || (hasDosha ? '6/8 or 2/12' : '7/7 or 1/7');
+
+              harmonizedBhakootDosha = {
+                hasDosha,
+                isCancelled,
+                partner1Rashi: p1Rashi || bhakootKoota?.p1Value?.split(' ')[0] || result.bhakootDosha?.partner1Rashi,
+                partner2Rashi: p2Rashi || bhakootKoota?.p2Value?.split(' ')[0] || result.bhakootDosha?.partner2Rashi,
+                rashiDistance: relation,
+                reason: beBhakoot?.note || bhakootKoota?.details || (hasDosha ? (isCancelled ? 'Cancelled by common/friendly lordship' : `${relation} placement`) : 'Auspicious Rashi Disposition'),
+                remedy: hasDosha && !isCancelled
+                  ? 'Perform Vishnu Sahasranama chanting, offer sweets to cows on Thursdays, and cultivate mutual patience.'
+                  : 'Auspicious Rashi disposition. No specific remedy required.',
+              };
+            }
+
             result = {
               ...result,
               totalPoints: rep.totalPoints ?? rep.totalScore ?? backendReport.totalScore ?? result.totalPoints,
@@ -413,6 +463,8 @@ export const MatchmakingView: React.FC<MatchmakingViewProps> = ({
               verdictTitle: rep.verdictTitle ?? (rep.summary?.verdictTitle) ?? result.verdictTitle,
               summary: typeof rep.summary === 'string' ? rep.summary : (rep.summary?.description ?? result.summary),
               manglik: harmonizedManglik,
+              nadiDosha: harmonizedNadiDosha,
+              bhakootDosha: harmonizedBhakootDosha,
               kootas: rep.kootas || result.kootas,
               ashtaKoota: rep.ashtaKoota || (result as any).ashtaKoota,
               partner1ManglikStatus: backendReport.partner1ManglikStatus || rep.manglik?.status?.partner1,
