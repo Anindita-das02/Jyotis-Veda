@@ -1683,8 +1683,51 @@ def generate_direct_ai_synthesis_pdf():
         return _error(f"Error generating AI synthesis PDF: {exc}", "PDF_ERROR", 500)
 
 
+def calculate_match_endpoint():
+    """
+    Public calculation endpoint (no login required for calculation).
+    Returns exact Swiss Ephemeris Ashta Koota, Manglik, Nadi, Bhakoot, and Planetary charts.
+    """
+    body = request.get_json(silent=True) or {}
+    partner1 = body.get("partner1")
+    partner2 = body.get("partner2")
 
+    if not partner1:
+        partner1 = {
+            "name": body.get("partner1Name") or "Partner 1",
+            "dob": body.get("partner1BirthDate") or "",
+            "time": body.get("partner1BirthTime") or "12:00",
+            "place": body.get("partner1BirthPlace") or body.get("partner1Place") or "Delhi, India",
+            "latitude": body.get("partner1Latitude") or body.get("latitude"),
+            "longitude": body.get("partner1Longitude") or body.get("longitude"),
+            "timezone": body.get("partner1Timezone", 5.5),
+            "gender": body.get("partner1Gender", "male"),
+        }
 
+    if not partner2:
+        partner2 = {
+            "name": body.get("partner2Name") or "Partner 2",
+            "dob": body.get("partner2BirthDate") or "",
+            "time": body.get("partner2BirthTime") or "12:00",
+            "place": body.get("partner2BirthPlace") or body.get("partner2Place") or "Mumbai, India",
+            "latitude": body.get("partner2Latitude") or body.get("latitude"),
+            "longitude": body.get("partner2Longitude") or body.get("longitude"),
+            "timezone": body.get("partner2Timezone", 5.5),
+            "gender": body.get("partner2Gender", "female"),
+        }
+
+    try:
+        partner1 = prepare_partner(partner1)
+        partner2 = prepare_partner(partner2)
+        
+        result = calculate_kundli_milan(partner1, partner2)
+        return jsonify({
+            "status": "success",
+            "data": result
+        })
+    except Exception as exc:
+        print(f"Error calculating matchmaking in calculate_match_endpoint: {exc}")
+        return _error(f"Failed to calculate Kundli Milan: {exc}", "CALCULATION_ERROR", 500)
 
 
 def generate_ai_synthesis(user_id: str):

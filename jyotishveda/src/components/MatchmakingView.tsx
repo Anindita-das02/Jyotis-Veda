@@ -335,15 +335,66 @@ export const MatchmakingView: React.FC<MatchmakingViewProps> = ({
         try {
           const backendReport = await calculateMatchReportBackend(p1, p2);
           if (backendReport) {
+            const rep = backendReport.report || backendReport;
+            const beManglik = rep.manglik;
+
+            // Harmonize Manglik data from Swiss Ephemeris Backend into frontend UI format
+            let harmonizedManglik = result.manglik;
+            if (beManglik && beManglik.partner1 && beManglik.partner2) {
+              const p1Name = beManglik.partner1.name || p1.fullName;
+              const p2Name = beManglik.partner2.name || p2.fullName;
+
+              const isP1M = Boolean(
+                beManglik.partner1?.fromLagna?.isManglik ??
+                (beManglik.partner1?.marsHouseFromLagna && [1, 2, 4, 7, 8, 12].includes(beManglik.partner1.marsHouseFromLagna))
+              );
+              const isP2M = Boolean(
+                beManglik.partner2?.fromLagna?.isManglik ??
+                (beManglik.partner2?.marsHouseFromLagna && [1, 2, 4, 7, 8, 12].includes(beManglik.partner2.marsHouseFromLagna))
+              );
+
+              const p1House = beManglik.partner1?.fromLagna?.house || beManglik.partner1?.marsHouseFromLagna || result.manglik?.partner1?.marsHouse || 1;
+              const p2House = beManglik.partner2?.fromLagna?.house || beManglik.partner2?.marsHouseFromLagna || result.manglik?.partner2?.marsHouse || 1;
+
+              const isNeut = (isP1M && isP2M) || (!isP1M && !isP2M);
+
+              harmonizedManglik = {
+                partner1: {
+                  name: p1Name,
+                  isManglik: isP1M,
+                  severity: isP1M ? ([7, 8].includes(p1House) ? 'High (Purna Manglik)' : 'Moderate') : 'None',
+                  marsHouse: p1House,
+                  cancellation: isP1M ? 'Active' : 'No Dosha',
+                },
+                partner2: {
+                  name: p2Name,
+                  isManglik: isP2M,
+                  severity: isP2M ? ([7, 8].includes(p2House) ? 'High (Purna Manglik)' : 'Moderate') : 'None',
+                  marsHouse: p2House,
+                  cancellation: isP2M ? 'Active' : 'No Dosha',
+                },
+                verdict: isNeut
+                  ? (isP1M && isP2M ? 'Both Partners Manglik (Perfect Mutual Neutralization)' : 'Neither Partner Manglik (Clean Planetary Axis)')
+                  : 'One Partner Manglik (Requires Mars Pacification Remedy)',
+                isNeutralized: isNeut,
+                explanation: isNeut
+                  ? 'Kuja Dosha intensity is completely neutralized between both horoscopes, ensuring marital peace and vitality.'
+                  : `${isP1M ? p1Name : p2Name} has active Kuja Dosha. Performing Kumbh Vivah or Hanuman Chalisa remedies ensures full protection.`,
+              };
+            }
+
             result = {
               ...result,
-              totalPoints: backendReport.totalPoints ?? (backendReport as any).totalScore ?? result.totalPoints,
-              maxPoints: backendReport.maxPoints ?? (backendReport as any).maxScore ?? 36,
-              percentage: backendReport.percentage ?? (backendReport.summary as any)?.percentage ?? result.percentage,
-              verdictTitle: backendReport.verdictTitle ?? (backendReport.summary as any)?.verdictTitle ?? result.verdictTitle,
-              summary: backendReport.summary ?? result.summary,
-              partner1ManglikStatus: (backendReport as any).partner1ManglikStatus ?? (backendReport as any).report?.manglik?.status?.partner1,
-              partner2ManglikStatus: (backendReport as any).partner2ManglikStatus ?? (backendReport as any).report?.manglik?.status?.partner2,
+              totalPoints: rep.totalPoints ?? rep.totalScore ?? backendReport.totalScore ?? result.totalPoints,
+              maxPoints: rep.maxPoints ?? rep.maxScore ?? backendReport.maxScore ?? 36,
+              percentage: rep.percentage ?? (rep.summary?.percentage) ?? result.percentage,
+              verdictTitle: rep.verdictTitle ?? (rep.summary?.verdictTitle) ?? result.verdictTitle,
+              summary: typeof rep.summary === 'string' ? rep.summary : (rep.summary?.description ?? result.summary),
+              manglik: harmonizedManglik,
+              kootas: rep.kootas || result.kootas,
+              ashtaKoota: rep.ashtaKoota || (result as any).ashtaKoota,
+              partner1ManglikStatus: backendReport.partner1ManglikStatus || rep.manglik?.status?.partner1,
+              partner2ManglikStatus: backendReport.partner2ManglikStatus || rep.manglik?.status?.partner2,
             } as any;
           }
         } catch (apiErr) {

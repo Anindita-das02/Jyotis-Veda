@@ -26,6 +26,7 @@ export const API_ENDPOINTS = {
   },
   MATCHMAKING: {
     REPORTS: '/matchmaking/reports',
+    CALCULATE: '/matchmaking/calculate',
     SYNTHESIS: '/ai-counsellor/matchmaking-synthesis',
   },
   COUNSELLOR: {
