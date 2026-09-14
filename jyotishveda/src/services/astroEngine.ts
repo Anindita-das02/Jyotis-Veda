@@ -1068,6 +1068,41 @@ export const calculateDailyPanchang = getDailyPanchang;
 
 export const DEFAULT_CONSULTATION_TIERS = [
   {
+    id: 'daily_vedic_subscription',
+    name: 'Daily Vedic Deep-Dive Subscription',
+    priceINR: 99,
+    priceUSD: 1.5,
+    description: 'Comprehensive daily transit synthesis, personalized career, love & prana timing, audio forecast, and unlimited PDF downloads.',
+    features: [
+      'Full Daily Transit Synthesis (12 Bhavas & Transits)',
+      'Career & Commerce auspicious action windows',
+      'Love & Relationship harmony timing',
+      'Health, Prana & Daily Vedic Nitya Sadhana',
+      'Audio reading feature (Listen to daily horoscope)',
+      'Unlimited 2-page Daily PDF Report downloads',
+      'Priority access to Astrologer consultations',
+    ],
+    isPopular: true,
+    deliveryTime: 'Instant Activation',
+  },
+  {
+    id: 'matchmaking_regenerate_subscription',
+    name: 'Matchmaking Deep Counsel & Regeneration',
+    priceINR: 149,
+    priceUSD: 2,
+    description: 'Unlimited Daivajna Deep Relationship Synthesis regenerations, dynamic karmic synastry audit, and marital compatibility guidance.',
+    features: [
+      'Unlimited Daivajna Deep Relationship Synthesis Regenerations',
+      'Dynamic Karmic Synastry & Compatibility Refinements',
+      'Comprehensive Ashta Kootas & Manglik Dosha Pacification',
+      'Psychological Affinity & Long-term Marital Timing',
+      'Personalized Remedial Upayas & Sacred Mantras',
+      'Downloadable High-Resolution PDF Matchmaking Dossier',
+    ],
+    isPopular: true,
+    deliveryTime: 'Instant Activation',
+  },
+  {
     id: 'express_audit',
     name: 'Express Planetary Audit',
     priceINR: 499,

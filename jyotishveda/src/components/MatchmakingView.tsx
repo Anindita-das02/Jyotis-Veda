@@ -34,6 +34,8 @@ import {
   X,
   Trash2,
   ArrowRight,
+  Crown,
+  Lock,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import ReactMarkdown from 'react-markdown';
@@ -52,6 +54,7 @@ interface MatchmakingViewProps {
   language?: string;
   isAuthenticated?: boolean;
   theme?: 'light' | 'dark';
+  onNavigateToTab?: (tab: string, tierId?: string) => void;
 }
 
 const formatDisplayDate = (dateStr: string) => {
@@ -129,6 +132,7 @@ export const MatchmakingView: React.FC<MatchmakingViewProps> = ({
   language = 'en',
   isAuthenticated,
   theme = 'dark',
+  onNavigateToTab,
 }) => {
   const profileId = currentProfile?.id || 'default';
   const storageKey = `jyotish_matchmaking_state_${profileId}`;
@@ -194,6 +198,13 @@ export const MatchmakingView: React.FC<MatchmakingViewProps> = ({
 
   // Saved Matches History Modal & List
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
+  const [isMatchmakingSubModalOpen, setIsMatchmakingSubModalOpen] = useState(false);
+
+  const isMatchmakingSubscribed = Boolean(
+    currentProfile?.isPremium ||
+    (currentProfile as any)?.isMatchmakingPremium ||
+    (typeof window !== 'undefined' && localStorage.getItem('jyotish_matchmaking_subscribed') === 'true')
+  );
   const [savedMatches, setSavedMatches] = useState<any[]>(() => {
     try {
       const rawHist = localStorage.getItem(historyKey);
@@ -565,6 +576,15 @@ export const MatchmakingView: React.FC<MatchmakingViewProps> = ({
     } finally {
       setIsGeneratingAI(false);
     }
+  };
+
+  const handleCounselAction = (isRegenerate: boolean = false) => {
+    // If regenerating and not subscribed, open ₹149 subscription modal
+    if (isRegenerate && !isMatchmakingSubscribed) {
+      setIsMatchmakingSubModalOpen(true);
+      return;
+    }
+    handleGenerateAISynthesis(matchResult, partner1, partner2, isRegenerate);
   };
 
 
@@ -2569,48 +2589,83 @@ Issued by JyotishVeda Daivajna Astrological Intelligence Engine
             </div>
 
             <div className="flex items-center space-x-2.5 shrink-0">
-              {aiSynthesis && (
+              {aiSynthesis ? (
+                <>
+                  <button
+                    onClick={handleDownloadAICounselPDF}
+                    disabled={isGeneratingPdf}
+                    className={`flex items-center space-x-1.5 px-4 py-2.5 rounded-xl border text-xs sm:text-sm font-semibold transition cursor-pointer disabled:opacity-50 ${
+                      theme === 'dark'
+                        ? 'bg-[#1C1C22] hover:bg-[#25252E] text-[#E5E1D8] border-[#3A3A42]'
+                        : 'bg-[#F9F7F1] hover:bg-[#F0ECE1] text-[#2A2A2E] border-[#E5E1D8]'
+                    }`}
+                    title="Download counsel report as PDF"
+                  >
+                    {isGeneratingPdf ? (
+                      <>
+                        <RefreshCw className="w-4 h-4 animate-spin text-[#C9A050]" />
+                        <span>Generating PDF...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Download className="w-4 h-4 text-[#C9A050]" />
+                        <span>Download Report</span>
+                      </>
+                    )}
+                  </button>
+
+                  {/* Single subscription/regenerate button after generating once */}
+                  {!isMatchmakingSubscribed ? (
+                    <button
+                      type="button"
+                      onClick={() => setIsMatchmakingSubModalOpen(true)}
+                      className="flex items-center space-x-1.5 px-3.5 py-2.5 rounded-xl bg-gradient-to-r from-[#C9A050]/20 to-[#C9A050]/10 hover:from-[#C9A050]/30 hover:to-[#C9A050]/20 text-[#C9A050] border border-[#C9A050]/40 text-xs sm:text-sm font-bold transition cursor-pointer shadow-sm"
+                      title="Subscribe for ₹149 to regenerate counsel"
+                    >
+                      <Crown className="w-3.5 h-3.5 text-[#C9A050]" />
+                      <span>₹149 / Regenerate Subscription</span>
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => handleCounselAction(true)}
+                      disabled={isGeneratingAI}
+                      className="flex items-center space-x-2 px-5 py-2.5 rounded-xl bg-[#C9A050] hover:bg-[#D4AF37] disabled:opacity-50 text-[#0D0D0F] font-bold text-xs sm:text-sm shadow-lg shadow-[#C9A050]/20 transition cursor-pointer"
+                    >
+                      {isGeneratingAI ? (
+                        <>
+                          <RefreshCw className="w-4 h-4 animate-spin" />
+                          <span>Synthesizing Cosmic Charts...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles className="w-4 h-4" />
+                          <span>Regenerate Full Counsel</span>
+                        </>
+                      )}
+                    </button>
+                  )}
+                </>
+              ) : (
                 <button
-                  onClick={handleDownloadAICounselPDF}
-                  disabled={isGeneratingPdf}
-                  className={`flex items-center space-x-1.5 px-4 py-2.5 rounded-xl border text-xs sm:text-sm font-semibold transition cursor-pointer disabled:opacity-50 ${
-                    theme === 'dark'
-                      ? 'bg-[#1C1C22] hover:bg-[#25252E] text-[#E5E1D8] border-[#3A3A42]'
-                      : 'bg-[#F9F7F1] hover:bg-[#F0ECE1] text-[#2A2A2E] border-[#E5E1D8]'
-                  }`}
-                  title="Download counsel report as PDF"
+                  type="button"
+                  onClick={() => handleCounselAction(false)}
+                  disabled={isGeneratingAI}
+                  className="flex items-center space-x-2 px-5 py-2.5 rounded-xl bg-[#C9A050] hover:bg-[#D4AF37] disabled:opacity-50 text-[#0D0D0F] font-bold text-xs sm:text-sm shadow-lg shadow-[#C9A050]/20 transition cursor-pointer"
                 >
-                  {isGeneratingPdf ? (
+                  {isGeneratingAI ? (
                     <>
-                      <RefreshCw className="w-4 h-4 animate-spin text-[#C9A050]" />
-                      <span>Generating PDF...</span>
+                      <RefreshCw className="w-4 h-4 animate-spin" />
+                      <span>Synthesizing Cosmic Charts...</span>
                     </>
                   ) : (
                     <>
-                      <Download className="w-4 h-4 text-[#C9A050]" />
-                      <span>Download Report</span>
+                      <Sparkles className="w-4 h-4" />
+                      <span>Generate Full Counsel</span>
                     </>
                   )}
                 </button>
               )}
-
-              <button
-                onClick={() => handleGenerateAISynthesis(matchResult, partner1, partner2, true)}
-                disabled={isGeneratingAI}
-                className="flex items-center space-x-2 px-5 py-2.5 rounded-xl bg-[#C9A050] hover:bg-[#D4AF37] disabled:opacity-50 text-[#0D0D0F] font-bold text-xs sm:text-sm shadow-lg shadow-[#C9A050]/20 transition cursor-pointer"
-              >
-                {isGeneratingAI ? (
-                  <>
-                    <RefreshCw className="w-4 h-4 animate-spin" />
-                    <span>Synthesizing Cosmic Charts...</span>
-                  </>
-                ) : (
-                  <>
-                    <Sparkles className="w-4 h-4" />
-                    <span>{aiSynthesis ? 'Regenerate Full Counsel' : 'Generate Full Counsel'}</span>
-                  </>
-                )}
-              </button>
             </div>
           </div>
 
@@ -2879,7 +2934,7 @@ Issued by JyotishVeda Daivajna Astrological Intelligence Engine
               </p>
               <div>
                 <button
-                  onClick={() => handleGenerateAISynthesis(matchResult, partner1, partner2, true)}
+                  onClick={() => handleCounselAction(false)}
                   disabled={isGeneratingAI}
                   className="mt-2 inline-flex items-center space-x-2 px-6 py-2.5 rounded-xl bg-[#C9A050] hover:bg-[#D4AF37] disabled:opacity-50 text-[#0D0D0F] font-bold text-xs sm:text-sm shadow-lg shadow-[#C9A050]/20 transition cursor-pointer hover:scale-[1.02] active:scale-95"
                 >
@@ -3280,6 +3335,120 @@ Issued by JyotishVeda Daivajna Astrological Intelligence Engine
                 >
                   Close
                 </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Matchmaking Deep Counsel & Regeneration Subscription Modal (₹149) */}
+      <AnimatePresence>
+        {isMatchmakingSubModalOpen && (
+          <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in duration-200">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 15 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 15 }}
+              className={`relative w-full max-w-lg rounded-2xl p-6 sm:p-7 border shadow-2xl overflow-hidden ${
+                theme === 'dark' ? 'bg-[#141418] border-[#C9A050]/50 text-[#E5E1D8]' : 'bg-white border-[#C9A050]/50 text-[#2A2A2E]'
+              }`}
+            >
+              {/* Close Button */}
+              <button
+                type="button"
+                onClick={() => setIsMatchmakingSubModalOpen(false)}
+                className="absolute top-4 right-4 p-2 rounded-full hover:bg-black/10 dark:hover:bg-white/10 text-[#9E9A90] hover:text-white transition cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+
+              <div className="flex flex-col items-center text-center space-y-3">
+                <div className="relative">
+                  <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#C9A050]/30 to-[#A07828]/10 border border-[#C9A050]/60 flex items-center justify-center shadow-lg shadow-[#C9A050]/20">
+                    <Crown className="w-8 h-8 text-[#C9A050]" />
+                  </div>
+                  <div className="absolute -bottom-1 -right-1 p-1 rounded-full bg-[#C9A050] text-[#0D0D0F]">
+                    <Sparkles className="w-3.5 h-3.5" />
+                  </div>
+                </div>
+
+                <div className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider bg-[#C9A050]/15 text-[#C9A050] border border-[#C9A050]/30">
+                  <Crown className="w-3.5 h-3.5" />
+                  <span>Matchmaking Subscription • ₹149 Only</span>
+                </div>
+
+                <h3 className={`text-xl sm:text-2xl font-serif font-bold ${
+                  theme === 'dark' ? 'text-[#F0ECE1]' : 'text-[#0D0D0F]'
+                }`}>
+                  Unlock Cosmic Counsel Regenerations
+                </h3>
+
+                <p className="text-xs font-sans text-[#9E9A90] max-w-md leading-relaxed">
+                  Regenerating deep multidimensional counsel, custom planetary synchronizations, and synastry refinements for your matching Kundlis requires the ₹149 Matchmaking Subscription.
+                </p>
+              </div>
+
+              {/* Feature Highlights */}
+              <div className={`mt-5 p-4 rounded-xl border space-y-2.5 ${
+                theme === 'dark' ? 'bg-[#1A1A1E]/80 border-[#2A2A2E]' : 'bg-[#F9F7F1] border-[#E5E1D8]'
+              }`}>
+                <div className="text-xs font-bold text-[#C9A050] uppercase tracking-wider font-sans mb-1">
+                  What is unlocked with your ₹149 Subscription:
+                </div>
+                
+                <div className="flex items-start space-x-2.5 text-xs">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+                  <span><strong>Unlimited Regenerations:</strong> Re-synthesize relationship counsel anytime with updated partner data or questions.</span>
+                </div>
+                
+                <div className="flex items-start space-x-2.5 text-xs">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+                  <span><strong>Daivajna Karmic Synastry:</strong> Full psychological affinity, communication rhythms &amp; wealth generation timing.</span>
+                </div>
+                
+                <div className="flex items-start space-x-2.5 text-xs">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+                  <span><strong>Marital Timing &amp; Conflict Resolution:</strong> Precise Muhurat windows and pacification of planetary frictions.</span>
+                </div>
+
+                <div className="flex items-start space-x-2.5 text-xs">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+                  <span><strong>High-Resolution PDF Match Report:</strong> Instant export of the full comprehensive matchmaking dossier.</span>
+                </div>
+              </div>
+
+              {/* CTA Buttons */}
+              <div className="mt-6 flex flex-col sm:flex-row items-center gap-3">
+                <button
+                  onClick={() => {
+                    setIsMatchmakingSubModalOpen(false);
+                    if (onNavigateToTab) {
+                      onNavigateToTab('consultations', 'matchmaking_regenerate_subscription');
+                    }
+                  }}
+                  className="w-full py-3.5 px-5 rounded-xl bg-gradient-to-r from-[#C9A050] to-[#A07828] hover:from-[#D4AF37] hover:to-[#B38730] text-[#0D0D0F] font-bold text-xs sm:text-sm shadow-lg shadow-[#C9A050]/25 transition cursor-pointer flex items-center justify-center space-x-2"
+                >
+                  <Sparkles className="w-4 h-4" />
+                  <span>Subscribe for ₹149 &amp; Open Payment Gateway</span>
+                  <ArrowRight className="w-4 h-4" />
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setIsMatchmakingSubModalOpen(false)}
+                  className={`w-full sm:w-auto py-3.5 px-4 rounded-xl border text-xs font-semibold transition cursor-pointer ${
+                    theme === 'dark'
+                      ? 'border-[#2A2A2E] text-[#9E9A90] hover:text-white hover:bg-[#1A1A1E]'
+                      : 'border-[#E5E1D8] text-[#6E6A60] hover:text-black hover:bg-[#F0ECE1]'
+                  }`}
+                >
+                  Maybe Later
+                </button>
+              </div>
+
+              <div className="mt-4 flex items-center justify-center space-x-2 text-[11px] text-[#9E9A90]">
+                <ShieldCheck className="w-3.5 h-3.5 text-[#C9A050]" />
+                <span>Instant Activation • 256-bit Secure Gateway</span>
               </div>
             </motion.div>
           </div>

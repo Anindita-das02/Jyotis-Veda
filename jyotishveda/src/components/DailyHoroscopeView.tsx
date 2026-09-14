@@ -40,7 +40,7 @@ interface DailyHoroscopeViewProps {
   panchang: PanchangInfo;
   numerology: NumerologyReport;
   chartData: any;
-  onNavigateToTab: (tab: string) => void;
+  onNavigateToTab: (tab: string, tierId?: string) => void;
   theme: 'light' | 'dark';
 }
 
@@ -93,10 +93,11 @@ export const DailyHoroscopeView: React.FC<DailyHoroscopeViewProps> = ({
     });
   };
 
+  // Derive unique local storage key per profile and date to prevent duplicate API spend
   const getDailyStorageKey = () => {
-    const profileKey = (profile?.id || profile?.fullName || 'seeker').trim().replace(/[^a-zA-Z0-9]/g, '_');
-    const dateKey = panchang?.date || new Date().toISOString().split('T')[0];
-    return `jyotishveda_daily_reading_${profileKey}_${dateKey}`;
+    const profileId = profile?.id || profile?.fullName || 'guest';
+    const dateStr = panchang?.date || new Date().toISOString().split('T')[0];
+    return `jyotish_daily_reading_${profileId}_${dateStr}`;
   };
 
   // Check localStorage on mount or when profile/panchang date changes
@@ -125,7 +126,11 @@ export const DailyHoroscopeView: React.FC<DailyHoroscopeViewProps> = ({
     if (profile?.isPremium) {
       fetchDailyAiReading();
     } else {
-      setIsSubscriptionModalOpen(true);
+      if (onNavigateToTab) {
+        onNavigateToTab('consultations', 'daily_vedic_subscription');
+      } else {
+        setIsSubscriptionModalOpen(true);
+      }
     }
   };
 
@@ -979,7 +984,7 @@ export const DailyHoroscopeView: React.FC<DailyHoroscopeViewProps> = ({
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(6.2);
       doc.setTextColor(50, 50, 55);
-      doc.text(`* Primary Gem: ${sanitize(numerology?.luckyGems?.[0]) || 'Ruby / Yellow Sapphire'}`, rightCardInnerX, yP2 + 51);
+      doc.text(`* Primary Gem: ${sanitize((numerology as any)?.luckyGems?.[0]) || 'Ruby / Yellow Sapphire'}`, rightCardInnerX, yP2 + 51);
       doc.text(`* Favorable Days: ${sanitize(numerology?.luckyDays?.join(', ')) || 'Thursday, Tuesday'} | Dir: East`, rightCardInnerX, yP2 + 55);
 
       yP2 += splitCardH + 4;
@@ -1302,7 +1307,7 @@ export const DailyHoroscopeView: React.FC<DailyHoroscopeViewProps> = ({
                   <Lock className="w-4 h-4 text-[#C9A050]" />
                   <span>Click to Unlock Comprehensive Vedic Deep-Dive Reading</span>
                   <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-[#C9A050] text-[#0D0D0F] ml-1.5 shadow-sm">
-                    {profile?.isPremium ? 'Unlocked' : 'Subscription'}
+                    {profile?.isPremium ? 'Unlocked' : '₹99 / Subscription'}
                   </span>
                 </button>
               </div>
@@ -1473,7 +1478,7 @@ export const DailyHoroscopeView: React.FC<DailyHoroscopeViewProps> = ({
 
                 <div className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider bg-[#C9A050]/15 text-[#C9A050] border border-[#C9A050]/30">
                   <Crown className="w-3.5 h-3.5" />
-                  <span>Vedic Premium Feature</span>
+                  <span>Vedic Premium Subscription • ₹99 Only</span>
                 </div>
 
                 <h3 className={`text-xl sm:text-2xl font-serif font-bold ${
@@ -1483,7 +1488,7 @@ export const DailyHoroscopeView: React.FC<DailyHoroscopeViewProps> = ({
                 </h3>
 
                 <p className="text-xs font-sans text-[#9E9A90] max-w-md leading-relaxed">
-                  Deep personalized transit synthesis based on your specific Kundli (Ascendant, Moon sign, Bhava lords & active Vimshottari Mahadasha) is reserved for subscribers.
+                  Deep personalized transit synthesis based on your specific Kundli (Ascendant, Moon sign, Bhava lords & active Vimshottari Mahadasha) for just ₹99 INR.
                 </p>
               </div>
 
@@ -1526,12 +1531,12 @@ export const DailyHoroscopeView: React.FC<DailyHoroscopeViewProps> = ({
                 <button
                   onClick={() => {
                     setIsSubscriptionModalOpen(false);
-                    onNavigateToTab('consultations');
+                    onNavigateToTab('consultations', 'daily_vedic_subscription');
                   }}
                   className="w-full py-3.5 px-5 rounded-xl bg-gradient-to-r from-[#C9A050] to-[#A07828] hover:from-[#D4AF37] hover:to-[#B38730] text-[#0D0D0F] font-bold text-xs sm:text-sm shadow-lg shadow-[#C9A050]/25 transition cursor-pointer flex items-center justify-center space-x-2"
                 >
                   <Sparkles className="w-4 h-4" />
-                  <span>Get Subscription / View Plans</span>
+                  <span>Subscribe for ₹99 & Open Payment Gateway</span>
                   <ArrowRight className="w-4 h-4" />
                 </button>
 

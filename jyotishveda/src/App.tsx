@@ -151,6 +151,7 @@ export function App() {
   };
 
   const [activeTab, setActiveTab] = useState<string>('daily');
+  const [selectedConsultationTierId, setSelectedConsultationTierId] = useState<string | null>(null);
 
   useEffect(() => {
     if (authUser?.role === 'admin') {
@@ -623,7 +624,12 @@ export function App() {
                 panchang={panchang}
                 numerology={numerology}
                 chartData={chartData}
-                onNavigateToTab={setActiveTab}
+                onNavigateToTab={(tab, tierId) => {
+                  if (tierId) {
+                    setSelectedConsultationTierId(tierId);
+                  }
+                  setActiveTab(tab);
+                }}
                 theme={theme}
               />
             )}
@@ -667,6 +673,12 @@ export function App() {
                 language={language}
                 isAuthenticated={!!authUser}
                 theme={theme}
+                onNavigateToTab={(tab, tierId) => {
+                  if (tierId) {
+                    setSelectedConsultationTierId(tierId);
+                  }
+                  setActiveTab(tab);
+                }}
               />
             )}
 
@@ -710,15 +722,29 @@ export function App() {
               <ConsultationsPaymentView
                 profile={currentProfile}
                 tiers={DEFAULT_CONSULTATION_TIERS}
+                initialSelectedTierId={selectedConsultationTierId}
                 theme={theme}
                 onPaymentSuccess={(tier) => {
                   // Upgrade profile
                   const updatedProfile = {
                     ...currentProfile,
                     isPremium: true,
+                    isMatchmakingPremium: tier.id === 'matchmaking_regenerate_subscription' || (currentProfile as any)?.isMatchmakingPremium,
                   };
 
                   handleSaveProfile(updatedProfile);
+                  if (tier.id === 'daily_vedic_subscription') {
+                    setTimeout(() => {
+                      setActiveTab('daily');
+                    }, 1200);
+                  } else if (tier.id === 'matchmaking_regenerate_subscription') {
+                    try {
+                      localStorage.setItem('jyotish_matchmaking_subscribed', 'true');
+                    } catch {}
+                    setTimeout(() => {
+                      setActiveTab('matchmaking');
+                    }, 1200);
+                  }
                 }}
               />
             )}
