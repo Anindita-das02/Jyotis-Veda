@@ -739,66 +739,33 @@ Instructions:
 - **Karmic Focus**: This period activates important transformations in career, wealth consolidation, and personal growth. Focus on steady discipline and moral clarity for maximum spiritual and material success."""
 
 
-def generate_raw_completion(prompt: str) -> str:
-    """
-    Executes a raw completion on the active LLM backend (mistral_local, mistral_cloud, or gemini),
-    with intelligent fallback to ensure reliable astrological consultation.
-    """
-    active_llm = os.getenv("ACTIVE_LLM", "mistral_local")
-    history = []
+
+def generate_raw_completion(prompt: str, model: str = None) -> str:
+    """Directly calls the configured LLM with a raw prompt string."""
+    raw_url = os.getenv("MISTRAL_LOCAL_URL", "http://122.163.121.176:3041/api/generate").strip().rstrip("/")
+    model_name = model or os.getenv("MISTRAL_MODEL", "mistral:latest")
     
-    # Check for off-topic query guardrails first
-    prompt_lower = prompt.lower()
-    if any(k in prompt_lower for k in ["write code", "how to program", "write a python", "debug this code", "write javascript"]):
-        return json.dumps({
-            "answer": "This is not my content, I am an astro AI. Please ask questions regarding Vedic astrology, natal charts, planets, dashas, or numerology.",
-            "suggested_questions": [
-                "When will my career reach its next major breakthrough based on my 10th house?",
-                "What remedies or gemstones are recommended for balancing my planetary energies?",
-                "How will upcoming planetary transits influence my finances and growth?",
-                "What timing or Dasha period is most favorable for taking action?"
-            ]
-        })
+    if raw_url.endswith("/api/generate") or raw_url.endswith("/api/chat"):
+        endpoint_url = raw_url
+    else:
+        endpoint_url = f"{raw_url}/api/generate"
 
-    # Try LLM backends
-    llm_attempts = []
-    if active_llm in ["gemini", "mistral_cloud", "mistral_local"]:
-        llm_attempts.append(active_llm)
-    for fallback_llm in ["mistral_local", "gemini", "mistral_cloud"]:
-        if fallback_llm not in llm_attempts:
-            llm_attempts.append(fallback_llm)
-
-    for backend in llm_attempts:
-        try:
-            if backend == "gemini" and os.getenv("GEMINI_API_KEY"):
-                res = _call_gemini(prompt, history)
-                if res and res.strip():
-                    return res.strip()
-            elif backend == "mistral_cloud" and os.getenv("MISTRAL_CLOUD_API_KEY"):
-                res = _call_mistral_cloud(prompt, history)
-                if res and res.strip():
-                    return res.strip()
-            elif backend == "mistral_local" and os.getenv("MISTRAL_LOCAL_URL"):
-                res = _call_mistral_local(prompt, history)
-                if res and res.strip():
-                    return res.strip()
-        except Exception as e:
-            print(f"[LLM WARNING] {backend} failed in generate_raw_completion: {e}")
-
-    # Authentic astrological fallback synthesis
-    fallback_response = {
-        "answer": (
-            "Based on your Vedic astronomical coordinates and active Vimshottari Dasha period, "
-            "your 10th house (Karma Bhava) and current transit cycles indicate a significant phase of consolidation and strategic expansion. "
-            "Favorable aspects from benefic planets stimulate professional leadership, executive communication, and recognition. "
-            "Maintaining disciplined focus and regular planetary harmonization will accelerate positive breakthroughs."
-        ),
-        "suggested_questions": [
-            "How does this astrological position affect my career and future growth?",
-            "What remedies or gemstones are recommended for balancing these planetary energies?",
-            "How will upcoming planetary transits influence this aspect of my life?",
-            "What timing or Dasha period is most favorable for taking action regarding this?"
-        ]
+    payload = {
+        "model": model_name,
+        "prompt": prompt,
+        "stream": False,
     }
-    return json.dumps(fallback_response)
 
+    try:
+        resp = requests.post(endpoint_url, json=payload, timeout=120)
+    except requests.RequestException as e:
+        raise LLMError(f"Could not reach LLM endpoint at {endpoint_url}: {e}")
+
+    if resp.status_code != 200:
+        raise LLMError(f"LLM server returned HTTP {resp.status_code}: {resp.text[:300]}")
+
+    data = resp.json()
+    content = data.get("response") or (data.get("message") or {}).get("content") or data.get("text")
+    if not content:
+        raise LLMError("LLM server returned an unexpected response shape.")
+    return content
