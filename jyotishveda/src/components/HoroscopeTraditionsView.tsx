@@ -9,6 +9,7 @@ import {
   Download,
   FileText,
   Loader2,
+  Milestone,
 } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 
@@ -101,6 +102,7 @@ interface HoroscopeTraditionsViewProps {
   numerology: NumerologyReport;
   language?: string;
   theme?: 'light' | 'dark';
+  onNavigateToTab?: (tab: string) => void;
 }
 
 export const HoroscopeTraditionsView: React.FC<
@@ -113,6 +115,7 @@ export const HoroscopeTraditionsView: React.FC<
   numerology,
   language = 'en',
   theme = 'light',
+  onNavigateToTab,
 }) => {
   const isDark = theme === 'dark';
   const [chartStyle, setChartStyle] =
@@ -1352,23 +1355,38 @@ export const HoroscopeTraditionsView: React.FC<
             </p>
           </div>
 
-          <button
-            onClick={handleDownloadTraditionsPdf}
-            disabled={isGeneratingPdf}
-            className={`flex items-center justify-center space-x-2 px-4 py-3 rounded-xl border text-xs font-bold transition shadow-lg cursor-pointer shrink-0 ${
-              theme === 'dark'
-                ? 'bg-gradient-to-r from-[#C9A050] to-[#A07828] hover:from-[#D4AF37] hover:to-[#B38730] text-[#0D0D0F] border-[#C9A050] shadow-[#C9A050]/20'
-                : 'bg-[#C9A050] hover:bg-[#B38730] text-white border-[#C9A050] shadow-[#C9A050]/20'
-            } disabled:opacity-50`}
-            title="Download full birth chart traditions PDF report"
-          >
-            {isGeneratingPdf ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              <Download className="w-4 h-4" />
-            )}
-            <span>{isGeneratingPdf ? 'Generating PDF...' : 'Download Report (PDF)'}</span>
-          </button>
+          <div className="flex items-center gap-3 shrink-0 flex-wrap">
+            <button
+              onClick={() => onNavigateToTab?.('roadmap')}
+              className={`flex items-center justify-center space-x-2 px-4 py-3 rounded-xl border text-xs font-bold transition shadow-md cursor-pointer shrink-0 ${
+                theme === 'dark'
+                  ? 'bg-[#1A1A1E] hover:bg-[#222228] text-[#E5E1D8] border-[#C9A050]/50 hover:border-[#C9A050] hover:text-[#C9A050] shadow-sm'
+                  : 'bg-white hover:bg-[#FAF6F0] text-[#7A5A1A] border-[#C9A050]/60 hover:border-[#C9A050] shadow-sm'
+              }`}
+              title="Open 25-Year Life Roadmap"
+            >
+              <Milestone className="w-4 h-4 text-[#C9A050]" />
+              <span>25-Year Roadmap</span>
+            </button>
+
+            <button
+              onClick={handleDownloadTraditionsPdf}
+              disabled={isGeneratingPdf}
+              className={`flex items-center justify-center space-x-2 px-4 py-3 rounded-xl border text-xs font-bold transition shadow-lg cursor-pointer shrink-0 ${
+                theme === 'dark'
+                  ? 'bg-gradient-to-r from-[#C9A050] to-[#A07828] hover:from-[#D4AF37] hover:to-[#B38730] text-[#0D0D0F] border-[#C9A050] shadow-[#C9A050]/20'
+                  : 'bg-[#C9A050] hover:bg-[#B38730] text-white border-[#C9A050] shadow-[#C9A050]/20'
+              } disabled:opacity-50`}
+              title="Download full birth chart traditions PDF report"
+            >
+              {isGeneratingPdf ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Download className="w-4 h-4" />
+              )}
+              <span>{isGeneratingPdf ? 'Generating PDF...' : 'Download Report (PDF)'}</span>
+            </button>
+          </div>
         </div>
 
         {/* TRADITIONS */}

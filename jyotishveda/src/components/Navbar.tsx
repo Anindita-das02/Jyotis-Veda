@@ -5,7 +5,6 @@ import {
   Layers,
   Hash,
   MessageSquareText,
-  Milestone,
   CreditCard,
   ShieldCheck,
   Network,
@@ -132,7 +131,6 @@ export const Navbar: React.FC<NavbarProps> = ({
         { id: 'horoscope', label: t('tab.horoscope'), icon: Compass },
         { id: 'matchmaking', label: t('tab.matchmaking'), icon: HeartHandshake },
         { id: 'numerology', label: t('tab.numerology'), icon: Hash },
-        { id: 'roadmap', label: t('tab.roadmap'), icon: Milestone },
         { id: 'consultations', label: t('tab.consultations'), icon: CreditCard },
       ];
 

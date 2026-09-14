@@ -663,6 +663,7 @@ export function App() {
                 numerology={numerology}
                 language={language}
                 theme={theme}
+                onNavigateToTab={setActiveTab}
               />
             )}
 
