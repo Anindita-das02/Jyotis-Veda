@@ -25,8 +25,7 @@ import { getTranslation } from '../services/translations';
 import { API_ENDPOINTS } from '../config/api_config';
 import { API_BASE_URL } from '../services/api';
 import * as counsellingApi from '../services/counsellingApi';
-import { generateAIResponse, fetchChatHistory, clearChatHistory } from '../services/aiChatService';
-import { ApiError } from '../services/api';
+import { generateAIResponse, clearChatHistory } from '../services/aiChatService';
 
 interface AICounsellorChatProps {
   profile: UserProfile;
@@ -39,68 +38,6 @@ interface AICounsellorChatProps {
   isAuthenticated?: boolean;
   theme?: 'light' | 'dark';
 }
-
-const PRESET_QUESTIONS: Record<string, string[]> = {
-  en: [
-    'When will my career reach its next major breakthrough based on my 10th house & dasha?',
-    'Analyze my relationship harmony, 7th house lord, and auspicious marriage timing.',
-    'What are the strongest Raja Yogas or Dhana Yogas in my birth chart?',
-    'Do I have Manglik Dosha or Sade Sati, and what authentic Vedic remedies should I perform?',
-    'Which gemstone or rudraksha is most auspicious for my Lagna & Mulank?',
-    'Should I pursue independent entrepreneurship or remain in corporate leadership?',
-  ],
-  hi: [
-    'मेरी १०वें भाव और दशा के अनुसार मेरे करियर में अगली बड़ी सफलता कब आएगी?',
-    'मेरे सप्तमेश और विवाह के शुभ समय का विश्लेषण करें।',
-    'मेरी कुंडली में कौन से राजयोग या धनयोग सबसे प्रबल हैं?',
-    'क्या मेरी कुंडली में मांगलिक दोष या साढ़ेसाती है, और इसके प्रामाणिक उपाय क्या हैं?',
-    'मेरे लग्न और मूलांक के लिए कौन सा रत्न सबसे शुभ है?',
-  ],
-  bn: [
-    'আমার দশম ভাব ও বর্তমান দশা অনুযায়ী ক্যারিয়ারে বড় সাফল্য কবে আসবে?',
-    'আমার সপ্তম ভাব ও শুভ বিবাহ সময়ের জ্যোতিষীয় বিশ্লেষণ করুন।',
-    'আমার জন্মকুণ্ডলীতে কোন কোন শুভ রাজযোগ বা ধনযোগ রয়েছে?',
-    'আমার লগ্ন ও মূলাঙ্কের জন্য কোন রত্ন বা প্রতিকার সবচেয়ে ফলদায়ী?',
-  ],
-  es: [
-    '¿Cuándo alcanzará mi carrera su próximo gran avance según mi casa 10 y dasha?',
-    'Analiza la armonía de mis relaciones y el momento propicio para el matrimonio.',
-    '¿Cuáles son los Raja Yogas o Dhana Yogas más fuertes en mi carta natal?',
-    '¿Qué gema o amuleto es más propicio para mi signo ascendente y numerología?',
-  ],
-  fr: [
-    'Quand ma carrière connaîtra-t-elle sa prochaine percée selon ma maison 10 et dasha?',
-    'Analysez l’harmonie de mes relations et le moment propice au mariage.',
-    'Quels sont les Raja Yogas les plus puissants dans mon thème natal?',
-    'Quelle pierre précieuse est la plus bénéfique pour mon ascendant?',
-  ],
-  de: [
-    'Wann wird meine Karriere laut meinem 10. Haus und Dasha den nächsten Durchbruch erzielen?',
-    'Analysieren Sie meine Beziehungsharmonie und den günstigen Zeitpunkt für eine Heirat.',
-    'Welche starken Raja Yogas oder Dhana Yogas sind in meinem Geburtshoroskop vorhanden?',
-  ],
-  zh: [
-    '根据我的第十宫和当前大运(Dasha)，我的事业何时会迎来下一次重大突破？',
-    '分析我的第七宫与正缘婚配契机及吉利时机。',
-    '我的星盘中有哪些最强劲的富贵吉相(Raja/Dhana Yoga)？',
-    '最契合我本命盘的开运宝石是哪种？',
-  ],
-  ja: [
-    '私の第10室と現在のダシャー周期に基づき、キャリアの転機はいつ訪れますか？',
-    '私の第7室とパートナーシップ・良縁の時期を分析してください。',
-    '私の出生図にある最も強力な吉相（ラージャ・ヨーガ）は何ですか？',
-  ],
-  ur: [
-    'میرے دسویں گھر اور فعال دشا کے مطابق کیریئر میں اگلی بڑی کامیابی کب حاصل ہوگی؟',
-    'میرے ساتویں گھر کے حاکم اور شادی کے موافق وقت کا تفصیلی جائزہ لیں۔',
-    'میرے زائچہ میں کون سے راج یوگ سب سے طاقتور ہیں اور کیا تدابیر اختیار کرنی چاہئیں؟',
-  ],
-  zu: [
-    'Umsebenzi wami uzofinyelela nini esigabeni esiphezulu ngokuya ngendlu yami ye-10?',
-    'Hlaziya ukuvumelana kobudlelwano bami nesikhathi esihle somshado.',
-    'Yiliphi itshe eliyigugu elilungele impilo yami?',
-  ],
-};
 
 export const AICounsellorChat: React.FC<AICounsellorChatProps> = ({
   profile,
@@ -126,54 +63,6 @@ export const AICounsellorChat: React.FC<AICounsellorChatProps> = ({
   const [renamingSessionId, setRenamingSessionId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState('');
 
-  // 1. Initial Load of Saved History from MySQL DB
-  useEffect(() => {
-    let isMounted = true;
-
-    const loadInitialHistory = async () => {
-      try {
-        const historyData = await fetchChatHistory(profile.id);
-        if (isMounted && historyData && historyData.length > 0) {
-          const loadedMsgs: ChatMessage[] = [];
-          historyData.forEach((item) => {
-            const timeStr = item.created_at
-              ? new Date(item.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-              : new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-
-            if (item.user_query) {
-              loadedMsgs.push({
-                id: `hist-u-${item.id}`,
-                role: 'user',
-                content: item.user_query,
-                timestamp: timeStr,
-              });
-            }
-            if (item.response) {
-              loadedMsgs.push({
-                id: `hist-a-${item.id}`,
-                role: 'assistant',
-                content: item.response,
-                timestamp: timeStr,
-              });
-            }
-          });
-
-          if (loadedMsgs.length > 0) {
-            setMessages(loadedMsgs);
-          }
-        }
-      } catch (err) {
-        console.warn('Initial chat history fetch note:', err);
-      }
-    };
-
-    loadInitialHistory();
-
-    return () => {
-      isMounted = false;
-    };
-  }, [profile.id, setMessages]);
-
   const loadSessions = () => {
     if (!isAuthenticated) return;
     counsellingApi
@@ -182,9 +71,11 @@ export const AICounsellorChat: React.FC<AICounsellorChatProps> = ({
       .catch((err) => console.warn('Could not load AI sessions:', err));
   };
 
+  // Always start with a clean, fresh consultation session on mount or profile switch
   useEffect(() => {
     loadSessions();
     setActiveSessionId(null);
+    setMessages([]);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAuthenticated, profile.id]);
 
@@ -234,7 +125,6 @@ export const AICounsellorChat: React.FC<AICounsellorChatProps> = ({
   };
 
   const t = (key: string) => getTranslation(key, language);
-  const activeQuestions = PRESET_QUESTIONS[language] || PRESET_QUESTIONS['en'];
 
   const chatContainerRef = useRef<HTMLDivElement>(null);
 
@@ -509,24 +399,6 @@ export const AICounsellorChat: React.FC<AICounsellorChatProps> = ({
             <Trash2 className="w-3.5 h-3.5" />
           </button>
         </div>
-      </div>
-
-      {/* Preset Question Pills */}
-      <div className="flex items-center space-x-2 overflow-x-auto no-scrollbar pb-1 text-xs">
-        <span className="text-[11px] text-[#C9A050] font-semibold shrink-0 flex items-center space-x-1">
-          <Sparkles className="w-3.5 h-3.5" />
-          <span>{t('counsellor.suggested')}</span>
-        </span>
-        {activeQuestions.map((q, idx) => (
-          <button
-            key={idx}
-            onClick={() => handleSendMessage(q)}
-            disabled={isLoading}
-            className="px-3 py-1.5 rounded-full bg-[#1A1A1E] hover:bg-[#C9A050]/20 border border-[#2A2A2E] hover:border-[#C9A050]/40 text-[#9E9A90] hover:text-[#C9A050] whitespace-nowrap transition cursor-pointer shrink-0 text-xs disabled:opacity-50"
-          >
-            {q}
-          </button>
-        ))}
       </div>
 
       {/* Chat Messages Container */}
