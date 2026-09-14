@@ -52,35 +52,40 @@ export async function fetchMatchReport(id: string): Promise<MatchReportFull> {
 export async function calculateMatchReportBackend(
   p1: any,
   p2: any,
-): Promise<AshtaKootaMilanResult | null> {
+): Promise<any | null> {
   try {
-    const res = await api.post<MatchReportFull>(API_ENDPOINTS.MATCHMAKING.REPORTS, {
+    const payload = {
       partner1: {
-        name: p1.fullName || 'Partner 1',
-        dob: p1.birthDate || '2000-01-01',
-        time: p1.birthTime || '12:00',
-        place: p1.birthPlace || 'Delhi, India',
+        name: p1.fullName || p1.name || 'Partner 1',
+        dob: p1.birthDate || p1.dob || '2000-01-01',
+        time: p1.birthTime || p1.time || '12:00',
+        place: p1.birthPlace || p1.place || 'Delhi, India',
+        latitude: p1.latitude,
+        longitude: p1.longitude,
+        timezone: p1.timezone || 5.5,
         gender: p1.gender || 'male',
       },
       partner2: {
-        name: p2.fullName || 'Partner 2',
-        dob: p2.birthDate || '2000-01-01',
-        time: p2.birthTime || '12:00',
-        place: p2.birthPlace || 'Mumbai, India',
+        name: p2.fullName || p2.name || 'Partner 2',
+        dob: p2.birthDate || p2.dob || '2000-01-01',
+        time: p2.birthTime || p2.time || '12:00',
+        place: p2.birthPlace || p2.place || 'Mumbai, India',
+        latitude: p2.latitude,
+        longitude: p2.longitude,
+        timezone: p2.timezone || 5.5,
         gender: p2.gender || 'female',
       },
-      partner1Name: p1.fullName || 'Partner 1',
-      partner1BirthDate: p1.birthDate || '2000-01-01',
-      partner1BirthTime: p1.birthTime || '12:00',
-      partner1BirthPlace: p1.birthPlace || 'Delhi, India',
-      partner2Name: p2.fullName || 'Partner 2',
-      partner2BirthDate: p2.birthDate || '2000-01-01',
-      partner2BirthTime: p2.birthTime || '12:00',
-      partner2BirthPlace: p2.birthPlace || 'Mumbai, India',
-    });
-    if (res && res.report) {
-      return res.report;
+    };
+    
+    // Call the dedicated public Swiss Ephemeris calculate endpoint
+    const res = await api.post<any>(API_ENDPOINTS.MATCHMAKING.CALCULATE, payload);
+    if (res && res.data) {
+      return res.data;
     }
+    if (res && res.report) {
+      return res;
+    }
+    return res;
   } catch (err) {
     console.warn('Backend API matchmaking calculation call error (using client engine):', err);
   }

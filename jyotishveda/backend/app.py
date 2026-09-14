@@ -256,6 +256,13 @@ def generate_direct_match_pdf():
     return match_making.generate_direct_pdf()
 
 
+@app.route("/matchmaking/calculate", methods=["POST"])
+@app.route("/api/matchmaking/calculate", methods=["POST"])
+def calculate_matchmaking_route():
+    # ফ্রন্টএন্ড থেকে সরাসরি Swiss Ephemeris ম্যাচ মেকিং গণনার এন্ডপয়েন্ট
+    return match_making.calculate_match_endpoint()
+
+
 
 # ---------------- AI Counsellor sessions & messages (require login) ----------------
 

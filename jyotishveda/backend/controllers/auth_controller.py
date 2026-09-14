@@ -7,6 +7,9 @@ from geopy.geocoders import Nominatim
 from database.db_connection import call_procedure
 from utils.security import hash_password, verify_password, issue_token
 
+import json
+from controllers.profile_controller import _row_to_profile, _format_birth_time
+
 EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
 
@@ -18,8 +21,48 @@ def register():
     body = request.get_json(silent=True) or {}
     email = (body.get("email") or "").strip().lower()
     password = body.get("password") or ""
-    full_name = (body.get("fullName") or "").strip()
-    address = (body.get("address") or "").strip()
+    full_name = (body.get("fullName") or body.get("name") or "").strip()
+    
+    # Address / Birth place
+    birth_place = (body.get("birthPlace") or body.get("address") or "").strip()
+    address = (body.get("address") or birth_place or "Kolkata, West Bengal, India").strip()
+    if not birth_place:
+        birth_place = address
+
+    # Gender
+    gender = (body.get("gender") or "male").strip().lower()
+    if gender not in ["male", "female", "other"]:
+        gender = "male"
+
+    # Birth Date (YYYY-MM-DD)
+    birth_date = str(body.get("birthDate") or body.get("dob") or "2000-01-01").strip()
+
+    # Birth Time (HH:MM or HH:MM:SS)
+    raw_time = str(body.get("birthTime") or body.get("time") or "12:00").strip()
+    if len(raw_time) == 5:
+        birth_time = f"{raw_time}:00"
+    elif len(raw_time) == 8:
+        birth_time = raw_time
+    else:
+        birth_time = "12:00:00"
+
+    # Timezone & Horoscope System
+    try:
+        tz_offset = float(body.get("timezone") or body.get("timezone_offset") or 5.5)
+    except (ValueError, TypeError):
+        tz_offset = 5.5
+
+    horoscope_system = body.get("horoscopeSystem", "vedic")
+    if horoscope_system not in ["vedic", "western"]:
+        horoscope_system = "vedic"
+
+    focus_areas = body.get("focusAreas") or ["Career", "Health", "Finance"]
+    if not isinstance(focus_areas, list):
+        focus_areas = ["Career", "Health", "Finance"]
+    focus_areas_json = json.dumps(focus_areas)
+
+    notes = body.get("notes") or ""
+    relation_label = body.get("relationLabel") or "Self"
 
     if not EMAIL_RE.match(email):
         return _error("A valid email is required", "INVALID_EMAIL")
@@ -27,46 +70,73 @@ def register():
         return _error("Password must be at least 8 characters", "WEAK_PASSWORD")
     if not full_name:
         return _error("Full name is required", "INVALID_NAME")
-    if not address:
-        return _error("Full address is required", "INVALID_ADDRESS")
+    if not address and not birth_place:
+        return _error("Full address or birth place is required", "INVALID_ADDRESS")
 
-    # Geocode address
-    latitude = None
-    longitude = None
-    try:
-        geolocator = Nominatim(user_agent="jyotishveda-app")
-        parts = [p.strip() for p in address.split(',') if p.strip()]
-        
-        while parts:
-            current_query = ', '.join(parts)
-            location = geolocator.geocode(current_query)
-            if location:
-                latitude = location.latitude
-                longitude = location.longitude
-                break
-            # If not found, remove the most specific part (the first part) and try again
-            parts.pop(0)
-    except Exception as e:
-        print("Geocoding error:", e)
-        # We can either fail registration or proceed with None coordinates.
-        # Requirements imply coords are used later. If it fails, we keep it None.
+    # Geocode coordinates if not directly supplied in payload
+    latitude = body.get("latitude")
+    longitude = body.get("longitude")
+
+    if latitude is not None and longitude is not None:
+        try:
+            latitude = float(latitude)
+            longitude = float(longitude)
+        except (ValueError, TypeError):
+            latitude = None
+            longitude = None
+
+    if latitude is None or longitude is None:
+        search_query = address or birth_place
+        try:
+            geolocator = Nominatim(user_agent="jyotishveda-app")
+            parts = [p.strip() for p in search_query.split(',') if p.strip()]
+            while parts:
+                current_query = ', '.join(parts)
+                location = geolocator.geocode(current_query)
+                if location:
+                    latitude = location.latitude
+                    longitude = location.longitude
+                    break
+                parts.pop(0)
+        except Exception as e:
+            print("Geocoding error:", e)
+
+    # Defaults if geocoding failed or returned none
+    if latitude is None:
+        latitude = 22.5726
+    if longitude is None:
+        longitude = 88.3639
 
     user_id = str(uuid.uuid4())
     password_hash = hash_password(password)
 
     try:
-        rows = call_procedure("sp_user_ops", ['create', user_id, email, password_hash, full_name, address, latitude, longitude])
+        user_rows = call_procedure("sp_user_ops", ['create', user_id, email, password_hash, full_name, address, latitude, longitude])
     except IntegrityError:
         return _error("An account with this email already exists", "EMAIL_TAKEN", 409)
 
-    if not rows:
+    if not user_rows:
         return _error("Could not create account", "REGISTER_FAILED", 500)
 
-    user = rows[0]
+    user = user_rows[0]
     token = issue_token(user["id"], user["role"])
+
+    # Automatically create the primary user profile in user_profiles table
+    profile_id = str(uuid.uuid4())
+    created_profile = None
+    try:
+        profile_rows = call_procedure("sp_profile_ops", [
+            'create', profile_id, user["id"], full_name, gender, birth_date, birth_time, birth_place,
+            latitude, longitude, tz_offset, focus_areas_json, notes, horoscope_system, relation_label
+        ])
+        if profile_rows:
+            created_profile = _row_to_profile(profile_rows[0])
+    except Exception as prof_err:
+        print(f"[REGISTER WARNING] Could not auto-create profile: {prof_err}")
 
     return jsonify({
         "status": "success",
+        "message": "User registered and primary profile created successfully",
         "data": {
             "token": token,
             "user": {
@@ -78,6 +148,7 @@ def register():
                 "latitude": float(user["latitude"]) if user.get("latitude") is not None else None,
                 "longitude": float(user["longitude"]) if user.get("longitude") is not None else None,
             },
+            "profile": created_profile
         },
     }), 201
 
@@ -99,6 +170,16 @@ def login():
 
     token = issue_token(user["id"], user["role"])
 
+    # Also load user profiles
+    profiles_data = []
+    try:
+        prof_rows = call_procedure("sp_profile_ops", ['get_all', '', user["id"], '', '', '2000-01-01', '00:00:00', '', 0, 0, 0, '[]', '', '', ''])
+        profiles_data = [_row_to_profile(r) for r in prof_rows]
+    except Exception as pe:
+        print(f"[LOGIN PROFILE LOAD WARNING] {pe}")
+
+    primary_profile = profiles_data[0] if profiles_data else None
+
     return jsonify({
         "status": "success",
         "data": {
@@ -112,6 +193,8 @@ def login():
                 "latitude": float(user["latitude"]) if user.get("latitude") is not None else None,
                 "longitude": float(user["longitude"]) if user.get("longitude") is not None else None,
             },
+            "profile": primary_profile,
+            "profiles": profiles_data
         },
     })
 
