@@ -313,8 +313,14 @@ export function AuthGate({
     setLoading(true);
     try {
       if (mode === 'register') {
-        // 1. Only create/register the account in DB
-        await register(email, password, fullName, birthPlace);
+        const formattedDob = `${birthYear}-${birthMonth}-${birthDay}`;
+        // 1. Create account and primary profile in DB in one shot
+        await register(email, password, fullName, birthPlace, {
+          gender,
+          birthDate: formattedDob,
+          birthTime: birthTime.trim() || undefined,
+          birthPlace: birthPlace.trim() || undefined,
+        });
         setSuccessMessage('Account created successfully! Please enter your password to log in.');
         setJustRegistered(true);
         setMode('login');
