@@ -1219,10 +1219,10 @@ export const DEFAULT_ROADMAP = [
     status: 'In-Progress' as const,
   },
 
-  // --- 5-10 YEARS (Career, Spirituality, Health OPEN; Wealth & Relationships LOCKED) ---
+  // --- 0-10 YEARS (Career, Spirituality, Health OPEN; Wealth & Relationships LOCKED) ---
   {
     id: 'ms-6',
-    timeframe: '5-10 Years',
+    timeframe: '0-10 Years',
     category: 'Career',
     title: 'Enterprise Scaling & Executive Board Elevation',
     guidance: 'Major Saturn-Jupiter mutual aspect activates the 10th and 11th houses, conferring institutional status and global professional credibility.',
@@ -1232,7 +1232,7 @@ export const DEFAULT_ROADMAP = [
   },
   {
     id: 'ms-7',
-    timeframe: '5-10 Years',
+    timeframe: '0-10 Years',
     category: 'Health',
     title: 'Mind-Body Longevity & Stress Resilience',
     guidance: 'Targeted yogic pranayama and seasonal Panchakarma practices maintain high energetic frequency and metabolic balance.',
@@ -1242,7 +1242,7 @@ export const DEFAULT_ROADMAP = [
   },
   {
     id: 'ms-8',
-    timeframe: '5-10 Years',
+    timeframe: '0-10 Years',
     category: 'Spirituality',
     title: 'Sacred Pilgrimage & Vedantic Wisdom Integration',
     guidance: 'Karmic shifts inspire sacred Himalayan / Teertha yatras and deep philosophical scriptural study under an enlightened Guru.',
@@ -1252,7 +1252,7 @@ export const DEFAULT_ROADMAP = [
   },
   {
     id: 'ms-9',
-    timeframe: '5-10 Years',
+    timeframe: '0-10 Years',
     category: 'Wealth',
     title: 'Generational Wealth Structuring & Land Acquisition',
     guidance: 'Strategic long-term asset accumulation, commercial property investments, and multi-asset wealth compounding.',
@@ -1262,7 +1262,7 @@ export const DEFAULT_ROADMAP = [
   },
   {
     id: 'ms-10',
-    timeframe: '5-10 Years',
+    timeframe: '0-10 Years',
     category: 'Relationships',
     title: 'Darakaraka Auspiciousness & Marital Milestone',
     guidance: 'Deepening marital companionship and auspicious milestone celebrations with children and extended family lineages.',
@@ -1271,10 +1271,10 @@ export const DEFAULT_ROADMAP = [
     status: 'Pending' as const,
   },
 
-  // --- 10-15 YEARS (Career, Spirituality OPEN; Health, Wealth & Relationships LOCKED) ---
+  // --- 0-15 YEARS (Career, Spirituality OPEN; Health, Wealth & Relationships LOCKED) ---
   {
     id: 'ms-11',
-    timeframe: '10-15 Years',
+    timeframe: '0-15 Years',
     category: 'Career',
     title: 'Industry Authority, Mentorship & Public Impact',
     guidance: 'Transition from active execution to advisory stewardship, mentoring emerging leaders and creating timeless institutional legacy.',
@@ -1284,7 +1284,7 @@ export const DEFAULT_ROADMAP = [
   },
   {
     id: 'ms-12',
-    timeframe: '10-15 Years',
+    timeframe: '0-15 Years',
     category: 'Spirituality',
     title: 'Spiritual Dharma Mastery & Philanthropic Foundation',
     guidance: 'Attainment of higher consciousness and establishing enduring humanitarian, spiritual, and charitable foundations.',
@@ -1294,7 +1294,7 @@ export const DEFAULT_ROADMAP = [
   },
   {
     id: 'ms-13',
-    timeframe: '10-15 Years',
+    timeframe: '0-15 Years',
     category: 'Health',
     title: 'Vitality Preservation & Yogic Rejuvenation',
     guidance: 'Sustained cellular regeneration and inner calm through advanced yogic kriya and tranquil natural living.',
@@ -1304,7 +1304,7 @@ export const DEFAULT_ROADMAP = [
   },
   {
     id: 'ms-14',
-    timeframe: '10-15 Years',
+    timeframe: '0-15 Years',
     category: 'Wealth',
     title: 'Sovereign Asset Holdings & Multi-Generational Trust',
     guidance: 'Consolidation of sovereign wealth portfolios, family trusts, and enduring estate preservation for future generations.',
@@ -1314,7 +1314,7 @@ export const DEFAULT_ROADMAP = [
   },
   {
     id: 'ms-15',
-    timeframe: '10-15 Years',
+    timeframe: '0-15 Years',
     category: 'Relationships',
     title: 'Family Dynasty Harmony & Golden Lineage Blessings',
     guidance: 'Enjoying deep contentment surrounded by growing generations, children’s prosperity, and peaceful domestic harmony.',
@@ -1323,10 +1323,10 @@ export const DEFAULT_ROADMAP = [
     status: 'Pending' as const,
   },
 
-  // --- 15-20 YEARS (Legacy Building & Dharmic Impact) ---
+  // --- 0-20 YEARS (Legacy Building & Dharmic Impact) ---
   {
     id: 'ms-16',
-    timeframe: '15-20 Years',
+    timeframe: '0-20 Years',
     category: 'Career',
     title: 'Revered Advisory Stewardship & Institutional Direction',
     guidance: 'Senior statesman leadership across boardrooms and advisory trusts, guiding institutions with proven wisdom and visionary foresight.',
@@ -1336,7 +1336,7 @@ export const DEFAULT_ROADMAP = [
   },
   {
     id: 'ms-17',
-    timeframe: '15-20 Years',
+    timeframe: '0-20 Years',
     category: 'Wealth',
     title: 'Multi-Generational Asset Security & Enduring Trusts',
     guidance: 'Debt-free sovereign asset protection, long-term estate compounding, and high-yield philanthropic trust distribution.',
@@ -1346,7 +1346,7 @@ export const DEFAULT_ROADMAP = [
   },
   {
     id: 'ms-18',
-    timeframe: '15-20 Years',
+    timeframe: '0-20 Years',
     category: 'Relationships',
     title: 'Dynasty Celebration, Ancestral Honour & Domestic Peace',
     guidance: 'Profound familial contentment, celebrating grandchildren milestones, honoring ancestral lineage, and deep domestic tranquility.',
@@ -1356,7 +1356,7 @@ export const DEFAULT_ROADMAP = [
   },
   {
     id: 'ms-19',
-    timeframe: '15-20 Years',
+    timeframe: '0-20 Years',
     category: 'Health',
     title: 'Holistic Restorative Wellness & Sattvic Radiance',
     guidance: 'Mindful physical harmony through gentle walks, Ayurvedic herbal rasayanas, and mental stillness to sustain long-term vitality.',
@@ -1366,7 +1366,7 @@ export const DEFAULT_ROADMAP = [
   },
   {
     id: 'ms-20',
-    timeframe: '15-20 Years',
+    timeframe: '0-20 Years',
     category: 'Spirituality',
     title: 'Sacred Dharma Propagation & Temple Endowments',
     guidance: 'Deep spiritual seva, patronizing sacred Vedic knowledge, and constructing enduring humanitarian or temple foundations.',
@@ -1375,10 +1375,10 @@ export const DEFAULT_ROADMAP = [
     status: 'Pending' as const,
   },
 
-  // --- 20-25 YEARS (Wisdom, Fulfillment & Spiritual Liberation) ---
+  // --- 0-25 YEARS (Wisdom, Fulfillment & Spiritual Liberation) ---
   {
     id: 'ms-21',
-    timeframe: '20-25 Years',
+    timeframe: '0-25 Years',
     category: 'Career',
     title: 'Venerated Elder Statesmanship & Timeless Legacy',
     guidance: 'Attainment of highest societal reverence, timeless lifetime achievement awards, and philosophical guidance to seekers.',
@@ -1388,7 +1388,7 @@ export const DEFAULT_ROADMAP = [
   },
   {
     id: 'ms-22',
-    timeframe: '20-25 Years',
+    timeframe: '0-25 Years',
     category: 'Wealth',
     title: 'Absolute Financial Sovereignty & Generational Transition',
     guidance: 'Complete detachment from financial anxieties; flawless generational wealth transfer and self-sustaining philanthropic endowments.',
@@ -1398,7 +1398,7 @@ export const DEFAULT_ROADMAP = [
   },
   {
     id: 'ms-23',
-    timeframe: '20-25 Years',
+    timeframe: '0-25 Years',
     category: 'Relationships',
     title: 'Widespread Dynasty Blessings & Universal Goodwill',
     guidance: 'Widespread familial veneration, harmonious domestic serenity, and deep gratitude beholding flourishing multigenerational lineages.',
@@ -1408,7 +1408,7 @@ export const DEFAULT_ROADMAP = [
   },
   {
     id: 'ms-24',
-    timeframe: '20-25 Years',
+    timeframe: '0-25 Years',
     category: 'Health',
     title: 'Serene Graceful Longevity & Mental Equilibrium',
     guidance: 'Graceful physical preservation, peaceful mental calmness, and profound inner equilibrium supported by mindful meditation.',
@@ -1418,7 +1418,7 @@ export const DEFAULT_ROADMAP = [
   },
   {
     id: 'ms-25',
-    timeframe: '20-25 Years',
+    timeframe: '0-25 Years',
     category: 'Spirituality',
     title: 'Moksha Orientation, Transcendental Peace & Timeless Bliss',
     guidance: 'Complete spiritual liberation, deep surrender to Divine Will, samadhi absorption, and boundless transcendental tranquility.',
@@ -1439,7 +1439,7 @@ export const generateCustomRoadmap = (profile?: any, chartData?: any): LifeMiles
     if (item.category === 'Career' && item.timeframe === '0-5 Years') {
       personalizedGuidance = `Under the active ${currDasha} Mahadasha and ${ascSign} lagna, Jupiter transit over your 10th house stimulates executive authority and strategic visibility.`;
       personalizedTransits = `Auspicious Jupiter transit trines your ${ascSign} Ascendant`;
-    } else if (item.category === 'Career' && item.timeframe === '5-10 Years') {
+    } else if (item.category === 'Career' && (item.timeframe === '0-10 Years' || item.timeframe === '5-10 Years')) {
       personalizedGuidance = `Major Saturn-Jupiter mutual aspect activates your 10th and 11th houses, conferring institutional status and global credibility for ${ascSign} natives.`;
     }
     

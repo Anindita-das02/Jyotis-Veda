@@ -3444,7 +3444,8 @@ def generate_roadmap_report_pdf(payload: dict) -> bytes:
             m for m in raw_milestones 
             if (m.get("timeframe") or "").strip() == selected_horizon or
                (selected_horizon == "0-5 Years" and (m.get("timeframe") or "").strip() in ("0-12 Months", "1-3 Years", "0-5 Years")) or
-               (selected_horizon == "5-10 Years" and (m.get("timeframe") or "").strip() in ("3-5 Years", "5-10 Years"))
+               (selected_horizon in ("0-10 Years", "5-10 Years") and (m.get("timeframe") or "").strip() in ("3-5 Years", "5-10 Years", "0-10 Years")) or
+               (selected_horizon in ("0-15 Years", "10-15 Years") and (m.get("timeframe") or "").strip() in ("10-15 Years", "0-15 Years"))
         ]
         if not milestones:
             milestones = [m for m in raw_milestones if (m.get("timeframe") or "").strip() == selected_horizon] or raw_milestones
@@ -3523,25 +3524,25 @@ def generate_roadmap_report_pdf(payload: dict) -> bytes:
     def is_locked(tf: str, category: str) -> bool:
         if tf in ("0-5 Years", "0-12 Months", "1-3 Years"):
             return False
-        if tf in ("5-10 Years", "3-5 Years"):
+        if tf in ("0-10 Years", "5-10 Years", "3-5 Years"):
             return category in ("Wealth", "Relationships")
-        if tf == "10-15 Years":
+        if tf in ("0-15 Years", "10-15 Years"):
             return category in ("Wealth", "Relationships", "Health")
-        if tf in ("15-20 Years", "20-25 Years"):
+        if tf in ("0-20 Years", "0-25 Years", "15-20 Years", "20-25 Years"):
             return True
         return False
 
-    # Strictly filter out locked categories and 15-20 / 20-25 from PDF export (as requested: not available in UI)
+    # Strictly filter out locked categories and 0-20 / 0-25 (15-20 / 20-25) from PDF export
     unlocked_milestones = [
         m for m in milestones 
-        if (m.get("timeframe") or "").strip() not in ("15-20 Years", "20-25 Years")
+        if (m.get("timeframe") or "").strip() not in ("0-20 Years", "0-25 Years", "15-20 Years", "20-25 Years")
         and not is_locked((m.get("timeframe") or selected_horizon).strip(), m.get("category", "General"))
     ]
 
     # 3. Overview Arc Banner
     total_ms = len(unlocked_milestones)
     overview_sub = (
-        f"Coverage: <b>All Available Horizons (0–5, 5–10, 10–15 Years)</b> | Active Milestones: <b>{total_ms}</b> | Premium Horizons (15–25 Yrs): <b>Available via Consultation</b>"
+        f"Coverage: <b>All Available Horizons (0–5, 0–10, 0–15 Years)</b> | Active Milestones: <b>{total_ms}</b> | Premium Horizons (0–25 Yrs): <b>Available via Consultation</b>"
         if is_all_horizons else
         f"Active Horizon: <b>{selected_horizon}</b> | Milestones in Horizon: <b>{total_ms}</b> | Epochs: <b>Available Horizons</b>"
     )

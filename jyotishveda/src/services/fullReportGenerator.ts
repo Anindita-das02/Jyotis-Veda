@@ -1314,7 +1314,7 @@ export async function generateMasterFullReportPdf({
 
   let yP7 = 33;
 
-  // 5 Standard 5-Year Horizons covering the full 25-Year Life Arc: 0-5, 5-10, 10-15, 15-20, 20-25 Years
+  // 5 Standard Horizons covering the full 25-Year Life Arc: 0-5, 0-10, 0-15, 0-20, 0-25 Years
   const horizons = [
     {
       phase: `HORIZON 1: 0 – 5 YEARS (${currentYear} – ${currentYear + 5})`,
@@ -1327,7 +1327,7 @@ export async function generateMasterFullReportPdf({
       ]
     },
     {
-      phase: `HORIZON 2: 5 – 10 YEARS (${currentYear + 5} – ${currentYear + 10})`,
+      phase: `HORIZON 2: 0 – 10 YEARS (${currentYear} – ${currentYear + 10})`,
       theme: 'Expansion, Wealth & Real Estate',
       items: [
         { label: 'Career & Enterprise', text: 'Institutional recognition and executive board elevation; international collaborations and multi-venture expansion under benefic Jupiter-Saturn Gochara.' },
@@ -1337,7 +1337,7 @@ export async function generateMasterFullReportPdf({
       ]
     },
     {
-      phase: `HORIZON 3: 10 – 15 YEARS (${currentYear + 10} – ${currentYear + 15})`,
+      phase: `HORIZON 3: 0 – 15 YEARS (${currentYear} – ${currentYear + 15})`,
       theme: 'Leadership, Authority & Mentorship',
       items: [
         { label: 'Career & Enterprise', text: 'Transition from operational execution to senior advisory stewardship; mentoring emerging industry leaders and shaping timeless institutional impact.' },
@@ -1347,7 +1347,7 @@ export async function generateMasterFullReportPdf({
       ]
     },
     {
-      phase: `HORIZON 4: 15 – 20 YEARS (${currentYear + 15} – ${currentYear + 20})`,
+      phase: `HORIZON 4: 0 – 20 YEARS (${currentYear} – ${currentYear + 20})`,
       theme: 'Legacy Building & Dharmic Impact',
       items: [
         { label: 'Career & Enterprise', text: 'Revered advisory roles and societal influence; guiding institutions and community foundations with proven wisdom and visionary direction.' },
@@ -1357,7 +1357,7 @@ export async function generateMasterFullReportPdf({
       ]
     },
     {
-      phase: `HORIZON 5: 20 – 25 YEARS (${currentYear + 20} – ${currentYear + 25})`,
+      phase: `HORIZON 5: 0 – 25 YEARS (${currentYear} – ${currentYear + 25})`,
       theme: 'Wisdom, Fulfillment & Spiritual Liberation',
       items: [
         { label: 'Career & Enterprise', text: 'Venerated elder statesmanship; timeless lifetime achievement, honored by community, providing philosophical counsel to seekers.' },

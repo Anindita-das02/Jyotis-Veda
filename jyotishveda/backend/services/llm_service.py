@@ -578,7 +578,7 @@ def get_roadmap_insights_response(
 
     system_prompt = f"""You are JyotishVeda Daivajna, an expert 25-Year Vedic Astrological Forecaster.
 Generate a 15-Year Astrological Destiny Roadmap for the user with ALL 5 LIFE CATEGORIES across 3 TIME HORIZONS (15 milestones total):
-Time horizons: '0-5 Years', '5-10 Years', '10-15 Years'.
+Time horizons: '0-5 Years', '0-10 Years', '0-15 Years'.
 Categories for each horizon: 'Career', 'Wealth', 'Relationships', 'Health', 'Spirituality'.
 
 User Details:
@@ -603,13 +603,13 @@ You MUST return a JSON object with EXACTLY this structure containing 15 mileston
       "remedialAction": "1 specific Vedic/Vastu remedy",
       "status": "In-Progress"
     }},
-    ... (total 15 milestones: 5 for '0-5 Years', 5 for '5-10 Years', 5 for '10-15 Years')
+    ... (total 15 milestones: 5 for '0-5 Years', 5 for '0-10 Years', 5 for '0-15 Years')
   ]
 }}
 
 Requirements:
-- Generate EXACTLY 15 milestones (5 for '0-5 Years', 5 for '5-10 Years', 5 for '10-15 Years') covering all 5 categories for each timeframe.
-- Set status to 'In-Progress' for '0-5 Years', and 'Pending' for '5-10 Years' and '10-15 Years'.
+- Generate EXACTLY 15 milestones (5 for '0-5 Years', 5 for '0-10 Years', 5 for '0-15 Years') covering all 5 categories for each timeframe.
+- Set status to 'In-Progress' for '0-5 Years', and 'Pending' for '0-10 Years' and '0-15 Years'.
 - The predictions MUST specifically mention their {lagna_rashi} ascendant and {maha_dasha}/{antar_dasha} dasha period so it feels deeply personalized!
 - All text values MUST be translated directly into the language code: {language}. If 'bn', use Bengali script.
 - Do NOT output anything outside the JSON object. No markdown formatting.

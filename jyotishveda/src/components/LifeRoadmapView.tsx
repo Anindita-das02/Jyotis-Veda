@@ -58,17 +58,33 @@ export const LifeRoadmapView: React.FC<LifeRoadmapViewProps> = ({
     if (!profile) return;
     const key = getStorageKey();
     let hasLoadedCache = false;
+    const normalizeTf = (tf: string) => {
+      if (tf === '5-10 Years' || tf === '3-5 Years') return '0-10 Years';
+      if (tf === '10-15 Years') return '0-15 Years';
+      if (tf === '15-20 Years') return '0-20 Years';
+      if (tf === '20-25 Years') return '0-25 Years';
+      return tf;
+    };
+
     try {
       const cached = localStorage.getItem(key);
       if (cached) {
         const parsed = JSON.parse(cached);
         if (parsed && typeof parsed === 'object') {
           if (Array.isArray(parsed.milestones) && parsed.milestones.length > 0) {
-            setRoadmap(parsed.milestones);
+            const updatedMilestones = parsed.milestones.map((m: any) => ({
+              ...m,
+              timeframe: normalizeTf(m.timeframe || ''),
+            }));
+            setRoadmap(updatedMilestones);
             hasLoadedCache = true;
           }
           if (parsed.generatedHorizons) {
-            setGeneratedHorizons(parsed.generatedHorizons);
+            const nextGen: Record<string, boolean> = {};
+            Object.entries(parsed.generatedHorizons).forEach(([k, v]) => {
+              nextGen[normalizeTf(k)] = !!v;
+            });
+            setGeneratedHorizons(nextGen);
           }
         }
       }
@@ -115,11 +131,11 @@ export const LifeRoadmapView: React.FC<LifeRoadmapViewProps> = ({
     { id: 'Spirituality', label: 'Spiritual Dharma', icon: Flame },
   ];
 
-  const horizons = ['0-5 Years', '5-10 Years', '10-15 Years', '15-20 Years', '20-25 Years'];
+  const horizons = ['0-5 Years', '0-10 Years', '0-15 Years', '0-20 Years', '0-25 Years'];
 
   const handleGenerateHorizon = async (horizonToGen?: string) => {
     const targetHorizon = horizonToGen || selectedHorizon;
-    if (!targetHorizon || isGenerating || targetHorizon === '15-20 Years' || targetHorizon === '20-25 Years') return;
+    if (!targetHorizon || isGenerating || targetHorizon === '0-20 Years' || targetHorizon === '0-25 Years' || targetHorizon === '15-20 Years' || targetHorizon === '20-25 Years') return;
 
     if (!selectedHorizon) {
       setSelectedHorizon(targetHorizon);
@@ -191,7 +207,7 @@ export const LifeRoadmapView: React.FC<LifeRoadmapViewProps> = ({
 
   const handleHorizonTabClick = (hor: string) => {
     setSelectedHorizon(hor);
-    if (!generatedHorizons[hor] && hor !== '15-20 Years' && hor !== '20-25 Years') {
+    if (!generatedHorizons[hor] && hor !== '0-20 Years' && hor !== '0-25 Years' && hor !== '15-20 Years' && hor !== '20-25 Years') {
       handleGenerateHorizon(hor);
     }
   };
@@ -206,24 +222,24 @@ export const LifeRoadmapView: React.FC<LifeRoadmapViewProps> = ({
       return false;
     }
 
-    // 5-10 Years: Career, Health & Spirituality are OPEN (Wealth & Relationships are LOCKED)
-    if (tf === '5-10 Years' || tf === '3-5 Years') {
+    // 0-10 Years: Career, Health & Spirituality are OPEN (Wealth & Relationships are LOCKED)
+    if (tf === '0-10 Years' || tf === '5-10 Years' || tf === '3-5 Years') {
       if (cat === 'Career' || cat === 'Health' || cat === 'Spirituality') {
         return false;
       }
       return true; // Wealth & Relationships locked
     }
 
-    // 10-15 Years: Exactly 2 categories OPEN (Career & Spirituality), remaining 3 are LOCKED
-    if (tf === '10-15 Years') {
+    // 0-15 Years: Exactly 2 categories OPEN (Career & Spirituality), remaining 3 are LOCKED
+    if (tf === '0-15 Years' || tf === '10-15 Years') {
       if (cat === 'Career' || cat === 'Spirituality') {
         return false;
       }
       return true; // Wealth, Relationships & Health locked
     }
 
-    // 15-20 Years & 20-25 Years: 100% LOCKED
-    if (tf === '15-20 Years' || tf === '20-25 Years') {
+    // 0-20 Years & 0-25 Years: 100% LOCKED
+    if (tf === '0-20 Years' || tf === '0-25 Years' || tf === '15-20 Years' || tf === '20-25 Years') {
       return true;
     }
 
@@ -255,7 +271,10 @@ export const LifeRoadmapView: React.FC<LifeRoadmapViewProps> = ({
     if (!m) return m;
     let t = m.timeframe || '0-5 Years';
     if (t === '0-12 Months' || t === '1-3 Years') t = '0-5 Years';
-    else if (t === '3-5 Years') t = '5-10 Years';
+    else if (t === '3-5 Years' || t === '5-10 Years') t = '0-10 Years';
+    else if (t === '10-15 Years') t = '0-15 Years';
+    else if (t === '15-20 Years') t = '0-20 Years';
+    else if (t === '20-25 Years') t = '0-25 Years';
     return { ...m, timeframe: t };
   }).filter(Boolean);
 
@@ -283,10 +302,10 @@ export const LifeRoadmapView: React.FC<LifeRoadmapViewProps> = ({
     const rawRoadmap = Array.isArray(sortedRoadmap) && sortedRoadmap.length > 0 ? sortedRoadmap : (roadmap || []);
     const fullRoadmap = rawRoadmap.length > 0 ? rawRoadmap : generateCustomRoadmap(profile, chartData);
 
-    // Strictly filter out 15-20 and 20-25 years and locked items (not available in UI)
+    // Strictly filter out 0-20 / 0-25 years (and 15-20 / 20-25) and locked items (not available in UI)
     const availableMilestones = fullRoadmap.filter((m) => {
       const tf = (m.timeframe || '').trim();
-      if (tf === '15-20 Years' || tf === '20-25 Years') return false;
+      if (tf === '0-20 Years' || tf === '0-25 Years' || tf === '15-20 Years' || tf === '20-25 Years') return false;
       return !isMilestoneLocked(m);
     });
 
@@ -294,9 +313,15 @@ export const LifeRoadmapView: React.FC<LifeRoadmapViewProps> = ({
       '0-5 Years': 1,
       '0-12 Months': 1,
       '1-3 Years': 1,
+      '0-10 Years': 2,
       '5-10 Years': 2,
       '3-5 Years': 2,
+      '0-15 Years': 3,
       '10-15 Years': 3,
+      '0-20 Years': 4,
+      '15-20 Years': 4,
+      '0-25 Years': 5,
+      '20-25 Years': 5,
     };
 
     const milestonesToExport = [...availableMilestones].sort((a, b) => {
@@ -432,7 +457,7 @@ export const LifeRoadmapView: React.FC<LifeRoadmapViewProps> = ({
       doc.setFontSize(7.5);
       doc.setTextColor(60, 60, 60);
       doc.text(
-        `Coverage: All Available Horizons (0-5, 5-10, 10-15 Yrs)  |  Active Milestones: ${milestonesToExport.length}  |  ✓ Completed: ${completedCount}  •  ⚡ In-Progress: ${inProgressCount}  •  ⏳ Pending: ${pendingCount}`,
+        `Coverage: All Available Horizons (0-5, 0-10, 0-15 Yrs)  |  Active Milestones: ${milestonesToExport.length}  |  ✓ Completed: ${completedCount}  •  ⚡ In-Progress: ${inProgressCount}  •  ⏳ Pending: ${pendingCount}`,
         17,
         yPos + 9
       );
@@ -441,7 +466,7 @@ export const LifeRoadmapView: React.FC<LifeRoadmapViewProps> = ({
 
       // Render Milestone Cards (Only available milestones in UI)
       milestonesToExport.forEach((m) => {
-        if (m.timeframe === '15-20 Years' || m.timeframe === '20-25 Years' || isMilestoneLocked(m)) return;
+        if (m.timeframe === '0-20 Years' || m.timeframe === '0-25 Years' || m.timeframe === '15-20 Years' || m.timeframe === '20-25 Years' || isMilestoneLocked(m)) return;
         doc.setFont('helvetica', 'normal');
         doc.setFontSize(7.5);
 
@@ -778,7 +803,7 @@ export const LifeRoadmapView: React.FC<LifeRoadmapViewProps> = ({
               </p>
             </div>
           </div>
-        ) : selectedHorizon === '15-20 Years' || selectedHorizon === '20-25 Years' ? (
+        ) : selectedHorizon === '0-20 Years' || selectedHorizon === '0-25 Years' || selectedHorizon === '15-20 Years' || selectedHorizon === '20-25 Years' ? (
           <div className={`relative border border-[#C9A050]/40 rounded-xl p-8 sm:p-12 text-center shadow-xl space-y-5 flex flex-col items-center justify-center min-h-[300px] ${
             theme === 'dark' ? 'bg-[#141418]' : 'bg-white'
           }`}>
