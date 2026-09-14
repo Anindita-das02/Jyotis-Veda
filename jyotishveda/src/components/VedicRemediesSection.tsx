@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sun, ShieldCheck, Flame, Heart, Sparkles, Copy, Check, Clock, Compass, Gem, ChevronRight, MessageSquareText } from 'lucide-react';
+import { Sun, ShieldCheck, Flame, Heart, Sparkles, Copy, Check, Clock, Compass, Gem, ChevronRight } from 'lucide-react';
 
 interface VedicRemediesSectionProps {
   theme: 'light' | 'dark';
@@ -132,10 +132,10 @@ export const VedicRemediesSection: React.FC<VedicRemediesSectionProps> = ({
   onAskAI,
   onExploreMore
 }) => {
-  const [selectedRemedyId, setSelectedRemedyId] = useState<string>(HARDCODED_REMEDIES[0].id);
+  const [selectedRemedyId, setSelectedRemedyId] = useState<string | null>(null);
   const [copiedMantraId, setCopiedMantraId] = useState<string | null>(null);
 
-  const activeRemedy = HARDCODED_REMEDIES.find(r => r.id === selectedRemedyId) || HARDCODED_REMEDIES[0];
+  const activeRemedy = HARDCODED_REMEDIES.find(r => r.id === selectedRemedyId) || null;
 
   const handleCopyMantra = (id: string, text: string) => {
     navigator.clipboard.writeText(text);
@@ -177,7 +177,7 @@ export const VedicRemediesSection: React.FC<VedicRemediesSectionProps> = ({
               key={remedy.id}
               whileHover={{ y: -5 }}
               transition={{ duration: 0.25 }}
-              onClick={() => setSelectedRemedyId(remedy.id)}
+              onClick={() => setSelectedRemedyId(prev => prev === remedy.id ? null : remedy.id)}
               className={`relative rounded-3xl p-6 cursor-pointer transition-all duration-300 flex flex-col justify-between overflow-hidden border ${
                 isSelected
                   ? 'border-[#C9A050] shadow-[0_0_30px_rgba(201,160,80,0.25)] ring-1 ring-[#C9A050]'
@@ -260,18 +260,19 @@ export const VedicRemediesSection: React.FC<VedicRemediesSectionProps> = ({
 
       {/* Expanded Detailed Showcase for the Selected Remedy */}
       <AnimatePresence mode="wait">
-        <motion.div
-          key={activeRemedy.id}
-          initial={{ opacity: 0, y: 15 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -15 }}
-          transition={{ duration: 0.3 }}
-          className={`rounded-3xl p-6 sm:p-8 lg:p-10 border relative overflow-hidden backdrop-blur-md ${
-            theme === 'dark'
-              ? 'bg-gradient-to-br from-[#18181F]/95 via-[#131317]/95 to-[#0D0D0F]/95 border-[#C9A050]/30 shadow-[0_0_40px_rgba(0,0,0,0.8)]'
-              : 'bg-gradient-to-br from-white/95 via-[#FBF9F4]/95 to-[#F5EFE4]/95 border-[#C9A050]/40 shadow-xl'
-          }`}
-        >
+        {activeRemedy && (
+          <motion.div
+            key={activeRemedy.id}
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -15 }}
+            transition={{ duration: 0.3 }}
+            className={`rounded-3xl p-6 sm:p-8 lg:p-10 border relative overflow-hidden backdrop-blur-md ${
+              theme === 'dark'
+                ? 'bg-gradient-to-br from-[#18181F]/95 via-[#131317]/95 to-[#0D0D0F]/95 border-[#C9A050]/30 shadow-[0_0_40px_rgba(0,0,0,0.8)]'
+                : 'bg-gradient-to-br from-white/95 via-[#FBF9F4]/95 to-[#F5EFE4]/95 border-[#C9A050]/40 shadow-xl'
+            }`}
+          >
           {/* Top Info Bar */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
             {/* Left Column: Mantra, Meaning & Cosmic Meta (7 cols) */}
@@ -441,25 +442,10 @@ export const VedicRemediesSection: React.FC<VedicRemediesSectionProps> = ({
                   ))}
                 </div>
               </div>
-
-              {/* Interactive AI Query Action Button */}
-              {onAskAI && (
-                <button
-                  onClick={() =>
-                    onAskAI(
-                      activeRemedy.title,
-                      `Pranam Daivajna. Please explain how to properly perform the "${activeRemedy.title}" for my birth chart, and what specific precautions I should observe.`
-                    )
-                  }
-                  className="w-full py-3.5 px-5 rounded-2xl bg-gradient-to-r from-[#C9A050] to-[#8C6B28] text-white font-bold text-xs hover:from-[#D4AF37] hover:to-[#A37B2F] transition-all cursor-pointer shadow-[0_0_20px_rgba(201,160,80,0.3)] hover:shadow-[0_0_25px_rgba(201,160,80,0.5)] flex items-center justify-center space-x-2"
-                >
-                  <MessageSquareText className="w-4 h-4" />
-                  <span>Consult Daivajna About This Remedy</span>
-                </button>
-              )}
             </div>
           </div>
         </motion.div>
+        )}
       </AnimatePresence>
     </section>
   );
