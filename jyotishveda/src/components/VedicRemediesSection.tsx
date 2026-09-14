@@ -11,7 +11,6 @@ interface VedicRemediesSectionProps {
 interface RemedyItem {
   id: string;
   title: string;
-  sanskritTitle: string;
   graha: string;
   deity: string;
   day: string;
@@ -22,7 +21,6 @@ interface RemedyItem {
   accentColor: string;
   tag: string;
   purpose: string;
-  mantraSanskrit: string;
   mantraEnglish: string;
   mantraCount: string;
   vidhi: string[];
@@ -34,7 +32,6 @@ const HARDCODED_REMEDIES: RemedyItem[] = [
   {
     id: 'surya-arghya',
     title: 'Surya Arghya & Gayatri Shanti',
-    sanskritTitle: 'सूर्य अर्घ्य एवं गायत्री शान्ति',
     graha: 'Sun (Surya Deva)',
     deity: 'Lord Surya Narayana',
     day: 'Sunday (Ravivar)',
@@ -45,7 +42,6 @@ const HARDCODED_REMEDIES: RemedyItem[] = [
     accentColor: '#E65100',
     tag: 'Vitality & Career',
     purpose: 'Dispels career blockages, enhances leadership charisma, restores physical stamina, and strengthens fatherly karmic bonds.',
-    mantraSanskrit: 'ॐ ह्रां ह्रीं ह्रौं सः सूर्याय नमः ॥',
     mantraEnglish: 'Om Hram Hreem Hroum Sah Suryaya Namaha',
     mantraCount: '11 or 108 Chants at Sunrise',
     vidhi: [
@@ -60,7 +56,6 @@ const HARDCODED_REMEDIES: RemedyItem[] = [
   {
     id: 'maha-mrityunjaya',
     title: 'Maha Mrityunjaya Japa Shield',
-    sanskritTitle: 'महामृत्युंजय मन्त्र कवच',
     graha: 'Moon & Saturn (Chandra-Shani)',
     deity: 'Lord Shiva (Mahadeva)',
     day: 'Monday (Somvar) & Pradosham',
@@ -71,7 +66,6 @@ const HARDCODED_REMEDIES: RemedyItem[] = [
     accentColor: '#0284C7',
     tag: 'Longevity & Healing',
     purpose: 'Neutralizes severe planetary afflictions (Nadi Dosha, Maraka dashas), eases anxiety, promotes emotional serenity, and grants profound health recovery.',
-    mantraSanskrit: 'ॐ त्र्यम्बकं यजामहे सुगन्धिं पुष्टिवर्धनम् ।\nउर्वारुकमिव बन्धनान् मृत्योर्मुक्षीय मामृतात् ॥',
     mantraEnglish: 'Om Tryambakam Yajamahe Sugandhim Pushti-Vardhanam | Urvarukamiva Bandhanan Mrityor Mukshiya Mamritat',
     mantraCount: '108 Chants with Rudraksha Mala',
     vidhi: [
@@ -86,7 +80,6 @@ const HARDCODED_REMEDIES: RemedyItem[] = [
   {
     id: 'mangal-shanti',
     title: 'Hanuman Chalisa & Kuja Nivaran',
-    sanskritTitle: 'मंगल शान्ति एवं कुज दोष शमन',
     graha: 'Mars (Mangala / Kuja)',
     deity: 'Sri Hanuman & Kartikeya',
     day: 'Tuesday (Mangalwar)',
@@ -97,7 +90,6 @@ const HARDCODED_REMEDIES: RemedyItem[] = [
     accentColor: '#DC2626',
     tag: 'Manglik & Relationship Peace',
     purpose: 'Pacifies intense Manglik (Kuja) Dosha, mitigates marital friction, converts destructive anger into noble bravery, and alleviates ancestral debts (Rina Mukti).',
-    mantraSanskrit: 'ॐ क्रां क्रीं क्रौं सः भौमाय नमः ॥',
     mantraEnglish: 'Om Kram Kreem Kroum Sah Bhaumaya Namaha',
     mantraCount: '21 Chants or 1 Hanuman Chalisa Recitation',
     vidhi: [
@@ -112,7 +104,6 @@ const HARDCODED_REMEDIES: RemedyItem[] = [
   {
     id: 'shukra-suktam',
     title: 'Shri Suktam & Venus Preeti Upaya',
-    sanskritTitle: 'श्री सूक्तम् एवं शुक्र प्रीति साधना',
     graha: 'Venus (Shukra Dev)',
     deity: 'Maha Lakshmi & Shukracharya',
     day: 'Friday (Shukrawar)',
@@ -123,7 +114,6 @@ const HARDCODED_REMEDIES: RemedyItem[] = [
     accentColor: '#D97706',
     tag: 'Love, Beauty & Abundance',
     purpose: 'Cultivates unconditional romantic tenderness, dissolves financial bottlenecks, enhances aesthetic creativity, and attracts auspicious Lakshmi energy.',
-    mantraSanskrit: 'ॐ शुं शुक्राय नमः ॥',
     mantraEnglish: 'Om Shum Shukraya Namaha',
     mantraCount: '16 or 108 Chants with Sphatik Mala',
     vidhi: [
@@ -161,7 +151,7 @@ export const VedicRemediesSection: React.FC<VedicRemediesSectionProps> = ({
       <div className="text-center max-w-3xl mx-auto mb-12">
         <div className="inline-flex items-center space-x-2 px-4 py-1.5 rounded-full bg-gradient-to-r from-[#C9A050]/20 to-transparent border border-[#C9A050]/30 text-[#C9A050] text-[10px] sm:text-xs font-bold uppercase tracking-widest mb-4 backdrop-blur-md shadow-[0_0_15px_rgba(201,160,80,0.15)]">
           <Sparkles className="w-4 h-4 text-[#C9A050]" />
-          <span>दैवज्ञ वैदिक शान्ति • Time-Tested Vedic Upayas</span>
+          <span>Time-Tested Vedic Upayas & Remedies</span>
         </div>
 
         <h3 className="text-3xl sm:text-4xl lg:text-5xl font-serif font-bold tracking-tight mb-4">
@@ -230,11 +220,8 @@ export const VedicRemediesSection: React.FC<VedicRemediesSectionProps> = ({
                   </span>
                 </div>
 
-                {/* Sanskrit & English Titles */}
+                {/* English Title */}
                 <div className="mb-3">
-                  <span className="text-[11px] font-serif text-[#C9A050] tracking-wide block mb-0.5">
-                    {remedy.sanskritTitle}
-                  </span>
                   <h4 className={`text-lg font-serif font-bold leading-snug ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
                     {remedy.title}
                   </h4>
@@ -306,9 +293,8 @@ export const VedicRemediesSection: React.FC<VedicRemediesSectionProps> = ({
                   </span>
                 </div>
 
-                <h4 className="text-2xl sm:text-3xl font-serif font-bold mb-1">
-                  <span className="text-[#C9A050]">{activeRemedy.sanskritTitle}</span> —{' '}
-                  <span className={theme === 'dark' ? 'text-white' : 'text-gray-900'}>{activeRemedy.title}</span>
+                <h4 className={`text-2xl sm:text-3xl font-serif font-bold mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+                  {activeRemedy.title}
                 </h4>
                 <p className={`text-sm leading-relaxed ${theme === 'dark' ? 'text-[#D0CBC0]' : 'text-gray-700'}`}>
                   {activeRemedy.purpose}
@@ -328,7 +314,7 @@ export const VedicRemediesSection: React.FC<VedicRemediesSectionProps> = ({
                   </span>
 
                   <button
-                    onClick={() => handleCopyMantra(activeRemedy.id, `${activeRemedy.mantraSanskrit}\n${activeRemedy.mantraEnglish}`)}
+                    onClick={() => handleCopyMantra(activeRemedy.id, activeRemedy.mantraEnglish)}
                     className="flex items-center space-x-1 text-xs font-semibold px-2.5 py-1 rounded-lg bg-[#C9A050]/15 hover:bg-[#C9A050]/25 text-[#C9A050] transition cursor-pointer"
                     title="Copy Mantra"
                   >
@@ -346,11 +332,7 @@ export const VedicRemediesSection: React.FC<VedicRemediesSectionProps> = ({
                   </button>
                 </div>
 
-                <p className="text-base sm:text-lg font-serif font-semibold text-[#C9A050] tracking-wide whitespace-pre-line mb-2">
-                  {activeRemedy.mantraSanskrit}
-                </p>
-
-                <p className={`text-xs sm:text-sm font-sans italic mb-3 ${theme === 'dark' ? 'text-[#9E9A90]' : 'text-gray-600'}`}>
+                <p className="text-base sm:text-lg font-serif font-semibold text-[#C9A050] tracking-wide whitespace-pre-line mb-3">
                   "{activeRemedy.mantraEnglish}"
                 </p>
 
@@ -448,7 +430,7 @@ export const VedicRemediesSection: React.FC<VedicRemediesSectionProps> = ({
                   onClick={() =>
                     onAskAI(
                       activeRemedy.title,
-                      `Pranam Daivajna. Please explain how to properly perform the "${activeRemedy.title}" (${activeRemedy.sanskritTitle}) for my birth chart, and what specific precautions I should observe.`
+                      `Pranam Daivajna. Please explain how to properly perform the "${activeRemedy.title}" for my birth chart, and what specific precautions I should observe.`
                     )
                   }
                   className="w-full py-3.5 px-5 rounded-2xl bg-gradient-to-r from-[#C9A050] to-[#8C6B28] text-white font-bold text-xs hover:from-[#D4AF37] hover:to-[#A37B2F] transition-all cursor-pointer shadow-[0_0_20px_rgba(201,160,80,0.3)] hover:shadow-[0_0_25px_rgba(201,160,80,0.5)] flex items-center justify-center space-x-2"
