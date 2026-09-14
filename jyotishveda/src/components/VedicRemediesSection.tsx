@@ -454,7 +454,7 @@ export const VedicRemediesSection: React.FC<VedicRemediesSectionProps> = ({
                   className="w-full py-3.5 px-5 rounded-2xl bg-gradient-to-r from-[#C9A050] to-[#8C6B28] text-white font-bold text-xs hover:from-[#D4AF37] hover:to-[#A37B2F] transition-all cursor-pointer shadow-[0_0_20px_rgba(201,160,80,0.3)] hover:shadow-[0_0_25px_rgba(201,160,80,0.5)] flex items-center justify-center space-x-2"
                 >
                   <MessageSquareText className="w-4 h-4" />
-                  <span>Consult Daivajna AI About This Remedy</span>
+                  <span>Consult Daivajna About This Remedy</span>
                 </button>
               )}
             </div>

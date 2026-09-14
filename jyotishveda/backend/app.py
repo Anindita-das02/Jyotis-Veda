@@ -30,7 +30,7 @@ CORS(app)
 # 🌍 LANDING PAGE APIs (Publicly Accessible)
 # ==========================================
 
-# 1. Ask Jyotish AI Chatbot (Landing Page)
+# 1. Ask Jyotish Chatbot (Landing Page)
 @app.route("/api/public-chat", methods=["POST"])
 def public_chat():
     return landing_chat_controller.public_chat()

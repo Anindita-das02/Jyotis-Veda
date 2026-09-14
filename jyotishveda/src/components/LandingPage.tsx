@@ -184,7 +184,6 @@ export function LandingPage({
     } catch (err) {
       // Client-side Fallback
       setTimeout(() => {
-        const lower = userText.toLowerCase();
         let reply = "";
         
         if (msgCount >= 2) {
@@ -193,23 +192,69 @@ export function LandingPage({
           return;
         }
 
-        // 1. Date Detection
-        const dateMatch = userText.match(/(\d{1,2})[-/.](\d{1,2})[-/.](\d{4})/);
-        if (dateMatch) {
-          const d = dateMatch[1];
-          const m = dateMatch[2];
-          const y = dateMatch[3];
-          const newDob = [parseInt(y), parseInt(m), parseInt(d)];
+        // 1. Date Detection (Supports DD-MM-YYYY, YYYY-MM-DD, 15 Aug 1995, etc.)
+        const monthsMap: Record<string, number> = {
+          jan: 1, january: 1, feb: 2, february: 2, mar: 3, march: 3, apr: 4, april: 4,
+          may: 5, jun: 6, june: 6, jul: 7, july: 7, aug: 8, august: 8, sep: 9, september: 9,
+          oct: 10, october: 10, nov: 11, november: 11, dec: 12, december: 12
+        };
+
+        let detectedD = 0, detectedM = 0, detectedY = 0;
+        const lower = userText.toLowerCase();
+
+        const matchNamed = lower.match(/(\b\d{1,2})(?:st|nd|rd|th)?[\s\-_,]+([a-z]{3,9})[\s\-_,]+(\d{4}\b)/);
+        if (matchNamed) {
+          detectedD = parseInt(matchNamed[1]);
+          const mStr = matchNamed[2];
+          detectedY = parseInt(matchNamed[3]);
+          for (const [k, v] of Object.entries(monthsMap)) {
+            if (mStr.startsWith(k)) {
+              detectedM = v;
+              break;
+            }
+          }
+        }
+
+        if (!detectedD) {
+          const matchNum = userText.match(/(\b\d{1,2})[-/.\s](\d{1,2})[-/.\s](\d{4}\b)/);
+          if (matchNum) {
+            let d = parseInt(matchNum[1]);
+            let m = parseInt(matchNum[2]);
+            let y = parseInt(matchNum[3]);
+            if (d > 12 && m <= 12) {
+              detectedD = d; detectedM = m; detectedY = y;
+            } else if (m > 12 && d <= 12) {
+              detectedD = m; detectedM = d; detectedY = y;
+            } else {
+              detectedD = d; detectedM = m; detectedY = y;
+            }
+          }
+        }
+
+        if (!detectedD) {
+          const matchIso = userText.match(/(\b\d{4})[-/.\s](\d{1,2})[-/.\s](\d{1,2}\b)/);
+          if (matchIso) {
+            detectedY = parseInt(matchIso[1]);
+            detectedM = parseInt(matchIso[2]);
+            detectedD = parseInt(matchIso[3]);
+          }
+        }
+
+        if (detectedD && detectedM && detectedY) {
+          const newDob = [detectedY, detectedM, detectedD];
           setSavedDob(newDob);
           
-          const year = parseInt(y);
-          const month = parseInt(m);
-          const day = parseInt(d);
-          const digits = `${year}${month < 10 ? '0' + month : month}${day < 10 ? '0' + day : day}`.split('').map(Number);
+          const digits = `${detectedY}${detectedM < 10 ? '0' + detectedM : detectedM}${detectedD < 10 ? '0' + detectedD : detectedD}`.split('').map(Number);
           let lp = digits.reduce((a, b) => a + b, 0);
           while (lp > 9 && lp !== 11 && lp !== 22 && lp !== 33) {
             lp = String(lp).split('').map(Number).reduce((a, b) => a + b, 0);
           }
+
+          let mulank = String(detectedD).split('').map(Number).reduce((a, b) => a + b, 0);
+          while (mulank > 9) {
+            mulank = String(mulank).split('').map(Number).reduce((a, b) => a + b, 0);
+          }
+
           const signNames: [number, number, string][] = [
             [1, 20, "Makara (Capricorn)"], [2, 19, "Kumbha (Aquarius)"],
             [3, 20, "Meena (Pisces)"], [4, 20, "Mesha (Aries)"],
@@ -221,32 +266,29 @@ export function LandingPage({
           ];
           let detectedSign = "Karka (Cancer)";
           for (const [sm, sd, sname] of signNames) {
-            if (month < sm || (month === sm && day <= sd)) {
+            if (detectedM < sm || (detectedM === sm && detectedD <= sd)) {
               detectedSign = sname;
               break;
             }
           }
-          const planetMap: Record<number, string> = {
-            1: "Surya Dev (Sun)",
-            2: "Chandra Dev (Moon)",
-            3: "Devaguru Brihaspati (Jupiter)",
-            4: "Rahu Dev",
-            5: "Budha Dev (Mercury)",
-            6: "Shukra Dev (Venus)",
-            7: "Ketu Dev",
-            8: "Shani Dev (Saturn)",
-            9: "Mangal Dev (Mars)",
-            11: "Master Number 11",
-            22: "Master Number 22",
-            33: "Master Number 33"
-          };
-          const rulingPlanet = planetMap[lp] || "Devaguru Brihaspati (Jupiter)";
 
-          reply = `🕉️ **Kalyan Ho! Detailed Janma Kundli Analysis (${d}-${m}-${y})**:\n\nYour chart aligns with **${detectedSign}**, governed by the planetary grace of **${rulingPlanet}** (Life Path **${lp}**).`;
-        } else if (!savedDob && (lower.includes('career') || lower.includes('job') || lower.includes('future') || lower.includes('details'))) {
-          reply = `Ayushman Bhava! To look into your Janma Kundli and reveal the precise planetary alignments for your query, please share your **Date of Birth (DD-MM-YYYY)** and **Birth Time**.`;
+          const traitsMap: Record<number, { planet: string; gems: string; color: string; day: string }> = {
+            1: { planet: "Surya Dev (Sun)", gems: "Ruby (Manik) & Red Garnet", color: "Golden Amber & Saffron", day: "Ravivar (Sunday)" },
+            2: { planet: "Chandra Dev (Moon)", gems: "Natural Pearl (Moti) & Moonstone", color: "Silvery White & Milk Cream", day: "Somvar (Monday)" },
+            3: { planet: "Devaguru Brihaspati (Jupiter)", gems: "Yellow Sapphire (Pukhraj) & Citrine", color: "Golden Yellow & Saffron", day: "Guruvar (Thursday)" },
+            4: { planet: "Rahu Dev", gems: "Hessonite Garnet (Gomed)", color: "Electric Blue & Charcoal", day: "Shanivar (Saturday)" },
+            5: { planet: "Budha Dev (Mercury)", gems: "Emerald (Panna) & Peridot", color: "Emerald Green & Light Mint", day: "Budhvar (Wednesday)" },
+            6: { planet: "Shukra Dev (Venus)", gems: "Diamond / White Zircon & Opal", color: "Diamond White & Soft Rose", day: "Shukravar (Friday)" },
+            7: { planet: "Ketu Dev", gems: "Cat's Eye (Lehsuniya)", color: "Smoky Grey & Earth Brown", day: "Guruvar (Thursday)" },
+            8: { planet: "Shani Dev (Saturn)", gems: "Blue Sapphire (Neelam) & Amethyst", color: "Royal Blue & Navy", day: "Shanivar (Saturday)" },
+            9: { planet: "Mangal Dev (Mars)", gems: "Red Coral (Moonga) & Carnelian", color: "Bright Coral Red & Royal Saffron", day: "Mangalvar (Tuesday)" }
+          };
+
+          const t = traitsMap[mulank] || traitsMap[lp] || traitsMap[1];
+
+          reply = `🕉️ Kalyan Ho! Detailed Janma Kundli Overview (${detectedD < 10 ? '0' + detectedD : detectedD}-${detectedM < 10 ? '0' + detectedM : detectedM}-${detectedY}):\n\n• Zodiac Sign (Janma Rashi): ${detectedSign}\n• Mulank (Root Number): ${mulank} | Life Path: ${lp}\n• Ruling Graha (Planet): ${t.planet}\n• Auspicious Gemstone: ${t.gems}\n• Auspicious Color: ${t.color}\n• Auspicious Day: ${t.day}`;
         } else {
-          reply = `Namaste! I am JyotishVeda, your Vedic Daivajna. Please share your **Date of Birth (DD-MM-YYYY)** and **Birth Time**.`;
+          reply = `Ayushman Bhava! To look into your Janma Kundli and reveal the precise planetary alignments for your query, please share your Date of Birth (DD-MM-YYYY) and Birth Time.`;
         }
 
         setMessages(prev => [...prev, { role: 'assistant', content: reply }]);
@@ -288,7 +330,7 @@ export function LandingPage({
           setMessages(prev => [...prev, { role: 'assistant', content: data.reply }]);
         })
         .catch(() => {
-          setMessages(prev => [...prev, { role: 'assistant', content: "Ayushman Bhava! To reveal the precise planetary alignments for your query, please share your **Date of Birth (DD-MM-YYYY)** and **Birth Time**." }]);
+          setMessages(prev => [...prev, { role: 'assistant', content: "Ayushman Bhava! To reveal the precise planetary alignments for your query, please share your Date of Birth (DD-MM-YYYY) and Birth Time." }]);
         })
         .finally(() => setIsAiThinking(false));
     } catch {
@@ -734,39 +776,69 @@ export function LandingPage({
                 </div>
               </div>
 
-              <div className={`h-[300px] p-3 overflow-y-auto flex flex-col space-y-3 text-xs ${theme === 'dark' ? 'bg-[#0D0D0F]' : 'bg-[#F0ECE1]/50'}`}>
-                {messages.map((m, i) => {
-                  const isLoginPrompt = m.content.includes("Please login to unlock");
-                  return (
-                    <div key={i} className={`flex flex-col ${m.role === 'user' ? 'items-end' : 'items-start'}`}>
-                      <div className={`max-w-[88%] p-2.5 rounded-xl flex items-start space-x-2 shadow-sm ${
-                        m.role === 'user'
-                          ? 'bg-[#C9A050] text-[#0D0D0F] rounded-tr-sm font-medium'
-                          : (theme === 'dark' ? 'bg-[#1A1A1E] text-[#E5E1D8] border border-[#2A2A2E] rounded-tl-sm' : 'bg-[#FFFFFF] text-[#0D0D0F] border border-[#E5E1D8] rounded-tl-sm')
-                      }`}>
-                        {m.role === 'assistant' && <Bot className="w-3.5 h-3.5 mt-0.5 shrink-0 text-[#C9A050]" />}
-                        <div className="flex flex-col space-y-1.5 leading-relaxed">
-                          <span className="whitespace-pre-line">{m.content}</span>
-                          {isLoginPrompt && (
-                            <button
-                              onClick={() => {
-                                setIsChatOpen(false);
-                                if (authUser && onGoToDashboard) {
-                                  onGoToDashboard();
-                                } else {
-                                  onLoginClick();
-                                }
-                              }}
-                              className="mt-1 py-1.5 px-3 rounded-lg bg-[#C9A050] hover:bg-[#D4AF37] text-[#0D0D0F] font-bold text-xs transition shadow-sm cursor-pointer flex items-center justify-center space-x-1"
-                            >
-                              <span>{authUser ? 'Go to Kundli Dashboard' : 'Log In to Continue'}</span>
-                            </button>
-                          )}
+              <div className={`h-[280px] p-3 overflow-y-auto flex flex-col space-y-3 text-xs ${theme === 'dark' ? 'bg-[#0D0D0F]' : 'bg-[#F0ECE1]/50'}`}>
+                {messages
+                  .filter(m => m.content.trim() !== "Please login to unlock deep analysis and detailed celestial wisdom.")
+                  .map((m, i) => {
+                    return (
+                      <div key={i} className={`flex flex-col ${m.role === 'user' ? 'items-end' : 'items-start'}`}>
+                        <div className={`max-w-[88%] p-2.5 rounded-xl flex items-start space-x-2 shadow-sm ${
+                          m.role === 'user'
+                            ? 'bg-[#C9A050] text-[#0D0D0F] rounded-tr-sm font-medium'
+                            : (theme === 'dark' ? 'bg-[#1A1A1E] text-[#E5E1D8] border border-[#2A2A2E] rounded-tl-sm' : 'bg-[#FFFFFF] text-[#0D0D0F] border border-[#E5E1D8] rounded-tl-sm')
+                        }`}>
+                          {m.role === 'assistant' && <Bot className="w-3.5 h-3.5 mt-0.5 shrink-0 text-[#C9A050]" />}
+                          <div className="flex flex-col space-y-1.5 leading-relaxed w-full">
+                            {(() => {
+                              // Strip all asterisks (*) and any embedded login prompt from message bubble
+                              let cleanContent = m.content.replace(/\*/g, '');
+                              cleanContent = cleanContent.replace(/Please login to unlock deep analysis and detailed celestial wisdom\./g, '').trim();
+                              const lines = cleanContent.split('\n');
+
+                              return (
+                                <div className="flex flex-col space-y-1">
+                                  {lines.map((line, idx) => {
+                                    const trimmed = line.trim();
+                                    if (!trimmed) return <div key={idx} className="h-0.5" />;
+
+                                    // Bullet point lines
+                                    if (trimmed.startsWith('•')) {
+                                      const colonIdx = trimmed.indexOf(':');
+                                      if (colonIdx !== -1) {
+                                        const label = trimmed.substring(0, colonIdx + 1);
+                                        const val = trimmed.substring(colonIdx + 1);
+                                        return (
+                                          <div key={idx} className="flex flex-wrap items-baseline gap-1 pl-1">
+                                            <span className="font-semibold text-[#C9A050] dark:text-[#E5B869]">{label}</span>
+                                            <span className="font-medium text-current">{val}</span>
+                                          </div>
+                                        );
+                                      }
+                                    }
+
+                                    // Header line like Kalyan Ho! or Overview
+                                    if (trimmed.includes('Kalyan Ho!') || trimmed.includes('Janma Kundli Overview')) {
+                                      return (
+                                        <div key={idx} className="font-semibold text-xs mb-1 text-[#C9A050] dark:text-[#E5B869]">
+                                          {trimmed}
+                                        </div>
+                                      );
+                                    }
+
+                                    return (
+                                      <div key={idx} className="leading-relaxed">
+                                        {trimmed}
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              );
+                            })()}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })}
 
                 {isAiThinking && (
                   <div className="flex items-center space-x-1.5 p-2 rounded-xl bg-black/5 dark:bg-white/5 text-[11px] text-[#C9A050] w-fit">
@@ -776,6 +848,36 @@ export function LandingPage({
                 )}
                 <div ref={chatEndRef} />
               </div>
+
+              {/* Dedicated Separate Login Gate Section */}
+              {(savedDob || msgCount >= 2) && (
+                <div className={`p-2.5 mx-3 my-1.5 rounded-xl border flex flex-col space-y-2 shadow-sm ${
+                  theme === 'dark'
+                    ? 'bg-[#18181D] border-[#C9A050]/40 text-[#E5E1D8]'
+                    : 'bg-[#FAF7F0] border-[#C9A050]/40 text-[#0D0D0F]'
+                }`}>
+                  <div className="flex items-start space-x-2">
+                    <Lock className="w-3.5 h-3.5 text-[#C9A050] mt-0.5 shrink-0" />
+                    <p className="text-[11px] font-medium leading-relaxed">
+                      Please login to unlock deep analysis and detailed celestial wisdom.
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => {
+                      setIsChatOpen(false);
+                      if (authUser && onGoToDashboard) {
+                        onGoToDashboard();
+                      } else {
+                        onLoginClick();
+                      }
+                    }}
+                    className="w-full py-1.5 px-3 rounded-lg bg-[#C9A050] hover:bg-[#D4AF37] text-[#0D0D0F] font-bold text-xs transition shadow-sm cursor-pointer flex items-center justify-center space-x-1"
+                  >
+                    <span>{authUser ? 'Go to Kundli Dashboard' : 'Log In to Continue'}</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              )}
 
               <div className={`p-3 border-t flex flex-col ${theme === 'dark' ? 'bg-[#141418] border-[#2A2A2E]' : 'bg-[#FFFFFF] border-[#E5E1D8]'}`}>
                 <div className="flex items-center space-x-2">
