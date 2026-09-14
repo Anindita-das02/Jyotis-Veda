@@ -275,7 +275,7 @@ export const VedicRemediesSection: React.FC<VedicRemediesSectionProps> = ({
           {/* Top Info Bar */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
             {/* Left Column: Mantra, Meaning & Cosmic Meta (7 cols) */}
-            <div className="lg:col-span-7 flex flex-col space-y-6 text-left">
+            <div className="lg:col-span-7 flex flex-col space-y-6 text-left min-w-0">
               <div>
                 <div className="flex flex-wrap items-center gap-2 mb-2">
                   <span className="px-3 py-1 rounded-full bg-[#C9A050]/20 text-[#C9A050] border border-[#C9A050]/30 text-xs font-bold uppercase tracking-wider">
@@ -343,41 +343,59 @@ export const VedicRemediesSection: React.FC<VedicRemediesSectionProps> = ({
               </div>
 
               {/* Meta Badges: Best Time, Direction & Gemstone */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div className={`p-3 rounded-xl border flex items-center space-x-2.5 ${
-                  theme === 'dark' ? 'bg-[#15151A] border-[#2A2A2E]' : 'bg-white border-gray-200'
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 w-full">
+                <div className={`p-3 rounded-xl border flex items-start space-x-2.5 min-w-0 flex-1 ${
+                  theme === 'dark' ? 'bg-[#15151A] border-[#2A2A2E]' : 'bg-white border-gray-200 shadow-sm'
                 }`}>
-                  <Clock className="w-4 h-4 text-[#C9A050] shrink-0" />
-                  <div className="flex flex-col">
-                    <span className="text-[9px] uppercase tracking-wider text-[#9E9A90]">Best Muhurat</span>
-                    <span className="text-xs font-medium">{activeRemedy.bestTime}</span>
+                  <Clock className="w-4 h-4 text-[#C9A050] shrink-0 mt-0.5" />
+                  <div className="flex flex-col min-w-0 flex-1">
+                    <span className="text-[9px] uppercase tracking-wider text-[#9E9A90] font-semibold mb-0.5">Best Muhurat</span>
+                    <span
+                      className={`text-[11px] font-medium leading-snug break-words ${
+                        theme === 'dark' ? 'text-[#E5E1D8]' : 'text-gray-800'
+                      }`}
+                    >
+                      {activeRemedy.bestTime}
+                    </span>
                   </div>
                 </div>
 
-                <div className={`p-3 rounded-xl border flex items-center space-x-2.5 ${
-                  theme === 'dark' ? 'bg-[#15151A] border-[#2A2A2E]' : 'bg-white border-gray-200'
+                <div className={`p-3 rounded-xl border flex items-start space-x-2.5 min-w-0 flex-1 ${
+                  theme === 'dark' ? 'bg-[#15151A] border-[#2A2A2E]' : 'bg-white border-gray-200 shadow-sm'
                 }`}>
-                  <Compass className="w-4 h-4 text-[#C9A050] shrink-0" />
-                  <div className="flex flex-col">
-                    <span className="text-[9px] uppercase tracking-wider text-[#9E9A90]">Facing Direction</span>
-                    <span className="text-xs font-medium">{activeRemedy.direction}</span>
+                  <Compass className="w-4 h-4 text-[#C9A050] shrink-0 mt-0.5" />
+                  <div className="flex flex-col min-w-0 flex-1">
+                    <span className="text-[9px] uppercase tracking-wider text-[#9E9A90] font-semibold mb-0.5">Facing Direction</span>
+                    <span
+                      className={`text-[11px] font-medium leading-snug break-words ${
+                        theme === 'dark' ? 'text-[#E5E1D8]' : 'text-gray-800'
+                      }`}
+                    >
+                      {activeRemedy.direction}
+                    </span>
                   </div>
                 </div>
 
-                <div className={`p-3 rounded-xl border flex items-center space-x-2.5 ${
-                  theme === 'dark' ? 'bg-[#15151A] border-[#2A2A2E]' : 'bg-white border-gray-200'
+                <div className={`p-3 rounded-xl border flex items-start space-x-2.5 min-w-0 flex-1 ${
+                  theme === 'dark' ? 'bg-[#15151A] border-[#2A2A2E]' : 'bg-white border-gray-200 shadow-sm'
                 }`}>
-                  <Gem className="w-4 h-4 text-[#C9A050] shrink-0" />
-                  <div className="flex flex-col">
-                    <span className="text-[9px] uppercase tracking-wider text-[#9E9A90]">Astro Karaka</span>
-                    <span className="text-xs font-medium truncate">{activeRemedy.gemstone}</span>
+                  <Gem className="w-4 h-4 text-[#C9A050] shrink-0 mt-0.5" />
+                  <div className="flex flex-col min-w-0 flex-1">
+                    <span className="text-[9px] uppercase tracking-wider text-[#9E9A90] font-semibold mb-0.5">Astro Karaka</span>
+                    <span
+                      className={`text-[11px] font-medium leading-snug break-words ${
+                        theme === 'dark' ? 'text-[#E5E1D8]' : 'text-gray-800'
+                      }`}
+                    >
+                      {activeRemedy.gemstone}
+                    </span>
                   </div>
                 </div>
               </div>
             </div>
 
             {/* Right Column: Step-by-Step Vidhi & Offerings (5 cols) */}
-            <div className="lg:col-span-5 flex flex-col space-y-5 text-left">
+            <div className="lg:col-span-5 flex flex-col space-y-5 text-left min-w-0">
               <div className={`p-6 rounded-2xl border ${
                 theme === 'dark' ? 'bg-[#141419] border-[#2A2A2E]' : 'bg-white border-gray-200 shadow-sm'
               }`}>

@@ -1287,6 +1287,110 @@ export const DEFAULT_ROADMAP = [
     remedialAction: 'Perform annual Kuladevata Puja and family havan.',
     status: 'Pending' as const,
   },
+
+  // --- 15-20 YEARS (Legacy Building & Dharmic Impact) ---
+  {
+    id: 'ms-16',
+    timeframe: '15-20 Years',
+    category: 'Career',
+    title: 'Revered Advisory Stewardship & Institutional Direction',
+    guidance: 'Senior statesman leadership across boardrooms and advisory trusts, guiding institutions with proven wisdom and visionary foresight.',
+    favorableTransits: 'Jupiter in 9th house conferring Guru-Kripa and widespread public honor',
+    remedialAction: 'Mentor underprivileged youth and establish educational endowments.',
+    status: 'Pending' as const,
+  },
+  {
+    id: 'ms-17',
+    timeframe: '15-20 Years',
+    category: 'Wealth',
+    title: 'Multi-Generational Asset Security & Enduring Trusts',
+    guidance: 'Debt-free sovereign asset protection, long-term estate compounding, and high-yield philanthropic trust distribution.',
+    favorableTransits: '2nd and 11th Lords mutually aspecting benefic Venus & Jupiter',
+    remedialAction: 'Perform Annadanam on auspicious Amavasya and Purnima tithis.',
+    status: 'Pending' as const,
+  },
+  {
+    id: 'ms-18',
+    timeframe: '15-20 Years',
+    category: 'Relationships',
+    title: 'Dynasty Celebration, Ancestral Honour & Domestic Peace',
+    guidance: 'Profound familial contentment, celebrating grandchildren milestones, honoring ancestral lineage, and deep domestic tranquility.',
+    favorableTransits: 'Benefic Moon-Venus alignment blessing 4th and 5th house cusps',
+    remedialAction: 'Organize family pilgrimage to sacred ancestral Teerthas.',
+    status: 'Pending' as const,
+  },
+  {
+    id: 'ms-19',
+    timeframe: '15-20 Years',
+    category: 'Health',
+    title: 'Holistic Restorative Wellness & Sattvic Radiance',
+    guidance: 'Mindful physical harmony through gentle walks, Ayurvedic herbal rasayanas, and mental stillness to sustain long-term vitality.',
+    favorableTransits: 'Benefic Sun-Jupiter trines fortifying Lagna prana',
+    remedialAction: 'Practice daily Pranayama and consume copper-charged water at dawn.',
+    status: 'Pending' as const,
+  },
+  {
+    id: 'ms-20',
+    timeframe: '15-20 Years',
+    category: 'Spirituality',
+    title: 'Sacred Dharma Propagation & Temple Endowments',
+    guidance: 'Deep spiritual seva, patronizing sacred Vedic knowledge, and constructing enduring humanitarian or temple foundations.',
+    favorableTransits: 'Ketu in 9th/12th trine awakening transcendental detachment',
+    remedialAction: 'Contribute to Vedic Gurukuls and temple restoration seva.',
+    status: 'Pending' as const,
+  },
+
+  // --- 20-25 YEARS (Wisdom, Fulfillment & Spiritual Liberation) ---
+  {
+    id: 'ms-21',
+    timeframe: '20-25 Years',
+    category: 'Career',
+    title: 'Venerated Elder Statesmanship & Timeless Legacy',
+    guidance: 'Attainment of highest societal reverence, timeless lifetime achievement awards, and philosophical guidance to seekers.',
+    favorableTransits: '10th Lord exalted in Navamsha D9 conferring immortal repute',
+    remedialAction: 'Publish spiritual memoirs or establish charitable memorial funds.',
+    status: 'Pending' as const,
+  },
+  {
+    id: 'ms-22',
+    timeframe: '20-25 Years',
+    category: 'Wealth',
+    title: 'Absolute Financial Sovereignty & Generational Transition',
+    guidance: 'Complete detachment from financial anxieties; flawless generational wealth transfer and self-sustaining philanthropic endowments.',
+    favorableTransits: 'Sovereign Kubera Yoga active across 2nd, 5th, and 9th houses',
+    remedialAction: 'Donate gold, land, or sacred trees (Ashvattha planting).',
+    status: 'Pending' as const,
+  },
+  {
+    id: 'ms-23',
+    timeframe: '20-25 Years',
+    category: 'Relationships',
+    title: 'Widespread Dynasty Blessings & Universal Goodwill',
+    guidance: 'Widespread familial veneration, harmonious domestic serenity, and deep gratitude beholding flourishing multigenerational lineages.',
+    favorableTransits: 'Benefic Jupiter aspect on 1st, 5th, and 9th Trikona houses',
+    remedialAction: 'Host grand family gathering and offer gratitude to family deities.',
+    status: 'Pending' as const,
+  },
+  {
+    id: 'ms-24',
+    timeframe: '20-25 Years',
+    category: 'Health',
+    title: 'Serene Graceful Longevity & Mental Equilibrium',
+    guidance: 'Graceful physical preservation, peaceful mental calmness, and profound inner equilibrium supported by mindful meditation.',
+    favorableTransits: 'Saturnian blessings conferring long and peaceful lifespan',
+    remedialAction: 'Chant Maha Mrityunjaya Mantra daily for universal protection.',
+    status: 'Pending' as const,
+  },
+  {
+    id: 'ms-25',
+    timeframe: '20-25 Years',
+    category: 'Spirituality',
+    title: 'Moksha Orientation, Transcendental Peace & Timeless Bliss',
+    guidance: 'Complete spiritual liberation, deep surrender to Divine Will, samadhi absorption, and boundless transcendental tranquility.',
+    favorableTransits: '12th Lord & Mokshakaraka Ketu conjoined in auspicious bliss',
+    remedialAction: 'Dedicate all karmic fruits to Narayana (Sarvam Sri Krishnarpanamastu).',
+    status: 'Pending' as const,
+  },
 ];
 
 export const generateCustomRoadmap = (profile?: any, chartData?: any): LifeMilestone[] => {
@@ -1419,8 +1523,12 @@ export function calculateKundliMilan(partner1: UserProfile, partner2: UserProfil
   const moon1 = chart1.planets.find((p) => p.name === 'Moon') || chart1.planets[1];
   const moon2 = chart2.planets.find((p) => p.name === 'Moon') || chart2.planets[1];
 
-  const nak1 = NAKSHATRA_ATTRIBUTES[moon1.nakshatra] || NAKSHATRA_ATTRIBUTES['Ashwini'];
-  const nak2 = NAKSHATRA_ATTRIBUTES[moon2.nakshatra] || NAKSHATRA_ATTRIBUTES['Rohini'];
+  const dynNak1 = moon1.nakshatra || getNakshatraFromLongitude(moon1.longitude || 0).name;
+  const dynNak2 = moon2.nakshatra || getNakshatraFromLongitude(moon2.longitude || 0).name;
+  const nak1CleanName = dynNak1.split('(')[0].trim();
+  const nak2CleanName = dynNak2.split('(')[0].trim();
+  const nak1 = NAKSHATRA_ATTRIBUTES[nak1CleanName] || NAKSHATRA_ATTRIBUTES[getNakshatraFromLongitude(moon1.longitude || 0).name];
+  const nak2 = NAKSHATRA_ATTRIBUTES[nak2CleanName] || NAKSHATRA_ATTRIBUTES[getNakshatraFromLongitude(moon2.longitude || 0).name];
 
   const rashi1Idx = moon1.signIndex;
   const rashi2Idx = moon2.signIndex;
@@ -1688,11 +1796,27 @@ export function calculateKundliMilan(partner1: UserProfile, partner2: UserProfil
   const nadi1 = nak1.nadi;
   const nadi2 = nak2.nadi;
   const isSameNadi = nadi1 === nadi2;
+  const pada1 = moon1.pada ?? 1;
+  const pada2 = moon2.pada ?? 1;
 
-  // Nadi Dosha cancellation:
-  // 1. Same Rashi but different Nakshatras
-  // 2. Same Nakshatra but different Pada / different Rashi
-  const isNadiCancelled = isSameNadi && (nak1.index !== nak2.index || rashi1Idx !== rashi2Idx);
+  // Classical Vedic Nadi Dosha Cancellations (Parihara):
+  // 1. Same Rashi, Different Nakshatras (Ekarksha Bhinna Nakshatra)
+  const isSameRashiDiffNak = isSameNadi && rashi1Idx === rashi2Idx && nak1.index !== nak2.index;
+  // 2. Same Nakshatra, Different Rashis (Eka Nakshatra Bhinna Rashi)
+  const isSameNakDiffRashi = isSameNadi && nak1.index === nak2.index && rashi1Idx !== rashi2Idx;
+  // 3. Same Nakshatra, Same Rashi, Different Padas (Charana Bheda)
+  const isSameNakDiffPada = isSameNadi && nak1.index === nak2.index && rashi1Idx === rashi2Idx && pada1 !== pada2;
+
+  const isNadiCancelled = isSameRashiDiffNak || isSameNakDiffRashi || isSameNakDiffPada;
+
+  let nadiCancellationReason = '';
+  if (isSameRashiDiffNak) {
+    nadiCancellationReason = `Same Moon sign (${ZODIAC_SIGNS[rashi1Idx].name}) with different Nakshatras (${moon1.nakshatra} & ${moon2.nakshatra}) cancels Nadi Dosha (Ekarksha Bhinna Nakshatra Parihara).`;
+  } else if (isSameNakDiffRashi) {
+    nadiCancellationReason = `Same Nakshatra (${moon1.nakshatra}) spanning different Moon signs (${ZODIAC_SIGNS[rashi1Idx].name} & ${ZODIAC_SIGNS[rashi2Idx].name}) cancels Nadi Dosha (Eka Nakshatra Bhinna Rashi Parihara).`;
+  } else if (isSameNakDiffPada) {
+    nadiCancellationReason = `Same Nakshatra (${moon1.nakshatra}) with different Charanas/Padas (Pada ${pada1} & Pada ${pada2}) mitigates Nadi Dosha.`;
+  }
 
   let nadiPoints = 0;
   if (!isSameNadi) {
@@ -1716,11 +1840,11 @@ export function calculateKundliMilan(partner1: UserProfile, partner2: UserProfil
     verdict: nadiPoints === 8 ? 'Excellent' : 'Critical',
     status: nadiPoints === 8 ? 'good' : 'critical',
     details:
-      nadiPoints === 8
-        ? isNadiCancelled
-          ? 'Same Nadi cancelled through auspicious nakshatra/rashi variance; ensures genetic vigor and vitality.'
-          : 'Different Nadis (Vata/Pitta/Kapha balance); ideal bio-magnetic sync and strong hereditary longevity.'
-        : `Nadi Dosha detected (${nadi1} Nadi for both); recommended to perform Maha Mrityunjaya Japa & gold/cow charity.`,
+      !isSameNadi
+        ? `Different Nadis (${nadi1} & ${nadi2}) provide optimal bio-magnetic balance (Vata/Pitta/Kapha equilibrium) and strong hereditary vitality.`
+        : isNadiCancelled
+        ? `Nadi Dosha cancelled: ${nadiCancellationReason} Full 8 points awarded.`
+        : `Active Nadi Dosha detected (${nadi1} Nadi for both partners: ${moon1.nakshatra} in ${ZODIAC_SIGNS[rashi1Idx].name} & ${moon2.nakshatra} in ${ZODIAC_SIGNS[rashi2Idx].name}). Recommended to perform Maha Mrityunjaya Japa and remedial charity.`,
   };
 
   const kootas = [
@@ -1972,31 +2096,41 @@ export function calculateKundliMilan(partner1: UserProfile, partner2: UserProfil
 
   // 2. Nadi Dosha Nivaran
   if (nadiPoints === 0 && isSameNadi && !isNadiCancelled) {
-    remedies.push(`Nadi Dosha Nivaran: As both ${p1Name} and ${p2Name} share ${nadi1} Nadi, perform Maha Mrityunjaya Japa (108 chants) and donate warm clothing, grain, or a silver/gold token on auspicious constellation days.`);
+    remedies.push(`Nadi Dosha Nivaran: As both ${p1Name} and ${p2Name} share ${nadi1} Nadi (${moon1.nakshatra} & ${moon2.nakshatra}), perform Maha Mrityunjaya Japa (108 chants daily) and donate warm clothing, grain, or a gold/silver token on auspicious nakshatra days.`);
   }
 
   // 3. Bhakoot Shanti
   if (isBhakootInauspicious && !isBhakootCancelled) {
-    remedies.push(`Bhakoot Shanti: To balance the ${rashi1Name} ↔ ${rashi2Name} (${rashiDiff}/${altDiff}) rashi disposition, recite Vishnu Sahasranama together every Thursday and offer yellow flowers to Lord Brihaspati.`);
+    remedies.push(`Bhakoot Shanti: To balance the ${rashi1Name} ↔ ${rashi2Name} (${rashiDiff}/${altDiff}) rashi disposition, recite Vishnu Sahasranama together every Thursday and offer yellow flowers or gram dal to Lord Brihaspati.`);
   }
 
-  // 4. Graha Maitri (Rashi Lords)
+  // 4. Gana Dosha Shanti
+  if (ganaPoints === 0) {
+    remedies.push(`Gana Dosha Shanti: As ${p1Name} (${gana1} Gana) and ${p2Name} (${gana2} Gana) have temperamental divergence, chant daily Hanuman Chalisa and share sweet dairy offerings on Tuesdays to foster mutual respect.`);
+  }
+
+  // 5. Yoni Hostility Shanti
+  if (yoniPoints === 0) {
+    remedies.push(`Yoni Dosha Shanti: To harmonize instinctual compatibility (${yoni1} vs ${yoni2}), worship Lord Shiva and Goddess Parvati jointly on Shukla Paksha Mondays and offer grain or milk to animals.`);
+  }
+
+  // 6. Graha Maitri (Rashi Lords)
   if (grahaPoints < 3) {
     remedies.push(`Graha Maitri Harmony: Rashi rulers ${lord1} (${p1Name}) & ${lord2} (${p2Name}) benefit from joint Archana at Shiva-Parvati or Radha-Krishna temples on Shukla Paksha Mondays.`);
   }
 
-  // 5. Shukra & Love Harmony
+  // 7. Shukra & Love Harmony
   remedies.push(`Shukra & Preeti Mantra: ${p1Name} & ${p2Name} should chant "Om Shum Shukraya Namaha" (21 times) every Friday to invoke enduring romantic sweetness and Venusian grace.`);
 
-  // 6. Vastu Energy Alignment
+  // 8. Vastu Energy Alignment
   remedies.push(`Ishanya Vastu Remedy: Place energized Rose Quartz crystals or a sacred silver coin in the Northeast (Ishanya) corner of your home to attract marital tranquility and financial growth.`);
 
-  // 7. Auspicious Deep Daan
+  // 9. Auspicious Deep Daan
   remedies.push(`Deep Daan: Light a pure cow ghee lamp facing East during sunset on Thursdays to foster family tranquility and sustained fortune.`);
 
   // DYNAMIC MUHURAT ADVICE
-  const nak1Name = moon1.nakshatra || 'Ashwini';
-  const nak2Name = moon2.nakshatra || 'Rohini';
+  const nak1Name = moon1.nakshatra || getNakshatraFromLongitude(moon1.longitude || 0).name;
+  const nak2Name = moon2.nakshatra || getNakshatraFromLongitude(moon2.longitude || 0).name;
   const auspiciousMuhuratAdvice = `Personalized Vivaha Muhurat for ${p1Name} (${nak1Name} Nakshatra, ${rashi1Name}) & ${p2Name} (${nak2Name} Nakshatra, ${rashi2Name}): Ideal wedding & auspicious partnership dates occur during Shukla Paksha under Rohini, Mrigashira, Magha, Uttara Phalguni, Hasta, Swati, Anuradha, or Revati Nakshatras during Venus (Shukra) or Jupiter (Guru) Hora, avoiding Rikta Tithis (4th, 9th, 14th) and Rahu Kaal.`;
 
   return {
@@ -2014,10 +2148,18 @@ export function calculateKundliMilan(partner1: UserProfile, partner2: UserProfil
     nadiDosha: {
       hasDosha: isSameNadi,
       isCancelled: isNadiCancelled,
-      partner1Nadi: nadi1,
-      partner2Nadi: nadi2,
-      reason: isSameNadi ? (isNadiCancelled ? 'Cancelled by Nakshatra/Rashi variance' : 'Both share same Nadi') : 'Different Nadis',
-      remedy: isSameNadi && !isNadiCancelled ? 'Maha Mrityunjaya Japa and Gold/Cow charity on auspicious constellation days.' : 'No specific remedy required as Nadi is pure.',
+      partner1Nadi: `${nadi1} (${moon1.nakshatra})`,
+      partner2Nadi: `${nadi2} (${moon2.nakshatra})`,
+      reason: !isSameNadi
+        ? `Different Nadis (${nadi1} & ${nadi2}) - Harmonious Genetic Accord`
+        : isNadiCancelled
+        ? nadiCancellationReason
+        : `Both share ${nadi1} Nadi (${moon1.nakshatra} in ${rashi1Name} & ${moon2.nakshatra} in ${rashi2Name}) - Active Nadi Dosha`,
+      remedy: isSameNadi && !isNadiCancelled
+        ? 'Perform Maha Mrityunjaya Japa (108 chants), donate gold/grains, and recite Swasti Suktam on auspicious nakshatra days.'
+        : isSameNadi && isNadiCancelled
+        ? 'Nadi Dosha is cancelled by classical Jyotish parihara. No major dosha remedy required; regular prayers are beneficial.'
+        : 'No specific remedy required as Nadis are naturally distinct and harmonious.',
     },
     bhakootDosha: {
       hasDosha: isBhakootInauspicious,

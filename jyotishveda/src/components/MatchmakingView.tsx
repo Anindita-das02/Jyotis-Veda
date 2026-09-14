@@ -86,17 +86,39 @@ const renderSafeAiText = (val: any): string => {
   if (typeof val === 'string') return val;
   if (typeof val === 'number' || typeof val === 'boolean') return String(val);
   if (typeof val === 'object') {
-    if (val.status) return String(val.status);
     if (val.description) return String(val.description);
     if (val.text) return String(val.text);
     if (val.content) return String(val.content);
+    if (val.status && !val.present && !val.partner1) return String(val.status);
+    if (val.note) return String(val.note);
+    if (val.reason) return String(val.reason);
     if (val.present !== undefined) {
-      return val.present ? `Manglik Dosha Present (${val.status || 'Active'})` : `No Manglik Dosha (${val.status || 'Clean'})`;
+      const p1Status = val.partner1 ? ` (${val.partner1})` : '';
+      const p2Status = val.partner2 ? ` (${val.partner2})` : '';
+      return val.present 
+        ? `Manglik Dosha Present: ${val.partner1 || val.partner2 || 'Active Kuja influence'}. Remedies recommended.`
+        : `No Manglik Dosha: Both charts are clear of Kuja affliction.`;
+    }
+    if (val.partner1 && val.partner2) {
+      return `${val.partner1}. ${val.partner2}.`;
+    }
+    // If it's a koota breakdown object like { varna, vashya, tara... }
+    if (val.varna !== undefined || val.nadi !== undefined || val.yoni !== undefined) {
+      return Object.entries(val)
+        .map(([k, v]) => `${k.charAt(0).toUpperCase() + k.slice(1)}: ${renderSafeAiText(v)}`)
+        .join(' • ');
     }
     if (Array.isArray(val)) {
-      return val.map((v) => (typeof v === 'object' ? JSON.stringify(v) : String(v))).join(', ');
+      return val.map((v) => (typeof v === 'object' ? renderSafeAiText(v) : String(v))).join(', ');
     }
-    return JSON.stringify(val);
+    // Generic object key-value formatter
+    const entries = Object.entries(val).filter(([_, v]) => v !== undefined && v !== null);
+    if (entries.length > 0) {
+      return entries
+        .map(([k, v]) => `${k.replace(/([A-Z])/g, ' $1').trim()}: ${renderSafeAiText(v)}`)
+        .join('. ');
+    }
+    return '';
   }
   return String(val);
 };
@@ -344,6 +366,11 @@ export const MatchmakingView: React.FC<MatchmakingViewProps> = ({
               summary: backendReport.summary ?? result.summary,
               partner1ManglikStatus: (backendReport as any).partner1ManglikStatus ?? (backendReport as any).report?.manglik?.status?.partner1,
               partner2ManglikStatus: (backendReport as any).partner2ManglikStatus ?? (backendReport as any).report?.manglik?.status?.partner2,
+              remedies: (Array.isArray((backendReport as any).remedies) && (backendReport as any).remedies.length > 0)
+                ? (backendReport as any).remedies
+                : (Array.isArray((backendReport as any).report?.remedies) && (backendReport as any).report.remedies.length > 0)
+                ? (backendReport as any).report.remedies
+                : result.remedies,
             } as any;
           }
         } catch (apiErr) {
@@ -1181,7 +1208,10 @@ export const MatchmakingView: React.FC<MatchmakingViewProps> = ({
         doc.setFont('helvetica', 'bold'); doc.setFontSize(7); doc.setTextColor(126, 95, 24);
         doc.text('NADI DOSHA (GENETIC VITALITY)', d2X + 3, y2 + 5.5);
         doc.setFontSize(8); doc.setTextColor(26, 26, 30);
-        doc.text(matchResult.nadiDosha.hasDosha ? 'Dosha Present' : 'No Nadi Dosha', d2X + 3, y2 + 11);
+        const nadiPdfStatus = matchResult.nadiDosha?.hasDosha
+          ? (matchResult.nadiDosha?.isCancelled ? 'Dosha Cancelled (Parihara)' : 'Dosha Present')
+          : 'No Nadi Dosha';
+        doc.text(nadiPdfStatus, d2X + 3, y2 + 11);
         doc.setFont('helvetica', 'normal'); doc.setFontSize(6.5); doc.setTextColor(80, 80, 80);
         const nadiLines = doc.splitTextToSize(sanitize(matchResult.nadiDosha.reason), doshaColW - 6);
         doc.text(nadiLines.slice(0, 4), d2X + 3, y2 + 16);
@@ -1377,8 +1407,8 @@ Manglik (Kuja) Dosha: ${matchResult.manglik.verdict}
 - ${partner2.fullName}: ${matchResult.manglik.partner2.severity} (${matchResult.manglik.partner2.cancellation})
 Explanation: ${matchResult.manglik.explanation}
 
-Nadi Dosha: ${matchResult.nadiDosha.hasDosha ? 'Active' : 'No Dosha'} (${matchResult.nadiDosha.reason})
-Bhakoot Dosha: ${matchResult.bhakootDosha.hasDosha ? 'Active' : 'Harmonious'} (${matchResult.bhakootDosha.reason})
+Nadi Dosha: ${matchResult.nadiDosha?.hasDosha ? (matchResult.nadiDosha?.isCancelled ? 'Cancelled (Parihara)' : 'Active') : 'No Dosha'} (${matchResult.nadiDosha?.reason || ''})
+Bhakoot Dosha: ${matchResult.bhakootDosha?.hasDosha ? (matchResult.bhakootDosha?.isCancelled ? 'Cancelled (Parihara)' : 'Active') : 'Harmonious'} (${matchResult.bhakootDosha?.reason || ''})
 
 -------------------------------------------------------------------
 NUMEROLOGY & ELEMENTAL SYNERGY:
@@ -2264,7 +2294,7 @@ Issued by JyotishVeda Daivajna Astrological Intelligence Engine
                   <strong className={matchResult.nadiDosha?.hasDosha && !matchResult.nadiDosha?.isCancelled ? 'text-rose-400 font-bold' : 'text-[#C9A050] font-bold'}>
                     {matchResult.nadiDosha?.hasDosha
                       ? matchResult.nadiDosha?.isCancelled
-                        ? 'Dosha Cancelled ✓'
+                        ? 'Dosha Cancelled (Parihara) ✓'
                         : 'Active Nadi Dosha ⚠️'
                       : 'No Dosha (Pure Harmony) ✓'}
                   </strong>

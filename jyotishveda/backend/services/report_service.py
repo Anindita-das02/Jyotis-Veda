@@ -886,16 +886,24 @@ def _koota_partner_values(koota):
             p2 = relation
 
     elif key == "nadi":
+        nadi1 = _value(koota, "nadi1", "p1Value", default=None)
+        nadi2 = _value(koota, "nadi2", "p2Value", default=None)
+        if nadi1 and ("Nadi" in str(nadi1) or str(nadi1) in {"Adi", "Madhya", "Antya"}):
+            p1 = nadi1 if "Nadi" in str(nadi1) else f"{nadi1} Nadi"
+        if nadi2 and ("Nadi" in str(nadi2) or str(nadi2) in {"Adi", "Madhya", "Antya"}):
+            p2 = nadi2 if "Nadi" in str(nadi2) else f"{nadi2} Nadi"
 
-        same_nadi = _value(
-            koota,
-            "sameNadi",
-            default=None,
-        )
-
-        if same_nadi is not None:
-            p1 = "Same Nadi" if same_nadi else "Different Nadi"
-            p2 = "Same Nadi" if same_nadi else "Different Nadi"
+        if not p1 or not p2 or p1 == "—" or p2 == "—":
+            same_nadi = _value(
+                koota,
+                "sameNadi",
+                default=None,
+            )
+            if same_nadi is not None:
+                if not p1 or p1 == "—":
+                    p1 = "Same Nadi" if same_nadi else "Different Nadi"
+                if not p2 or p2 == "—":
+                    p2 = "Same Nadi" if same_nadi else "Different Nadi"
 
     return p1, p2
 
@@ -3427,9 +3435,11 @@ def generate_roadmap_report_pdf(payload: dict) -> bytes:
     story = []
 
     profile = payload.get("profile") or {}
-    selected_horizon = (payload.get("selectedHorizon") or "0-5 Years").strip()
+    selected_horizon = (payload.get("selectedHorizon") or "All Horizons (0–25 Years)").strip()
     raw_milestones = payload.get("roadmap") or payload.get("milestones") or []
-    if selected_horizon and selected_horizon.lower() != "all":
+    is_all_horizons = "all" in selected_horizon.lower() or "complete" in selected_horizon.lower() or "25-year" in selected_horizon.lower()
+
+    if not is_all_horizons and selected_horizon:
         milestones = [
             m for m in raw_milestones 
             if (m.get("timeframe") or "").strip() == selected_horizon or
@@ -3471,46 +3481,46 @@ def generate_roadmap_report_pdf(payload: dict) -> bytes:
     # 1. Header Title & Brand
     story.append(
         _build_brand_header(
-            f"25-YEAR VEDIC DESTINY ROADMAP & LIFE BLUEPRINT ({selected_horizon})",
-            f"Synthesized through Vimshottari Mahadasha/Antardasha cycles & planetary transits ({datetime.utcnow().year} – {datetime.utcnow().year + 25})",
+            "VEDIC DESTINY ROADMAP & LIFE BLUEPRINT (AVAILABLE HORIZONS: 0–15 YEARS)",
+            f"Synthesized through Vimshottari Mahadasha/Antardasha cycles & planetary transits ({datetime.utcnow().year} – {datetime.utcnow().year + 15})",
             styles
         )
     )
     story.append(Spacer(1, 3 * mm))
 
-    # 2. Client Particulars Box
-    client_box = [
+    # 2. Client & Astro Particulars Box
+    astro_info_box = [
         [
             Paragraph(
                 f"<font size=7.5 color='#7E5F18'><b>CLIENT &amp; NATAL PARTICULARS</b></font><br/>"
-                f"<font size=10 color='#1A1A1E'><b>{p_name}</b></font><br/>"
-                f"<font size=7.2 color='#555555'>Born: {p_dob}{(' at ' + p_tob) if p_tob else ''} | {p_place}</font><br/>"
-                f"<font size=7.2 color='#555555'>Active Dasha: <b>{active_dasha}</b></font>",
+                f"<font size=10.5 color='#1A1A1E'><b>{_pdf_text(p_name)}</b></font><br/>"
+                f"<font size=7.2 color='#505050'>Born: {_pdf_text(p_dob)}{f' at {_pdf_text(p_tob)}' if p_tob else ''} | {_pdf_text(p_place)}</font><br/>"
+                f"<font size=7.2 color='#505050'>Active Dasha: <b>{active_dasha}</b></font>",
                 styles["JVBody"]
             ),
             Paragraph(
                 f"<font size=7.5 color='#7E5F18'><b>CELESTIAL &amp; NUMEROLOGICAL COORDINATES</b></font><br/>"
-                f"<font size=8.5 color='#1A1A1E'><b>Lagna: {asc_sign} | Rashi: {moon_sign}</b></font><br/>"
-                f"<font size=7.2 color='#555555'>Nakshatra: {nakshatra}</font><br/>"
-                f"<font size=7.2 color='#555555'>Numerology: <b>{mulank_val}</b> | <b>{bhagyank_val}</b></font>",
+                f"<font size=8.5 color='#1A1A1E'><b>Lagna:</b> {asc_sign} | <b>Moon:</b> {moon_sign}</font><br/>"
+                f"<font size=7.2 color='#505050'>Nakshatra: {nakshatra}</font><br/>"
+                f"<font size=7.2 color='#505050'>Numerology: <b>{mulank_val}</b> | <b>{bhagyank_val}</b></font>",
                 styles["JVBody"]
-            )
+            ),
         ]
     ]
-    client_table = Table(client_box, colWidths=[92 * mm, 92 * mm])
-    client_table.setStyle(TableStyle([
-        ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#FFFFFF")),
-        ("BOX", (0, 0), (-1, -1), 0.6, GOLD_BORDER),
-        ("LINEBEFORE", (1, 0), (1, -1), 0.6, GOLD_BORDER),
-        ("TOPPADDING", (0, 0), (-1, -1), 6),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
-        ("LEFTPADDING", (0, 0), (-1, -1), 8),
-        ("RIGHTPADDING", (0, 0), (-1, -1), 8),
+    astro_table = Table(astro_info_box, colWidths=[92 * mm, 92 * mm])
+    astro_table.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, -1), colors.white),
+        ("BOX", (0, 0), (-1, -1), 0.5, GOLD_LIGHT),
+        ("LINEBEFORE", (1, 0), (1, -1), 0.4, GOLD_LIGHT),
+        ("TOPPADDING", (0, 0), (-1, -1), 4),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+        ("LEFTPADDING", (0, 0), (-1, -1), 6),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 6),
     ]))
-    story.append(client_table)
-    story.append(Spacer(1, 3.5 * mm))
+    story.append(astro_table)
+    story.append(Spacer(1, 4 * mm))
 
-    def is_locked(tf, category):
+    def is_locked(tf: str, category: str) -> bool:
         if tf in ("0-5 Years", "0-12 Months", "1-3 Years"):
             return False
         if tf in ("5-10 Years", "3-5 Years"):
@@ -3521,19 +3531,25 @@ def generate_roadmap_report_pdf(payload: dict) -> bytes:
             return True
         return False
 
-    # Strictly filter out locked categories from PDF export
+    # Strictly filter out locked categories and 15-20 / 20-25 from PDF export (as requested: not available in UI)
     unlocked_milestones = [
         m for m in milestones 
-        if not is_locked((m.get("timeframe") or selected_horizon).strip(), m.get("category", "General"))
+        if (m.get("timeframe") or "").strip() not in ("15-20 Years", "20-25 Years")
+        and not is_locked((m.get("timeframe") or selected_horizon).strip(), m.get("category", "General"))
     ]
 
     # 3. Overview Arc Banner
     total_ms = len(unlocked_milestones)
+    overview_sub = (
+        f"Coverage: <b>All Available Horizons (0–5, 5–10, 10–15 Years)</b> | Active Milestones: <b>{total_ms}</b> | Premium Horizons (15–25 Yrs): <b>Available via Consultation</b>"
+        if is_all_horizons else
+        f"Active Horizon: <b>{selected_horizon}</b> | Milestones in Horizon: <b>{total_ms}</b> | Epochs: <b>Available Horizons</b>"
+    )
     overview_box = [
         [
             Paragraph(
-                f"<font size=8 color='#7E5F18'><b>25-YEAR DESTINY ARC OVERVIEW — {selected_horizon.upper()}</b></font><br/>"
-                f"<font size=7.5 color='#444444'>Active Horizon: <b>{selected_horizon}</b> | Unlocked Milestones in Horizon: <b>{total_ms}</b> | Epochs: <b>5 Horizons (0–25 Yrs)</b></font>",
+                f"<font size=8 color='#7E5F18'><b>VEDIC DESTINY ROADMAP — AVAILABLE LIFE BLUEPRINT</b></font><br/>"
+                f"<font size=7.5 color='#444444'>{overview_sub}</font>",
                 styles["JVBody"]
             )
         ]

@@ -76,7 +76,7 @@ export const LifeRoadmapView: React.FC<LifeRoadmapViewProps> = ({
       console.warn('Error reading cached roadmap horizons:', e);
     }
 
-    if (!hasLoadedCache && (!roadmap || roadmap.length < 15)) {
+    if (!hasLoadedCache && (!roadmap || roadmap.length < 25)) {
       setRoadmap(generateCustomRoadmap(profile, chartData));
     }
   }, [profile?.name, profile?.birthDate]);
@@ -129,7 +129,7 @@ export const LifeRoadmapView: React.FC<LifeRoadmapViewProps> = ({
     const catObj = categories.find((c) => c.id === selectedCategory);
     setLoadingText(`${catObj && catObj.id !== 'all' ? catObj.label + ' • ' : ''}${targetHorizon}`);
     
-    let updatedRoadmap = roadmap && roadmap.length >= 15 ? [...roadmap] : generateCustomRoadmap(profile, chartData);
+    let updatedRoadmap = roadmap && roadmap.length >= 25 ? [...roadmap] : generateCustomRoadmap(profile, chartData);
 
     try {
       const data = await api.post<any>(API_ENDPOINTS.ROADMAP.GENERATE, {
@@ -274,24 +274,36 @@ export const LifeRoadmapView: React.FC<LifeRoadmapViewProps> = ({
     return matchCat && matchHor;
   });
 
-  // Comprehensive Multi-Page PDF Report Generator (API-First with Client-Side Fallback for Selected Horizon)
+  // Comprehensive Multi-Page PDF Report Generator (Exporting All Available Roadmaps in UI: 0–15 Years)
   const handleDownloadPdfReport = async () => {
     setIsGeneratingPdf(true);
-    const activeHorizon = selectedHorizon || '0-5 Years';
     const cleanName = (profile.fullName || profile.name || 'Seeker').trim().replace(/\s+/g, '_');
-    const cleanHorizon = activeHorizon.replace(/\s+/g, '_');
-    const fileName = `Vedic_25Year_Destiny_Roadmap_${cleanName}_${cleanHorizon}.pdf`;
+    const fileName = `Vedic_Destiny_Roadmap_${cleanName}_Available_Horizons.pdf`;
 
     const rawRoadmap = Array.isArray(sortedRoadmap) && sortedRoadmap.length > 0 ? sortedRoadmap : (roadmap || []);
-    const milestonesForHorizon = rawRoadmap.filter((m) => {
+    const fullRoadmap = rawRoadmap.length > 0 ? rawRoadmap : generateCustomRoadmap(profile, chartData);
+
+    // Strictly filter out 15-20 and 20-25 years and locked items (not available in UI)
+    const availableMilestones = fullRoadmap.filter((m) => {
       const tf = (m.timeframe || '').trim();
-      return tf === activeHorizon.trim() ||
-        (activeHorizon === '0-5 Years' && (tf === '0-12 Months' || tf === '1-3 Years' || tf === '0-5 Years')) ||
-        (activeHorizon === '5-10 Years' && (tf === '3-5 Years' || tf === '5-10 Years'));
+      if (tf === '15-20 Years' || tf === '20-25 Years') return false;
+      return !isMilestoneLocked(m);
     });
-    const matchedList = milestonesForHorizon.length > 0 ? milestonesForHorizon : rawRoadmap.filter((m) => (m.timeframe || '').trim() === activeHorizon.trim());
-    // Only include unlocked milestones in the downloaded PDF report
-    const milestonesToExport = matchedList.filter((m) => !isMilestoneLocked(m));
+
+    const horizonOrder: Record<string, number> = {
+      '0-5 Years': 1,
+      '0-12 Months': 1,
+      '1-3 Years': 1,
+      '5-10 Years': 2,
+      '3-5 Years': 2,
+      '10-15 Years': 3,
+    };
+
+    const milestonesToExport = [...availableMilestones].sort((a, b) => {
+      const orderA = horizonOrder[a.timeframe || ''] || 99;
+      const orderB = horizonOrder[b.timeframe || ''] || 99;
+      return orderA - orderB;
+    });
 
     // 1. Attempt Server-Side Python Flask PDF Download via API
     try {
@@ -308,7 +320,8 @@ export const LifeRoadmapView: React.FC<LifeRoadmapViewProps> = ({
         headers,
         body: JSON.stringify({
           profile,
-          selectedHorizon: activeHorizon,
+          selectedHorizon: 'All Available Horizons (0–15 Years)',
+          includeAll: false,
           roadmap: milestonesToExport,
           chartData,
           numerology,
@@ -414,21 +427,21 @@ export const LifeRoadmapView: React.FC<LifeRoadmapViewProps> = ({
       const inProgressCount = milestonesToExport.filter((m) => m.status === 'In-Progress').length;
       const pendingCount = milestonesToExport.filter((m) => m.status === 'Pending' || !m.status).length;
 
-      doc.text(`VEDIC DESTINY ROADMAP — ${activeHorizon.toUpperCase()}`, 17, yPos + 5);
+      doc.text('VEDIC DESTINY ROADMAP — AVAILABLE HORIZONS (0–15 YEARS)', 17, yPos + 5);
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(7.5);
       doc.setTextColor(60, 60, 60);
       doc.text(
-        `Selected Horizon: ${activeHorizon}  |  Unlocked Milestones: ${milestonesToExport.length}  |  ✓ Completed: ${completedCount}  •  ⚡ In-Progress: ${inProgressCount}  •  ⏳ Pending: ${pendingCount}`,
+        `Coverage: All Available Horizons (0-5, 5-10, 10-15 Yrs)  |  Active Milestones: ${milestonesToExport.length}  |  ✓ Completed: ${completedCount}  •  ⚡ In-Progress: ${inProgressCount}  •  ⏳ Pending: ${pendingCount}`,
         17,
         yPos + 9
       );
 
       yPos += 16;
 
-      // Render Milestone Cards (Only unlocked milestones)
+      // Render Milestone Cards (Only available milestones in UI)
       milestonesToExport.forEach((m) => {
-        if (isMilestoneLocked(m)) return;
+        if (m.timeframe === '15-20 Years' || m.timeframe === '20-25 Years' || isMilestoneLocked(m)) return;
         doc.setFont('helvetica', 'normal');
         doc.setFontSize(7.5);
 
@@ -597,13 +610,13 @@ export const LifeRoadmapView: React.FC<LifeRoadmapViewProps> = ({
 
           doc.setFontSize(8.5);
           doc.setTextColor(126, 95, 24);
-          doc.text(`25-YEAR VEDIC DESTINY ROADMAP & LIFE BLUEPRINT (${selectedHorizon})`, 33, 24.5);
+          doc.text('VEDIC DESTINY ROADMAP & LIFE BLUEPRINT (AVAILABLE: 0–15 YEARS)', 33, 24.5);
 
           doc.setFont('helvetica', 'italic');
           doc.setFontSize(7);
           doc.setTextColor(110, 105, 95);
           doc.text(
-            `Synthesized through Vimshottari Mahadasha/Antardasha cycles & planetary transits (${new Date().getFullYear()} – ${new Date().getFullYear() + 25})`,
+            `Synthesized through Vimshottari Mahadasha/Antardasha cycles & planetary transits (${new Date().getFullYear()} – ${new Date().getFullYear() + 15})`,
             33,
             28
           );
@@ -611,7 +624,7 @@ export const LifeRoadmapView: React.FC<LifeRoadmapViewProps> = ({
           doc.setFont('helvetica', 'bold');
           doc.setFontSize(8);
           doc.setTextColor(126, 95, 24);
-          doc.text(`JYOTISHVEDA • 25-YEAR VEDIC DESTINY ROADMAP (${selectedHorizon})`, 14, 14);
+          doc.text('JYOTISHVEDA • VEDIC DESTINY ROADMAP (0–15 YEARS)', 14, 14);
           doc.setDrawColor(226, 211, 176);
           doc.setLineWidth(0.3);
           doc.line(13, 16, pageWidth - 13, 16);
