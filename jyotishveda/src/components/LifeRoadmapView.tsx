@@ -17,6 +17,9 @@ import {
   AlertCircle,
   FileText,
   Loader2,
+  Users,
+  GraduationCap,
+  Globe,
 } from 'lucide-react';
 import { UserProfile, LifeMilestone, HoroscopeTradition, NumerologyReport } from '../types';
 import { API_ENDPOINTS } from '../config/api_config';
@@ -32,6 +35,7 @@ interface LifeRoadmapViewProps {
   setRoadmap: React.Dispatch<React.SetStateAction<LifeMilestone[]>>;
   onNavigateToConsultations?: () => void;
   theme?: 'light' | 'dark';
+  language?: string;
 }
 
 export const LifeRoadmapView: React.FC<LifeRoadmapViewProps> = ({
@@ -43,6 +47,7 @@ export const LifeRoadmapView: React.FC<LifeRoadmapViewProps> = ({
   setRoadmap,
   onNavigateToConsultations,
   theme = 'dark',
+  language = 'en',
 }) => {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedHorizon, setSelectedHorizon] = useState<string | null>(null);
@@ -51,9 +56,9 @@ export const LifeRoadmapView: React.FC<LifeRoadmapViewProps> = ({
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
   const [loadingText, setLoadingText] = useState<string>('0-5 Years');
 
-  const getStorageKey = () => `jyotish_roadmap_horizons_${profile?.id || profile?.name || 'user'}_${profile?.birthDate || ''}`;
+  const getStorageKey = () => `jyotish_roadmap_horizons_${profile?.id || profile?.fullName || 'user'}_${profile?.birthDate || ''}`;
 
-  // Ensure roadmap is initialized with full 15 milestones on mount/profile change
+  // Ensure roadmap is initialized on mount/profile change
   useEffect(() => {
     if (!profile) return;
     const key = getStorageKey();
@@ -95,7 +100,7 @@ export const LifeRoadmapView: React.FC<LifeRoadmapViewProps> = ({
     if (!hasLoadedCache && (!roadmap || roadmap.length < 25)) {
       setRoadmap(generateCustomRoadmap(profile, chartData));
     }
-  }, [profile?.name, profile?.birthDate]);
+  }, [profile?.fullName, profile?.birthDate]);
 
   // Helper to load image as base64 DataURL for jsPDF canvas rendering
   const loadImageBase64 = (url: string): Promise<string | null> => {
@@ -124,18 +129,21 @@ export const LifeRoadmapView: React.FC<LifeRoadmapViewProps> = ({
   };
 
   const categories = [
-    { id: 'Career', label: 'Career & Executive', icon: Briefcase },
-    { id: 'Wealth', label: 'Wealth & Real Estate', icon: DollarSign },
-    { id: 'Relationships', label: 'Love & Family', icon: Heart },
-    { id: 'Health', label: 'Health & Vitality', icon: Activity },
-    { id: 'Spirituality', label: 'Spiritual Dharma', icon: Flame },
+    { id: 'Career', label: 'Career', icon: Briefcase },
+    { id: 'Wealth', label: 'Wealth', icon: DollarSign },
+    { id: 'Health', label: 'Health', icon: Activity },
+    { id: 'Relationships', label: 'Love', icon: Heart },
+    { id: 'Family', label: 'Family', icon: Users },
+    { id: 'Education', label: 'Education', icon: GraduationCap },
+    { id: 'Travel', label: 'Travel', icon: Globe },
+    { id: 'Spirituality', label: 'Spirituality', icon: Flame },
   ];
 
   const horizons = ['0-5 Years', '0-10 Years', '0-15 Years', '0-20 Years', '0-25 Years'];
 
   const handleGenerateHorizon = async (horizonToGen?: string) => {
-    const targetHorizon = horizonToGen || selectedHorizon;
-    if (!targetHorizon || isGenerating || targetHorizon === '0-20 Years' || targetHorizon === '0-25 Years' || targetHorizon === '15-20 Years' || targetHorizon === '20-25 Years') return;
+    const targetHorizon = horizonToGen || selectedHorizon || '0-5 Years';
+    if (!targetHorizon || isGenerating) return;
 
     if (!selectedHorizon) {
       setSelectedHorizon(targetHorizon);
@@ -145,20 +153,55 @@ export const LifeRoadmapView: React.FC<LifeRoadmapViewProps> = ({
     const catObj = categories.find((c) => c.id === selectedCategory);
     setLoadingText(`${catObj && catObj.id !== 'all' ? catObj.label + ' • ' : ''}${targetHorizon}`);
     
-    let updatedRoadmap = roadmap && roadmap.length >= 25 ? [...roadmap] : generateCustomRoadmap(profile, chartData);
+    let updatedRoadmap = roadmap && roadmap.length > 0 ? [...roadmap] : generateCustomRoadmap(profile, chartData);
+
+    console.log('🚀 [Roadmap] Calling Filtered Predictions API /api/roadmap/filtered-predictions for:', targetHorizon);
 
     try {
-      const data = await api.post<any>(API_ENDPOINTS.ROADMAP.GENERATE, {
+      // Fetch the 8-topic life dimension predictions (/api/roadmap/filtered-predictions)
+      const res = await api.post<any>(API_ENDPOINTS.ROADMAP.FILTERED_PREDICTIONS, {
         profile,
         tradition,
         chartData,
         numerology,
+        filter: targetHorizon,
         horizon: targetHorizon,
+        language,
       });
 
-      if (data && data.milestones && Array.isArray(data.milestones) && data.milestones.length > 0) {
-        // Merge generated AI milestones for the selected horizon
-        const generatedForHorizon = data.milestones.filter((m: any) => m.timeframe === targetHorizon);
+      console.log('✅ [Roadmap] Received predictions response:', res);
+
+      if (res && res.topics && Array.isArray(res.topics) && res.topics.length > 0) {
+        const categoryMap: Record<string, string> = {
+          career: 'Career',
+          wealth: 'Wealth',
+          health: 'Health',
+          relationships: 'Relationships',
+          family: 'Family',
+          education: 'Education',
+          travel: 'Travel',
+          spirituality: 'Spirituality',
+        };
+
+        const generatedForHorizon: LifeMilestone[] = res.topics.map((t: any, idx: number) => {
+          const rawKey = (t.topicKey || '').toLowerCase();
+          const mappedCat = categoryMap[rawKey] || t.topicName || 'General';
+          return {
+            id: `ms-${targetHorizon.replace(/\s+/g, '-').toLowerCase()}-${rawKey || idx}`,
+            timeframe: targetHorizon,
+            category: mappedCat,
+            title: t.topicName || getCategoryDisplayName(mappedCat),
+            guidance: t.prediction || '',
+            favorableTransits: t.favorableTransits || 'Favorable transit aspect',
+            remedialAction: t.remedialAction || 'Chant Navagraha Stotra daily',
+            status: idx === 0 ? 'In-Progress' : 'Pending',
+          };
+        });
+
+        const others = updatedRoadmap.filter((m) => m.timeframe !== targetHorizon);
+        updatedRoadmap = [...others, ...generatedForHorizon];
+      } else if (res && res.milestones && Array.isArray(res.milestones) && res.milestones.length > 0) {
+        const generatedForHorizon = res.milestones.filter((m: any) => m.timeframe === targetHorizon);
         if (generatedForHorizon.length > 0) {
           updatedRoadmap = updatedRoadmap.map((item) => {
             if (item.timeframe === targetHorizon) {
@@ -167,18 +210,10 @@ export const LifeRoadmapView: React.FC<LifeRoadmapViewProps> = ({
             }
             return item;
           });
-        } else {
-          updatedRoadmap = updatedRoadmap.map((item) => {
-            if (item.timeframe === targetHorizon) {
-              const matched = data.milestones.find((m: any) => m.category === item.category);
-              return matched ? { ...item, ...matched } : item;
-            }
-            return item;
-          });
         }
       }
     } catch (e) {
-      console.warn('Roadmap AI generation fallback:', e);
+      console.warn('Roadmap filtered AI generation error/fallback:', e);
     } finally {
       const nextGeneratedHorizons = {
         ...generatedHorizons,
@@ -207,39 +242,42 @@ export const LifeRoadmapView: React.FC<LifeRoadmapViewProps> = ({
 
   const handleHorizonTabClick = (hor: string) => {
     setSelectedHorizon(hor);
-    if (!generatedHorizons[hor] && hor !== '0-20 Years' && hor !== '0-25 Years' && hor !== '15-20 Years' && hor !== '20-25 Years') {
-      handleGenerateHorizon(hor);
-    }
+    handleGenerateHorizon(hor);
   };
 
   const isMilestoneLocked = (item: LifeMilestone): boolean => {
     if (!item) return false;
-    const tf = item.timeframe || '';
-    const cat = item.category || '';
+    if (profile?.isPremium) return false;
 
-    // 0-5 Years: All categories are OPEN (100% unlocked)
+    const tf = item.timeframe || '';
+    const cat = (item.category || '').toLowerCase();
+
+    // 0-5 Years: All 8 topics are OPEN (100% unlocked)
     if (tf === '0-5 Years' || tf === '0-12 Months' || tf === '1-3 Years') {
       return false;
     }
 
-    // 0-10 Years: Career, Health & Spirituality are OPEN (Wealth & Relationships are LOCKED)
+    // 0-10 Years: Career, Wealth, Health & Spirituality are OPEN
     if (tf === '0-10 Years' || tf === '5-10 Years' || tf === '3-5 Years') {
-      if (cat === 'Career' || cat === 'Health' || cat === 'Spirituality') {
+      if (['career', 'health', 'spirituality', 'wealth'].includes(cat)) {
         return false;
       }
-      return true; // Wealth & Relationships locked
+      return true;
     }
 
-    // 0-15 Years: Exactly 2 categories OPEN (Career & Spirituality), remaining 3 are LOCKED
+    // 0-15 Years: Exactly 2 categories OPEN (Career & Spirituality)
     if (tf === '0-15 Years' || tf === '10-15 Years') {
-      if (cat === 'Career' || cat === 'Spirituality') {
+      if (['career', 'spirituality'].includes(cat)) {
         return false;
       }
-      return true; // Wealth, Relationships & Health locked
+      return true;
     }
 
-    // 0-20 Years & 0-25 Years: 100% LOCKED
+    // 0-20 Years & 0-25 Years: Career preview is open, remaining locked
     if (tf === '0-20 Years' || tf === '0-25 Years' || tf === '15-20 Years' || tf === '20-25 Years') {
+      if (cat === 'career') {
+        return false;
+      }
       return true;
     }
 
@@ -247,17 +285,23 @@ export const LifeRoadmapView: React.FC<LifeRoadmapViewProps> = ({
   };
 
   const getCategoryDisplayName = (cat: string) => {
-    switch (cat) {
-      case 'Relationships':
-        return 'Love & Family';
-      case 'Wealth':
-        return 'Wealth & Real Estate';
-      case 'Health':
+    switch (cat?.toLowerCase()) {
+      case 'relationships':
+        return 'Marriage & Love';
+      case 'wealth':
+        return 'Wealth & Finance';
+      case 'health':
         return 'Health & Vitality';
-      case 'Spirituality':
-        return 'Spiritual Dharma';
-      case 'Career':
-        return 'Career & Executive';
+      case 'spirituality':
+        return 'Spirituality & Upayas';
+      case 'career':
+        return 'Career & Profession';
+      case 'family':
+        return 'Family & Children';
+      case 'education':
+        return 'Education & Learning';
+      case 'travel':
+        return 'Travel & Relocation';
       default:
         return cat || '';
     }
@@ -293,42 +337,70 @@ export const LifeRoadmapView: React.FC<LifeRoadmapViewProps> = ({
     return matchCat && matchHor;
   });
 
-  // Comprehensive Multi-Page PDF Report Generator (Exporting All Available Roadmaps in UI: 0–15 Years)
+  // Comprehensive Multi-Page PDF Report Generator (Exporting Exact UI Predictions)
   const handleDownloadPdfReport = async () => {
     setIsGeneratingPdf(true);
-    const cleanName = (profile.fullName || profile.name || 'Seeker').trim().replace(/\s+/g, '_');
-    const fileName = `Vedic_Destiny_Roadmap_${cleanName}_Available_Horizons.pdf`;
+    const cleanName = (profile.fullName || (profile as any)?.name || 'Seeker').trim().replace(/\s+/g, '_');
+    const targetHorizon = selectedHorizon || '0-5 Years';
+    const fileName = `Vedic_Destiny_Roadmap_${cleanName}_${targetHorizon.replace(/\s+/g, '_')}.pdf`;
 
-    const rawRoadmap = Array.isArray(sortedRoadmap) && sortedRoadmap.length > 0 ? sortedRoadmap : (roadmap || []);
-    const fullRoadmap = rawRoadmap.length > 0 ? rawRoadmap : generateCustomRoadmap(profile, chartData);
+    // 🌟 Ensure we export the exact predictions currently displayed on the user's screen
+    let milestonesToExport = (filteredRoadmap && filteredRoadmap.length > 0)
+      ? filteredRoadmap
+      : (roadmap && roadmap.length > 0
+          ? (selectedHorizon ? roadmap.filter((m) => m.timeframe === selectedHorizon) : roadmap)
+          : []);
 
-    // Strictly filter out 0-20 / 0-25 years (and 15-20 / 20-25) and locked items (not available in UI)
-    const availableMilestones = fullRoadmap.filter((m) => {
-      const tf = (m.timeframe || '').trim();
-      if (tf === '0-20 Years' || tf === '0-25 Years' || tf === '15-20 Years' || tf === '20-25 Years') return false;
-      return !isMilestoneLocked(m);
-    });
+    // Only if nothing is loaded at all on screen, fetch from Filter API once
+    if (milestonesToExport.length === 0) {
+      try {
+        const res = await api.post<any>(API_ENDPOINTS.ROADMAP.FILTERED_PREDICTIONS, {
+          profile,
+          tradition,
+          chartData,
+          numerology,
+          filter: targetHorizon,
+          horizon: targetHorizon,
+          language,
+        });
 
-    const horizonOrder: Record<string, number> = {
-      '0-5 Years': 1,
-      '0-12 Months': 1,
-      '1-3 Years': 1,
-      '0-10 Years': 2,
-      '5-10 Years': 2,
-      '3-5 Years': 2,
-      '0-15 Years': 3,
-      '10-15 Years': 3,
-      '0-20 Years': 4,
-      '15-20 Years': 4,
-      '0-25 Years': 5,
-      '20-25 Years': 5,
-    };
+        if (res && res.topics && Array.isArray(res.topics) && res.topics.length > 0) {
+          const categoryMap: Record<string, string> = {
+            career: 'Career',
+            wealth: 'Wealth',
+            health: 'Health',
+            relationships: 'Relationships',
+            family: 'Family',
+            education: 'Education',
+            travel: 'Travel',
+            spirituality: 'Spirituality',
+          };
 
-    const milestonesToExport = [...availableMilestones].sort((a, b) => {
-      const orderA = horizonOrder[a.timeframe || ''] || 99;
-      const orderB = horizonOrder[b.timeframe || ''] || 99;
-      return orderA - orderB;
-    });
+          milestonesToExport = res.topics.map((t: any, idx: number) => {
+            const rawKey = (t.topicKey || '').toLowerCase();
+            const mappedCat = categoryMap[rawKey] || t.topicName || 'General';
+            return {
+              id: `ms-${targetHorizon.replace(/\s+/g, '-').toLowerCase()}-${rawKey || idx}`,
+              timeframe: targetHorizon,
+              category: mappedCat,
+              title: t.topicName || getCategoryDisplayName(mappedCat),
+              guidance: t.prediction || '',
+              favorableTransits: t.favorableTransits || 'Favorable transit aspect',
+              remedialAction: t.remedialAction || 'Chant Navagraha Stotra daily',
+              status: idx === 0 ? 'In-Progress' : 'Pending',
+            };
+          });
+
+          setRoadmap(milestonesToExport);
+        }
+      } catch (err) {
+        console.warn('Pre-fetching predictions for PDF failed:', err);
+      }
+    }
+
+    if (milestonesToExport.length === 0) {
+      milestonesToExport = generateCustomRoadmap(profile, chartData);
+    }
 
     // 1. Attempt Server-Side Python Flask PDF Download via API
     try {
@@ -340,12 +412,12 @@ export const LifeRoadmapView: React.FC<LifeRoadmapViewProps> = ({
         headers['Authorization'] = `Bearer ${token}`;
       }
 
-      const response = await fetch(`${API_BASE_URL}/ai/roadmap/download-pdf`, {
+      const response = await fetch(`${API_BASE_URL}/api/roadmap/download-pdf`, {
         method: 'POST',
         headers,
         body: JSON.stringify({
           profile,
-          selectedHorizon: 'All Available Horizons (0–15 Years)',
+          selectedHorizon: targetHorizon,
           includeAll: false,
           roadmap: milestonesToExport,
           chartData,
@@ -402,6 +474,37 @@ export const LifeRoadmapView: React.FC<LifeRoadmapViewProps> = ({
       let yPos = 33;
 
       doc.setFillColor(255, 255, 255);
+      doc.rect(0, 0, pageWidth, pageHeight, 'F');
+
+      if (bgBase64) {
+        doc.addImage(bgBase64, 'JPEG', 0, 0, pageWidth, pageHeight, undefined, 'FAST');
+      }
+
+      doc.setDrawColor(201, 160, 80);
+      doc.setLineWidth(0.8);
+      doc.rect(8, 8, pageWidth - 16, pageHeight - 16);
+      doc.setLineWidth(0.3);
+      doc.rect(10, 10, pageWidth - 20, pageHeight - 20);
+
+      if (logoBase64) {
+        doc.addImage(logoBase64, 'PNG', 14, 13, 14, 14);
+      }
+
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(13);
+      doc.setTextColor(180, 130, 40);
+      doc.text('ASTROJUNCTION', 31, 19);
+
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(7.5);
+      doc.setTextColor(110, 110, 110);
+      doc.text('Sacred Vedic Astrology & Life Horizon Synthesis', 31, 23.5);
+
+      doc.setDrawColor(220, 200, 160);
+      doc.setLineWidth(0.4);
+      doc.line(13, 29, pageWidth - 13, 29);
+
+      doc.setFillColor(252, 251, 248);
       doc.setDrawColor(226, 211, 176);
       doc.setLineWidth(0.4);
       doc.roundedRect(13, yPos, pageWidth - 26, 24, 2, 2, 'FD');
@@ -452,21 +555,21 @@ export const LifeRoadmapView: React.FC<LifeRoadmapViewProps> = ({
       const inProgressCount = milestonesToExport.filter((m) => m.status === 'In-Progress').length;
       const pendingCount = milestonesToExport.filter((m) => m.status === 'Pending' || !m.status).length;
 
-      doc.text('VEDIC DESTINY ROADMAP — AVAILABLE HORIZONS (0–15 YEARS)', 17, yPos + 5);
+      doc.text(`VEDIC DESTINY ROADMAP — ${targetHorizon.toUpperCase()}`, 17, yPos + 5);
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(7.5);
       doc.setTextColor(60, 60, 60);
       doc.text(
-        `Coverage: All Available Horizons (0-5, 0-10, 0-15 Yrs)  |  Active Milestones: ${milestonesToExport.length}  |  ✓ Completed: ${completedCount}  •  ⚡ In-Progress: ${inProgressCount}  •  ⏳ Pending: ${pendingCount}`,
+        `Active Horizon: ${targetHorizon}  |  Predictions: ${milestonesToExport.length} Life Spheres  |  ✓ Completed: ${completedCount}  •  ⚡ In-Progress: ${inProgressCount}  •  ⏳ Pending: ${pendingCount}`,
         17,
         yPos + 9
       );
 
       yPos += 16;
 
-      // Render Milestone Cards (Only available milestones in UI)
-      milestonesToExport.forEach((m) => {
-        if (m.timeframe === '0-20 Years' || m.timeframe === '0-25 Years' || m.timeframe === '15-20 Years' || m.timeframe === '20-25 Years' || isMilestoneLocked(m)) return;
+      // Render Milestone Cards (Exporting all predictions returned from Filter API)
+      milestonesToExport.forEach((m, idx) => {
+        if (isMilestoneLocked(m)) return;
         doc.setFont('helvetica', 'normal');
         doc.setFontSize(7.5);
 
@@ -479,13 +582,13 @@ export const LifeRoadmapView: React.FC<LifeRoadmapViewProps> = ({
         const transitVal = m.favorableTransits || 'Favorable transit alignment';
         const remedyVal = m.remedialAction || 'Chant Maha Mrityunjaya Mantra & perform Guru Seva';
 
-        const transitLabelW = doc.getTextWidth('Astrological Transit Window: ');
+        const transitLabelW = doc.getTextWidth('Astrological Window & Transits: ');
         const remedyLabelW = doc.getTextWidth('Recommended Upaya / Sadhana: ');
 
         const transitLines = doc.splitTextToSize(transitVal, pageWidth - 34 - transitLabelW);
         const remedyLines = doc.splitTextToSize(remedyVal, pageWidth - 34 - remedyLabelW);
 
-        const cardHeight = 12 + guidanceHeight + 2 + transitLines.length * 3.4 + remedyLines.length * 3.4 + 5;
+        const cardHeight = 14 + guidanceHeight + 2 + transitLines.length * 3.4 + remedyLines.length * 3.4 + 5;
 
         if (yPos + cardHeight > pageHeight - 22) {
           doc.addPage();
@@ -507,45 +610,46 @@ export const LifeRoadmapView: React.FC<LifeRoadmapViewProps> = ({
         }
         doc.roundedRect(13, yPos, 2, cardHeight, 1, 1, 'F');
 
-        // Category Tag (Strictly matching UI without synthetic years)
-        doc.setFont('helvetica', 'bold');
-        doc.setFontSize(7.5);
-        doc.setTextColor(126, 95, 24);
-        doc.text(`[${m.timeframe || activeHorizon}] • ${getCategoryDisplayName(m.category).toUpperCase()}`, 17, yPos + 5.5);
-
-        // Milestone Title
+        // Milestone Number & Title (Matching UI without redundant category badge)
         doc.setFont('helvetica', 'bold');
         doc.setFontSize(9);
         doc.setTextColor(26, 26, 30);
-        doc.text(m.title || 'Vedic Life Milestone', 17, yPos + 10);
+        doc.text(`${idx + 1}.  ${m.title || getCategoryDisplayName(m.category)}`, 17, yPos + 6.5);
+
+        // Section: Dasha Guidance
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(6.8);
+        doc.setTextColor(126, 95, 24);
+        doc.text('DASHA & LIFE STRATEGY GUIDANCE', 17, yPos + 11.5);
 
         // Strategic Guidance
         doc.setFont('helvetica', 'normal');
         doc.setFontSize(7.5);
         doc.setTextColor(50, 50, 50);
-        doc.text(guidanceLines, 17, yPos + 14.5);
+        doc.text(guidanceLines, 17, yPos + 15.5);
 
-        const afterGuidanceY = yPos + 14.5 + guidanceHeight;
+        const afterGuidanceY = yPos + 15.5 + guidanceHeight;
 
         // Transit Window
         doc.setFont('helvetica', 'bold');
-        doc.setFontSize(7.2);
-        doc.setTextColor(126, 95, 24);
-        doc.text('Astrological Transit Window: ', 17, afterGuidanceY + 1);
+        doc.setFontSize(7);
+        doc.setTextColor(150, 108, 30);
+        doc.text('Astrological Window & Transits: ', 17, afterGuidanceY + 1);
 
         doc.setFont('helvetica', 'normal');
-        doc.setTextColor(70, 70, 70);
+        doc.setTextColor(50, 50, 50);
         doc.text(transitLines, 17 + transitLabelW, afterGuidanceY + 1);
 
         const afterTransitY = afterGuidanceY + 1 + transitLines.length * 3.4;
 
         // Remedial Upaya
         doc.setFont('helvetica', 'bold');
+        doc.setFontSize(7);
         doc.setTextColor(126, 95, 24);
         doc.text('Recommended Upaya / Sadhana: ', 17, afterTransitY + 1);
 
         doc.setFont('helvetica', 'normal');
-        doc.setTextColor(70, 70, 70);
+        doc.setTextColor(50, 50, 50);
         doc.text(remedyLines, 17 + remedyLabelW, afterTransitY + 1);
 
         yPos += cardHeight + 3.5;
@@ -708,6 +812,20 @@ export const LifeRoadmapView: React.FC<LifeRoadmapViewProps> = ({
 
           <div className="flex items-center space-x-3 font-sans">
             <button
+              onClick={() => handleGenerateHorizon(selectedHorizon || '0-5 Years')}
+              disabled={isGenerating}
+              className={`flex items-center justify-center space-x-2 px-3.5 py-2.5 rounded-xl border text-xs font-bold transition shadow-md cursor-pointer shrink-0 ${
+                theme === 'dark'
+                  ? 'bg-[#1A1A1E] hover:bg-[#25252A] text-[#C9A050] border-[#C9A050]/40'
+                  : 'bg-white hover:bg-gray-50 text-[#96721E] border-[#C9A050]/40'
+              } disabled:opacity-50`}
+              title="Fetch/Refresh predictions via Filter API"
+            >
+              <Sparkles className={`w-3.5 h-3.5 text-[#C9A050] ${isGenerating ? 'animate-spin' : ''}`} />
+              <span>{isGenerating ? 'Fetching Predictions...' : 'Refresh Predictions'}</span>
+            </button>
+
+            <button
               onClick={handleDownloadPdfReport}
               disabled={isGeneratingPdf}
               className={`flex items-center justify-center space-x-2 px-4 py-2.5 rounded-xl border text-xs font-bold transition shadow-lg cursor-pointer shrink-0 ${
@@ -750,9 +868,9 @@ export const LifeRoadmapView: React.FC<LifeRoadmapViewProps> = ({
           })}
         </div>
 
-        {/* 2. Life Spheres / Categories (Compact Sub-Row with Label) */}
-        <div className="flex items-center space-x-2 pt-3 text-xs overflow-x-auto font-sans">
-          <span className={`text-[11px] shrink-0 font-medium ${theme === 'dark' ? 'text-[#9E9A90]' : 'text-gray-500'}`}>
+        {/* 2. Life Spheres / Categories (Compact Flex-Wrap Row without Scrollbar) */}
+        <div className="flex flex-wrap items-center gap-1.5 pt-2.5 text-xs font-sans">
+          <span className={`text-[11px] shrink-0 font-medium mr-1 ${theme === 'dark' ? 'text-[#9E9A90]' : 'text-gray-500'}`}>
             Life Spheres:
           </span>
           {categories.map((cat) => {
@@ -761,12 +879,19 @@ export const LifeRoadmapView: React.FC<LifeRoadmapViewProps> = ({
             return (
               <button
                 key={cat.id}
-                onClick={() => setSelectedCategory(isSelected ? null : cat.id)}
-                className={`px-2.5 py-1 rounded-md text-[11px] font-medium transition cursor-pointer shrink-0 flex items-center space-x-1 border ${
+                onClick={() => {
+                  const nextCat = isSelected ? null : cat.id;
+                  setSelectedCategory(nextCat);
+                  if (!selectedHorizon) {
+                    setSelectedHorizon('0-5 Years');
+                    handleGenerateHorizon('0-5 Years');
+                  }
+                }}
+                className={`px-2 py-0.5 rounded-md text-[11px] font-medium transition cursor-pointer flex items-center space-x-1 border ${
                   isSelected
                     ? 'bg-[#C9A050]/20 text-[#C9A050] border-[#C9A050]/50 font-semibold'
                     : theme === 'dark'
-                    ? 'bg-[#1A1A1E]/60 text-[#9E9A90] hover:text-[#F0ECE1] border-transparent'
+                    ? 'bg-[#1A1A1E]/60 text-[#9E9A90] hover:text-[#F0ECE1] border-[#2A2A2E]'
                     : 'bg-gray-100 text-gray-600 hover:text-black border-transparent'
                 }`}
               >
@@ -803,30 +928,6 @@ export const LifeRoadmapView: React.FC<LifeRoadmapViewProps> = ({
               </p>
             </div>
           </div>
-        ) : selectedHorizon === '0-20 Years' || selectedHorizon === '0-25 Years' || selectedHorizon === '15-20 Years' || selectedHorizon === '20-25 Years' ? (
-          <div className={`relative border border-[#C9A050]/40 rounded-xl p-8 sm:p-12 text-center shadow-xl space-y-5 flex flex-col items-center justify-center min-h-[300px] ${
-            theme === 'dark' ? 'bg-[#141418]' : 'bg-white'
-          }`}>
-            <div className="w-16 h-16 rounded-full bg-black/60 border border-[#C9A050]/40 flex items-center justify-center mb-2">
-              <span className="text-[#C9A050] text-2xl font-bold">🔒</span>
-            </div>
-            <h3 className={`text-xl sm:text-2xl font-serif font-bold ${
-              theme === 'dark' ? 'text-[#F0ECE1]' : 'text-gray-900'
-            }`}>
-              Unlock the {selectedHorizon} Roadmap
-            </h3>
-            <p className={`text-sm max-w-lg mx-auto pb-4 ${
-              theme === 'dark' ? 'text-[#9E9A90]' : 'text-gray-600'
-            }`}>
-              Accessing your long-term Vedic Destiny beyond 15 years requires a deeper astrological synthesis. Please visit the Consultations & Gateway section to unlock this premium analysis.
-            </p>
-            <button 
-              onClick={() => onNavigateToConsultations && onNavigateToConsultations()} 
-              className="px-6 py-3 bg-[#C9A050] text-[#0D0D0F] font-bold text-sm rounded-lg shadow-md cursor-pointer transition hover:bg-[#D4AF37]"
-            >
-              Consultations & Gateway
-            </button>
-          </div>
         ) : !selectedHorizon ? (
           <div className={`border rounded-xl p-16 sm:p-24 flex flex-col items-center justify-center min-h-[340px] text-center shadow-xl space-y-4 ${
             theme === 'dark' ? 'bg-[#141418] border-[#2A2A2E]' : 'bg-white border-[#E5E1D8]'
@@ -841,8 +942,15 @@ export const LifeRoadmapView: React.FC<LifeRoadmapViewProps> = ({
             }`}>
               Please select a time horizon and a life sphere from the filters above to generate your Vedic Destiny Roadmap.
             </p>
+            <button
+              onClick={() => handleHorizonTabClick('0-5 Years')}
+              className="mt-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#C9A050] to-[#A07828] hover:from-[#D4AF37] hover:to-[#B38730] text-[#0D0D0F] font-bold text-xs shadow-lg shadow-[#C9A050]/20 transition cursor-pointer flex items-center space-x-2"
+            >
+              <Sparkles className="w-4 h-4" />
+              <span>Explore 0-5 Years Roadmap</span>
+            </button>
           </div>
-        ) : generatedHorizons[selectedHorizon] ? (
+        ) : filteredRoadmap.length > 0 || generatedHorizons[selectedHorizon] ? (
           <>
             {filteredRoadmap.map((item, idx) => {
               const isCompleted = item.status === 'Completed';
@@ -889,62 +997,67 @@ export const LifeRoadmapView: React.FC<LifeRoadmapViewProps> = ({
                         <div className="w-8 h-8 rounded-xl bg-[#C9A050]/20 text-[#C9A050] font-serif font-bold text-xs flex items-center justify-center shrink-0 border border-[#C9A050]/30">
                           {idx + 1}
                         </div>
-                        <div>
-                          <div className="flex items-center space-x-2 font-sans">
-                            <span className={`px-2 py-0.5 rounded text-[10px] font-bold border ${
-                              theme === 'dark' ? 'bg-[#1A1A1E] text-[#C9A050] border-[#2A2A2E]' : 'bg-amber-50 text-amber-900 border-amber-200'
-                            }`}>
-                              {item.timeframe}
-                            </span>
-                            <span className={`text-xs font-semibold ${theme === 'dark' ? 'text-[#9E9A90]' : 'text-gray-500'}`}>
-                              {item.category}
-                            </span>
-                          </div>
-                          <h3 className={`text-base font-serif font-bold mt-0.5 ${
-                            theme === 'dark' ? 'text-[#F0ECE1]' : 'text-gray-900'
-                          }`}>
-                            {item.title}
-                          </h3>
-                        </div>
+                        <h3 className={`text-base font-serif font-bold ${
+                          theme === 'dark' ? 'text-[#F0ECE1]' : 'text-gray-900'
+                        }`}>
+                          {item.title}
+                        </h3>
                       </div>
                     </div>
 
                     {/* Guidance & Favorable Transits */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs font-sans">
-                      <div className={`p-3.5 rounded-xl border space-y-1 ${
+                      <div className={`p-4 rounded-xl border space-y-1.5 flex flex-col ${
                         theme === 'dark' ? 'bg-[#1A1A1E] border-[#2A2A2E]' : 'bg-[#F9F7F1] border-[#E5E1D8]'
                       }`}>
                         <span className="text-[9px] uppercase font-bold text-[#C9A050] block tracking-wider">
                           Dasha & Life Strategy Guidance
                         </span>
-                        <p className={`leading-relaxed ${theme === 'dark' ? 'text-[#E5E1D8]' : 'text-gray-800'}`}>
+                        <p className={`leading-relaxed text-xs ${theme === 'dark' ? 'text-[#E5E1D8]' : 'text-gray-800'}`}>
                           {item.guidance}
                         </p>
                       </div>
 
-                      <div className="space-y-2">
-                        <div className={`p-3 rounded-xl border flex items-center justify-between ${
-                          theme === 'dark' ? 'bg-[#1A1A1E] border-[#2A2A2E]' : 'bg-[#F9F7F1] border-[#E5E1D8]'
+                      <div className="space-y-3 flex flex-col justify-between">
+                        {/* Highlighted Astrological Window & Transits Card */}
+                        <div className={`p-4 rounded-xl border border-l-4 border-l-[#C9A050] transition shadow-sm ${
+                          theme === 'dark' 
+                            ? 'bg-gradient-to-br from-[#C9A050]/15 via-[#1A1A1E] to-[#1A1A1E] border-[#C9A050]/40 shadow-[#C9A050]/5' 
+                            : 'bg-gradient-to-br from-[#FFF8E7] via-[#FFFDF8] to-[#FAF6ED] border-[#E8DFC8] shadow-[#C9A050]/15'
                         }`}>
-                          <span className={`text-[11px] ${theme === 'dark' ? 'text-[#9E9A90]' : 'text-gray-500'}`}>
-                            Astrological Window:
-                          </span>
-                          <span className="font-semibold text-[#C9A050] text-right font-mono">{item.favorableTransits}</span>
+                          <div className="flex items-start space-x-2.5">
+                            <div className="w-5 h-5 rounded-md bg-[#C9A050]/20 flex items-center justify-center shrink-0 mt-0.5 border border-[#C9A050]/40">
+                              <Clock className="w-3 h-3 text-[#B38730] dark:text-[#C9A050]" />
+                            </div>
+                            <div className="space-y-1 flex-1 min-w-0">
+                              <span className="text-[10px] uppercase font-black block tracking-wider text-[#966C1E] dark:text-[#C9A050]">
+                                Astrological Window &amp; Transits
+                              </span>
+                              <p className={`text-xs leading-relaxed font-medium pt-0.5 ${theme === 'dark' ? 'text-[#F0ECE1]' : 'text-gray-900'}`}>
+                                {item.favorableTransits}
+                              </p>
+                            </div>
+                          </div>
                         </div>
 
-                        <div className={`p-3 rounded-xl border flex items-start space-x-2.5 ${
-                          theme === 'dark' ? 'bg-[#1A1A1E] border-[#2A2A2E]' : 'bg-[#F9F7F1] border-[#E5E1D8]'
+                        {/* Recommended Upaya / Sadhana Card */}
+                        <div className={`p-3.5 rounded-xl border flex items-start space-x-2.5 transition ${
+                          theme === 'dark' 
+                            ? 'bg-[#1A1A1E] border-[#2A2A2E]' 
+                            : 'bg-[#F9F7F1] border-[#E5E1D8]'
                         }`}>
-                          <Flame className="w-3.5 h-3.5 text-[#C9A050] shrink-0 mt-0.5" />
-                          <div>
+                          <div className="w-5 h-5 rounded-md bg-amber-500/15 flex items-center justify-center shrink-0 mt-0.5 border border-amber-500/30">
+                            <Flame className="w-3 h-3 text-amber-600 dark:text-amber-400" />
+                          </div>
+                          <div className="space-y-1 flex-1 min-w-0">
                             <span className={`text-[9px] uppercase font-bold block tracking-wider ${
                               theme === 'dark' ? 'text-[#9E9A90]' : 'text-gray-500'
                             }`}>
                               Recommended Upaya / Sadhana
                             </span>
-                            <span className={`text-[11px] ${theme === 'dark' ? 'text-[#E5E1D8]' : 'text-gray-800'}`}>
+                            <p className={`text-xs leading-relaxed ${theme === 'dark' ? 'text-[#E5E1D8]' : 'text-gray-800'}`}>
                               {item.remedialAction}
-                            </span>
+                            </p>
                           </div>
                         </div>
                       </div>

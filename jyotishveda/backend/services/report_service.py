@@ -40,6 +40,12 @@ TEXT_DARK = colors.HexColor("#1A1A1E")
 TEXT_MUTED = colors.HexColor("#5A554C")
 
 
+def _pdf_text(val) -> str:
+    if val is None:
+        return ""
+    return str(val).replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+
+
 def _styles():
     styles = getSampleStyleSheet()
 
@@ -3479,11 +3485,13 @@ def generate_roadmap_report_pdf(payload: dict) -> bytes:
     mulank_val = f"Mulank {numerology.get('mulank')}" if numerology.get("mulank") else "Mulank -"
     bhagyank_val = f"Bhagyank {numerology.get('bhagyank')}" if numerology.get("bhagyank") else "Bhagyank -"
 
+    header_title = f"VEDIC DESTINY ROADMAP & LIFE BLUEPRINT ({selected_horizon.upper()})" if not is_all_horizons else "VEDIC DESTINY ROADMAP & LIFE BLUEPRINT (0–25 YEARS)"
+
     # 1. Header Title & Brand
     story.append(
         _build_brand_header(
-            "VEDIC DESTINY ROADMAP & LIFE BLUEPRINT (AVAILABLE HORIZONS: 0–15 YEARS)",
-            f"Synthesized through Vimshottari Mahadasha/Antardasha cycles & planetary transits ({datetime.utcnow().year} – {datetime.utcnow().year + 15})",
+            header_title,
+            f"Synthesized through Vimshottari Mahadasha/Antardasha cycles & planetary transits ({datetime.utcnow().year} – {datetime.utcnow().year + 25})",
             styles
         )
     )
@@ -3501,11 +3509,11 @@ def generate_roadmap_report_pdf(payload: dict) -> bytes:
             ),
             Paragraph(
                 f"<font size=7.5 color='#7E5F18'><b>CELESTIAL &amp; NUMEROLOGICAL COORDINATES</b></font><br/>"
-                f"<font size=8.5 color='#1A1A1E'><b>Lagna:</b> {asc_sign} | <b>Moon:</b> {moon_sign}</font><br/>"
-                f"<font size=7.2 color='#505050'>Nakshatra: {nakshatra}</font><br/>"
+                f"<font size=8.5 color='#1A1A1E'>Lagna: <b>{_pdf_text(asc_sign)}</b> | Rashi: <b>{_pdf_text(moon_sign)}</b></font><br/>"
+                f"<font size=7.2 color='#505050'>Nakshatra: {_pdf_text(nakshatra)}</font><br/>"
                 f"<font size=7.2 color='#505050'>Numerology: <b>{mulank_val}</b> | <b>{bhagyank_val}</b></font>",
                 styles["JVBody"]
-            ),
+            )
         ]
     ]
     astro_table = Table(astro_info_box, colWidths=[92 * mm, 92 * mm])
@@ -3521,30 +3529,15 @@ def generate_roadmap_report_pdf(payload: dict) -> bytes:
     story.append(astro_table)
     story.append(Spacer(1, 4 * mm))
 
-    def is_locked(tf: str, category: str) -> bool:
-        if tf in ("0-5 Years", "0-12 Months", "1-3 Years"):
-            return False
-        if tf in ("0-10 Years", "5-10 Years", "3-5 Years"):
-            return category in ("Wealth", "Relationships")
-        if tf in ("0-15 Years", "10-15 Years"):
-            return category in ("Wealth", "Relationships", "Health")
-        if tf in ("0-20 Years", "0-25 Years", "15-20 Years", "20-25 Years"):
-            return True
-        return False
-
-    # Strictly filter out locked categories and 0-20 / 0-25 (15-20 / 20-25) from PDF export
-    unlocked_milestones = [
-        m for m in milestones 
-        if (m.get("timeframe") or "").strip() not in ("0-20 Years", "0-25 Years", "15-20 Years", "20-25 Years")
-        and not is_locked((m.get("timeframe") or selected_horizon).strip(), m.get("category", "General"))
-    ]
+    # All milestones received from the Filter API are included in the PDF export
+    unlocked_milestones = milestones
 
     # 3. Overview Arc Banner
     total_ms = len(unlocked_milestones)
     overview_sub = (
-        f"Coverage: <b>All Available Horizons (0–5, 0–10, 0–15 Years)</b> | Active Milestones: <b>{total_ms}</b> | Premium Horizons (0–25 Yrs): <b>Available via Consultation</b>"
+        f"Coverage: <b>All Horizons</b> | Active Dimensions: <b>{total_ms}</b> | Comprehensive Kundli Synthesis"
         if is_all_horizons else
-        f"Active Horizon: <b>{selected_horizon}</b> | Milestones in Horizon: <b>{total_ms}</b> | Epochs: <b>Available Horizons</b>"
+        f"Active Horizon: <b>{selected_horizon}</b> | Dimension Predictions: <b>{total_ms}</b> | Planetary Transit Synthesis"
     )
     overview_box = [
         [
@@ -3603,11 +3596,13 @@ def generate_roadmap_report_pdf(payload: dict) -> bytes:
             card_content = [
                 [
                     Paragraph(
-                        f"<font size=8 color='#7E5F18'><b>[{timeframe}] • {cat.upper()}</b></font><br/>"
-                        f"<font size=9.5 color='#1A1A1E'><b>{title}</b></font><br/>"
-                        f"<font size=7.8 color='#333333'>{guidance}</font><br/>"
-                        f"<font size=7.2 color='#7E5F18'><b>Astrological Transit Window:</b></font> <font size=7.2 color='#555555'>{transits}</font><br/>"
-                        f"<font size=7.2 color='#7E5F18'><b>Recommended Upaya / Sadhana:</b></font> <font size=7.2 color='#555555'>{remedy}</font>",
+                        f"<font size=10 color='#1A1A1E'><b>{idx + 1}.  {title}</b></font><br/><br/>"
+                        f"<font size=7 color='#7E5F18'><b>DASHA &amp; LIFE STRATEGY GUIDANCE</b></font><br/>"
+                        f"<font size=7.8 color='#2A2A2E'>{guidance}</font><br/><br/>"
+                        f"<font size=7 color='#966C1E'><b>ASTROLOGICAL WINDOW &amp; TRANSITS</b></font><br/>"
+                        f"<font size=7.8 color='#2A2A2E'>{transits}</font><br/><br/>"
+                        f"<font size=7 color='#7E5F18'><b>RECOMMENDED UPAYA / SADHANA</b></font><br/>"
+                        f"<font size=7.8 color='#2A2A2E'>{remedy}</font>",
                         styles["JVBody"]
                     )
                 ]
@@ -3615,14 +3610,15 @@ def generate_roadmap_report_pdf(payload: dict) -> bytes:
             card_table = Table(card_content, colWidths=[184 * mm])
             card_table.setStyle(TableStyle([
                 ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#FCFBF8")),
-                ("BOX", (0, 0), (-1, -1), 0.5, GOLD_BORDER),
-                ("TOPPADDING", (0, 0), (-1, -1), 5),
-                ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
-                ("LEFTPADDING", (0, 0), (-1, -1), 8),
-                ("RIGHTPADDING", (0, 0), (-1, -1), 8),
+                ("BOX", (0, 0), (-1, -1), 0.5, colors.HexColor("#E8DFC8")),
+                ("LINEBEFORE", (0, 0), (0, -1), 2.5, GOLD_MAIN),
+                ("TOPPADDING", (0, 0), (-1, -1), 6),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
+                ("LEFTPADDING", (0, 0), (-1, -1), 10),
+                ("RIGHTPADDING", (0, 0), (-1, -1), 10),
             ]))
             story.append(card_table)
-            story.append(Spacer(1, 2.8 * mm))
+            story.append(Spacer(1, 3.5 * mm))
 
     # Page Decorations (Watermark, Golden Borders, Footers)
     def _draw_roadmap_decorations(canvas, doc_):

@@ -34,8 +34,9 @@ export const API_ENDPOINTS = {
     DEFAULT_MESSAGES: '/ai-counsellor/sessions/default/messages',
   },
   ROADMAP: {
-    GENERATE: '/ai/roadmap',
-    DOWNLOAD_PDF: '/ai/roadmap/download-pdf'
+    DOWNLOAD_PDF: '/api/roadmap/download-pdf',
+    FILTERED_PREDICTIONS: '/api/roadmap/filtered-predictions',
+    GET_USER_ROADMAP: '/api/roadmap',
   },
   CALENDAR: {
     CONVERT: '/calendar/convert',

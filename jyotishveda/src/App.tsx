@@ -716,6 +716,7 @@ export function App() {
                 setRoadmap={setRoadmap}
                 onNavigateToConsultations={() => setActiveTab('consultations')}
                 theme={theme}
+                language={language}
               />
             )}
 
