@@ -46,8 +46,11 @@ function buildUrl(path: string): string {
   if (path.startsWith('http://') || path.startsWith('https://')) {
     return path;
   }
-  const cleanBase = API_BASE_URL.replace(/\/+$/, '');
+  let cleanBase = API_BASE_URL.replace(/\/+$/, '');
   const cleanPath = path.startsWith('/') ? path : `/${path}`;
+  if (cleanBase.endsWith('/api') && cleanPath.startsWith('/api/')) {
+    cleanBase = cleanBase.slice(0, -4);
+  }
   return `${cleanBase}${cleanPath}`;
 }
 
