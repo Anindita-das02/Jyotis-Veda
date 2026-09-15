@@ -660,9 +660,9 @@ export const HoroscopeTraditionsView: React.FC<
           doc.setFont('helvetica', 'bold');
           doc.setFontSize(18);
           doc.setTextColor(20, 20, 24);
-          doc.text('JYOTISH', 33, 20);
+          doc.text('ASTRO', 33, 20);
           doc.setTextColor(181, 131, 40);
-          doc.text('VEDA', 33 + doc.getTextWidth('JYOTISH') + 0.5, 20);
+          doc.text('JUNCTION', 33 + doc.getTextWidth('ASTRO') + 0.5, 20);
 
           doc.setFontSize(8.5);
           doc.setTextColor(126, 95, 24);
@@ -680,7 +680,7 @@ export const HoroscopeTraditionsView: React.FC<
           doc.setFont('helvetica', 'bold');
           doc.setFontSize(8);
           doc.setTextColor(126, 95, 24);
-          doc.text('JYOTISHVEDA • 5 VEDIC TRADITIONS & BIRTH CHART REPORT', 14, 14);
+          doc.text('ASTROJUNCTION • 5 VEDIC TRADITIONS & BIRTH CHART REPORT', 14, 14);
           doc.setDrawColor(226, 211, 176);
           doc.setLineWidth(0.3);
           doc.line(13, 16, pageWidth - 13, 16);
@@ -710,7 +710,7 @@ export const HoroscopeTraditionsView: React.FC<
       // Save PDF
       const safeName = (profile.fullName || 'Seeker').replace(/[^a-zA-Z0-9]/g, '_');
       const dateStr = new Date().toISOString().split('T')[0];
-      doc.save(`JyotishVeda_BirthChart_${tradition}_${safeName}_${dateStr}.pdf`);
+      doc.save(`AstroJunction_BirthChart_${tradition}_${safeName}_${dateStr}.pdf`);
     } catch (err) {
       console.error('Failed to generate birth chart traditions PDF:', err);
     } finally {
@@ -2093,7 +2093,7 @@ export const HoroscopeTraditionsView: React.FC<
           <div className="py-12 flex flex-col items-center justify-center space-y-3 text-center">
             <div className="w-9 h-9 border-2 border-[#C9A050] border-t-transparent rounded-full animate-spin" />
             <p className="text-xs text-[#C9A050] font-serif font-semibold">
-              JyotishVeda synthesizing multi-tradition Vedic sutras...
+              AstroJunction synthesizing multi-tradition Vedic sutras...
             </p>
           </div>
         ) : aiInterpretation ? (

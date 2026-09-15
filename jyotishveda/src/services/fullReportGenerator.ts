@@ -64,7 +64,7 @@ function drawPageDecorations(
     } catch {}
   }
 
-  // 3. Double Golden Border (Standardized across all JyotishVeda reports)
+  // 3. Double Golden Border (Standardized across all AstroJunction reports)
   doc.setDrawColor(201, 160, 80); // #C9A050
   doc.setLineWidth(1.1);
   doc.rect(8, 8, pageWidth - 16, pageHeight - 16);
@@ -90,14 +90,14 @@ function drawPageDecorations(
 
   const textStartX = logoBase64 ? 31 : 14;
 
-  // "JYOTISH" in Dark + "VEDA" in Golden Ochre
+  // "ASTRO" in Dark + "JUNCTION" in Golden Ochre
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(16);
   doc.setTextColor(20, 20, 24);
-  doc.text('JYOTISH', textStartX, headerY + 4.8);
-  const jW = doc.getTextWidth('JYOTISH');
+  doc.text('ASTRO', textStartX, headerY + 4.8);
+  const aW = doc.getTextWidth('ASTRO');
   doc.setTextColor(181, 131, 40); // #B58328
-  doc.text('VEDA', textStartX + jW, headerY + 4.8);
+  doc.text('JUNCTION', textStartX + aW, headerY + 4.8);
 
   // Section Heading (All-Caps Gold)
   doc.setFont('helvetica', 'bold');
@@ -1521,7 +1521,7 @@ export async function generateMasterFullReportPdf({
   doc.setFont('helvetica', 'italic');
   doc.setFontSize(6);
   doc.setTextColor(110, 105, 95);
-  doc.text('Authenticated via JyotishVeda AstroEngine & Classical Ephemeris Coordinates', 17, yP8 + 31);
+  doc.text('Authenticated via AstroJunction AstroEngine & Classical Ephemeris Coordinates', 17, yP8 + 31);
 
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(7.5);
@@ -1531,5 +1531,5 @@ export async function generateMasterFullReportPdf({
   // Save PDF with sanitized clean file name
   const safeName = (profile.fullName || 'Seeker').replace(/[^a-zA-Z0-9]/g, '_');
   const fileDateStr = now.toISOString().split('T')[0];
-  doc.save(`JyotishVeda_Master_Full_Report_${safeName}_${fileDateStr}.pdf`);
+  doc.save(`AstroJunction_Master_Full_Report_${safeName}_${fileDateStr}.pdf`);
 }

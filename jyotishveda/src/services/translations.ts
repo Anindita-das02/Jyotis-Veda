@@ -33,7 +33,7 @@ export type TranslationKey = string;
 export const TRANSLATIONS: Record<string, Record<string, string>> = {
   en: {
     // Brand & Header
-    'brand.title': 'JYOTISHVEDA',
+    'brand.title': 'ASTROJUNCTION',
     'brand.subtitle': 'VEDIC DAIVAJNA',
     'brand.tagline': 'Ancient Celestial Wisdom, Sacred Mathematics & Life Counselling',
     'header.ephemeris': '✦ Ephemeris & Celestial Cycles • Timeless Astronomical Wisdom',
@@ -330,7 +330,7 @@ export const TRANSLATIONS: Record<string, Record<string, string>> = {
 
   hi: {
     // Brand & Header
-    'brand.title': 'ज्योतिषवेद',
+    'brand.title': 'एस्ट्रोजंक्शन',
     'brand.subtitle': 'वैदिक दैवज्ञ',
     'brand.tagline': 'प्राचीन आकाशीय ज्ञान, पवित्र गणित एवं जीवन परामर्श',
     'header.ephemeris': '✦ पंचांग एवं आकाशीय चक्र • कालजयी खगोलीय ज्ञान',
@@ -433,7 +433,7 @@ export const TRANSLATIONS: Record<string, Record<string, string>> = {
   },
 
   ta: {
-    'brand.title': 'ஜோதிஷவேதா',
+    'brand.title': 'ஆஸ்ட்ரோஜங்ஷன்',
     'brand.subtitle': 'வேத தைவக்ஞர்',
     'brand.tagline': 'பண்டைய வானியல் ஞானம், புனித கணிதம் மற்றும் வாழ்க்கை ஆலோசனை',
     'header.ephemeris': '✦ பஞ்சாங்கம் & வானியல் சுழற்சிகள்',
@@ -490,7 +490,7 @@ export const TRANSLATIONS: Record<string, Record<string, string>> = {
   },
 
   te: {
-    'brand.title': 'జ్యోతిషవేద',
+    'brand.title': 'ఆస్ట్రోజంక్షన్',
     'brand.subtitle': 'వేద దైవజ్ఞ',
     'brand.tagline': 'పురాతన ఖగోళ జ్ఞానం, పవిత్ర గణితం & జీవన మార్గదర్శనం',
     'header.ephemeris': '✦ పంచాంగం & ఖగోళ చలనములు',
@@ -542,7 +542,7 @@ export const TRANSLATIONS: Record<string, Record<string, string>> = {
   },
 
   bn: {
-    'brand.title': 'জ্যোতিষবেদ',
+    'brand.title': 'অ্যাস্ট্রোজংশন',
     'brand.subtitle': 'বৈদিক দৈবজ্ঞ',
     'brand.tagline': 'প্রাচীন জ্যোতির্বিজ্ঞান, পবিত্র গণিত ও জীবন পরামর্শ',
     'header.ephemeris': '✦ পঞ্জিকা ও গ্রহের গতিবিধি',
@@ -771,7 +771,7 @@ export const TRANSLATIONS: Record<string, Record<string, string>> = {
   },
 
   mr: {
-    'brand.title': 'ज्योतिषवेद',
+    'brand.title': 'एस्ट्रोजंक्शन',
     'brand.subtitle': 'वैदिक दैवज्ञ',
     'brand.tagline': 'प्राचीन खगोलशास्त्र, पवित्र गणित आणि जीवन मार्गदर्शन',
     'header.ephemeris': '✦ पंचांग आणि ग्रहांची गती',
@@ -823,7 +823,7 @@ export const TRANSLATIONS: Record<string, Record<string, string>> = {
   },
 
   gu: {
-    'brand.title': 'જ્યોતિષવેદ',
+    'brand.title': 'એસ્ટ્રોજંકશન',
     'brand.subtitle': 'વૈદિક દૈવજ્ઞ',
     'brand.tagline': 'પ્રાચીન ખગોળશાસ્ત્ર, પવિત્ર ગણિત અને જીવન માર્ગદર્શન',
     'header.ephemeris': '✦ પંચાંગ અને ગ્રહોની સ્થિતિ',
@@ -875,7 +875,7 @@ export const TRANSLATIONS: Record<string, Record<string, string>> = {
   },
 
   kn: {
-    'brand.title': 'ಜ್ಯೋತಿಷವೇದ',
+    'brand.title': 'ಆಸ್ಟ್ರೋಜಂಕ್ಷನ್',
     'brand.subtitle': 'ವೇದ ದೈವಜ್ಞ',
     'brand.tagline': 'ಪುರಾತನ ಖಗೋಳ ಜ್ಞಾನ, ಪವಿತ್ರ ಗಣಿತ ಮತ್ತು ಜೀವನ ಸಮಾಲೋಚನೆ',
     'header.ephemeris': '✦ ಪಂಚಾಂಗ ಮತ್ತು ಗ್ರಹಗಳ ಗತಿ',
@@ -927,7 +927,7 @@ export const TRANSLATIONS: Record<string, Record<string, string>> = {
   },
 
   ml: {
-    'brand.title': 'ജ്യോതിഷവേദ',
+    'brand.title': 'ആസ്ട്രോജംഗ്ഷൻ',
     'brand.subtitle': 'വേദ ദൈവജ്ഞൻ',
     'brand.tagline': 'പുരാതന ജ്യോതിശാസ്ത്ര ജ്ഞാനം, പവിത്ര ഗണിതം & ജീവിത മാർഗ്ഗദർശനം',
     'header.ephemeris': '✦ പഞ്ചാംഗവും ഗ്രഹഗതിയും',
@@ -979,7 +979,7 @@ export const TRANSLATIONS: Record<string, Record<string, string>> = {
   },
 
   pa: {
-    'brand.title': 'ਜੋਤਿਸ਼ਵੇਦ',
+    'brand.title': 'ਐਸਟ੍ਰੋਜੰਕਸ਼ਨ',
     'brand.subtitle': 'ਵੈਦਿਕ ਦੈਵੱਗ',
     'brand.tagline': 'ਪ੍ਰਾਚੀਨ ਖਗੋਲ ਗਿਆਨ, ਪਵਿੱਤਰ ਗਣਿਤ ਅਤੇ ਜੀਵਨ ਮਾਰਗਦਰਸ਼ਨ',
     'header.ephemeris': '✦ ਪੰਚਾਂਗ ਅਤੇ ਗ੍ਰਹਿਆਂ ਦੀ ਚਾਲ',
@@ -1031,7 +1031,7 @@ export const TRANSLATIONS: Record<string, Record<string, string>> = {
   },
 
   sa: {
-    'brand.title': 'ज्योतिषवेदः',
+    'brand.title': 'एस्ट्रोजंक्शनम्',
     'brand.subtitle': 'वैदिक दैवज्ञः',
     'brand.tagline': 'प्राचीनं खगोलज्ञानम्, पवित्रं गणितं तथा जीवनपरामर्शः',
     'header.ephemeris': '✦ पञ्चाङ्गं खगोलीयचक्राणि च • शाश्वतं खगोलविज्ञानम्',
@@ -1083,7 +1083,7 @@ export const TRANSLATIONS: Record<string, Record<string, string>> = {
   },
 
   ur: {
-    'brand.title': 'جوتش وید',
+    'brand.title': 'ایسٹرو جنکشن',
     'brand.subtitle': 'ویدک نجومی و مشیر',
     'brand.tagline': 'قدیم فلکیاتی حکمت، مقدس ریاضی اور رہنمائی زندگی',
     'header.ephemeris': '✦ تقویم اور فلکیاتی گردشیں • لازوال علم ہیئت',
@@ -1151,7 +1151,7 @@ export const TRANSLATIONS: Record<string, Record<string, string>> = {
   },
 
   es: {
-    'brand.title': 'JYOTISHVEDA',
+    'brand.title': 'ASTROJUNCTION',
     'brand.subtitle': 'VEDIC DAIVAJNA',
     'brand.tagline': 'Sabiduría Celestial Ancestral, Matemáticas Sagradas y Consejería de Vida',
     'header.ephemeris': '✦ Efemérides y Ciclos Celestes • Sabiduría Astronómica Atemporal',
@@ -1218,7 +1218,7 @@ export const TRANSLATIONS: Record<string, Record<string, string>> = {
   },
 
   fr: {
-    'brand.title': 'JYOTISHVEDA',
+    'brand.title': 'ASTROJUNCTION',
     'brand.subtitle': 'VEDIC DAIVAJNA',
     'brand.tagline': 'Sagesse Céleste Antique, Mathématiques Sacrées et Conseil de Vie',
     'header.ephemeris': '✦ Éphémérides et Cycles Célestes • Sagesse Astronomique Intemporelle',
@@ -1274,7 +1274,7 @@ export const TRANSLATIONS: Record<string, Record<string, string>> = {
   },
 
   de: {
-    'brand.title': 'JYOTISHVEDA',
+    'brand.title': 'ASTROJUNCTION',
     'brand.subtitle': 'VEDIC DAIVAJNA',
     'brand.tagline': 'Antike Himmelsweisheit, Heilige Mathematik & Lebensberatung',
     'header.ephemeris': '✦ Ephemeriden & Himmelszyklen • Zeitlose astronomische Weisheit',
@@ -1326,7 +1326,7 @@ export const TRANSLATIONS: Record<string, Record<string, string>> = {
   },
 
   zh: {
-    'brand.title': 'JYOTISHVEDA 吠陀星象',
+    'brand.title': 'ASTROJUNCTION 吠陀星象',
     'brand.subtitle': '吠陀智星导师',
     'brand.tagline': '古老星象智慧、神圣数理与生命咨询',
     'header.ephemeris': '✦ 星历表与天体运行周期 • 永恒的天文智慧',
@@ -1387,7 +1387,7 @@ export const TRANSLATIONS: Record<string, Record<string, string>> = {
   },
 
   ja: {
-    'brand.title': 'ジョーティシュ・ヴェーダ',
+    'brand.title': 'アストロジャンクション',
     'brand.subtitle': 'ヴェーダ占星導師',
     'brand.tagline': '古代天文学の英知、神聖幾何学、そして人生カウンセリング',
     'header.ephemeris': '✦ 暦法と天体運行サイクル • 普遍の天文学的英知',
@@ -1439,7 +1439,7 @@ export const TRANSLATIONS: Record<string, Record<string, string>> = {
   },
 
   zu: {
-    'brand.title': 'JYOTISHVEDA',
+    'brand.title': 'ASTROJUNCTION',
     'brand.subtitle': 'VEDIC DAIVAJNA',
     'brand.tagline': 'Ukuhlakanipha Kwasendulo Kwezinkanyezi, Izibalo Ezingcwele Nokwelulekwa Kwempilo',
     'header.ephemeris': '✦ Ikhalenda Yezinkanyezi Nemijikelezo Yamazulu • Ukuhlakanipha Kwaphakade',

@@ -187,7 +187,7 @@ def public_chat():
     if not messages:
         return jsonify({
             "status": "success",
-            "reply": "Namaste. I am JyotishVeda, your Vedic Daivajna. How may I guide your astrological journey today?",
+            "reply": "Namaste. I am AstroJunction, your Vedic Daivajna. How may I guide your astrological journey today?",
             "isLimitReached": False,
             "msgCount": msg_count,
             "dob": saved_dob

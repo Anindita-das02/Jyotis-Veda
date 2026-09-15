@@ -54,7 +54,7 @@ async function request<T>(
     response = await fetch(`${API_BASE_URL}${path}`, { ...options, headers });
   } catch (networkErr) {
     throw new ApiError(
-      'Could not reach the JyotishVeda server. Is the backend running?',
+      'Could not reach the AstroJunction server. Is the backend running?',
       'NETWORK_ERROR',
       0,
     );

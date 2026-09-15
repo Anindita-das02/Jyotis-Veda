@@ -2457,7 +2457,7 @@ def _build_brand_header(title_text: str, subtitle_text: str, styles) -> Table:
     )
 
     text_flowables = [
-        Paragraph("<font color='#141418'><b>JYOTISH</b></font><font color='#B58328'><b>VEDA</b></font>", brand_style),
+        Paragraph("<font color='#141418'><b>ASTRO</b></font><font color='#B58328'><b>JUNCTION</b></font>", brand_style),
         Paragraph(f"<b>{title_text}</b>", title_style),
         Paragraph(f"<i>{subtitle_text}</i>", desc_style),
     ]
@@ -2466,7 +2466,7 @@ def _build_brand_header(title_text: str, subtitle_text: str, styles) -> Table:
     if logo_path:
         brand_cells.append(Image(logo_path, width=15 * mm, height=15 * mm))
     else:
-        brand_cells.append(Paragraph("<b>JV</b>", brand_style))
+        brand_cells.append(Paragraph("<b>AJ</b>", brand_style))
 
     brand_cells.append(text_flowables)
 
@@ -2505,8 +2505,8 @@ def generate_match_report_pdf(
         leftMargin=13 * mm,
         rightMargin=13 * mm,
 
-        title="JyotishVeda Kundli Milan Report",
-        author="JyotishVeda",
+        title="AstroJunction Kundli Milan Report",
+        author="AstroJunction",
     )
 
     story = []
@@ -2946,7 +2946,7 @@ def generate_ai_synthesis_pdf(row: dict) -> bytes:
         bottomMargin=18 * mm,
         leftMargin=13 * mm,
         rightMargin=13 * mm,
-        title="JyotishVeda AI Compatibility Synthesis",
+        title="AstroJunction AI Compatibility Synthesis",
     )
 
     styles = _styles()
@@ -3429,7 +3429,7 @@ def generate_roadmap_report_pdf(payload: dict) -> bytes:
         bottomMargin=18 * mm,
         leftMargin=13 * mm,
         rightMargin=13 * mm,
-        title="JyotishVeda 25-Year Vedic Destiny Roadmap",
+        title="AstroJunction 25-Year Vedic Destiny Roadmap",
     )
 
     story = []

@@ -172,7 +172,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               <div>
                 <div className="flex items-center space-x-1.5 sm:space-x-2">
                   <span className={`text-lg sm:text-xl font-bold tracking-wider ${theme === 'dark' ? 'text-[#F0ECE1]' : 'text-[#1E1B15]'}`}>
-                    JYOTISH<span className="text-[#C9A050]">VEDA</span>
+                    ASTRO<span className="text-[#C9A050]">JUNCTION</span>
                   </span>
                   {isAdmin ? (
                     <span className="px-2 py-0.5 rounded-full text-[9px] font-bold tracking-widest uppercase bg-amber-500/20 text-amber-400 border border-amber-500/40">
@@ -414,7 +414,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                   <AncientTraditionLogo size="sm" isLight={theme === 'light'} />
                   <div>
                     <h3 className="font-bold text-sm text-[#F0ECE1]">
-                      JYOTISH<span className="text-[#C9A050]">VEDA</span>
+                      ASTRO<span className="text-[#C9A050]">JUNCTION</span>
                     </h3>
                     <p className="text-[10px] text-[#9E9A90]">Astrological Intelligence</p>
                   </div>

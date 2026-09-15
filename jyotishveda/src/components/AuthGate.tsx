@@ -392,7 +392,7 @@ export function AuthGate({
           <div className="p-4 sm:p-5 pb-1 flex flex-col items-center text-center shrink-0">
             <AncientTraditionLogo size="sm" isLight={!isDark} className="mb-1" />
             <h2 className="text-lg sm:text-xl font-serif font-bold tracking-wide flex items-center">
-              JYOTISH<span className="text-[#C9A050]">VEDA</span>
+              ASTRO<span className="text-[#C9A050]">JUNCTION</span>
             </h2>
             <p className={`text-[11px] mt-0.5 font-medium ${isDark ? 'text-[#9E9A90]' : 'text-gray-600'}`}>
               {mode === 'login' ? 'Welcome back! Log in to continue.' : 'Create your account to unlock personalized astrological insights.'}
@@ -889,7 +889,7 @@ export function AuthGate({
 
             {/* Header */}
             <h3 className="text-xl sm:text-2xl font-normal text-white mb-1">Choose an account</h3>
-            <p className="text-xs text-gray-400 mb-5">to continue to <strong className="text-white font-medium">JyotishVeda Platform</strong></p>
+            <p className="text-xs text-gray-400 mb-5">to continue to <strong className="text-white font-medium">AstroJunction Platform</strong></p>
 
             {googleAuthError && (
               <div className="mb-4 p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs flex items-center space-x-2">
@@ -1003,7 +1003,7 @@ export function AuthGate({
 
             {/* Footer Notice */}
             <p className="text-[11px] text-gray-400 leading-relaxed">
-              To continue, Google will share your name, email address, language preference, and profile picture with JyotishVeda.
+              To continue, Google will share your name, email address, language preference, and profile picture with AstroJunction.
             </p>
           </motion.div>
         </div>

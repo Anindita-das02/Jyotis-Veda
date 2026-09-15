@@ -88,7 +88,7 @@ def register():
     if latitude is None or longitude is None:
         search_query = address or birth_place
         try:
-            geolocator = Nominatim(user_agent="jyotishveda-app")
+            geolocator = Nominatim(user_agent="astrojunction-app")
             parts = [p.strip() for p in search_query.split(',') if p.strip()]
             while parts:
                 current_query = ', '.join(parts)

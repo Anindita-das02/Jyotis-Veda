@@ -31,7 +31,7 @@ export const Footer: React.FC<FooterProps> = ({
               <div className={`font-serif font-black text-lg sm:text-xl tracking-wide flex items-center gap-2 justify-center md:justify-start ${
                 theme === 'light' ? 'text-[#0D0D0F]' : 'text-[#FFFFFF]'
               }`}>
-                <span>JYOTISH<span className={theme === 'light' ? 'text-[#8C6218]' : 'text-[#C9A050]'}>VEDA</span></span>
+                <span>ASTRO<span className={theme === 'light' ? 'text-[#8C6218]' : 'text-[#C9A050]'}>JUNCTION</span></span>
                 <span className={`text-[11px] px-3 py-0.5 rounded-full font-sans font-extrabold border ${
                   theme === 'light'
                     ? 'bg-[#FFFFFF] text-[#5C3E08] border-[#8C6218] shadow-sm'
@@ -54,7 +54,7 @@ export const Footer: React.FC<FooterProps> = ({
             ✦ &quot;The cosmos is within us. We are made of star-stuff. We are a way for the cosmos to know itself.&quot; — Timeless Celestial Wisdom
           </p>
           <p className={`font-bold ${theme === 'light' ? 'text-[#1A1816]' : 'text-[#9E9789]'}`}>
-            © {new Date().getFullYear()} JyotishVeda. Grounded in Ancient Ephemeris &amp; Precision Planetary Calculations.
+            © {new Date().getFullYear()} AstroJunction. Grounded in Ancient Ephemeris &amp; Precision Planetary Calculations.
           </p>
         </div>
       </div>

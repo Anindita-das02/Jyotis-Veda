@@ -41,7 +41,7 @@ export const DisclaimerModal: React.FC<DisclaimerModalProps> = ({
           </div>
           <div>
             <h2 className={`text-lg font-serif font-bold ${theme === 'light' ? 'text-[#1A1816]' : 'text-[#F0ECE1]'}`}>Astrological &amp; Ethical Disclaimer</h2>
-            <p className={`text-xs mt-0.5 ${theme === 'light' ? 'text-[#6E685E]' : 'text-[#9E9A90]'}`}>JyotishVeda Platform Guidelines &amp; Legal Notices</p>
+            <p className={`text-xs mt-0.5 ${theme === 'light' ? 'text-[#6E685E]' : 'text-[#9E9A90]'}`}>AstroJunction Platform Guidelines &amp; Legal Notices</p>
           </div>
         </div>
 

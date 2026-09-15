@@ -629,9 +629,9 @@ export const LifeRoadmapView: React.FC<LifeRoadmapViewProps> = ({
           doc.setFont('helvetica', 'bold');
           doc.setFontSize(18);
           doc.setTextColor(20, 20, 24);
-          doc.text('JYOTISH', 33, 20);
+          doc.text('ASTRO', 33, 20);
           doc.setTextColor(181, 131, 40);
-          doc.text('VEDA', 33 + doc.getTextWidth('JYOTISH') + 0.5, 20);
+          doc.text('JUNCTION', 33 + doc.getTextWidth('ASTRO') + 0.5, 20);
 
           doc.setFontSize(8.5);
           doc.setTextColor(126, 95, 24);
@@ -649,7 +649,7 @@ export const LifeRoadmapView: React.FC<LifeRoadmapViewProps> = ({
           doc.setFont('helvetica', 'bold');
           doc.setFontSize(8);
           doc.setTextColor(126, 95, 24);
-          doc.text('JYOTISHVEDA • VEDIC DESTINY ROADMAP (0–15 YEARS)', 14, 14);
+          doc.text('ASTROJUNCTION • VEDIC DESTINY ROADMAP (0–15 YEARS)', 14, 14);
           doc.setDrawColor(226, 211, 176);
           doc.setLineWidth(0.3);
           doc.line(13, 16, pageWidth - 13, 16);

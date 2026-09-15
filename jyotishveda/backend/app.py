@@ -1,4 +1,4 @@
-# JyotishVeda Backend API Server
+# AstroJunction Backend API Server
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 
@@ -128,7 +128,7 @@ def health():
     return jsonify({
         "status": "success",
         "data": {
-            "message": "JyotishVeda API is healthy",
+            "message": "AstroJunction API is healthy",
         },
     })
 

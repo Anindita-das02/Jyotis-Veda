@@ -607,7 +607,7 @@ export const FeaturePreviewModal: React.FC<FeaturePreviewModalProps> = ({
                   <span>Access Requires Authentication</span>
                 </div>
                 <p className={`text-xs mb-3 font-medium ${isDark ? 'text-[#9E9A90]' : 'text-[#57534E]'}`}>
-                  Log in with your JyotishVeda account to immediately access full calculations, personalized charts, and Daivajna consults.
+                  Log in with your AstroJunction account to immediately access full calculations, personalized charts, and Daivajna consults.
                 </p>
 
                 <div className="flex flex-col sm:flex-row items-center gap-2">

@@ -593,7 +593,7 @@ export const MatchmakingView: React.FC<MatchmakingViewProps> = ({
     if (!aiSynthesis) return;
     let textToCopy = '';
     if (typeof aiSynthesis === 'object') {
-      textToCopy = `JYOTISHVEDA • RELATIONSHIP SYNTHESIS\n` +
+      textToCopy = `ASTROJUNCTION • RELATIONSHIP SYNTHESIS\n` +
         `Partner 1: ${partner1.fullName || 'Partner 1'} | Partner 2: ${partner2.fullName || 'Partner 2'}\n\n` +
         (aiSynthesis.overall_compatibility ? `OVERALL COMPATIBILITY:\n${renderSafeAiText(aiSynthesis.overall_compatibility)}\n\n` : '') +
         (aiSynthesis.guna_milan ? `GUNA MILAN:\n${renderSafeAiText(aiSynthesis.guna_milan)}\n\n` : '') +
@@ -730,7 +730,7 @@ export const MatchmakingView: React.FC<MatchmakingViewProps> = ({
         doc.text(`Certificate ID: ${certId}  |  Generated: ${genDate}`, 14, footerY + 5);
         doc.text(`Page ${pageNum} of ${totalPages}`, pageWidth - 14, footerY + 5, { align: 'right' });
         doc.setFont('helvetica', 'italic'); doc.setFontSize(6.5); doc.setTextColor(140, 130, 100);
-        doc.text('JyotishVeda Daivajna AI Engine  |  Vedic Relationship Intelligence', 14, footerY + 9.5);
+        doc.text('AstroJunction Daivajna AI Engine  |  Vedic Relationship Intelligence', 14, footerY + 9.5);
       };
 
       // ── Shared section title helper ───────────────────────────────────────
@@ -760,9 +760,9 @@ export const MatchmakingView: React.FC<MatchmakingViewProps> = ({
       // Header
       if (logoBase64) doc.addImage(logoBase64, 'PNG', 14, 13, 16, 16);
       doc.setFont('helvetica', 'bold'); doc.setFontSize(19); doc.setTextColor(17, 17, 17);
-      doc.text('JYOTISH', 33, 20);
+      doc.text('ASTRO', 33, 20);
       doc.setTextColor(181, 131, 40);
-      doc.text('VEDA', 33 + doc.getTextWidth('JYOTISH') + 0.5, 20);
+      doc.text('JUNCTION', 33 + doc.getTextWidth('ASTRO') + 0.5, 20);
       doc.setFontSize(8.5); doc.setTextColor(126, 95, 24);
       doc.text('DAIVAJNA DEEP RELATIONSHIP SYNTHESIS & ASTROLOGICAL COUNSEL', 33, 24.5);
       doc.setFont('helvetica', 'italic'); doc.setFontSize(7); doc.setTextColor(100, 95, 85);
@@ -863,7 +863,7 @@ export const MatchmakingView: React.FC<MatchmakingViewProps> = ({
 
       // Compact page 2 header
       doc.setFont('helvetica', 'bold'); doc.setFontSize(8); doc.setTextColor(126, 95, 24);
-      doc.text('JYOTISHVEDA  •  DAIVAJNA DEEP RELATIONSHIP SYNTHESIS', 14, 17);
+      doc.text('ASTROJUNCTION  •  DAIVAJNA DEEP RELATIONSHIP SYNTHESIS', 14, 17);
       doc.setFont('helvetica', 'normal'); doc.setFontSize(7.5); doc.setTextColor(100, 100, 100);
       doc.text(`${p1Name}  &  ${p2Name}  |  Score: ${score}`, pageWidth - 14, 17, { align: 'right' });
       doc.setDrawColor(226, 211, 176); doc.setLineWidth(0.3);
@@ -967,7 +967,7 @@ export const MatchmakingView: React.FC<MatchmakingViewProps> = ({
         doc.text('DAIVAJNA ASTROLOGICAL AUTHENTICITY SEAL', pageWidth / 2, y2 + 6.5, { align: 'center' });
         doc.setFont('helvetica', 'italic'); doc.setFontSize(6.8); doc.setTextColor(90, 85, 70);
         doc.text(
-          '"Om Shri Gurubhyo Namah — This sacred relationship synthesis was generated through JyotishVeda AI Intelligence aligned with classical Vedic Jyotish sutras and Lahiri Ayanamsa."',
+          '"Om Shri Gurubhyo Namah — This sacred relationship synthesis was generated through AstroJunction AI Intelligence aligned with classical Vedic Jyotish sutras and Lahiri Ayanamsa."',
           pageWidth / 2, y2 + 11.5, { align: 'center', maxWidth: pageWidth - 36 }
         );
       }
@@ -1131,7 +1131,7 @@ export const MatchmakingView: React.FC<MatchmakingViewProps> = ({
           doc.text(`Certificate ID: ${certId}  |  Generated: ${genDate}`, 14, footerY + 5);
           doc.text(`Page ${pageNum} of ${totalPages}`, pageWidth - 14, footerY + 5, { align: 'right' });
           doc.setFont('helvetica', 'italic'); doc.setFontSize(6.5); doc.setTextColor(140, 130, 100);
-          doc.text('JyotishVeda Daivajna AstroEngine  |  Certified via Classical Ephemeris', 14, footerY + 9.5);
+          doc.text('AstroJunction Daivajna AstroEngine  |  Certified via Classical Ephemeris', 14, footerY + 9.5);
         };
 
         // ── Helper: draw shared page header ──────────────────────────────
@@ -1139,9 +1139,9 @@ export const MatchmakingView: React.FC<MatchmakingViewProps> = ({
           if (isFirstPage) {
             if (logoBase64) doc.addImage(logoBase64, 'PNG', 14, 13, 16, 16);
             doc.setFont('helvetica', 'bold'); doc.setFontSize(19); doc.setTextColor(17, 17, 17);
-            doc.text('JYOTISH', 33, 20);
+            doc.text('ASTRO', 33, 20);
             doc.setTextColor(181, 131, 40);
-            doc.text('VEDA', 33 + doc.getTextWidth('JYOTISH') + 0.5, 20);
+            doc.text('JUNCTION', 33 + doc.getTextWidth('ASTRO') + 0.5, 20);
             doc.setFontSize(8.5); doc.setTextColor(126, 95, 24);
             doc.text('VEDIC KUNDLI MILAN & ASHTA KOOTA COMPATIBILITY CERTIFICATE', 33, 24.5);
             doc.setFont('helvetica', 'italic'); doc.setFontSize(7); doc.setTextColor(100, 95, 85);
@@ -1149,7 +1149,7 @@ export const MatchmakingView: React.FC<MatchmakingViewProps> = ({
           } else {
             // Compact header for page 2+
             doc.setFont('helvetica', 'bold'); doc.setFontSize(8); doc.setTextColor(126, 95, 24);
-            doc.text('JYOTISHVEDA  •  KUNDLI MILAN & ASHTA KOOTA COMPATIBILITY REPORT', 14, 17);
+            doc.text('ASTROJUNCTION  •  KUNDLI MILAN & ASHTA KOOTA COMPATIBILITY REPORT', 14, 17);
             doc.setFont('helvetica', 'normal'); doc.setFontSize(7.5); doc.setTextColor(100, 100, 100);
             doc.text(
               `${sanitize(partner1.fullName) || 'Partner A'}  &  ${sanitize(partner2.fullName) || 'Partner B'}  |  Score: ${matchResult.totalPoints}/36 (${matchResult.percentage}%)`,
@@ -1481,7 +1481,7 @@ export const MatchmakingView: React.FC<MatchmakingViewProps> = ({
     downloadAnchor.setAttribute('href', dataStr);
     downloadAnchor.setAttribute(
       'download',
-      `JyotishVeda_Kundli_Milan_${partner1.fullName.replace(/\s+/g, '_')}_and_${partner2.fullName.replace(/\s+/g, '_')}.json`
+      `AstroJunction_Kundli_Milan_${partner1.fullName.replace(/\s+/g, '_')}_and_${partner2.fullName.replace(/\s+/g, '_')}.json`
     );
     document.body.appendChild(downloadAnchor);
     downloadAnchor.click();
@@ -1491,7 +1491,7 @@ export const MatchmakingView: React.FC<MatchmakingViewProps> = ({
   // Download Text Report
   const handleDownloadTextReport = () => {
     const textContent = `===================================================================
-JYOTISHVEDA • SACRED VEDIC ASHTA KOOTA MATCHMAKING DOSSIER
+ASTROJUNCTION • SACRED VEDIC ASHTA KOOTA MATCHMAKING DOSSIER
 ===================================================================
 Calculated On: ${new Date(matchResult.calculatedAt).toLocaleString()}
 Horoscope Tradition: Vedic Sidereal (Nirayana) & Multi-Tradition Synthesis
@@ -1546,7 +1546,7 @@ Auspicious Muhurat Guidance:
 ${matchResult.auspiciousMuhuratAdvice}
 
 ===================================================================
-Issued by JyotishVeda Daivajna Astrological Intelligence Engine
+Issued by AstroJunction Daivajna Astrological Intelligence Engine
 ===================================================================`;
 
     const blob = new Blob([textContent], { type: 'text/plain;charset=utf-8' });
@@ -3097,7 +3097,7 @@ Issued by JyotishVeda Daivajna Astrological Intelligence Engine
         {/* Certificate Header */}
         <div className="text-center border-b-2 border-[#C9A050] pb-6 mb-6">
           <div className="text-3xl font-bold tracking-widest text-[#8C6D23] uppercase mb-1">
-            🕉️ JYOTISHVEDA
+            🕉️ ASTROJUNCTION
           </div>
           <div className="text-sm font-semibold tracking-wider text-gray-700 uppercase">
             Vedic Kundli Milan &amp; Ashta Koota Compatibility Certificate
@@ -3192,9 +3192,9 @@ Issued by JyotishVeda Daivajna Astrological Intelligence Engine
         {/* Certificate Footer / Authentication */}
         <div className="mt-8 pt-6 border-t-2 border-gray-300 flex justify-between items-end text-xs text-gray-600">
           <div>
-            <div>Certificate ID: <strong className="text-gray-900">JV-KM-{Date.now().toString(36).toUpperCase()}</strong></div>
+            <div>Certificate ID: <strong className="text-gray-900">AJ-KM-{Date.now().toString(36).toUpperCase()}</strong></div>
             <div>Generated: {new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</div>
-            <div className="text-[10px] text-gray-500 mt-1">Verified via JyotishVeda Mathematical AstroEngine</div>
+            <div className="text-[10px] text-gray-500 mt-1">Verified via AstroJunction Mathematical AstroEngine</div>
           </div>
           <div className="text-center">
             <div className="w-36 border-b border-gray-400 mb-1 mx-auto" />

@@ -41,7 +41,7 @@ export function LandingPage({
         if (Array.isArray(parsed) && parsed.length > 0) return parsed;
       }
     } catch (e) {}
-    return [{ role: 'assistant', content: 'Namaste. I am JyotishVeda. How may I guide your astrological journey today?' }];
+    return [{ role: 'assistant', content: 'Namaste. I am AstroJunction. How may I guide your astrological journey today?' }];
   });
 
   const [input, setInput] = useState('');
@@ -96,7 +96,7 @@ export function LandingPage({
       localStorage.removeItem('jyotishveda_guest_chat_count');
       localStorage.removeItem('jyotishveda_guest_chat_dob');
     } catch (e) {}
-    setMessages([{ role: 'assistant', content: 'Namaste. I am JyotishVeda. How may I guide your astrological journey today?' }]);
+    setMessages([{ role: 'assistant', content: 'Namaste. I am AstroJunction. How may I guide your astrological journey today?' }]);
     setMsgCount(0);
     setSavedDob(null);
   };
@@ -354,7 +354,7 @@ export function LandingPage({
               <AncientTraditionLogo size="md" isLight={theme === 'light'} />
               <div>
                 <h1 className="text-xl font-serif font-bold tracking-wider flex items-center">
-                  JYOTISH<span className="text-[#C9A050]">VEDA</span>
+                  ASTRO<span className="text-[#C9A050]">JUNCTION</span>
                 </h1>
                 <p className={`text-[9px] font-bold tracking-widest uppercase mt-0.5 ${theme === 'dark' ? 'text-[#9E9A90]' : 'text-gray-500'}`}>
                   Authentic Vedic Wisdom
@@ -515,7 +515,7 @@ export function LandingPage({
                   Destiny with
                 </span>
                 <span className="inline-flex mt-2 items-center flex-wrap justify-center lg:justify-start">
-                  {"JYOTISH".split("").map((char, index) => (
+                  {"ASTRO".split("").map((char, index) => (
                     <motion.span
                       key={index}
                       initial={{ opacity: 0, y: 20 }}
@@ -526,12 +526,12 @@ export function LandingPage({
                       {char}
                     </motion.span>
                   ))}
-                  {"VEDA".split("").map((char, index) => (
+                  {"JUNCTION".split("").map((char, index) => (
                     <motion.span
                       key={`v-${index}`}
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.6, delay: (index + 7) * 0.08, ease: "easeOut" }}
+                      transition={{ duration: 0.6, delay: (index + 5) * 0.08, ease: "easeOut" }}
                       className="inline-block text-[#C9A050]"
                     >
                       {char}
@@ -563,12 +563,12 @@ export function LandingPage({
               <div className="relative w-72 h-72 sm:w-96 sm:h-96 lg:w-[500px] lg:h-[500px] flex items-center justify-center lg:translate-x-[15%]">
                 <img
                   src="/white_zodiac_wheel.png"
-                  alt="JyotishVeda Zodiac Wheel"
+                  alt="AstroJunction Zodiac Wheel"
                   className="w-full h-full object-cover rounded-full shadow-[0_0_60px_rgba(201,160,80,0.4)] border border-[#C9A050]/40 relative z-10"
                   style={{ animation: 'spin 60s linear infinite' }}
                 />
 
-                {/* JYOTISHVEDA Premium Center Core */}
+                {/* AstroJunction Premium Center Core */}
                 <div className="absolute z-20 flex flex-col items-center justify-center pointer-events-none">
                   {/* Outer glowing aura */}
                   <div className="absolute inset-0 rounded-full bg-[#C9A050]/20 blur-2xl animate-pulse"></div>
@@ -589,8 +589,8 @@ export function LandingPage({
                     
                     {/* Typography */}
                     <span className="text-[#E5C170] font-serif font-bold text-[8px] sm:text-[10px] tracking-[0.25em] text-center flex flex-col items-center drop-shadow-md">
-                      <span>JYOTISH</span>
-                      <span className="font-sans text-[9px] sm:text-[11px] tracking-normal mt-0.5 text-[#C9A050]">VEDA</span>
+                      <span>ASTRO</span>
+                      <span className="font-sans text-[8px] sm:text-[9.5px] tracking-normal mt-0.5 text-[#C9A050]">JUNCTION</span>
                     </span>
                   </div>
                 </div>
@@ -760,7 +760,7 @@ export function LandingPage({
               <div className="bg-[#C9A050] p-3 text-[#0D0D0F] flex justify-between items-center">
                 <div className="flex items-center space-x-2">
                   <Sparkles className="w-4 h-4" />
-                  <span className="font-bold text-sm">JyotishVeda</span>
+                  <span className="font-bold text-sm">AstroJunction</span>
                 </div>
                 <div className="flex items-center space-x-1">
                   <button 

@@ -172,7 +172,7 @@ PLANET_META = {
     "ketu": ("Ketu", "Ketu (केतु)", "☋"),
 }
 
-_geolocator = Nominatim(user_agent="jyotishveda-kundli/1.0")
+_geolocator = Nominatim(user_agent="astrojunction-kundli/1.0")
 _timezone_finder = TimezoneFinder()
 
 
@@ -1699,7 +1699,7 @@ def download_match_report_pdf(user_id: str, report_id: str):
         row["report_json"] = report_json
         pdf_bytes = generate_match_report_pdf(row)
 
-        filename = f"jyotishveda-kundli-milan-{report_id[:8]}.pdf"
+        filename = f"astrojunction-kundli-milan-{report_id[:8]}.pdf"
 
         return Response(
             pdf_bytes,
@@ -1781,7 +1781,7 @@ def generate_direct_pdf():
 
         clean_p1 = "".join(c for c in p1_name if c.isalnum() or c in (" ", "_", "-")).strip().replace(" ", "_")
         clean_p2 = "".join(c for c in p2_name if c.isalnum() or c in (" ", "_", "-")).strip().replace(" ", "_")
-        filename = f"JyotishVeda_Kundli_Milan_{clean_p1}_and_{clean_p2}.pdf"
+        filename = f"AstroJunction_Kundli_Milan_{clean_p1}_and_{clean_p2}.pdf"
 
         return Response(
             pdf_bytes,
@@ -1842,7 +1842,7 @@ def generate_direct_ai_synthesis_pdf():
 
         clean_p1 = "".join(c for c in p1_name if c.isalnum() or c in (" ", "_", "-")).strip().replace(" ", "_")
         clean_p2 = "".join(c for c in p2_name if c.isalnum() or c in (" ", "_", "-")).strip().replace(" ", "_")
-        filename = f"JyotishVeda_AI_Counsel_{clean_p1}_and_{clean_p2}.pdf"
+        filename = f"AstroJunction_AI_Counsel_{clean_p1}_and_{clean_p2}.pdf"
 
         return Response(
             pdf_bytes,

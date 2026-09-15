@@ -223,7 +223,7 @@ export function BlogPage({ theme, onBack, initialBlog = null }: BlogPageProps) {
                 </div>
                 <div>
                   <div className="text-sm font-bold flex items-center space-x-1.5">
-                    <span className={isDark ? 'text-[#F0ECE1]' : 'text-gray-900'}>JyotishVeda Masters</span>
+                    <span className={isDark ? 'text-[#F0ECE1]' : 'text-gray-900'}>AstroJunction Masters</span>
                     <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#C9A050]/20 text-[#C9A050] font-semibold">
                       Verified
                     </span>

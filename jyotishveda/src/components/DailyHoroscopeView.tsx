@@ -193,7 +193,7 @@ export const DailyHoroscopeView: React.FC<DailyHoroscopeViewProps> = ({
 
   const handleShare = () => {
     navigator.clipboard.writeText(
-      `Daily Vedic Insight for ${profile.fullName} | JyotishVeda:\nTithi: ${panchang.tithi} | Nakshatra: ${panchang.nakshatra}\nAbhijit Muhurta: ${panchang.abhijitMuhurta}`
+      `Daily Vedic Insight for ${profile.fullName} | AstroJunction:\nTithi: ${panchang.tithi} | Nakshatra: ${panchang.nakshatra}\nAbhijit Muhurta: ${panchang.abhijitMuhurta}`
     );
     setIsCopied(true);
     setTimeout(() => setIsCopied(false), 2500);
@@ -376,9 +376,9 @@ export const DailyHoroscopeView: React.FC<DailyHoroscopeViewProps> = ({
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(17);
       doc.setTextColor(20, 20, 24);
-      doc.text('JYOTISH', 32, 19.5);
+      doc.text('ASTRO', 32, 19.5);
       doc.setTextColor(181, 131, 40);
-      doc.text('VEDA', 32 + doc.getTextWidth('JYOTISH') + 0.8, 19.5);
+      doc.text('JUNCTION', 32 + doc.getTextWidth('ASTRO') + 0.8, 19.5);
 
       doc.setFontSize(8.5);
       doc.setTextColor(126, 95, 24);
@@ -1051,7 +1051,7 @@ export const DailyHoroscopeView: React.FC<DailyHoroscopeViewProps> = ({
           doc.setFont('helvetica', 'bold');
           doc.setFontSize(8);
           doc.setTextColor(126, 95, 24);
-          doc.text('JYOTISHVEDA | DAILY VEDIC TRANSIT & PANCHANG REPORT', 14, 14);
+          doc.text('ASTROJUNCTION | DAILY VEDIC TRANSIT & PANCHANG REPORT', 14, 14);
 
           doc.setDrawColor(226, 211, 176);
           doc.setLineWidth(0.3);
@@ -1075,7 +1075,7 @@ export const DailyHoroscopeView: React.FC<DailyHoroscopeViewProps> = ({
       // Save PDF
       const safeName = (profile.fullName || 'Seeker').replace(/[^a-zA-Z0-9]/g, '_');
       const dateStr = new Date().toISOString().split('T')[0];
-      doc.save(`JyotishVeda_Daily_Report_${safeName}_${dateStr}.pdf`);
+      doc.save(`AstroJunction_Daily_Report_${safeName}_${dateStr}.pdf`);
     } catch (err) {
       console.error('Failed to generate daily insights PDF:', err);
     } finally {
