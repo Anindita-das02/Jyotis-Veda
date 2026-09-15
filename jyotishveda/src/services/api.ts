@@ -1,5 +1,5 @@
 export const API_BASE_URL: string =
-  (import.meta as any).env?.VITE_API_BASE_URL || 'http://localhost:5001';
+  (import.meta as any).env?.VITE_API_BASE_URL || 'http://72.61.226.68:5001';
 
 const TOKEN_KEY = 'jyotish_auth_token';
 

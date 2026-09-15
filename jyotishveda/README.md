@@ -62,10 +62,10 @@ Start the backend:
 python app.py
 ```
 
-It starts on `http://localhost:5001`. Verify it's healthy:
+It starts on `http://72.61.226.68:5001`. Verify it's healthy:
 
 ```cmd
-curl http://localhost:5001/api/health
+curl http://72.61.226.68:5001/api/health
 ```
 
 ## 3. Frontend setup
@@ -76,7 +76,7 @@ npm run dev
 ```
 
 The frontend reads `VITE_API_BASE_URL` from `.env` (defaults to
-`http://localhost:5001/api`, which matches the backend above).
+`http://72.61.226.68:5001/api`, which matches the backend above).
 
 Open the app, register an account, and create a profile — it's saved to
 MySQL via `sp_create_profile`, not `localStorage`.
