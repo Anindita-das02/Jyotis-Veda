@@ -157,17 +157,17 @@ export const ConsultationsPaymentView: React.FC<ConsultationsPaymentViewProps> =
           </div>
           <div className="flex items-center space-x-2 text-[#9E9A90]">
             <CheckCircle2 className="w-4 h-4 text-[#C9A050] shrink-0" />
-            <span>Personalized Gemstone Certificate</span>
+            <span>Personalized Vedic Upayas</span>
           </div>
           <div className="flex items-center space-x-2 text-[#9E9A90]">
             <CheckCircle2 className="w-4 h-4 text-[#C9A050] shrink-0" />
-            <span>Verified Pandit Consultations</span>
+            <span>Instant Subscription Activation</span>
           </div>
         </div>
       </div>
 
       {/* Pricing Tiers Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {tiers.map((tier) => {
           return (
             <div

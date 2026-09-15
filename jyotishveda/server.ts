@@ -516,7 +516,7 @@ app.post('/api/consultations/verify-payment', (req, res) => {
     transactionId: `TXN_${Date.now().toString(36).toUpperCase()}`,
     amountPaid: tier?.priceINR || 1499,
     currency: 'INR',
-    tierTitle: tier?.title || '10-Year Career & Wealth Astro-Blueprint',
+    tierTitle: tier?.name || tier?.title || 'Vedic Destiny Subscription',
     bookingDate: new Date().toISOString(),
     invoiceNumber: `INV-VEDA-${Math.floor(100000 + Math.random() * 900000)}`,
     downloadUrl: `/reports/consultation-${referenceCode}.pdf`,

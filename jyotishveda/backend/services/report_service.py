@@ -3441,11 +3441,12 @@ def generate_roadmap_report_pdf(payload: dict) -> bytes:
     story = []
 
     profile = payload.get("profile") or {}
-    selected_horizon = (payload.get("selectedHorizon") or "All Horizons (0–25 Years)").strip()
+    selected_horizon = (payload.get("selectedHorizon") or "All Available Guidance").strip()
     raw_milestones = payload.get("roadmap") or payload.get("milestones") or []
-    is_all_horizons = "all" in selected_horizon.lower() or "complete" in selected_horizon.lower() or "25-year" in selected_horizon.lower()
+    include_all = payload.get("includeAll", False)
+    is_all_horizons = include_all or "all" in selected_horizon.lower() or "complete" in selected_horizon.lower() or "available" in selected_horizon.lower() or "25-year" in selected_horizon.lower()
 
-    if not is_all_horizons and selected_horizon:
+    if not is_all_horizons and selected_horizon and selected_horizon != "All Available Guidance":
         milestones = [
             m for m in raw_milestones 
             if (m.get("timeframe") or "").strip() == selected_horizon or
@@ -3454,7 +3455,7 @@ def generate_roadmap_report_pdf(payload: dict) -> bytes:
                (selected_horizon in ("0-15 Years", "10-15 Years") and (m.get("timeframe") or "").strip() in ("10-15 Years", "0-15 Years"))
         ]
         if not milestones:
-            milestones = [m for m in raw_milestones if (m.get("timeframe") or "").strip() == selected_horizon] or raw_milestones
+            milestones = raw_milestones
     else:
         milestones = raw_milestones
 
@@ -3485,7 +3486,10 @@ def generate_roadmap_report_pdf(payload: dict) -> bytes:
     mulank_val = f"Mulank {numerology.get('mulank')}" if numerology.get("mulank") else "Mulank -"
     bhagyank_val = f"Bhagyank {numerology.get('bhagyank')}" if numerology.get("bhagyank") else "Bhagyank -"
 
-    header_title = f"VEDIC DESTINY ROADMAP & LIFE BLUEPRINT ({selected_horizon.upper()})" if not is_all_horizons else "VEDIC DESTINY ROADMAP & LIFE BLUEPRINT (0–25 YEARS)"
+    if is_all_horizons or "available" in selected_horizon.lower():
+        header_title = "VEDIC DESTINY ROADMAP & LIFE BLUEPRINT (ALL AVAILABLE GUIDANCE)"
+    else:
+        header_title = f"VEDIC DESTINY ROADMAP & LIFE BLUEPRINT ({selected_horizon.upper()})"
 
     # 1. Header Title & Brand
     story.append(
@@ -3535,7 +3539,7 @@ def generate_roadmap_report_pdf(payload: dict) -> bytes:
     # 3. Overview Arc Banner
     total_ms = len(unlocked_milestones)
     overview_sub = (
-        f"Coverage: <b>All Horizons</b> | Active Dimensions: <b>{total_ms}</b> | Comprehensive Kundli Synthesis"
+        f"Coverage: <b>All Available Horizons &amp; Life Spheres</b> | Total Predictions: <b>{total_ms}</b> | Comprehensive Kundli Synthesis"
         if is_all_horizons else
         f"Active Horizon: <b>{selected_horizon}</b> | Dimension Predictions: <b>{total_ms}</b> | Planetary Transit Synthesis"
     )
@@ -3593,10 +3597,11 @@ def generate_roadmap_report_pdf(payload: dict) -> bytes:
             transits = m.get("favorableTransits") or "Favorable planetary aspect and Mahadasha support."
             remedy = m.get("remedialAction") or "Chant Gayatri Mantra & perform planetary seva."
 
+            tf_label = f" &nbsp;•&nbsp; <font size=7.5 color='#966C1E'><b>[{timeframe}]</b></font>" if timeframe else ""
             card_content = [
                 [
                     Paragraph(
-                        f"<font size=10 color='#1A1A1E'><b>{idx + 1}.  {title}</b></font><br/><br/>"
+                        f"<font size=10 color='#1A1A1E'><b>{idx + 1}.  {title}</b></font>{tf_label}<br/><br/>"
                         f"<font size=7 color='#7E5F18'><b>DASHA &amp; LIFE STRATEGY GUIDANCE</b></font><br/>"
                         f"<font size=7.8 color='#2A2A2E'>{guidance}</font><br/><br/>"
                         f"<font size=7 color='#966C1E'><b>ASTROLOGICAL WINDOW &amp; TRANSITS</b></font><br/>"

@@ -364,77 +364,21 @@ export const LifeRoadmapView: React.FC<LifeRoadmapViewProps> = ({
     return matchCat && matchHor;
   });
 
-  // Comprehensive Multi-Page PDF Report Generator (Exporting Exact UI Predictions)
+  // Comprehensive Multi-Page PDF Report Generator (Exporting ALL Available Guidance)
   const handleDownloadPdfReport = async () => {
-    const targetHorizon = selectedHorizon || '0-5 Years';
-    if (isHorizonLocked(targetHorizon)) {
-      if (onNavigateToConsultations) {
-        onNavigateToConsultations(getHorizonTierId(targetHorizon) || undefined);
-      }
-      return;
-    }
-
     setIsGeneratingPdf(true);
     const cleanName = (profile.fullName || (profile as any)?.name || 'Seeker').trim().replace(/\s+/g, '_');
-    const fileName = `Vedic_Destiny_Roadmap_${cleanName}_${targetHorizon.replace(/\s+/g, '_')}.pdf`;
+    const fileName = `Vedic_Destiny_Roadmap_${cleanName}_Available_Guidance.pdf`;
 
-    // 🌟 Ensure we export the exact predictions currently displayed on the user's screen
-    let milestonesToExport = (filteredRoadmap && filteredRoadmap.length > 0)
-      ? filteredRoadmap
-      : (roadmap && roadmap.length > 0
-          ? (selectedHorizon ? roadmap.filter((m) => m.timeframe === selectedHorizon) : roadmap)
-          : []);
+    // 🌟 Collect ALL available (unlocked) guidance across all life spheres & available horizons
+    let availableMilestones = normalizedRoadmap.filter((m) => m && !isMilestoneLocked(m));
 
-    // Only if nothing is loaded at all on screen, fetch from Filter API once
-    if (milestonesToExport.length === 0) {
-      try {
-        const res = await api.post<any>(API_ENDPOINTS.ROADMAP.FILTERED_PREDICTIONS, {
-          profile,
-          tradition,
-          chartData,
-          numerology,
-          filter: targetHorizon,
-          horizon: targetHorizon,
-          language,
-        });
-
-        if (res && res.topics && Array.isArray(res.topics) && res.topics.length > 0) {
-          const categoryMap: Record<string, string> = {
-            career: 'Career',
-            wealth: 'Wealth',
-            health: 'Health',
-            relationships: 'Relationships',
-            family: 'Family',
-            education: 'Education',
-            travel: 'Travel',
-            spirituality: 'Spirituality',
-          };
-
-          milestonesToExport = res.topics.map((t: any, idx: number) => {
-            const rawKey = (t.topicKey || '').toLowerCase();
-            const mappedCat = categoryMap[rawKey] || t.topicName || 'General';
-            return {
-              id: `ms-${targetHorizon.replace(/\s+/g, '-').toLowerCase()}-${rawKey || idx}`,
-              timeframe: targetHorizon,
-              category: mappedCat,
-              title: t.topicName || getCategoryDisplayName(mappedCat),
-              guidance: t.prediction || '',
-              favorableTransits: t.favorableTransits || 'Favorable transit aspect',
-              remedialAction: t.remedialAction || 'Chant Navagraha Stotra daily',
-              status: idx === 0 ? 'In-Progress' : 'Pending',
-            };
-          });
-
-          setRoadmap(milestonesToExport);
-        }
-      } catch (err) {
-        console.warn('Pre-fetching predictions for PDF failed:', err);
-      }
+    if (availableMilestones.length === 0) {
+      const fallback = generateCustomRoadmap(profile, chartData);
+      availableMilestones = fallback.filter((m) => m && !isMilestoneLocked(m));
     }
 
-    if (milestonesToExport.length === 0) {
-      milestonesToExport = generateCustomRoadmap(profile, chartData);
-    }
+    const milestonesToExport = availableMilestones;
 
     // 1. Attempt Server-Side Python Flask PDF Download via API
     try {
@@ -451,8 +395,8 @@ export const LifeRoadmapView: React.FC<LifeRoadmapViewProps> = ({
         headers,
         body: JSON.stringify({
           profile,
-          selectedHorizon: targetHorizon,
-          includeAll: false,
+          selectedHorizon: 'All Available Guidance',
+          includeAll: true,
           roadmap: milestonesToExport,
           chartData,
           numerology,
@@ -589,12 +533,12 @@ export const LifeRoadmapView: React.FC<LifeRoadmapViewProps> = ({
       const inProgressCount = milestonesToExport.filter((m) => m.status === 'In-Progress').length;
       const pendingCount = milestonesToExport.filter((m) => m.status === 'Pending' || !m.status).length;
 
-      doc.text(`VEDIC DESTINY ROADMAP — ${targetHorizon.toUpperCase()}`, 17, yPos + 5);
+      doc.text(`VEDIC DESTINY ROADMAP — ALL AVAILABLE GUIDANCE`, 17, yPos + 5);
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(7.5);
       doc.setTextColor(60, 60, 60);
       doc.text(
-        `Active Horizon: ${targetHorizon}  |  Predictions: ${milestonesToExport.length} Life Spheres  |  ✓ Completed: ${completedCount}  •  ⚡ In-Progress: ${inProgressCount}  •  ⏳ Pending: ${pendingCount}`,
+        `Coverage: All Available Horizons (${milestonesToExport.length} Guidance Predictions)  |  ✓ Completed: ${completedCount}  •  ⚡ In-Progress: ${inProgressCount}  •  ⏳ Pending: ${pendingCount}`,
         17,
         yPos + 9
       );
@@ -648,7 +592,8 @@ export const LifeRoadmapView: React.FC<LifeRoadmapViewProps> = ({
         doc.setFont('helvetica', 'bold');
         doc.setFontSize(9);
         doc.setTextColor(26, 26, 30);
-        doc.text(`${idx + 1}.  ${m.title || getCategoryDisplayName(m.category)}`, 17, yPos + 6.5);
+        const tfLabel = m.timeframe ? `  [${m.timeframe}]` : '';
+        doc.text(`${idx + 1}.  ${m.title || getCategoryDisplayName(m.category)}${tfLabel}`, 17, yPos + 6.5);
 
         // Section: Dasha Guidance
         doc.setFont('helvetica', 'bold');
