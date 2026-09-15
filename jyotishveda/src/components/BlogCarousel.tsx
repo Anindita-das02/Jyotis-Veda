@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 
+import { blogApi } from '../services/blogApi';
+
 export interface BlogPost {
   id: number;
   title: string;
@@ -30,11 +32,10 @@ export const BlogCarousel: React.FC<BlogCarouselProps> = ({ theme, onSelectBlog,
     const fetchBlogs = async () => {
       try {
         setLoading(true);
-        const res = await fetch('http://localhost:5001/api/blogs');
-        const json = await res.json();
-        if (json.status === 'success' && Array.isArray(json.data)) {
-          const published = json.data.filter((b: BlogPost) => b.status === 'Published');
-          setBlogs(published.length > 0 ? published : json.data);
+        const data = await blogApi.getBlogs();
+        if (Array.isArray(data)) {
+          const published = data.filter((b: any) => b.status === 'Published');
+          setBlogs(published.length > 0 ? (published as BlogPost[]) : (data as BlogPost[]));
         }
       } catch (err) {
         console.error('Error fetching blogs for carousel:', err);

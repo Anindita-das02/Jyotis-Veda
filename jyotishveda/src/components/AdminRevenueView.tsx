@@ -1,23 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { IndianRupee, Wallet, TrendingUp, AlertCircle, ArrowUpRight, ArrowDownRight, Activity } from 'lucide-react';
 
-interface RevenueStats {
-  total_revenue: number;
-  monthly_revenue: number;
-  total_successful: number;
-  total_failed: number;
-}
-
-interface Transaction {
-  id: string;
-  amount: number;
-  currency: string;
-  status: 'success' | 'failed' | 'pending';
-  payment_method: string;
-  created_at: string;
-  full_name: string;
-  email: string;
-}
+import { adminApi, RevenueStats, Transaction } from '../services/adminApi';
 
 interface AdminRevenueViewProps {
   theme: 'dark' | 'light';
@@ -33,16 +17,13 @@ export const AdminRevenueView: React.FC<AdminRevenueViewProps> = ({ theme }) => 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [statsRes, txnsRes] = await Promise.all([
-          fetch('http://localhost:5001/api/admin/revenue/stats'),
-          fetch('http://localhost:5001/api/admin/revenue/transactions')
+        const [statsData, txnsData] = await Promise.all([
+          adminApi.getRevenueStats(),
+          adminApi.getAllTransactions(),
         ]);
         
-        const statsData = await statsRes.json();
-        const txnsData = await txnsRes.json();
-        
-        if (statsData.status === 'success') setStats(statsData.data);
-        if (txnsData.status === 'success') setTransactions(txnsData.data);
+        setStats(statsData);
+        setTransactions(txnsData);
       } catch (err) {
         setError('Failed to load revenue data');
         console.error(err);

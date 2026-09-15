@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { API_BASE_URL } from '../services/api';
+import { zodiacApi } from '../services/zodiacApi';
 import { ZodiacSign } from '../services/zodiacData';
 
 // Sanskrit script mapping (Devanagari) for each zodiac
@@ -108,14 +108,10 @@ export function useZodiacData() {
     const fetchZodiacs = async () => {
       try {
         setLoading(true);
-        const response = await fetch(`${API_BASE_URL}/api/zodiac/all`);
-        if (!response.ok) {
-          throw new Error('Failed to fetch zodiacs');
-        }
-        const data = await response.json();
-        if (data.status === 'success' && Array.isArray(data.data)) {
+        const data = await zodiacApi.getAll();
+        if (Array.isArray(data)) {
           // Map DB fields to frontend-expected fields
-          const mapped = data.data.map((z: any) => {
+          const mapped = data.map((z: any) => {
             const canonicalId = String(
               z.slug || z.sign_id || (typeof z.id === 'string' && isNaN(Number(z.id)) ? z.id : '') || z.name || 'aries'
             ).toLowerCase().trim();

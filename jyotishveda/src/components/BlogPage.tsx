@@ -16,6 +16,7 @@ import {
   ChevronRight
 } from 'lucide-react';
 import { BlogPost } from './BlogCarousel';
+import { blogApi } from '../services/blogApi';
 
 interface BlogPageProps {
   theme: 'light' | 'dark';
@@ -50,11 +51,10 @@ export function BlogPage({ theme, onBack, initialBlog = null }: BlogPageProps) {
     const fetchBlogs = async () => {
       try {
         setLoading(true);
-        const res = await fetch('http://localhost:5001/api/blogs');
-        const json = await res.json();
-        if (json.status === 'success' && Array.isArray(json.data)) {
-          const published = json.data.filter((b: BlogPost) => b.status === 'Published');
-          setBlogs(published.length > 0 ? published : json.data);
+        const data = await blogApi.getBlogs();
+        if (Array.isArray(data)) {
+          const published = data.filter((b: BlogPost) => b.status === 'Published');
+          setBlogs(published.length > 0 ? published : data);
         }
       } catch (err) {
         console.error('Error fetching blogs in BlogPage:', err);

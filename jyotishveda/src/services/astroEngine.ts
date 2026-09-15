@@ -1607,12 +1607,12 @@ export function calculateKundliMilan(partner1: UserProfile, partner2: UserProfil
   const moon1 = chart1.planets.find((p) => p.name === 'Moon') || chart1.planets[1];
   const moon2 = chart2.planets.find((p) => p.name === 'Moon') || chart2.planets[1];
 
-  const dynNak1 = moon1.nakshatra || getNakshatraFromLongitude(moon1.longitude || 0).name;
-  const dynNak2 = moon2.nakshatra || getNakshatraFromLongitude(moon2.longitude || 0).name;
+  const dynNak1 = moon1.nakshatra || NAKSHATRAS[Math.floor((moon1.totalDegree || 0) / (360 / 27)) % 27]?.name || 'Ashwini';
+  const dynNak2 = moon2.nakshatra || NAKSHATRAS[Math.floor((moon2.totalDegree || 0) / (360 / 27)) % 27]?.name || 'Ashwini';
   const nak1CleanName = dynNak1.split('(')[0].trim();
   const nak2CleanName = dynNak2.split('(')[0].trim();
-  const nak1 = NAKSHATRA_ATTRIBUTES[nak1CleanName] || NAKSHATRA_ATTRIBUTES[getNakshatraFromLongitude(moon1.longitude || 0).name];
-  const nak2 = NAKSHATRA_ATTRIBUTES[nak2CleanName] || NAKSHATRA_ATTRIBUTES[getNakshatraFromLongitude(moon2.longitude || 0).name];
+  const nak1 = NAKSHATRA_ATTRIBUTES[nak1CleanName] || NAKSHATRA_ATTRIBUTES['Ashwini'];
+  const nak2 = NAKSHATRA_ATTRIBUTES[nak2CleanName] || NAKSHATRA_ATTRIBUTES['Ashwini'];
 
   const rashi1Idx = moon1.signIndex;
   const rashi2Idx = moon2.signIndex;
@@ -2213,8 +2213,8 @@ export function calculateKundliMilan(partner1: UserProfile, partner2: UserProfil
   remedies.push(`Deep Daan: Light a pure cow ghee lamp facing East during sunset on Thursdays to foster family tranquility and sustained fortune.`);
 
   // DYNAMIC MUHURAT ADVICE
-  const nak1Name = moon1.nakshatra || getNakshatraFromLongitude(moon1.longitude || 0).name;
-  const nak2Name = moon2.nakshatra || getNakshatraFromLongitude(moon2.longitude || 0).name;
+  const nak1Name = moon1.nakshatra || NAKSHATRAS[Math.floor((moon1.totalDegree || 0) / (360 / 27)) % 27]?.name || 'Ashwini';
+  const nak2Name = moon2.nakshatra || NAKSHATRAS[Math.floor((moon2.totalDegree || 0) / (360 / 27)) % 27]?.name || 'Ashwini';
   const auspiciousMuhuratAdvice = `Personalized Vivaha Muhurat for ${p1Name} (${nak1Name} Nakshatra, ${rashi1Name}) & ${p2Name} (${nak2Name} Nakshatra, ${rashi2Name}): Ideal wedding & auspicious partnership dates occur during Shukla Paksha under Rohini, Mrigashira, Magha, Uttara Phalguni, Hasta, Swati, Anuradha, or Revati Nakshatras during Venus (Shukra) or Jupiter (Guru) Hora, avoiding Rikta Tithis (4th, 9th, 14th) and Rahu Kaal.`;
 
   return {

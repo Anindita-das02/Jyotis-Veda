@@ -1,14 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Users, Trash2, Shield, User, AlertCircle, Ban, CheckCircle } from 'lucide-react';
 
-interface UserData {
-  id: string;
-  email: string;
-  full_name: string;
-  role: 'admin' | 'user';
-  is_active: number;
-  created_at: string;
-}
+import { adminApi, UserData } from '../services/adminApi';
 
 interface AdminUsersViewProps {
   theme: 'dark' | 'light';
@@ -21,16 +14,10 @@ export const AdminUsersView: React.FC<AdminUsersViewProps> = ({ theme }) => {
 
   const fetchUsers = async () => {
     try {
-      const response = await fetch('http://localhost:5001/api/admin/users');
-      const data = await response.json();
-      
-      if (data.status === 'success') {
-        setUsers(data.data);
-      } else {
-        setError(data.message || 'Failed to load users');
-      }
-    } catch (err) {
-      setError('Network error while loading users');
+      const data = await adminApi.getAllUsers();
+      setUsers(data);
+    } catch (err: any) {
+      setError(err?.message || 'Network error while loading users');
     } finally {
       setLoading(false);
     }
@@ -44,17 +31,8 @@ export const AdminUsersView: React.FC<AdminUsersViewProps> = ({ theme }) => {
     if (!window.confirm(`Are you sure you want to change this user's role to ${newRole.toUpperCase()}?`)) return;
     
     try {
-      const response = await fetch(`http://localhost:5001/api/admin/users/${userId}/role`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ role: newRole })
-      });
-      
-      if (response.ok) {
-        fetchUsers();
-      } else {
-        alert('Failed to change role');
-      }
+      await adminApi.updateUserRole(userId, newRole);
+      fetchUsers();
     } catch (error) {
       alert('Error updating role');
     }
@@ -67,17 +45,8 @@ export const AdminUsersView: React.FC<AdminUsersViewProps> = ({ theme }) => {
     if (!window.confirm(`Are you sure you want to ${actionText} this user?`)) return;
     
     try {
-      const response = await fetch(`http://localhost:5001/api/admin/users/${userId}/status`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ is_active: newStatus })
-      });
-      
-      if (response.ok) {
-        fetchUsers();
-      } else {
-        alert(`Failed to ${actionText.toLowerCase()} user`);
-      }
+      await adminApi.updateUserStatus(userId, newStatus);
+      fetchUsers();
     } catch (error) {
       alert('Error updating status');
     }
@@ -87,15 +56,8 @@ export const AdminUsersView: React.FC<AdminUsersViewProps> = ({ theme }) => {
     if (!window.confirm('CRITICAL ACTION: Are you sure you want to permanently DELETE this user? This cannot be undone.')) return;
     
     try {
-      const response = await fetch(`http://localhost:5001/api/admin/users/${userId}`, {
-        method: 'DELETE'
-      });
-      
-      if (response.ok) {
-        fetchUsers();
-      } else {
-        alert('Failed to delete user');
-      }
+      await adminApi.deleteUser(userId);
+      fetchUsers();
     } catch (error) {
       alert('Error deleting user');
     }

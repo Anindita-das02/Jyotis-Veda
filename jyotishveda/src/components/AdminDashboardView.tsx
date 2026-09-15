@@ -1,12 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Users, UserPlus, Star, FileText, Activity } from 'lucide-react';
 
-interface DashboardStats {
-  total_users: number;
-  new_users_today: number;
-  premium_subscribers: number;
-  total_blogs: number;
-}
+import { adminApi, DashboardStats } from '../services/adminApi';
 
 interface AdminDashboardViewProps {
   theme: 'dark' | 'light';
@@ -21,16 +16,10 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({ theme })
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const response = await fetch('http://localhost:5001/api/admin/dashboard-stats');
-        const data = await response.json();
-        
-        if (data.status === 'success') {
-          setStats(data.data);
-        } else {
-          setError(data.message || 'Failed to load stats');
-        }
-      } catch {
-        setError('Network error while loading stats');
+        const data = await adminApi.getDashboardStats();
+        setStats(data);
+      } catch (err: any) {
+        setError(err?.message || 'Network error while loading stats');
       } finally {
         setLoading(false);
       }

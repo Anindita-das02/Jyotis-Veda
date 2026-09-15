@@ -18,7 +18,7 @@ import { AdminRevenueView } from './components/AdminRevenueView';
 import PanjikaCalendarView from './components/PanjikaCalendarView';
 
 import { API_ENDPOINTS } from './config/api_config';
-import { API_BASE_URL } from './services/api';
+import { api } from './services/api';
 import { ProfileModal, PRESET_CITIES } from './components/ProfileModal';
 import { DisclaimerModal } from './components/DisclaimerModal';
 import { Footer } from './components/Footer';
@@ -248,23 +248,15 @@ export function App() {
 
     const loadRealChart = async () => {
       try {
-        const response = await fetch(
-          `${API_BASE_URL}${API_ENDPOINTS.BIRTH_CHART.GENERATE}`,
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(currentProfile),
-          }
+        const data = await api.post<any>(
+          API_ENDPOINTS.BIRTH_CHART.GENERATE,
+          currentProfile
         );
 
-        const data = await response.json();
-
-        if (data && data.status === 'success' && active) {
+        if (data && active) {
           // Backend now returns a FULLY ASSEMBLED chart (planets, houses, dashas, etc.)
           // No frontend mapping needed — use it directly.
-          setChartData(data.data);
+          setChartData(data);
         }
       } catch (err) {
         console.error(
@@ -316,38 +308,24 @@ export function App() {
         const tzOffset =
           -now.getTimezoneOffset() / 60;
 
-        const response = await fetch(
-          `${API_BASE_URL}${API_ENDPOINTS.INSIGHTS.PANCHANG}`,
+        const data = await api.post<any>(
+          API_ENDPOINTS.INSIGHTS.PANCHANG,
           {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              date: dateStr,
-              time: timeStr,
-              timezone: tzOffset,
-              lat: currentProfile.latitude,
-              lon: currentProfile.longitude,
-              mulank: calculateNumerology(currentProfile.fullName, currentProfile.birthDate).mulank,
-            }),
+            date: dateStr,
+            time: timeStr,
+            timezone: tzOffset,
+            lat: currentProfile.latitude,
+            lon: currentProfile.longitude,
+            mulank: calculateNumerology(currentProfile.fullName, currentProfile.birthDate).mulank,
           }
         );
 
-        const result = await response.json();
-
-        if (
-          result &&
-          result.status === 'success' &&
-          active
-        ) {
-          const realPanchang =
-            calculateDailyPanchang(
-              currentProfile.latitude,
-              currentProfile.longitude,
-              result.data
-            );
-
+        if (data && active) {
+          const realPanchang = calculateDailyPanchang(
+            currentProfile.latitude,
+            currentProfile.longitude,
+            data
+          );
           setPanchang(realPanchang);
         }
       } catch (err) {

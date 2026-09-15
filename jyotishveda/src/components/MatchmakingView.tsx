@@ -44,9 +44,9 @@ import { VedicDatePicker } from './VedicDatePicker';
 import { VedicTimePicker } from './VedicTimePicker';
 import { calculateKundliMilan, PRESET_MATCHMAKING_COUPLES, calculateVedicChart, calculateNumerology, getLagnaGemstones } from '../services/astroEngine';
 import { MatchReportSummary, MatchReportFull, saveMatchReport, listMatchReports, fetchMatchReport, getMatchReportPdfUrl, calculateMatchReportBackend } from '../services/matchmakingApi';
-import { getTranslation } from '../services/translations';
 import { API_ENDPOINTS } from '../config/api_config';
-import { ApiError, API_BASE_URL } from '../services/api';
+import { ApiError, api } from '../services/api';
+import { getTranslation } from '../services/translations';
 
 interface MatchmakingViewProps {
   currentProfile: UserProfile;
@@ -540,23 +540,16 @@ export const MatchmakingView: React.FC<MatchmakingViewProps> = ({
 
     setIsGeneratingAI(true);
     try {
-      const response = await fetch(`${API_BASE_URL}/api/matchmaking/synthesis`, {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('jyotish_auth_token') || ''}`
-        },
-        body: JSON.stringify({
-          partner1: p1,
-          partner2: p2,
-          matchResult: validResult,
-          language,
-          force: forceRefresh,
-        }),
+      const data = await api.post<any>(API_ENDPOINTS.MATCHMAKING.SYNTHESIS, {
+        partner1: p1,
+        partner2: p2,
+        matchResult: validResult,
+        language,
+        force: forceRefresh,
       });
-      const data = await response.json();
-      if ((data.success || data.status === 'success') && data.synthesis) {
-        let synth = data.synthesis;
+
+      if (data && (data.synthesis || data.overall_compatibility)) {
+        let synth = data.synthesis || data;
         if (data.synthesisId) {
           setAiSynthesisId(data.synthesisId);
         }
@@ -569,7 +562,7 @@ export const MatchmakingView: React.FC<MatchmakingViewProps> = ({
         }
         setAiSynthesis(synth);
       } else {
-        throw new Error(data.message || 'Failed to generate synthesis');
+        throw new Error(data?.message || 'Failed to generate synthesis');
       }
     } catch (err) {
       console.error('Failed to generate AI Kundli Milan synthesis:', err);
@@ -579,8 +572,8 @@ export const MatchmakingView: React.FC<MatchmakingViewProps> = ({
   };
 
   const handleCounselAction = (isRegenerate: boolean = false) => {
-    // If regenerating and not subscribed, open ₹149 subscription modal
-    if (isRegenerate && !isMatchmakingSubscribed) {
+    // Both initial generation and regeneration strictly require the ₹149 subscription
+    if (!isMatchmakingSubscribed) {
       setIsMatchmakingSubModalOpen(true);
       return;
     }
@@ -631,51 +624,26 @@ export const MatchmakingView: React.FC<MatchmakingViewProps> = ({
 
     // 1. First attempt: Official Backend PDF Engine
     try {
-      const token = localStorage.getItem('jyotish_auth_token') || '';
-      const headers: Record<string, string> = {
-        'Content-Type': 'application/json',
-      };
-      if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
-      }
-
-      let response: Response | null = null;
       if (aiSynthesisId) {
-        response = await fetch(`${API_BASE_URL}/api/matchmaking/ai-synthesis/${aiSynthesisId}/pdf`, {
-          method: 'GET',
-          headers,
-        });
-      }
-      if (!response || !response.ok) {
-        response = await fetch(`${API_BASE_URL}/api/matchmaking/ai-synthesis/generate-pdf`, {
-          method: 'POST',
-          headers,
-          body: JSON.stringify({
-            synthesisId: aiSynthesisId,
-            partner1_name: partner1.fullName || 'Partner 1',
-            partner2_name: partner2.fullName || 'Partner 2',
-            score: matchResult?.totalPoints ?? 0,
-            max_score: matchResult?.maxPoints ?? 36,
-            partner1_manglik_status: (matchResult as any)?.partner1ManglikStatus,
-            partner2_manglik_status: (matchResult as any)?.partner2ManglikStatus,
-            synthesis: aiSynthesis,
-          }),
-        });
-      }
-
-      if (response && response.ok) {
-        const blob = await response.blob();
-        const blobUrl = window.URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = blobUrl;
-        link.download = fileName;
-        document.body.appendChild(link);
-        link.click();
-        link.remove();
-        setTimeout(() => window.URL.revokeObjectURL(blobUrl), 10000);
+        await api.downloadFile(API_ENDPOINTS.MATCHMAKING.AI_SYNTHESIS_PDF(aiSynthesisId), fileName);
         setIsGeneratingPdf(false);
         return;
       }
+      await api.downloadFile(API_ENDPOINTS.MATCHMAKING.AI_SYNTHESIS_GENERATE_PDF, fileName, {
+        method: 'POST',
+        body: JSON.stringify({
+          synthesisId: aiSynthesisId,
+          partner1_name: partner1.fullName || 'Partner 1',
+          partner2_name: partner2.fullName || 'Partner 2',
+          score: matchResult?.totalPoints ?? 0,
+          max_score: matchResult?.maxPoints ?? 36,
+          partner1_manglik_status: (matchResult as any)?.partner1ManglikStatus,
+          partner2_manglik_status: (matchResult as any)?.partner2ManglikStatus,
+          synthesis: aiSynthesis,
+        }),
+      });
+      setIsGeneratingPdf(false);
+      return;
     } catch (apiErr) {
       console.warn('Backend AI Counsel PDF endpoint error or offline, falling back to client-side:', apiErr);
     }
@@ -1017,20 +985,11 @@ export const MatchmakingView: React.FC<MatchmakingViewProps> = ({
 
     // 1. First attempt: Official Backend PDF Engine (ReportLab 5-page Kundli Milan Dossier)
     try {
-      const token = localStorage.getItem('jyotish_auth_token') || '';
-      const headers: Record<string, string> = {
-        'Content-Type': 'application/json',
-      };
-      if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
-      }
-
       const p1Tz = (partner1 as any).timezoneIana || 'Asia/Kolkata';
       const p2Tz = (partner2 as any).timezoneIana || 'Asia/Kolkata';
 
-      const response = await fetch(`${API_BASE_URL}/api/matchmaking/generate-pdf`, {
+      await api.downloadFile(API_ENDPOINTS.MATCHMAKING.GENERATE_PDF, fileName, {
         method: 'POST',
-        headers,
         body: JSON.stringify({
           partner1: {
             fullName: partner1.fullName || 'Partner 1',
@@ -1053,23 +1012,8 @@ export const MatchmakingView: React.FC<MatchmakingViewProps> = ({
           matchResult,
         }),
       });
-
-      if (response.ok) {
-        const blob = await response.blob();
-        const blobUrl = window.URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = blobUrl;
-        link.download = fileName;
-        document.body.appendChild(link);
-        link.click();
-        link.remove();
-        setTimeout(() => window.URL.revokeObjectURL(blobUrl), 10000);
-        setIsGeneratingPdf(false);
-        return;
-      } else {
-        const errJson = await response.json().catch(() => null);
-        console.error('Backend PDF generation failed:', response.status, errJson);
-      }
+      setIsGeneratingPdf(false);
+      return;
     } catch (apiErr) {
       console.warn('Backend Kundli Milan PDF endpoint error or offline, falling back to client-side:', apiErr);
     }
@@ -2186,8 +2130,17 @@ Issued by AstroJunction Daivajna Astrological Intelligence Engine
               : 'bg-[#F9F7F1] text-[#544B3D] hover:text-[#0D0D0F] hover:bg-[#F0ECE1] border border-[#E5E1D8]'
           }`}
         >
-          <Sparkles className="w-4 h-4" />
+          {isMatchmakingSubscribed ? (
+            <Sparkles className="w-4 h-4" />
+          ) : (
+            <Crown className="w-4 h-4 text-[#C9A050]" />
+          )}
           <span>Astrological Counsel</span>
+          {!isMatchmakingSubscribed && (
+            <span className="text-[10px] px-1.5 py-0.5 rounded-full font-bold bg-[#C9A050]/20 text-[#C9A050] border border-[#C9A050]/40 ml-1">
+              ₹149
+            </span>
+          )}
         </button>
 
         <button
@@ -2623,7 +2576,7 @@ Issued by AstroJunction Daivajna Astrological Intelligence Engine
                       title="Subscribe for ₹149 to regenerate counsel"
                     >
                       <Crown className="w-3.5 h-3.5 text-[#C9A050]" />
-                      <span>₹149 / Regenerate Subscription</span>
+                      <span>₹149 / Matchmaking Subscription</span>
                     </button>
                   ) : (
                     <button
@@ -2646,6 +2599,15 @@ Issued by AstroJunction Daivajna Astrological Intelligence Engine
                     </button>
                   )}
                 </>
+              ) : !isMatchmakingSubscribed ? (
+                <button
+                  type="button"
+                  onClick={() => setIsMatchmakingSubModalOpen(true)}
+                  className="flex items-center space-x-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#C9A050] to-[#A07828] hover:from-[#D4AF37] hover:to-[#B38730] text-[#0D0D0F] font-bold text-xs sm:text-sm shadow-lg shadow-[#C9A050]/25 transition cursor-pointer"
+                >
+                  <Crown className="w-4 h-4 text-[#0D0D0F]" />
+                  <span>Unlock AI Counsel (₹149)</span>
+                </button>
               ) : (
                 <button
                   type="button"
@@ -2922,6 +2884,43 @@ Issued by AstroJunction Daivajna Astrological Intelligence Engine
                 <p className={`text-xs sm:text-sm ${theme === 'dark' ? 'text-[#9E9A90]' : 'text-[#544B3D]'}`}>
                   Daivajna is analyzing Guna Milan, Doshas, and synastry dynamics for {partner1.fullName} &amp; {partner2.fullName}.
                 </p>
+              </div>
+            </div>
+          ) : !isMatchmakingSubscribed ? (
+            <div className={`p-8 sm:p-10 rounded-2xl border border-dashed text-center space-y-4 ${
+              theme === 'dark' ? 'bg-[#0D0D0F]/70 border-[#C9A050]/40' : 'bg-[#FAF7EE] border-[#C9A050]/50 shadow-sm'
+            }`}>
+              <div className="w-16 h-16 mx-auto rounded-2xl bg-gradient-to-br from-[#C9A050]/25 to-[#C9A050]/5 border border-[#C9A050]/40 flex items-center justify-center text-[#C9A050] shadow-lg shadow-[#C9A050]/15">
+                <Crown className="w-8 h-8" />
+              </div>
+              <div className="space-y-1.5 max-w-lg mx-auto">
+                <div className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider bg-[#C9A050]/15 text-[#C9A050] border border-[#C9A050]/30">
+                  <Lock className="w-3.5 h-3.5" />
+                  <span>Matchmaking Subscription Feature • ₹149</span>
+                </div>
+                <h4 className={`text-lg sm:text-xl font-serif font-bold ${theme === 'dark' ? 'text-[#F0ECE1]' : 'text-[#0D0D0F]'}`}>
+                  Daivajna Deep Relationship Synthesis
+                </h4>
+                <p className={`text-xs sm:text-sm font-sans ${theme === 'dark' ? 'text-[#9E9A90]' : 'text-[#544B3D]'} leading-relaxed`}>
+                  Generate an exhaustive AI consultation covering psychological affinity, biological vitality, wealth generation, marital timing, and conflict resolution.
+                </p>
+              </div>
+              <div className="pt-2">
+                <button
+                  onClick={() => setIsMatchmakingSubModalOpen(true)}
+                  className="inline-flex items-center space-x-2 px-7 py-3.5 rounded-xl bg-gradient-to-r from-[#C9A050] to-[#A07828] hover:from-[#D4AF37] hover:to-[#B38730] text-[#0D0D0F] font-bold text-xs sm:text-sm shadow-xl shadow-[#C9A050]/30 transition cursor-pointer hover:scale-[1.02] active:scale-95"
+                >
+                  <Crown className="w-4 h-4" />
+                  <span>Subscribe for ₹149 &amp; Generate Full Counsel</span>
+                  <Sparkles className="w-4 h-4" />
+                </button>
+              </div>
+              <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-[11px] text-[#9E9A90] pt-1">
+                <span className="flex items-center space-x-1"><ShieldCheck className="w-3.5 h-3.5 text-[#C9A050]" /><span>Instant Activation</span></span>
+                <span>•</span>
+                <span>Unlimited Regenerations</span>
+                <span>•</span>
+                <span>High-Res PDF Dossier</span>
               </div>
             </div>
           ) : (
@@ -3380,11 +3379,11 @@ Issued by AstroJunction Daivajna Astrological Intelligence Engine
                 <h3 className={`text-xl sm:text-2xl font-serif font-bold ${
                   theme === 'dark' ? 'text-[#F0ECE1]' : 'text-[#0D0D0F]'
                 }`}>
-                  Unlock Cosmic Counsel Regenerations
+                  Unlock Daivajna Cosmic Relationship Counsel
                 </h3>
 
                 <p className="text-xs font-sans text-[#9E9A90] max-w-md leading-relaxed">
-                  Regenerating deep multidimensional counsel, custom planetary synchronizations, and synastry refinements for your matching Kundlis requires the ₹149 Matchmaking Subscription.
+                  Generating deep multidimensional relationship counsel, custom planetary synchronizations, and synastry refinements for your matching Kundlis requires the ₹149 Matchmaking Subscription.
                 </p>
               </div>
 

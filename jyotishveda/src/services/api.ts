@@ -18,28 +18,40 @@ export function clearToken(): void {
 export class ApiError extends Error {
   code: string;
   status: number;
-  constructor(message: string, code: string, status: number) {
+  details?: any;
+
+  constructor(message: string, code: string = 'UNKNOWN_ERROR', status: number = 500, details?: any) {
     super(message);
+    this.name = 'ApiError';
     this.code = code;
     this.status = status;
+    this.details = details;
   }
 }
 
 interface ApiSuccess<T> {
   status: 'success';
-  data: T;
+  data?: T;
+  [key: string]: any;
 }
 
 interface ApiFailure {
   status: 'error';
   message: string;
-  error_code: string;
+  error_code?: string;
+  [key: string]: any;
 }
 
-async function request<T>(
-  path: string,
-  options: RequestInit = {},
-): Promise<T> {
+function buildUrl(path: string): string {
+  if (path.startsWith('http://') || path.startsWith('https://')) {
+    return path;
+  }
+  const cleanBase = API_BASE_URL.replace(/\/+$/, '');
+  const cleanPath = path.startsWith('/') ? path : `/${path}`;
+  return `${cleanBase}${cleanPath}`;
+}
+
+async function executeFetch(path: string, options: RequestInit = {}): Promise<Response> {
   const token = getToken();
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
@@ -49,41 +61,108 @@ async function request<T>(
     headers['Authorization'] = `Bearer ${token}`;
   }
 
-  let response: Response;
+  const url = buildUrl(path);
+
   try {
-    response = await fetch(`${API_BASE_URL}${path}`, { ...options, headers });
-  } catch (networkErr) {
+    return await fetch(url, { ...options, headers });
+  } catch {
     throw new ApiError(
-      'Could not reach the AstroJunction server. Is the backend running?',
+      'Could not reach the AstroJunction server. Please check if the backend is running.',
       'NETWORK_ERROR',
       0,
     );
   }
+}
 
-  let body: ApiSuccess<T> | ApiFailure;
+async function request<T>(
+  path: string,
+  options: RequestInit = {},
+): Promise<T> {
+  const response = await executeFetch(path, options);
+
+  let body: any;
   try {
     body = await response.json();
   } catch {
-    throw new ApiError('Unexpected server response', 'PARSE_ERROR', response.status);
+    if (!response.ok) {
+      throw new ApiError('Unexpected server response', 'PARSE_ERROR', response.status);
+    }
+    return {} as T;
   }
 
-  if (!response.ok || body.status === 'error') {
+  if (!response.ok || (body && (body.status === 'error' || body.success === false))) {
     const failure = body as ApiFailure;
     throw new ApiError(
-      failure.message || 'Something went wrong',
+      failure.message || failure.error || 'Something went wrong',
       failure.error_code || 'UNKNOWN_ERROR',
       response.status,
+      body
     );
   }
 
-  return (body as ApiSuccess<T>).data;
+  // If payload contains wrapped status: 'success' with a 'data' field, return 'data'
+  if (body && typeof body === 'object' && body.status === 'success' && 'data' in body) {
+    return body.data as T;
+  }
+
+  return body as T;
+}
+
+async function rawRequest<T>(
+  path: string,
+  options: RequestInit = {},
+): Promise<T> {
+  const response = await executeFetch(path, options);
+  try {
+    return await response.json();
+  } catch {
+    throw new ApiError('Failed to parse server response as JSON', 'PARSE_ERROR', response.status);
+  }
+}
+
+async function downloadFile(
+  path: string,
+  fileName: string,
+  options: RequestInit = {}
+): Promise<void> {
+  const response = await executeFetch(path, options);
+  if (!response.ok) {
+    throw new ApiError('Failed to download file', 'DOWNLOAD_ERROR', response.status);
+  }
+  const blob = await response.blob();
+  const blobUrl = window.URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = blobUrl;
+  link.download = fileName;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  setTimeout(() => window.URL.revokeObjectURL(blobUrl), 10000);
 }
 
 export const api = {
-  get: <T>(path: string) => request<T>(path, { method: 'GET' }),
-  post: <T>(path: string, body?: unknown) =>
-    request<T>(path, { method: 'POST', body: body !== undefined ? JSON.stringify(body) : undefined }),
-  put: <T>(path: string, body?: unknown) =>
-    request<T>(path, { method: 'PUT', body: body !== undefined ? JSON.stringify(body) : undefined }),
-  delete: <T>(path: string) => request<T>(path, { method: 'DELETE' }),
+  get: <T>(path: string, options?: RequestInit) =>
+    request<T>(path, { ...options, method: 'GET' }),
+
+  post: <T>(path: string, body?: unknown, options?: RequestInit) =>
+    request<T>(path, {
+      ...options,
+      method: 'POST',
+      body: body !== undefined ? JSON.stringify(body) : undefined,
+    }),
+
+  put: <T>(path: string, body?: unknown, options?: RequestInit) =>
+    request<T>(path, {
+      ...options,
+      method: 'PUT',
+      body: body !== undefined ? JSON.stringify(body) : undefined,
+    }),
+
+  delete: <T>(path: string, options?: RequestInit) =>
+    request<T>(path, { ...options, method: 'DELETE' }),
+
+  raw: <T>(path: string, options?: RequestInit) => rawRequest<T>(path, options),
+
+  downloadFile: (path: string, fileName: string, options?: RequestInit) =>
+    downloadFile(path, fileName, options),
 };

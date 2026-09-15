@@ -1,6 +1,7 @@
 import React, { useState, useRef, useMemo, useEffect } from 'react';
 import JoditEditor from 'jodit-react';
 import { Plus, List, FileText, Folder, FolderOpen, Tag, ChevronDown, Image as ImageIcon, Search, Edit, Trash2, BookOpen, CheckCircle, Clock, LayoutGrid } from 'lucide-react';
+import { blogApi, BlogPost, Category, Subcategory } from '../services/blogApi';
 
 interface AdminBlogsViewProps {
   theme?: 'dark' | 'light';
@@ -60,19 +61,14 @@ export const AdminBlogsView: React.FC<AdminBlogsViewProps> = ({ theme = 'dark' }
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [blogsRes, catsRes, subCatsRes] = await Promise.all([
-        fetch('http://localhost:5001/api/blogs'),
-        fetch('http://localhost:5001/api/categories'),
-        fetch('http://localhost:5001/api/subcategories')
+      const [blogsData, catsData, subCatsData] = await Promise.all([
+        blogApi.getBlogs(),
+        blogApi.getCategories(),
+        blogApi.getSubcategories(),
       ]);
-      
-      const blogsData = await blogsRes.json();
-      const catsData = await catsRes.json();
-      const subCatsData = await subCatsRes.json();
-      
-      if (blogsData.status === 'success') setBlogs(blogsData.data);
-      if (catsData.status === 'success') setCategories(catsData.data);
-      if (subCatsData.status === 'success') setSubcategories(subCatsData.data);
+      setBlogs(blogsData || []);
+      setCategories(catsData || []);
+      setSubcategories(subCatsData || []);
     } catch (error) {
       console.error('Error fetching data:', error);
     } finally {
@@ -96,30 +92,21 @@ export const AdminBlogsView: React.FC<AdminBlogsViewProps> = ({ theme = 'dark' }
     if (!newCategoryName.trim()) return;
     
     try {
-      const res = await fetch('http://localhost:5001/api/categories', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: newCategoryName.trim() })
-      });
-      const data = await res.json();
-      if (data.status === 'success') {
-        setNewCategoryName('');
-        fetchData();
-      } else {
-        alert(data.message);
-      }
-    } catch (error) {
-      console.error(error);
+      await blogApi.createCategory(newCategoryName.trim());
+      setNewCategoryName('');
+      fetchData();
+    } catch (error: any) {
+      alert(error?.message || 'Failed to create category');
     }
   };
 
   const handleDeleteCategory = async (id: number) => {
     if (!window.confirm('Delete this category? This will also delete its subcategories.')) return;
     try {
-      await fetch(`http://localhost:5001/api/categories/${id}`, { method: 'DELETE' });
+      await blogApi.deleteCategory(id);
       fetchData();
-    } catch (error) {
-      console.error(error);
+    } catch (error: any) {
+      alert(error?.message || 'Failed to delete category');
     }
   };
 
@@ -128,33 +115,21 @@ export const AdminBlogsView: React.FC<AdminBlogsViewProps> = ({ theme = 'dark' }
     if (!newSubcategoryName.trim() || !selectedCategoryForSub) return;
     
     try {
-      const res = await fetch('http://localhost:5001/api/subcategories', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          name: newSubcategoryName.trim(), 
-          category_id: parseInt(selectedCategoryForSub) 
-        })
-      });
-      const data = await res.json();
-      if (data.status === 'success') {
-        setNewSubcategoryName('');
-        fetchData();
-      } else {
-        alert(data.message);
-      }
-    } catch (error) {
-      console.error(error);
+      await blogApi.createSubcategory(newSubcategoryName.trim(), parseInt(selectedCategoryForSub));
+      setNewSubcategoryName('');
+      fetchData();
+    } catch (error: any) {
+      alert(error?.message || 'Failed to create subcategory');
     }
   };
 
   const handleDeleteSubcategory = async (id: number) => {
     if (!window.confirm('Delete this subcategory?')) return;
     try {
-      await fetch(`http://localhost:5001/api/subcategories/${id}`, { method: 'DELETE' });
+      await blogApi.deleteSubcategory(id);
       fetchData();
-    } catch (error) {
-      console.error(error);
+    } catch (error: any) {
+      alert(error?.message || 'Failed to delete subcategory');
     }
   };
 
@@ -211,18 +186,11 @@ export const AdminBlogsView: React.FC<AdminBlogsViewProps> = ({ theme = 'dark' }
     if (!window.confirm('Are you sure you want to delete this blog?')) return;
     
     try {
-      const response = await fetch(`http://localhost:5001/api/blogs/${id}`, {
-        method: 'DELETE',
-      });
-      const result = await response.json();
-      if (result.status === 'success') {
-        fetchData();
-      } else {
-        alert(result.message);
-      }
-    } catch (error) {
+      await blogApi.deleteBlog(id);
+      fetchData();
+    } catch (error: any) {
       console.error('Error deleting blog:', error);
-      alert('Failed to delete blog.');
+      alert(error?.message || 'Failed to delete blog.');
     }
   };
 
@@ -240,30 +208,18 @@ export const AdminBlogsView: React.FC<AdminBlogsViewProps> = ({ theme = 'dark' }
     };
 
     try {
-      const url = editingId 
-        ? `http://localhost:5001/api/blogs/${editingId}` 
-        : 'http://localhost:5001/api/blogs';
-        
-      const response = await fetch(url, {
-        method: editingId ? 'PUT' : 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload)
-      });
-      
-      const result = await response.json();
-      if (result.status === 'success') {
-        alert('Blog saved successfully!');
-        resetForm();
-        setViewMode('list');
-        fetchData();
+      if (editingId) {
+        await blogApi.updateBlog(editingId, payload);
       } else {
-        alert(result.message);
+        await blogApi.createBlog(payload);
       }
-    } catch (error) {
+      alert('Blog saved successfully!');
+      resetForm();
+      setViewMode('list');
+      fetchData();
+    } catch (error: any) {
       console.error('Error saving blog:', error);
-      alert('Failed to save blog.');
+      alert(error?.message || 'Error saving blog.');
     }
   };
 
@@ -715,24 +671,12 @@ export const AdminBlogsView: React.FC<AdminBlogsViewProps> = ({ theme = 'dark' }
                       if (!parentCat) return;
                       
                       try {
-                        const res = await fetch('http://localhost:5001/api/subcategories', {
-                          method: 'POST',
-                          headers: { 'Content-Type': 'application/json' },
-                          body: JSON.stringify({ 
-                            name: newSubcategoryName.trim(),
-                            category_id: parentCat.id
-                          })
-                        });
-                        const data = await res.json();
-                        if (data.status === 'success') {
-                          await fetchData();
-                          setFormData(prev => ({ ...prev, sub_category: data.data.name }));
-                          setNewSubcategoryName('');
-                        } else {
-                          alert(data.message);
-                        }
-                      } catch (error) {
-                        console.error(error);
+                        const newSub = await blogApi.createSubcategory(newSubcategoryName.trim(), parentCat.id);
+                        await fetchData();
+                        setFormData(prev => ({ ...prev, sub_category: newSub?.name || newSubcategoryName.trim() }));
+                        setNewSubcategoryName('');
+                      } catch (error: any) {
+                        alert(error?.message || 'Failed to create subcategory');
                       }
                     }}
                     className="px-4 py-2 text-sm bg-[#C9A050] text-[#0D0D0F] font-semibold rounded-lg hover:bg-[#B89040]"

@@ -1,21 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Terminal, Bot, ShieldAlert, AlertTriangle, Info, ShieldX } from 'lucide-react';
 
-interface AILog {
-  user_id: string; // Hashed/Anonymous ID
-  tradition: string;
-  role: 'user' | 'assistant';
-  content: string;
-  created_at: string;
-}
-
-interface SystemLog {
-  id: string;
-  level: 'info' | 'warning' | 'error';
-  message: string;
-  module: string;
-  created_at: string;
-}
+import { adminApi, AILog, SystemLog } from '../services/adminApi';
 
 interface AdminLogsViewProps {
   theme: 'dark' | 'light';
@@ -31,13 +17,11 @@ export const AdminLogsView: React.FC<AdminLogsViewProps> = ({ theme }) => {
     setLoading(true);
     try {
       if (activeSubTab === 'ai') {
-        const response = await fetch('http://localhost:5001/api/admin/logs/ai');
-        const data = await response.json();
-        if (data.status === 'success') setAiLogs(data.data);
+        const data = await adminApi.getAiLogs();
+        setAiLogs(data || []);
       } else {
-        const response = await fetch('http://localhost:5001/api/admin/logs/system');
-        const data = await response.json();
-        if (data.status === 'success') setSystemLogs(data.data);
+        const data = await adminApi.getSystemLogs();
+        setSystemLogs(data || []);
       }
     } catch (err) {
       console.error('Failed to fetch logs:', err);

@@ -23,9 +23,9 @@ import {
 } from 'lucide-react';
 import { ZodiacSign, calculateZodiacCompatibility, ZodiacCompatibilityResult } from '../services/zodiacData';
 import { useZodiacData } from '../hooks/useZodiacData';
-import { getTranslation } from '../services/translations';
 import { API_ENDPOINTS } from '../config/api_config';
-import { API_BASE_URL } from '../services/api';
+import { api } from '../services/api';
+import { getTranslation } from '../services/translations';
 import { UserProfile } from '../types';
 
 function getZodiacSignId(dateStr?: string): string {
@@ -125,14 +125,13 @@ export const GlobalZodiacView: React.FC<GlobalZodiacViewProps> = ({
 
       setIsFetchingForecast(true);
       try {
-        const response = await fetch(`${API_BASE_URL}${API_ENDPOINTS.ZODIAC.GLOBAL_FORECAST}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ sign: activeSign.name, timeframe, language })
+        const data = await api.post<any>(API_ENDPOINTS.ZODIAC.GLOBAL_FORECAST, {
+          sign: activeSign.name,
+          timeframe,
+          language,
         });
-        const data = await response.json();
-        if (data && data.data) {
-          setDynamicZodiacData(prev => ({ ...prev, [cacheKey]: data.data }));
+        if (data) {
+          setDynamicZodiacData(prev => ({ ...prev, [cacheKey]: data }));
         }
       } catch (error) {
         console.error("Failed to fetch dynamic forecast:", error);

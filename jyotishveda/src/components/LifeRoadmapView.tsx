@@ -1,4 +1,5 @@
-import { api, API_BASE_URL, getToken } from '../services/api';
+import { api, getToken } from '../services/api';
+import { API_ENDPOINTS } from '../config/api_config';
 import React, { useState, useEffect } from 'react';
 import {
   Milestone,
@@ -23,7 +24,6 @@ import {
   Lock,
 } from 'lucide-react';
 import { UserProfile, LifeMilestone, HoroscopeTradition, NumerologyReport } from '../types';
-import { API_ENDPOINTS } from '../config/api_config';
 import { generateCustomRoadmap } from '../services/astroEngine';
 import { jsPDF } from 'jspdf';
 
@@ -382,17 +382,8 @@ export const LifeRoadmapView: React.FC<LifeRoadmapViewProps> = ({
 
     // 1. Attempt Server-Side Python Flask PDF Download via API
     try {
-      const token = getToken();
-      const headers: Record<string, string> = {
-        'Content-Type': 'application/json',
-      };
-      if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
-      }
-
-      const response = await fetch(`${API_BASE_URL}/api/roadmap/download-pdf`, {
+      await api.downloadFile(API_ENDPOINTS.ROADMAP.DOWNLOAD_PDF, fileName, {
         method: 'POST',
-        headers,
         body: JSON.stringify({
           profile,
           selectedHorizon: 'All Available Guidance',
@@ -402,22 +393,8 @@ export const LifeRoadmapView: React.FC<LifeRoadmapViewProps> = ({
           numerology,
         }),
       });
-
-      if (response.ok) {
-        const blob = await response.blob();
-        const blobUrl = window.URL.createObjectURL(blob);
-
-        const link = document.createElement('a');
-        link.href = blobUrl;
-        link.download = fileName;
-        document.body.appendChild(link);
-        link.click();
-        link.remove();
-
-        setTimeout(() => window.URL.revokeObjectURL(blobUrl), 10000);
-        setIsGeneratingPdf(false);
-        return;
-      }
+      setIsGeneratingPdf(false);
+      return;
     } catch (apiErr) {
       console.warn('Backend PDF endpoint error or offline, falling back to Client-Side PDF generator:', apiErr);
     }

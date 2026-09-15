@@ -12,6 +12,7 @@ import { BlogCarousel, BlogPost } from './BlogCarousel';
 import { BlogPage } from './BlogPage';
 import { AncientTraditionLogo } from './AncientTraditionLogo';
 import { VedicRemediesSection } from './VedicRemediesSection';
+import { landingChatApi } from '../services/landingChatApi';
 
 interface LandingPageProps {
   onLoginClick: () => void;
@@ -163,23 +164,18 @@ export function LandingPage({
     setIsAiThinking(true);
 
     try {
-      const resp = await fetch('http://localhost:5001/api/public-chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          messages: updatedMessages,
-          msgCount: msgCount,
-          dob: savedDob
-        })
+      const data = await landingChatApi.sendPublicMessage({
+        messages: updatedMessages,
+        msgCount: msgCount,
+        dob: savedDob,
       });
 
-      if (resp.ok) {
-        const data = await resp.json();
+      if (data && data.reply) {
         if (data.dob) setSavedDob(data.dob);
         setMessages(prev => [...prev, { role: 'assistant', content: data.reply }]);
-        if (data.msgCount) setMsgCount(data.msgCount);
+        if (data.msgCount !== undefined) setMsgCount(data.msgCount);
       } else {
-        throw new Error('API response not ok');
+        throw new Error('API response invalid');
       }
     } catch (err) {
       // Client-side Fallback
@@ -315,16 +311,11 @@ export function LandingPage({
     setIsAiThinking(true);
 
     try {
-      fetch('http://localhost:5001/api/public-chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          messages: updatedMessages,
-          msgCount: msgCount,
-          dob: savedDob
-        })
+      landingChatApi.sendPublicMessage({
+        messages: updatedMessages,
+        msgCount: msgCount,
+        dob: savedDob,
       })
-        .then(res => res.json())
         .then(data => {
           if (data.dob) setSavedDob(data.dob);
           setMessages(prev => [...prev, { role: 'assistant', content: data.reply }]);

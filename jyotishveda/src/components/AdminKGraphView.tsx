@@ -23,6 +23,7 @@ import {
   Check
 } from 'lucide-react';
 import { KGraphNode, KGraphEdge, RunbookConfig, UserProfile } from '../types';
+import { kgraphApi } from '../services/kgraphApi';
 
 interface AdminKGraphViewProps {
   nodes: KGraphNode[];
@@ -82,57 +83,51 @@ export const AdminKGraphView: React.FC<AdminKGraphViewProps> = ({
   const fetchKnowledgeGraphFromDB = async () => {
     setIsSyncing(true);
     try {
-      const [nodesRes, statsRes] = await Promise.all([
-        fetch('http://localhost:5001/api/knowledge-graph/nodes').catch(() => null),
-        fetch('http://localhost:5001/api/knowledge-graph/stats').catch(() => null),
+      const [nodesData, statsData] = await Promise.all([
+        kgraphApi.getNodes().catch(() => null),
+        kgraphApi.getStats().catch(() => null),
       ]);
 
-      if (nodesRes && nodesRes.ok) {
-        const nodesData = await nodesRes.json();
-        if (nodesData.status === 'success' && Array.isArray(nodesData.data?.nodes) && nodesData.data.nodes.length > 0) {
-          const dbNodes: KGraphNode[] = nodesData.data.nodes.map((n: any) => ({
-            id: n.id,
-            label: n.title,
-            category: (n.type || 'other').toLowerCase(),
-            sanskritName: n.title_native,
-            description: n.description || 'Vedic ontology node.',
-            properties: n.properties || {},
-            sanskritSutra: n.properties?.sanskrit_sutra || ''
-          }));
+      if (nodesData && Array.isArray(nodesData.nodes) && nodesData.nodes.length > 0) {
+        const dbNodes: KGraphNode[] = nodesData.nodes.map((n: any) => ({
+          id: n.id,
+          label: n.title,
+          category: (n.type || 'other').toLowerCase(),
+          sanskritName: n.title_native,
+          description: n.description || 'Vedic ontology node.',
+          properties: n.properties || {},
+          sanskritSutra: n.properties?.sanskrit_sutra || ''
+        }));
 
-          const dbEdges: KGraphEdge[] = [];
-          nodesData.data.nodes.forEach((n: any) => {
-            if (Array.isArray(n.relationships)) {
-              n.relationships.forEach((rel: any, idx: number) => {
-                dbEdges.push({
-                  id: `rel-${n.id}-${rel.target}-${idx}`,
-                  source: n.id,
-                  target: rel.target,
-                  relation: rel.label,
-                  weight: 1
-                });
+        const dbEdges: KGraphEdge[] = [];
+        nodesData.nodes.forEach((n: any) => {
+          if (Array.isArray(n.relationships)) {
+            n.relationships.forEach((rel: any, idx: number) => {
+              dbEdges.push({
+                id: `rel-${n.id}-${rel.target}-${idx}`,
+                source: n.id,
+                target: rel.target,
+                relation: rel.label,
+                weight: 1
               });
-            }
-          });
-
-          setNodes(dbNodes);
-          setEdges(dbEdges);
-          if (!selectedNode && dbNodes.length > 0) {
-            setSelectedNode(dbNodes[0]);
+            });
           }
+        });
 
-          setExecutionLogs(prev => [
-            ...prev,
-            `[${new Date().toLocaleTimeString()}] [SYNC] Successfully loaded ${dbNodes.length} nodes & ${dbEdges.length} relationships from MySQL database.`
-          ]);
+        setNodes(dbNodes);
+        setEdges(dbEdges);
+        if (!selectedNode && dbNodes.length > 0) {
+          setSelectedNode(dbNodes[0]);
         }
+
+        setExecutionLogs(prev => [
+          ...prev,
+          `[${new Date().toLocaleTimeString()}] [SYNC] Successfully loaded ${dbNodes.length} nodes & ${dbEdges.length} relationships from MySQL database.`
+        ]);
       }
 
-      if (statsRes && statsRes.ok) {
-        const statsData = await statsRes.json();
-        if (statsData.status === 'success' && statsData.data) {
-          setDbStats(statsData.data);
-        }
+      if (statsData) {
+        setDbStats(statsData);
       }
     } catch (e: any) {
       console.warn('Backend sync note:', e);
@@ -159,14 +154,8 @@ export const AdminKGraphView: React.FC<AdminKGraphViewProps> = ({
     ]);
 
     try {
-      const res = await fetch('http://localhost:5001/api/knowledge/generate-from-llm', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ topics: llmTopics })
-      });
-
-      const data = await res.json();
-      if (res.ok && data.status === 'success') {
+      const data = await kgraphApi.generateFromLlm(llmTopics);
+      if (data && data.message) {
         setLlmMessage(`✅ ${data.message}`);
         setExecutionLogs(prev => [
           ...prev,
@@ -182,13 +171,13 @@ export const AdminKGraphView: React.FC<AdminKGraphViewProps> = ({
           fetchKnowledgeGraphFromDB();
         }, 12000);
       } else {
-        setLlmMessage(`❌ ${data.message || 'Failed to start generation'}`);
+        setLlmMessage(`❌ Failed to start generation`);
       }
-    } catch (e: any) {
-      setLlmMessage(`❌ Network error: ${e.message}`);
+    } catch (err: any) {
+      setLlmMessage(`❌ ${err?.message || 'Error executing LLM generation pipeline'}`);
       setExecutionLogs(prev => [
         ...prev,
-        `[${new Date().toLocaleTimeString()}] [ERROR] LLM generation call failed: ${e.message}`
+        `[${new Date().toLocaleTimeString()}] [ERROR] LLM generation call failed: ${err?.message}`
       ]);
     } finally {
       setIsGeneratingLLM(false);

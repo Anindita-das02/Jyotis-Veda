@@ -478,7 +478,7 @@ export const HoroscopeTraditionsView: React.FC<
           doc.setFont('helvetica', 'normal');
           doc.setFontSize(6.5);
           doc.setTextColor(50, 50, 55);
-          const yogaDesc = doc.splitTextToSize(yoga.effects || yoga.description || 'Promotes auspicious spiritual and material elevation.', pageWidth - 40);
+          const yogaDesc = doc.splitTextToSize(yoga.effect || (yoga as any).effects || yoga.description || 'Promotes auspicious spiritual and material elevation.', pageWidth - 40);
           doc.text(yogaDesc[0] || '', 20, yOff + 4);
         });
       } else {
@@ -508,13 +508,16 @@ export const HoroscopeTraditionsView: React.FC<
           const dOff = yPos + 9.5 + dIdx * 10;
           doc.setFont('helvetica', 'bold');
           doc.setFontSize(7.2);
-          doc.setTextColor(dosha.present ? 181 : 80, dosha.present ? 131 : 80, dosha.present ? 40 : 80);
-          doc.text(`• ${dosha.name}: ${dosha.present ? `Present (${dosha.intensity || 'Moderate'})` : 'Not Afflicted / Absent'}`, 17, dOff);
+          const isPres = dosha.isPresent || (dosha as any).present;
+          const severity = dosha.severity || (dosha as any).intensity || 'Moderate';
+          doc.setTextColor(isPres ? 181 : 80, isPres ? 131 : 80, isPres ? 40 : 80);
+          doc.text(`• ${dosha.name}: ${isPres ? `Present (${severity})` : 'Not Afflicted / Absent'}`, 17, dOff);
 
           doc.setFont('helvetica', 'normal');
           doc.setFontSize(6.5);
           doc.setTextColor(60, 60, 65);
-          const doshaDesc = doc.splitTextToSize(dosha.remedies || dosha.description || 'Standard pacification practices recommended.', pageWidth - 40);
+          const remediesText = Array.isArray(dosha.vedicRemedies) ? dosha.vedicRemedies.join(', ') : ((dosha as any).remedies || dosha.description || 'Standard pacification practices recommended.');
+          const doshaDesc = doc.splitTextToSize(remediesText, pageWidth - 40);
           doc.text(doshaDesc[0] || '', 20, dOff + 3.8);
         });
       } else {

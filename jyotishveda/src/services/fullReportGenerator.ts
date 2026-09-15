@@ -1,6 +1,7 @@
 import { jsPDF } from 'jspdf';
 import { UserProfile, HoroscopeTradition } from '../types';
-import { API_BASE_URL } from './api';
+import { api } from './api';
+import { API_ENDPOINTS } from '../config/api_config';
 
 // Helper to load image as base64 DataURL
 const loadImageBase64 = (url: string): Promise<string | null> => {
@@ -145,20 +146,17 @@ export async function generateMasterFullReportPdf({
 
   // ── 1. Fetch Aggregated Master Data from Backend (with fallback) ──
   try {
-    const res = await fetch(`${API_BASE_URL}/api/reports/full-report-data`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ profile, tradition, language }),
+    const data = await api.post<any>(API_ENDPOINTS.REPORTS.FULL_REPORT_DATA, {
+      profile,
+      tradition,
+      language,
     });
-    if (res.ok) {
-      const json = await res.json();
-      if (json.status === 'success' && json.data) {
-        chartData = json.data.chartData || chartData;
-        panchang = json.data.panchang || panchang;
-        numerology = json.data.numerology || numerology;
-        dailyInsights = json.data.dailyInsights;
-        roadmapData = json.data.roadmap;
-      }
+    if (data) {
+      chartData = data.chartData || chartData;
+      panchang = data.panchang || panchang;
+      numerology = data.numerology || numerology;
+      dailyInsights = data.dailyInsights;
+      roadmapData = data.roadmap;
     }
   } catch (err) {
     console.warn('Backend full-report-data API fetch failed, using local fallback:', err);

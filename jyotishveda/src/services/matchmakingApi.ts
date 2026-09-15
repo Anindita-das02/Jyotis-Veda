@@ -98,3 +98,30 @@ export function getMatchReportPdfUrl(reportId: string): string {
   return token ? `${base}?token=${encodeURIComponent(token)}` : base;
 }
 
+export async function generateAISynthesis(payload: {
+  partner1: any;
+  partner2: any;
+  matchResult: any;
+  language?: string;
+  force?: boolean;
+}): Promise<any> {
+  return api.post(API_ENDPOINTS.MATCHMAKING.SYNTHESIS, payload);
+}
+
+export async function downloadAISynthesisPdf(synthesisId: string, fileName: string): Promise<void> {
+  return api.downloadFile(API_ENDPOINTS.MATCHMAKING.AI_SYNTHESIS_PDF(synthesisId), fileName);
+}
+
+export async function generateDirectAISynthesisPdf(payload: any, fileName: string): Promise<void> {
+  return api.downloadFile(API_ENDPOINTS.MATCHMAKING.AI_SYNTHESIS_GENERATE_PDF, fileName, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function generateDirectMatchPdf(payload: any, fileName: string): Promise<void> {
+  return api.downloadFile(API_ENDPOINTS.MATCHMAKING.GENERATE_PDF, fileName, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
