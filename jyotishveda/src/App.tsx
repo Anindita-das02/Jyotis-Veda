@@ -714,7 +714,12 @@ export function App() {
                 numerology={numerology}
                 roadmap={roadmap}
                 setRoadmap={setRoadmap}
-                onNavigateToConsultations={() => setActiveTab('consultations')}
+                onNavigateToConsultations={(tierId?: string) => {
+                  if (tierId) {
+                    setSelectedConsultationTierId(tierId);
+                  }
+                  setActiveTab('consultations');
+                }}
                 theme={theme}
                 language={language}
               />
@@ -732,10 +737,21 @@ export function App() {
                     ...currentProfile,
                     isPremium: true,
                     isMatchmakingPremium: tier.id === 'matchmaking_regenerate_subscription' || (currentProfile as any)?.isMatchmakingPremium,
+                    unlockedRoadmapTiers: [
+                      ...((currentProfile as any)?.unlockedRoadmapTiers || []),
+                      tier.id,
+                    ],
                   };
 
                   handleSaveProfile(updatedProfile);
-                  if (tier.id === 'daily_vedic_subscription') {
+                  if (tier.id.startsWith('roadmap_')) {
+                    try {
+                      localStorage.setItem(`jyotish_${tier.id}_active`, 'true');
+                    } catch {}
+                    setTimeout(() => {
+                      setActiveTab('roadmap');
+                    }, 1200);
+                  } else if (tier.id === 'daily_vedic_subscription') {
                     setTimeout(() => {
                       setActiveTab('daily');
                     }, 1200);

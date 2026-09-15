@@ -20,6 +20,7 @@ import {
   Users,
   GraduationCap,
   Globe,
+  Lock,
 } from 'lucide-react';
 import { UserProfile, LifeMilestone, HoroscopeTradition, NumerologyReport } from '../types';
 import { API_ENDPOINTS } from '../config/api_config';
@@ -33,7 +34,7 @@ interface LifeRoadmapViewProps {
   numerology: NumerologyReport;
   roadmap: LifeMilestone[];
   setRoadmap: React.Dispatch<React.SetStateAction<LifeMilestone[]>>;
-  onNavigateToConsultations?: () => void;
+  onNavigateToConsultations?: (tierId?: string) => void;
   theme?: 'light' | 'dark';
   language?: string;
 }
@@ -141,9 +142,71 @@ export const LifeRoadmapView: React.FC<LifeRoadmapViewProps> = ({
 
   const horizons = ['0-5 Years', '0-10 Years', '0-15 Years', '0-20 Years', '0-25 Years'];
 
+  const getHorizonTierId = (tf: string): string | null => {
+    if (tf === '0-15 Years' || tf === '10-15 Years') return 'roadmap_15_subscription';
+    if (tf === '0-20 Years' || tf === '15-20 Years') return 'roadmap_20_subscription';
+    if (tf === '0-25 Years' || tf === '20-25 Years') return 'roadmap_25_subscription';
+    return null;
+  };
+
+  const getHorizonPrice = (tf: string): number => {
+    if (tf === '0-15 Years' || tf === '10-15 Years') return 169;
+    if (tf === '0-20 Years' || tf === '15-20 Years') return 199;
+    if (tf === '0-25 Years' || tf === '20-25 Years') return 249;
+    return 0;
+  };
+
+  const isMilestoneLocked = (item: LifeMilestone): boolean => {
+    if (!item) return false;
+    if (profile?.isPremium) return false;
+
+    const tf = (item.timeframe || '').trim();
+
+    // 🌟 0-5 Years & 0-10 Years: 100% FREE & UNLOCKED for all 8 life spheres
+    if (
+      tf === '0-5 Years' || tf === '0-12 Months' || tf === '1-3 Years' ||
+      tf === '0-10 Years' || tf === '5-10 Years' || tf === '3-5 Years'
+    ) {
+      return false;
+    }
+
+    const tierId = getHorizonTierId(tf);
+    const unlockedTiers: string[] = (profile as any)?.unlockedRoadmapTiers || [];
+
+    // Check if user has purchased this specific tier or the master 25-yr tier
+    if (tierId && (unlockedTiers.includes(tierId) || unlockedTiers.includes('roadmap_25_subscription'))) {
+      return false;
+    }
+
+    try {
+      if (tierId && localStorage.getItem(`jyotish_${tierId}_active`) === 'true') {
+        return false;
+      }
+      if (localStorage.getItem('jyotish_roadmap_25_subscription_active') === 'true') {
+        return false;
+      }
+    } catch {}
+
+    // 0-15 Years (₹169), 0-20 Years (₹199), 0-25 Years (₹249) require subscription
+    return true;
+  };
+
+  const isHorizonLocked = (tf?: string): boolean => {
+    const horizon = tf || selectedHorizon;
+    if (!horizon) return false;
+    if (horizon === '0-5 Years' || horizon === '0-10 Years') return false;
+    return isMilestoneLocked({ timeframe: horizon } as any);
+  };
+
   const handleGenerateHorizon = async (horizonToGen?: string) => {
     const targetHorizon = horizonToGen || selectedHorizon || '0-5 Years';
     if (!targetHorizon || isGenerating) return;
+
+    // 🌟 If this horizon is locked, DO NOT generate or show loading spinner!
+    if (isHorizonLocked(targetHorizon)) {
+      console.log('🔒 Horizon is locked; prompt subscription instead of generating:', targetHorizon);
+      return;
+    }
 
     if (!selectedHorizon) {
       setSelectedHorizon(targetHorizon);
@@ -242,46 +305,10 @@ export const LifeRoadmapView: React.FC<LifeRoadmapViewProps> = ({
 
   const handleHorizonTabClick = (hor: string) => {
     setSelectedHorizon(hor);
-    handleGenerateHorizon(hor);
-  };
-
-  const isMilestoneLocked = (item: LifeMilestone): boolean => {
-    if (!item) return false;
-    if (profile?.isPremium) return false;
-
-    const tf = item.timeframe || '';
-    const cat = (item.category || '').toLowerCase();
-
-    // 0-5 Years: All 8 topics are OPEN (100% unlocked)
-    if (tf === '0-5 Years' || tf === '0-12 Months' || tf === '1-3 Years') {
-      return false;
+    // 🌟 Never generate for locked horizons; immediately show subscription paywall
+    if (!isHorizonLocked(hor)) {
+      handleGenerateHorizon(hor);
     }
-
-    // 0-10 Years: Career, Wealth, Health & Spirituality are OPEN
-    if (tf === '0-10 Years' || tf === '5-10 Years' || tf === '3-5 Years') {
-      if (['career', 'health', 'spirituality', 'wealth'].includes(cat)) {
-        return false;
-      }
-      return true;
-    }
-
-    // 0-15 Years: Exactly 2 categories OPEN (Career & Spirituality)
-    if (tf === '0-15 Years' || tf === '10-15 Years') {
-      if (['career', 'spirituality'].includes(cat)) {
-        return false;
-      }
-      return true;
-    }
-
-    // 0-20 Years & 0-25 Years: Career preview is open, remaining locked
-    if (tf === '0-20 Years' || tf === '0-25 Years' || tf === '15-20 Years' || tf === '20-25 Years') {
-      if (cat === 'career') {
-        return false;
-      }
-      return true;
-    }
-
-    return false;
   };
 
   const getCategoryDisplayName = (cat: string) => {
@@ -339,9 +366,16 @@ export const LifeRoadmapView: React.FC<LifeRoadmapViewProps> = ({
 
   // Comprehensive Multi-Page PDF Report Generator (Exporting Exact UI Predictions)
   const handleDownloadPdfReport = async () => {
+    const targetHorizon = selectedHorizon || '0-5 Years';
+    if (isHorizonLocked(targetHorizon)) {
+      if (onNavigateToConsultations) {
+        onNavigateToConsultations(getHorizonTierId(targetHorizon) || undefined);
+      }
+      return;
+    }
+
     setIsGeneratingPdf(true);
     const cleanName = (profile.fullName || (profile as any)?.name || 'Seeker').trim().replace(/\s+/g, '_');
-    const targetHorizon = selectedHorizon || '0-5 Years';
     const fileName = `Vedic_Destiny_Roadmap_${cleanName}_${targetHorizon.replace(/\s+/g, '_')}.pdf`;
 
     // 🌟 Ensure we export the exact predictions currently displayed on the user's screen
@@ -812,7 +846,14 @@ export const LifeRoadmapView: React.FC<LifeRoadmapViewProps> = ({
 
           <div className="flex items-center space-x-3 font-sans">
             <button
-              onClick={() => handleGenerateHorizon(selectedHorizon || '0-5 Years')}
+              onClick={() => {
+                const targetHorizon = selectedHorizon || '0-5 Years';
+                if (isHorizonLocked(targetHorizon)) {
+                  onNavigateToConsultations && onNavigateToConsultations(getHorizonTierId(targetHorizon) || undefined);
+                  return;
+                }
+                handleGenerateHorizon(targetHorizon);
+              }}
               disabled={isGenerating}
               className={`flex items-center justify-center space-x-2 px-3.5 py-2.5 rounded-xl border text-xs font-bold transition shadow-md cursor-pointer shrink-0 ${
                 theme === 'dark'
@@ -845,15 +886,19 @@ export const LifeRoadmapView: React.FC<LifeRoadmapViewProps> = ({
           </div>
         </div>
 
-        {/* 1. Time Horizon Filters (Prominent Top Row) */}
+        {/* 1. Time Horizon Filters (Prominent Top Row with Free/Subscription Badges) */}
         <div className="flex flex-wrap gap-2 pt-4 font-sans">
           {horizons.map((hor) => {
             const isSelected = selectedHorizon === hor;
+            const isFree = hor === '0-5 Years' || hor === '0-10 Years';
+            const price = getHorizonPrice(hor);
+            const isLocked = !isFree && isMilestoneLocked({ timeframe: hor } as any);
+
             return (
               <button
                 key={hor}
                 onClick={() => handleHorizonTabClick(hor)}
-                className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer flex items-center space-x-1.5 border shadow-sm ${
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer flex items-center space-x-1.5 border shadow-sm ${
                   isSelected
                     ? 'bg-[#C9A050] text-[#0D0D0F] border-[#C9A050] font-bold shadow-md shadow-[#C9A050]/20'
                     : theme === 'dark'
@@ -863,6 +908,19 @@ export const LifeRoadmapView: React.FC<LifeRoadmapViewProps> = ({
               >
                 <Clock className={`w-3.5 h-3.5 ${isSelected ? 'text-[#0D0D0F]' : 'text-[#C9A050]'}`} />
                 <span>{hor}</span>
+                {isFree ? (
+                  <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wider ${
+                    isSelected ? 'bg-black/20 text-[#0D0D0F]' : 'bg-emerald-500/15 text-emerald-500'
+                  }`}>
+                    Free
+                  </span>
+                ) : (
+                  <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold ${
+                    isSelected ? 'bg-black/20 text-[#0D0D0F]' : 'bg-[#C9A050]/20 text-[#C9A050]'
+                  }`}>
+                    {isLocked ? `₹${price}` : '✓ Active'}
+                  </span>
+                )}
               </button>
             );
           })}
@@ -950,6 +1008,104 @@ export const LifeRoadmapView: React.FC<LifeRoadmapViewProps> = ({
               <span>Explore 0-5 Years Roadmap</span>
             </button>
           </div>
+        ) : isHorizonLocked(selectedHorizon) ? (
+          <div className={`border rounded-2xl p-8 sm:p-14 relative overflow-hidden shadow-2xl text-center space-y-6 animate-in fade-in duration-300 ${
+            theme === 'dark'
+              ? 'bg-gradient-to-b from-[#18181D] via-[#141418] to-[#0F0F12] border-[#C9A050]/40'
+              : 'bg-gradient-to-b from-[#FFFDF9] via-[#FAF7F0] to-[#F5EFEB] border-[#C9A050]/50'
+          }`}>
+            {/* Background Ambient Glow */}
+            <div className="absolute -top-24 -left-24 w-72 h-72 rounded-full bg-[#C9A050]/10 blur-3xl pointer-events-none" />
+            <div className="absolute -bottom-24 -right-24 w-72 h-72 rounded-full bg-[#A07828]/10 blur-3xl pointer-events-none" />
+
+            <div className="relative z-10 max-w-2xl mx-auto space-y-5">
+              {/* Badge & Sacred Icon */}
+              <div className="inline-flex items-center space-x-2 px-3.5 py-1.5 rounded-full bg-[#C9A050]/15 border border-[#C9A050]/40 text-[#C9A050] text-xs font-semibold uppercase tracking-wider">
+                <Lock className="w-3.5 h-3.5" />
+                <span>Subscription Required • Premium Horizon</span>
+              </div>
+
+              {/* Title & Description */}
+              <div className="space-y-2">
+                <h2 className={`font-serif font-bold text-2xl sm:text-3xl ${
+                  theme === 'dark' ? 'text-[#F0ECE1]' : 'text-gray-900'
+                }`}>
+                  Unlock {selectedHorizon} Vedic Destiny Roadmap
+                </h2>
+                <p className={`text-xs sm:text-sm font-sans max-w-lg mx-auto ${
+                  theme === 'dark' ? 'text-[#9E9A90]' : 'text-gray-600'
+                }`}>
+                  To access multi-decade predictive insights, deep Vimshottari Mahadasha shifts, Saturn Sade Sati / Kantaka Shani, and planetary transit remedies for {selectedHorizon}, please unlock this subscription tier.
+                </p>
+              </div>
+
+              {/* Features List */}
+              <div className={`grid grid-cols-1 sm:grid-cols-2 gap-3 text-left p-5 rounded-xl border ${
+                theme === 'dark' ? 'bg-[#1A1A1E]/80 border-[#2A2A2E]' : 'bg-white/80 border-[#E5E1D8]'
+              }`}>
+                <div className="flex items-start space-x-2.5">
+                  <CheckCircle2 className="w-4 h-4 text-[#C9A050] shrink-0 mt-0.5" />
+                  <span className={`text-xs font-sans ${theme === 'dark' ? 'text-[#D0CCC2]' : 'text-gray-700'}`}>
+                    All 8 Life Spheres (Career, Wealth, Love, Family, Health, Education, Travel, Spirituality)
+                  </span>
+                </div>
+                <div className="flex items-start space-x-2.5">
+                  <CheckCircle2 className="w-4 h-4 text-[#C9A050] shrink-0 mt-0.5" />
+                  <span className={`text-xs font-sans ${theme === 'dark' ? 'text-[#D0CCC2]' : 'text-gray-700'}`}>
+                    Vimshottari Dasha &amp; Antardasha Timeline Breakdown
+                  </span>
+                </div>
+                <div className="flex items-start space-x-2.5">
+                  <CheckCircle2 className="w-4 h-4 text-[#C9A050] shrink-0 mt-0.5" />
+                  <span className={`text-xs font-sans ${theme === 'dark' ? 'text-[#D0CCC2]' : 'text-gray-700'}`}>
+                    Saturn Gochara (Sade Sati) &amp; Jupiter (Guru) Transits
+                  </span>
+                </div>
+                <div className="flex items-start space-x-2.5">
+                  <CheckCircle2 className="w-4 h-4 text-[#C9A050] shrink-0 mt-0.5" />
+                  <span className={`text-xs font-sans ${theme === 'dark' ? 'text-[#D0CCC2]' : 'text-gray-700'}`}>
+                    Full Printable Vedic Destiny Roadmap (PDF Report)
+                  </span>
+                </div>
+              </div>
+
+              {/* Price & CTA Buttons */}
+              <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
+                <button
+                  onClick={() => onNavigateToConsultations && onNavigateToConsultations(getHorizonTierId(selectedHorizon) || undefined)}
+                  className="w-full sm:w-auto px-8 py-3 rounded-xl bg-gradient-to-r from-[#C9A050] via-[#D4AF37] to-[#A07828] hover:from-[#D4AF37] hover:to-[#B38730] text-[#0D0D0F] font-bold text-sm shadow-xl shadow-[#C9A050]/25 transition transform hover:scale-[1.02] cursor-pointer flex items-center justify-center space-x-2"
+                >
+                  <Sparkles className="w-4 h-4" />
+                  <span>Subscribe {selectedHorizon} • ₹{getHorizonPrice(selectedHorizon)}</span>
+                </button>
+
+                {selectedHorizon !== '0-25 Years' && (
+                  <button
+                    onClick={() => onNavigateToConsultations && onNavigateToConsultations('roadmap_25_subscription')}
+                    className={`w-full sm:w-auto px-6 py-3 rounded-xl border font-bold text-xs sm:text-sm transition cursor-pointer flex items-center justify-center space-x-2 ${
+                      theme === 'dark'
+                        ? 'border-[#C9A050]/50 text-[#C9A050] hover:bg-[#C9A050]/10'
+                        : 'border-[#C9A050] text-[#96721E] hover:bg-[#C9A050]/10'
+                    }`}
+                  >
+                    <span>Unlock All Horizons (Up to 25 Years) • ₹249</span>
+                  </button>
+                )}
+              </div>
+
+              {/* Return to Free horizons */}
+              <div className="pt-2">
+                <button
+                  onClick={() => handleHorizonTabClick('0-5 Years')}
+                  className={`text-xs font-medium underline underline-offset-4 transition cursor-pointer ${
+                    theme === 'dark' ? 'text-[#9E9A90] hover:text-[#F0ECE1]' : 'text-gray-500 hover:text-black'
+                  }`}
+                >
+                  ← Return to Free 0-5 Years &amp; 0-10 Years Roadmap
+                </button>
+              </div>
+            </div>
+          </div>
         ) : filteredRoadmap.length > 0 || generatedHorizons[selectedHorizon] ? (
           <>
             {filteredRoadmap.map((item, idx) => {
@@ -969,23 +1125,23 @@ export const LifeRoadmapView: React.FC<LifeRoadmapViewProps> = ({
                   }`}
                 >
                   {isLockedCategory && (
-                    <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-black/40 backdrop-blur-[2px] transition duration-300">
-                      <div className="opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center p-6 bg-black/80 w-full h-full transition duration-300">
-                        <h3 className="text-lg sm:text-xl font-serif font-bold text-[#F0ECE1] mb-3 text-center">
-                          Unlock {getCategoryDisplayName(item.category)} Roadmap ({item.timeframe})
-                        </h3>
-                        <button 
-                          onClick={() => onNavigateToConsultations && onNavigateToConsultations()} 
-                          className="px-5 py-2.5 bg-[#C9A050] text-[#0D0D0F] font-bold text-xs sm:text-sm rounded-lg shadow-md cursor-pointer transition hover:bg-[#D4AF37]"
-                        >
-                          Consultations & Gateway
-                        </button>
+                    <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-black/60 backdrop-blur-[2px] transition duration-300 p-6 text-center">
+                      <div className="w-12 h-12 rounded-full bg-black/80 border border-[#C9A050]/50 flex items-center justify-center mb-3 shadow-lg shadow-[#C9A050]/20">
+                        <span className="text-[#C9A050] text-xl font-bold">🔒</span>
                       </div>
-                      <div className="absolute opacity-100 group-hover:opacity-0 transition duration-300">
-                        <div className="w-12 h-12 rounded-full bg-black/60 border border-[#C9A050]/40 flex items-center justify-center">
-                          <span className="text-[#C9A050] text-lg font-bold">🔒</span>
-                        </div>
-                      </div>
+                      <h3 className="text-base sm:text-lg font-serif font-bold text-[#F0ECE1] mb-1">
+                        Unlock {item.timeframe} Roadmap
+                      </h3>
+                      <p className="text-xs text-[#9E9A90] font-sans max-w-sm mb-3.5">
+                        Subscription required to access all 8 life spheres, Mahadasha cycles &amp; transit upayas for {item.timeframe}.
+                      </p>
+                      <button 
+                        onClick={() => onNavigateToConsultations && onNavigateToConsultations(getHorizonTierId(item.timeframe) || undefined)} 
+                        className="px-6 py-2.5 bg-gradient-to-r from-[#C9A050] to-[#A07828] hover:from-[#D4AF37] hover:to-[#B38730] text-[#0D0D0F] font-bold text-xs sm:text-sm rounded-xl shadow-lg shadow-[#C9A050]/25 cursor-pointer transition flex items-center space-x-2"
+                      >
+                        <Sparkles className="w-4 h-4" />
+                        <span>Unlock {item.timeframe} • ₹{getHorizonPrice(item.timeframe)}</span>
+                      </button>
                     </div>
                   )}
 
