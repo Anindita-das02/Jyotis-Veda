@@ -769,3 +769,159 @@ def generate_raw_completion(prompt: str, model: str = None) -> str:
     if not content:
         raise LLMError("LLM server returned an unexpected response shape.")
     return content
+
+
+def get_filtered_roadmap_predictions_response(
+    profile: dict,
+    tradition: str,
+    chart_data: dict,
+    numerology: dict,
+    horizon: str = "0-5 Years",
+    language: str = "en"
+) -> str:
+    active_llm = os.getenv("ACTIVE_LLM", "mistral_local")
+    
+    profile_name = profile.get("fullName", "Seeker")
+    horoscope_sys = profile.get("horoscopeSystem", "Vedic")
+    dob = profile.get("birthDate", "Unknown")
+    time = profile.get("birthTime", "Unknown")
+    place = profile.get("birthPlace", "Unknown")
+    
+    lagna_info = chart_data.get("ascendant", {})
+    lagna_rashi = lagna_info.get("signName") or lagna_info.get("signSanskrit") or lagna_info.get("rashi") or "Aries"
+    lagna_lord = lagna_info.get("lord") or "Ascendant Lord"
+    
+    moon_info = chart_data.get("moon", {})
+    moon_rashi = chart_data.get("moonSign") or moon_info.get("signName") or moon_info.get("signSanskrit") or moon_info.get("rashi") or "Chandra Rashi"
+    
+    planets_list = chart_data.get("planets", [])
+    moon_planet = next((p for p in planets_list if p.get("id") == "moon" or p.get("name", "").lower() == "moon"), {})
+    nakshatra = moon_planet.get("nakshatra") or moon_info.get("nakshatra") or chart_data.get("nakshatra") or "Rohini"
+    
+    dasha_periods = chart_data.get("dashaPeriods", [])
+    curr_dasha = next((d for d in dasha_periods if d.get("isCurrent")), {})
+    dasha_info = chart_data.get("currentDasha", {})
+    maha_dasha = curr_dasha.get("planet") or dasha_info.get("mahadasha") or "Jupiter"
+    antar_dasha = curr_dasha.get("antardasha") or dasha_info.get("antardasha") or "Saturn"
+    
+    mulank = numerology.get("mulank", "3")
+    bhagyank = numerology.get("bhagyank", "7")
+
+    system_prompt = f"""You are JyotishVeda Daivajna, an expert 25-Year Vedic Astrological Forecaster.
+Generate a comprehensive Kundli Life Roadmap Prediction tailored specifically for the time horizon filter: '{horizon}'.
+You MUST cover ALL 8 KUNDLI LIFE TOPICS for this timeframe:
+1. Career & Profession (কর্ম ও পেশা)
+2. Wealth & Finance (অর্থ ও সমৃদ্ধি)
+3. Health & Well-being (স্বাস্থ্য ও স্থায়িত্ব)
+4. Marriage & Relationships (বিবাহ ও দাম্পত্য জীবন)
+5. Family & Children (পরিবার ও সন্তান ভাগ্য)
+6. Education & Learning (শিক্ষা ও জ্ঞান চর্চা)
+7. Foreign Travel & Relocation (বিদেশ ভ্রমণ ও বাসস্থান)
+8. Spirituality & Upayas (আধ্যাত্মিক বিকাশ ও প্রতিকার/উপায়)
+
+User Details:
+Name: {profile_name}
+System: {horoscope_sys} ({tradition} tradition)
+DOB: {dob}, Time: {time}, Place: {place}
+Lagna (Ascendant): {lagna_rashi} (Lord: {lagna_lord})
+Moon Sign (Rashi): {moon_rashi}, Nakshatra: {nakshatra}
+Active Vimshottari Dasha: {maha_dasha} Mahadasha / {antar_dasha} Antardasha
+Numerology: Psychic {mulank}, Destiny {bhagyank}
+Time Horizon: {horizon}
+
+You MUST return a JSON object with EXACTLY this structure containing predictions for all 8 topics:
+{{
+  "horizon": "{horizon}",
+  "topics": [
+    {{
+      "topicKey": "career",
+      "topicName": "Career & Profession",
+      "prediction": "Detailed 2-3 sentence prediction for {horizon} based on {maha_dasha} dasha and {lagna_rashi} lagna.",
+      "favorableTransits": "Key transits during {horizon}",
+      "remedialAction": "1 specific remedy"
+    }},
+    {{
+      "topicKey": "wealth",
+      "topicName": "Wealth & Finance",
+      "prediction": "...",
+      "favorableTransits": "...",
+      "remedialAction": "..."
+    }},
+    {{
+      "topicKey": "health",
+      "topicName": "Health & Well-being",
+      "prediction": "...",
+      "favorableTransits": "...",
+      "remedialAction": "..."
+    }},
+    {{
+      "topicKey": "relationships",
+      "topicName": "Marriage & Relationships",
+      "prediction": "...",
+      "favorableTransits": "...",
+      "remedialAction": "..."
+    }},
+    {{
+      "topicKey": "family",
+      "topicName": "Family & Children",
+      "prediction": "...",
+      "favorableTransits": "...",
+      "remedialAction": "..."
+    }},
+    {{
+      "topicKey": "education",
+      "topicName": "Education & Higher Learning",
+      "prediction": "...",
+      "favorableTransits": "...",
+      "remedialAction": "..."
+    }},
+    {{
+      "topicKey": "travel",
+      "topicName": "Foreign Travel & Relocation",
+      "prediction": "...",
+      "favorableTransits": "...",
+      "remedialAction": "..."
+    }},
+    {{
+      "topicKey": "spirituality",
+      "topicName": "Spirituality & Upayas",
+      "prediction": "...",
+      "favorableTransits": "...",
+      "remedialAction": "..."
+    }}
+  ]
+}}
+
+Requirements:
+- Must generate predictions for ALL 8 topics listed above.
+- Ensure prediction specifically mentions user's {lagna_rashi} ascendant and {maha_dasha} Mahadasha.
+- All text values MUST be translated directly into the language code: {language}. If 'bn', use Bengali script.
+- Output ONLY valid JSON, no markdown outside code blocks.
+"""
+
+    history = [{"role": "user", "content": f"Generate the 8-Topic Kundli Prediction JSON for horizon {horizon}."}]
+
+    try:
+        if active_llm == "mistral_local":
+            res = _call_mistral_local(system_prompt, history)
+        elif active_llm == "mistral_cloud":
+            res = _call_mistral_cloud(system_prompt, history)
+        elif active_llm == "gemini":
+            res = _call_gemini(system_prompt, history)
+        else:
+            raise LLMError(f"Unknown ACTIVE_LLM value: '{active_llm}'.")
+        
+        res = res.strip()
+        if res.startswith("```json"):
+            res = res[7:]
+        if res.startswith("```"):
+            res = res[3:]
+        if res.endswith("```"):
+            res = res[:-3]
+        return res.strip()
+    except Exception as e:
+        raise LLMError(f"Failed to generate filtered roadmap predictions: {str(e)}")
+
+
+
+

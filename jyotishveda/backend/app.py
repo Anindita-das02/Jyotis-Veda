@@ -103,6 +103,10 @@ def generate_roadmap():
 def download_roadmap_pdf():
     return roadmap_controller.download_roadmap_pdf()
 
+@app.route("/api/roadmap/filtered-predictions", methods=["POST"])
+def post_filtered_roadmap_predictions():
+    return roadmap_controller.post_filtered_roadmap_predictions()
+
 # ==========================================
 # 🌟 UNIFIED MASTER REPORT DATA API
 # ==========================================
