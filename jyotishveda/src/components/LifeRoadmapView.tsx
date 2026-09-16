@@ -27,6 +27,27 @@ import { UserProfile, LifeMilestone, HoroscopeTradition, NumerologyReport } from
 import { generateCustomRoadmap } from '../services/astroEngine';
 import { jsPDF } from 'jspdf';
 
+export const normalizeTimeframe = (rawTf?: string): string => {
+  if (!rawTf) return '0-5 Years';
+  const clean = rawTf.trim().toLowerCase().replace(/–/g, '-').replace(/\s+/g, '');
+  if (clean === '0-5' || clean === '0-5years' || clean === '0-12months' || clean === '1-3years') {
+    return '0-5 Years';
+  }
+  if (clean === '0-10' || clean === '0-10years' || clean === '3-5years' || clean === '5-10years') {
+    return '0-10 Years';
+  }
+  if (clean === '0-15' || clean === '0-15years' || clean === '10-15years') {
+    return '0-15 Years';
+  }
+  if (clean === '0-20' || clean === '0-20years' || clean === '15-20years') {
+    return '0-20 Years';
+  }
+  if (clean === '0-25' || clean === '0-25years' || clean === '20-25years') {
+    return '0-25 Years';
+  }
+  return rawTf.trim();
+};
+
 interface LifeRoadmapViewProps {
   profile: UserProfile;
   tradition: HoroscopeTradition;
@@ -51,7 +72,7 @@ export const LifeRoadmapView: React.FC<LifeRoadmapViewProps> = ({
   language = 'en',
 }) => {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  const [selectedHorizon, setSelectedHorizon] = useState<string | null>(null);
+  const [selectedHorizon, setSelectedHorizon] = useState<string>('0-5 Years');
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedHorizons, setGeneratedHorizons] = useState<Record<string, boolean>>({});
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
@@ -101,6 +122,7 @@ export const LifeRoadmapView: React.FC<LifeRoadmapViewProps> = ({
     if (!hasLoadedCache && (!roadmap || roadmap.length < 25)) {
       setRoadmap(generateCustomRoadmap(profile, chartData));
     }
+    setSelectedHorizon('0-5 Years');
   }, [profile?.fullName, profile?.birthDate]);
 
   // Helper to load image as base64 DataURL for jsPDF canvas rendering
@@ -150,9 +172,10 @@ export const LifeRoadmapView: React.FC<LifeRoadmapViewProps> = ({
   };
 
   const getHorizonPrice = (tf: string): number => {
-    if (tf === '0-15 Years' || tf === '10-15 Years') return 169;
-    if (tf === '0-20 Years' || tf === '15-20 Years') return 199;
-    if (tf === '0-25 Years' || tf === '20-25 Years') return 249;
+    const norm = normalizeTimeframe(tf);
+    if (norm === '0-15 Years') return 169;
+    if (norm === '0-20 Years') return 199;
+    if (norm === '0-25 Years') return 249;
     return 0;
   };
 
@@ -160,17 +183,14 @@ export const LifeRoadmapView: React.FC<LifeRoadmapViewProps> = ({
     if (!item) return false;
     if (profile?.isPremium) return false;
 
-    const tf = (item.timeframe || '').trim();
+    const normTf = normalizeTimeframe(item.timeframe);
 
     // 🌟 0-5 Years & 0-10 Years: 100% FREE & UNLOCKED for all 8 life spheres
-    if (
-      tf === '0-5 Years' || tf === '0-12 Months' || tf === '1-3 Years' ||
-      tf === '0-10 Years' || tf === '5-10 Years' || tf === '3-5 Years'
-    ) {
+    if (normTf === '0-5 Years' || normTf === '0-10 Years') {
       return false;
     }
 
-    const tierId = getHorizonTierId(tf);
+    const tierId = getHorizonTierId(normTf);
     const unlockedTiers: string[] = (profile as any)?.unlockedRoadmapTiers || [];
 
     // Check if user has purchased this specific tier or the master 25-yr tier
@@ -192,10 +212,10 @@ export const LifeRoadmapView: React.FC<LifeRoadmapViewProps> = ({
   };
 
   const isHorizonLocked = (tf?: string): boolean => {
-    const horizon = tf || selectedHorizon;
-    if (!horizon) return false;
-    if (horizon === '0-5 Years' || horizon === '0-10 Years') return false;
-    return isMilestoneLocked({ timeframe: horizon } as any);
+    const horizon = tf || selectedHorizon || '0-5 Years';
+    const norm = normalizeTimeframe(horizon);
+    if (norm === '0-5 Years' || norm === '0-10 Years') return false;
+    return isMilestoneLocked({ timeframe: norm } as any);
   };
 
   const handleGenerateHorizon = async (horizonToGen?: string) => {
@@ -246,12 +266,13 @@ export const LifeRoadmapView: React.FC<LifeRoadmapViewProps> = ({
           spirituality: 'Spirituality',
         };
 
+        const normHorizon = normalizeTimeframe(targetHorizon);
         const generatedForHorizon: LifeMilestone[] = res.topics.map((t: any, idx: number) => {
           const rawKey = (t.topicKey || '').toLowerCase();
           const mappedCat = categoryMap[rawKey] || t.topicName || 'General';
           return {
-            id: `ms-${targetHorizon.replace(/\s+/g, '-').toLowerCase()}-${rawKey || idx}`,
-            timeframe: targetHorizon,
+            id: `ms-${normHorizon.replace(/\s+/g, '-').toLowerCase()}-${rawKey || idx}`,
+            timeframe: normHorizon,
             category: mappedCat,
             title: t.topicName || getCategoryDisplayName(mappedCat),
             guidance: t.prediction || '',
@@ -261,13 +282,14 @@ export const LifeRoadmapView: React.FC<LifeRoadmapViewProps> = ({
           };
         });
 
-        const others = updatedRoadmap.filter((m) => m.timeframe !== targetHorizon);
+        const others = updatedRoadmap.filter((m) => normalizeTimeframe(m.timeframe) !== normHorizon);
         updatedRoadmap = [...others, ...generatedForHorizon];
       } else if (res && res.milestones && Array.isArray(res.milestones) && res.milestones.length > 0) {
-        const generatedForHorizon = res.milestones.filter((m: any) => m.timeframe === targetHorizon);
+        const normHorizon = normalizeTimeframe(targetHorizon);
+        const generatedForHorizon = res.milestones.filter((m: any) => normalizeTimeframe(m.timeframe) === normHorizon);
         if (generatedForHorizon.length > 0) {
           updatedRoadmap = updatedRoadmap.map((item) => {
-            if (item.timeframe === targetHorizon) {
+            if (normalizeTimeframe(item.timeframe) === normHorizon) {
               const matched = generatedForHorizon.find((m: any) => m.category === item.category);
               return matched ? { ...item, ...matched } : item;
             }
@@ -340,13 +362,7 @@ export const LifeRoadmapView: React.FC<LifeRoadmapViewProps> = ({
 
   const normalizedRoadmap = safeRoadmap.map((m) => {
     if (!m) return m;
-    let t = m.timeframe || '0-5 Years';
-    if (t === '0-12 Months' || t === '1-3 Years') t = '0-5 Years';
-    else if (t === '3-5 Years' || t === '5-10 Years') t = '0-10 Years';
-    else if (t === '10-15 Years') t = '0-15 Years';
-    else if (t === '15-20 Years') t = '0-20 Years';
-    else if (t === '20-25 Years') t = '0-25 Years';
-    return { ...m, timeframe: t };
+    return { ...m, timeframe: normalizeTimeframe(m.timeframe) };
   }).filter(Boolean);
 
   const sortedRoadmap = [...normalizedRoadmap].sort((a, b) => {
@@ -360,22 +376,43 @@ export const LifeRoadmapView: React.FC<LifeRoadmapViewProps> = ({
   const filteredRoadmap = sortedRoadmap.filter((m) => {
     if (!m) return false;
     const matchCat = !selectedCategory || selectedCategory === 'all' || m.category === selectedCategory;
-    const matchHor = !selectedHorizon || selectedHorizon === 'all' || m.timeframe === selectedHorizon;
+    const matchHor = !selectedHorizon || selectedHorizon === 'all' || normalizeTimeframe(m.timeframe) === normalizeTimeframe(selectedHorizon);
     return matchCat && matchHor;
   });
 
-  // Comprehensive Multi-Page PDF Report Generator (Exporting ALL Available Guidance)
+  const categoryContainerRef = React.useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!selectedCategory) return;
+    const handleOutsideClick = (e: MouseEvent) => {
+      if (categoryContainerRef.current && !categoryContainerRef.current.contains(e.target as Node)) {
+        setSelectedCategory(null);
+      }
+    };
+    document.addEventListener('mousedown', handleOutsideClick);
+    return () => {
+      document.removeEventListener('mousedown', handleOutsideClick);
+    };
+  }, [selectedCategory]);
+
+  // Comprehensive Multi-Page PDF Report Generator (Exporting ONLY Selected Horizon Guidance)
   const handleDownloadPdfReport = async () => {
     setIsGeneratingPdf(true);
+    const activeHor = normalizeTimeframe(selectedHorizon || '0-5 Years');
     const cleanName = (profile.fullName || (profile as any)?.name || 'Seeker').trim().replace(/\s+/g, '_');
-    const fileName = `Vedic_Destiny_Roadmap_${cleanName}_Available_Guidance.pdf`;
+    const cleanHorizon = activeHor.replace(/\s+/g, '_');
+    const fileName = `Vedic_Destiny_Roadmap_${cleanName}_${cleanHorizon}.pdf`;
 
-    // 🌟 Collect ALL available (unlocked) guidance across all life spheres & available horizons
-    let availableMilestones = normalizedRoadmap.filter((m) => m && !isMilestoneLocked(m));
+    // 🌟 Collect guidance ONLY for the currently selected horizon (e.g. 0-5 Years or 0-10 Years)
+    let availableMilestones = normalizedRoadmap.filter(
+      (m) => m && !isMilestoneLocked(m) && normalizeTimeframe(m.timeframe) === activeHor
+    );
 
     if (availableMilestones.length === 0) {
       const fallback = generateCustomRoadmap(profile, chartData);
-      availableMilestones = fallback.filter((m) => m && !isMilestoneLocked(m));
+      availableMilestones = fallback.filter(
+        (m) => m && !isMilestoneLocked(m) && normalizeTimeframe(m.timeframe) === activeHor
+      );
     }
 
     const milestonesToExport = availableMilestones;
@@ -386,8 +423,8 @@ export const LifeRoadmapView: React.FC<LifeRoadmapViewProps> = ({
         method: 'POST',
         body: JSON.stringify({
           profile,
-          selectedHorizon: 'All Available Guidance',
-          includeAll: true,
+          selectedHorizon: activeHor,
+          includeAll: false,
           roadmap: milestonesToExport,
           chartData,
           numerology,
@@ -695,13 +732,13 @@ export const LifeRoadmapView: React.FC<LifeRoadmapViewProps> = ({
 
           doc.setFontSize(8.5);
           doc.setTextColor(126, 95, 24);
-          doc.text('VEDIC DESTINY ROADMAP & LIFE BLUEPRINT (AVAILABLE: 0–15 YEARS)', 33, 24.5);
+          doc.text(`VEDIC DESTINY ROADMAP & LIFE BLUEPRINT (${activeHor.toUpperCase()})`, 33, 24.5);
 
           doc.setFont('helvetica', 'italic');
           doc.setFontSize(7);
           doc.setTextColor(110, 105, 95);
           doc.text(
-            `Synthesized through Vimshottari Mahadasha/Antardasha cycles & planetary transits (${new Date().getFullYear()} – ${new Date().getFullYear() + 15})`,
+            `Synthesized through Vimshottari Mahadasha/Antardasha cycles & planetary transits (${new Date().getFullYear()} – ${new Date().getFullYear() + 25})`,
             33,
             28
           );
@@ -709,7 +746,7 @@ export const LifeRoadmapView: React.FC<LifeRoadmapViewProps> = ({
           doc.setFont('helvetica', 'bold');
           doc.setFontSize(8);
           doc.setTextColor(126, 95, 24);
-          doc.text('ASTROJUNCTION • VEDIC DESTINY ROADMAP (0–15 YEARS)', 14, 14);
+          doc.text(`ASTROJUNCTION • VEDIC DESTINY ROADMAP (${activeHor.toUpperCase()})`, 14, 14);
           doc.setDrawColor(226, 211, 176);
           doc.setLineWidth(0.3);
           doc.line(13, 16, pageWidth - 13, 16);
@@ -849,7 +886,7 @@ export const LifeRoadmapView: React.FC<LifeRoadmapViewProps> = ({
         </div>
 
         {/* 2. Life Spheres / Categories (Compact Flex-Wrap Row without Scrollbar) */}
-        <div className="flex flex-wrap items-center gap-1.5 pt-2.5 text-xs font-sans">
+        <div ref={categoryContainerRef} className="flex flex-wrap items-center gap-1.5 pt-2.5 text-xs font-sans">
           <span className={`text-[11px] shrink-0 font-medium mr-1 ${theme === 'dark' ? 'text-[#9E9A90]' : 'text-gray-500'}`}>
             Life Spheres:
           </span>

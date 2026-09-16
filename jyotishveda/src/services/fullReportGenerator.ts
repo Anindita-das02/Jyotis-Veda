@@ -234,7 +234,34 @@ export async function generateMasterFullReportPdf({
   const now = new Date();
   const todayStr = sanitize(now.toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' }));
   const currentYear = now.getFullYear();
-  const totalReportPages = 8;
+
+  // Helper to check if a horizon tier is locked for full report generation
+  const isHorizonLockedForReport = (horizonKey: string): boolean => {
+    if (profile?.isPremium) return false;
+    if (horizonKey === '0-5' || horizonKey === '0-10') return false;
+
+    const unlockedTiers: string[] = (profile as any)?.unlockedRoadmapTiers || [];
+    if (unlockedTiers.includes('roadmap_25_subscription')) return false;
+
+    if (horizonKey === '0-15' && unlockedTiers.includes('roadmap_15_subscription')) return false;
+    if (horizonKey === '0-20' && unlockedTiers.includes('roadmap_20_subscription')) return false;
+    if (horizonKey === '0-25' && unlockedTiers.includes('roadmap_25_subscription')) return false;
+
+    try {
+      if (typeof localStorage !== 'undefined') {
+        if (localStorage.getItem('jyotish_roadmap_25_subscription_active') === 'true') return false;
+        if (horizonKey === '0-15' && localStorage.getItem('jyotish_roadmap_15_subscription_active') === 'true') return false;
+        if (horizonKey === '0-20' && localStorage.getItem('jyotish_roadmap_20_subscription_active') === 'true') return false;
+        if (horizonKey === '0-25' && localStorage.getItem('jyotish_roadmap_25_subscription_active') === 'true') return false;
+      }
+    } catch {}
+
+    return true;
+  };
+
+  const horizonKeys = ['0-5', '0-10', '0-15', '0-20', '0-25'];
+  const hasMoreThanTwoHorizons = horizonKeys.some((k, idx) => idx >= 2 && !isHorizonLockedForReport(k));
+  const totalReportPages = hasMoreThanTwoHorizons ? 8 : 7;
 
   // ==========================================
   // PAGE 1: GRAND HEADER & DAILY TRANSIT SYNTHESIS
@@ -256,7 +283,7 @@ export async function generateMasterFullReportPdf({
 
   // 1. Seeker Natal Particulars (Left Card) & Harmonic Celestial Anchors (Right Card)
   const profCardW = (pageWidth - 26 - 4) / 2; // 89mm
-  const profCardH = 30;
+  const profCardH = 32;
 
   // Left Card: Seeker Particulars
   doc.setFillColor(255, 255, 255);
@@ -304,7 +331,7 @@ export async function generateMasterFullReportPdf({
 
   // 2. Auspicious Transit Strip (4 Cards)
   const colWidth = (pageWidth - 26 - 9) / 4;
-  const cardH = 14;
+  const cardH = 15;
 
   const metrics = [
     { label: 'LUCKY NUMBER', val: `${panchang.luckyData?.luckyNumber || mulank}`, sub: `Ruled by ${mulankPlanet}` },
@@ -323,16 +350,16 @@ export async function generateMasterFullReportPdf({
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(5.8);
     doc.setTextColor(126, 95, 24);
-    doc.text(m.label, xPos + 2.5, yP1 + 3.6);
+    doc.text(m.label, xPos + 2.5, yP1 + 3.8);
 
     doc.setFontSize(7.0);
     doc.setTextColor(26, 26, 30);
-    doc.text(doc.splitTextToSize(m.val, colWidth - 5)[0] || m.val, xPos + 2.5, yP1 + 7.6);
+    doc.text(doc.splitTextToSize(m.val, colWidth - 5)[0] || m.val, xPos + 2.5, yP1 + 8.0);
 
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(5.4);
     doc.setTextColor(90, 90, 90);
-    doc.text(doc.splitTextToSize(m.sub, colWidth - 5)[0] || m.sub, xPos + 2.5, yP1 + 11.4);
+    doc.text(doc.splitTextToSize(m.sub, colWidth - 5)[0] || m.sub, xPos + 2.5, yP1 + 12.0);
   });
 
   yP1 += cardH + 4;
@@ -341,7 +368,7 @@ export async function generateMasterFullReportPdf({
   doc.setFillColor(255, 255, 255);
   doc.setDrawColor(201, 160, 80);
   doc.setLineWidth(0.4);
-  const summaryBoxH = 24;
+  const summaryBoxH = 28;
   doc.roundedRect(13, yP1, pageWidth - 26, summaryBoxH, 1.5, 1.5, 'FD');
 
   doc.setFont('helvetica', 'bold');
@@ -359,13 +386,13 @@ export async function generateMasterFullReportPdf({
   doc.setTextColor(45, 45, 50);
   const summaryText = sanitize(dailyInsights?.summary || "Today's cosmic transits favor steady progress, routine refinement, and maintaining emotional equilibrium across all life endeavors.");
   const summaryLines = doc.splitTextToSize(summaryText, pageWidth - 34);
-  doc.text(summaryLines.slice(0, 4), 17, yP1 + 10.2);
+  doc.text(summaryLines.slice(0, 5), 17, yP1 + 10.5);
 
   yP1 += summaryBoxH + 4;
 
   // 4. Three Life Domains Cards (Career, Love, Health)
   const domainW = (pageWidth - 26 - 6) / 3;
-  const domainCardH = 34;
+  const domainCardH = 38;
   const domains = [
     { title: 'CAREER & COMMERCE', desc: sanitize(dailyInsights?.career || 'Steady momentum supports operational tasks, documentation, and routine client interactions.'), tag: '[ Strategy & Wealth ]' },
     { title: 'LOVE & HARMONY', desc: sanitize(dailyInsights?.love || 'Balanced vibrations nurture mutual respect, shared domestic responsibilities, and supportive listening.'), tag: '[ Companionship ]' },
@@ -382,18 +409,18 @@ export async function generateMasterFullReportPdf({
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(6.8);
     doc.setTextColor(126, 95, 24);
-    doc.text(d.title, xPos + 3, yP1 + 4.8);
+    doc.text(d.title, xPos + 3, yP1 + 5.0);
 
     doc.setFont('helvetica', 'italic');
     doc.setFontSize(5.6);
     doc.setTextColor(150, 120, 60);
-    doc.text(d.tag, xPos + domainW - 3, yP1 + 4.8, { align: 'right' });
+    doc.text(d.tag, xPos + domainW - 3, yP1 + 5.0, { align: 'right' });
 
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(6.2);
     doc.setTextColor(55, 55, 60);
     const lines = doc.splitTextToSize(d.desc, domainW - 6);
-    doc.text(lines.slice(0, 6), xPos + 3, yP1 + 9.5);
+    doc.text(lines.slice(0, 7), xPos + 3, yP1 + 10.0);
   });
 
   yP1 += domainCardH + 4;
@@ -402,13 +429,13 @@ export async function generateMasterFullReportPdf({
   doc.setFillColor(255, 255, 255);
   doc.setDrawColor(201, 160, 80);
   doc.setLineWidth(0.4);
-  const ritualBoxH = 28;
+  const ritualBoxH = 32;
   doc.roundedRect(13, yP1, pageWidth - 26, ritualBoxH, 1.5, 1.5, 'FD');
 
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(7.4);
   doc.setTextColor(126, 95, 24);
-  doc.text('RECOMMENDED DAILY VEDIC RITUALS (NITYA SADHANA)', 17, yP1 + 5);
+  doc.text('RECOMMENDED DAILY VEDIC RITUALS (NITYA SADHANA)', 17, yP1 + 5.2);
 
   const ritualColW = (pageWidth - 36) / 2;
   const morningTitle = sanitize(panchang.rituals?.morningTitle || 'MORNING SADHANA (PRABHAT KRIYA)');
@@ -420,31 +447,52 @@ export async function generateMasterFullReportPdf({
   doc.setFillColor(255, 255, 255);
   doc.setDrawColor(226, 211, 176);
   doc.setLineWidth(0.3);
-  doc.roundedRect(17, yP1 + 7.5, ritualColW - 2, 18, 1, 1, 'FD');
+  doc.roundedRect(17, yP1 + 8, ritualColW - 2, 20, 1, 1, 'FD');
 
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(6.4);
   doc.setTextColor(181, 131, 40);
-  doc.text(doc.splitTextToSize(morningTitle, ritualColW - 8)[0] || morningTitle, 20, yP1 + 11.5);
+  doc.text(doc.splitTextToSize(morningTitle, ritualColW - 8)[0] || morningTitle, 20, yP1 + 12);
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(5.8);
   doc.setTextColor(50, 50, 55);
-  doc.text(doc.splitTextToSize(morningDesc, ritualColW - 8).slice(0, 3), 20, yP1 + 15.5);
+  doc.text(doc.splitTextToSize(morningDesc, ritualColW - 8).slice(0, 3), 20, yP1 + 16.5);
 
   // Evening Sadhana
   doc.setFillColor(255, 255, 255);
   doc.setDrawColor(226, 211, 176);
   doc.setLineWidth(0.3);
-  doc.roundedRect(17 + ritualColW + 2, yP1 + 7.5, ritualColW - 2, 18, 1, 1, 'FD');
+  doc.roundedRect(17 + ritualColW + 2, yP1 + 8, ritualColW - 2, 20, 1, 1, 'FD');
 
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(6.4);
   doc.setTextColor(181, 131, 40);
-  doc.text(doc.splitTextToSize(eveningTitle, ritualColW - 8)[0] || eveningTitle, 17 + ritualColW + 5, yP1 + 11.5);
+  doc.text(doc.splitTextToSize(eveningTitle, ritualColW - 8)[0] || eveningTitle, 17 + ritualColW + 5, yP1 + 12);
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(5.8);
   doc.setTextColor(50, 50, 55);
-  doc.text(doc.splitTextToSize(eveningDesc, ritualColW - 8).slice(0, 3), 17 + ritualColW + 5, yP1 + 15.5);
+  doc.text(doc.splitTextToSize(eveningDesc, ritualColW - 8).slice(0, 3), 17 + ritualColW + 5, yP1 + 16.5);
+
+  yP1 += ritualBoxH + 4;
+
+  // 6. Planetary Strength & Daily Affirmation Strip
+  doc.setFillColor(255, 255, 255);
+  doc.setDrawColor(201, 160, 80);
+  doc.setLineWidth(0.4);
+  const affirmBoxH = 26;
+  doc.roundedRect(13, yP1, pageWidth - 26, affirmBoxH, 1.5, 1.5, 'FD');
+
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(7.4);
+  doc.setTextColor(126, 95, 24);
+  doc.text('PLANETARY STRENGTH & DAILY COSMIC AFFIRMATION', 17, yP1 + 5.2);
+
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(6.2);
+  doc.setTextColor(50, 50, 55);
+  doc.text(`* Primary Celestial Alignment: ${ascSign} Lagna & ${moonSign} Janma Rashi confer mental resilience and focus.`, 17, yP1 + 11);
+  doc.text(`* Daily Cosmic Affirmation: "${sanitize(numerology?.dailyAffirmation) || 'I act with divine purpose, grounded intellect, and steady resolve today.'}"`, 17, yP1 + 16.5);
+  doc.text(`* Strategic Timing Guidance: Capitalize on Abhijit Muhurta (${abhijitVal}) for high-priority tasks and key decisions.`, 17, yP1 + 21.5);
 
   // ==========================================
   // PAGE 2: PANCHANG PARAMETERS & PLANETARY TABLE
@@ -469,7 +517,7 @@ export async function generateMasterFullReportPdf({
   doc.setFillColor(255, 255, 255);
   doc.setDrawColor(201, 160, 80);
   doc.setLineWidth(0.4);
-  doc.roundedRect(13, yP2, pageWidth - 26, 36, 1.5, 1.5, 'FD');
+  doc.roundedRect(13, yP2, pageWidth - 26, 38, 1.5, 1.5, 'FD');
 
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(7.6);
@@ -504,7 +552,7 @@ export async function generateMasterFullReportPdf({
   panchangGrid.forEach((col, colIdx) => {
     const xOffset = 17 + colIdx * (pColW2 + 4);
     col.forEach((row, rowIdx) => {
-      const rowY = yP2 + 10 + rowIdx * 6;
+      const rowY = yP2 + 10 + rowIdx * 6.5;
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(6.8);
       doc.setTextColor(95, 90, 85);
@@ -518,18 +566,18 @@ export async function generateMasterFullReportPdf({
       if (rowIdx < 3) {
         doc.setDrawColor(235, 225, 205);
         doc.setLineWidth(0.2);
-        doc.line(xOffset, rowY + 1.5, xOffset + pColW2, rowY + 1.5);
+        doc.line(xOffset, rowY + 1.8, xOffset + pColW2, rowY + 1.8);
       }
     });
   });
 
-  yP2 += 40;
+  yP2 += 42;
 
   // 2. Active Planetary Positions Table
   doc.setFillColor(255, 255, 255);
   doc.setDrawColor(201, 160, 80);
   doc.setLineWidth(0.4);
-  const tableBoxH = 74;
+  const tableBoxH = 78;
   doc.roundedRect(13, yP2, pageWidth - 26, tableBoxH, 1.5, 1.5, 'FD');
 
   doc.setFont('helvetica', 'bold');
@@ -595,56 +643,56 @@ export async function generateMasterFullReportPdf({
     : defaultPlanets;
 
   planetsToDisplay.forEach((p: any, pIdx: number) => {
-    const rowY = tblY + 6 + pIdx * 5.9;
+    const rowY = tblY + 6 + pIdx * 6.3;
     const isLagna = p.name?.toLowerCase().includes('ascendant') || p.sanskritName?.toLowerCase() === 'lagna';
     const isMoon = p.name?.toLowerCase() === 'moon' || p.sanskritName?.toLowerCase() === 'chandra';
 
     if (isLagna || isMoon) {
       doc.setFillColor(252, 249, 240);
-      doc.rect(17, rowY - 1, pageWidth - 34, 5.9, 'F');
+      doc.rect(17, rowY - 1, pageWidth - 34, 6.3, 'F');
     } else if (pIdx % 2 === 1) {
       doc.setFillColor(253, 252, 250);
-      doc.rect(17, rowY - 1, pageWidth - 34, 5.9, 'F');
+      doc.rect(17, rowY - 1, pageWidth - 34, 6.3, 'F');
     }
 
     doc.setFont('helvetica', (isLagna || isMoon) ? 'bold' : 'normal');
     doc.setFontSize(6.4);
     if (isLagna) {
       doc.setTextColor(140, 80, 10);
-      doc.text('Ascendant (Lagna)', 20, rowY + 3.1);
+      doc.text('Ascendant (Lagna)', 20, rowY + 3.4);
     } else if (isMoon) {
       doc.setTextColor(140, 80, 10);
-      doc.text('Moon (Janma Rashi)', 20, rowY + 3.1);
+      doc.text('Moon (Janma Rashi)', 20, rowY + 3.4);
     } else {
       doc.setTextColor(26, 26, 30);
-      doc.text(p.name + (p.isRetrograde ? ' (R)' : ''), 20, rowY + 3.1);
+      doc.text(p.name + (p.isRetrograde ? ' (R)' : ''), 20, rowY + 3.4);
     }
 
     doc.setFont('helvetica', (isLagna || isMoon) ? 'bold' : 'normal');
     doc.setFontSize(6.2);
     doc.setTextColor(isLagna || isMoon ? 130 : 90, isLagna || isMoon ? 85 : 85, isLagna || isMoon ? 20 : 80);
-    doc.text(p.sanskritName || '-', 54, rowY + 3.1);
+    doc.text(p.sanskritName || '-', 54, rowY + 3.4);
 
     doc.setFont('helvetica', (isLagna || isMoon) ? 'bold' : 'normal');
     doc.setTextColor(isLagna || isMoon ? 140 : 40, isLagna || isMoon ? 60 : 40, isLagna || isMoon ? 0 : 45);
-    doc.text(p.signName || '-', 82, rowY + 3.1);
+    doc.text(p.signName || '-', 82, rowY + 3.4);
 
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(40, 40, 45);
-    doc.text(`${(p.degree || 0).toFixed(2)} deg`, 116, rowY + 3.1);
-    doc.text(`${p.nakshatra || '-'} (P${p.pada || 1})`, 142, rowY + 3.1);
-    doc.text(`H${p.house || (pIdx + 1)}`, 178, rowY + 3.1);
+    doc.text(`${(p.degree || 0).toFixed(2)} deg`, 116, rowY + 3.4);
+    doc.text(`${p.nakshatra || '-'} (P${p.pada || 1})`, 142, rowY + 3.4);
+    doc.text(`H${p.house || (pIdx + 1)}`, 178, rowY + 3.4);
 
     doc.setDrawColor(235, 225, 205);
     doc.setLineWidth(0.15);
-    doc.line(17, rowY + 4.9, pageWidth - 17, rowY + 4.9);
+    doc.line(17, rowY + 5.2, pageWidth - 17, rowY + 5.2);
   });
 
   yP2 += tableBoxH + 4;
 
   // 3. Sacred Muhurtas & Numerology Summary
   const splitCardW = (pageWidth - 26 - 4) / 2;
-  const splitCardH = 48;
+  const splitCardH = 50;
 
   // Muhurtas Card (Left)
   doc.setFillColor(255, 255, 255);
@@ -660,26 +708,26 @@ export async function generateMasterFullReportPdf({
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(6.4);
   doc.setTextColor(181, 131, 40);
-  doc.text('ABHIJIT MUHURTA (VIJAY KAAL)', 17, yP2 + 11);
+  doc.text('ABHIJIT MUHURTA (VIJAY KAAL)', 17, yP2 + 11.5);
   doc.setFontSize(6.8);
   doc.setTextColor(26, 26, 30);
-  doc.text(abhijitVal, 17, yP2 + 15.5);
+  doc.text(abhijitVal, 17, yP2 + 16.0);
 
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(6.4);
   doc.setTextColor(181, 131, 40);
-  doc.text('BRAHMA MUHURTA (AMRIT KAAL)', 17, yP2 + 23);
+  doc.text('BRAHMA MUHURTA (AMRIT KAAL)', 17, yP2 + 24.0);
   doc.setFontSize(6.8);
   doc.setTextColor(26, 26, 30);
-  doc.text(brahmaVal, 17, yP2 + 27.5);
+  doc.text(brahmaVal, 17, yP2 + 28.5);
 
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(6.4);
   doc.setTextColor(181, 131, 40);
-  doc.text('RAHU KAAL (INAUSPICIOUS - AVOID)', 17, yP2 + 35);
+  doc.text('RAHU KAAL (INAUSPICIOUS - AVOID)', 17, yP2 + 36.5);
   doc.setFontSize(6.8);
   doc.setTextColor(26, 26, 30);
-  doc.text(rahuVal, 17, yP2 + 39.5);
+  doc.text(rahuVal, 17, yP2 + 41.0);
 
   // Numerology Summary Pill (Right)
   const rightCardInnerX = 17 + splitCardW + 4;
@@ -696,12 +744,33 @@ export async function generateMasterFullReportPdf({
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(6.2);
   doc.setTextColor(50, 50, 55);
-  doc.text(`* Psychic Number (Mulank): ${mulank} (${mulankPlanet})`, rightCardInnerX, yP2 + 11.5);
-  doc.text(`* Destiny (Bhagyank): ${bhagyank}  |  Namank: ${namank}`, rightCardInnerX, yP2 + 17.5);
-  doc.text(`* Lucky Color Today: ${luckyColorVal}`, rightCardInnerX, yP2 + 23.5);
-  doc.text(`* Primary Gem: ${sanitize(numerology?.luckyGems?.[0]) || 'Ruby / Yellow Sapphire'}`, rightCardInnerX, yP2 + 29.5);
-  doc.text(`* Favorable Days: ${sanitize(numerology?.luckyDays?.join(', ')) || 'Friday, Wednesday'}`, rightCardInnerX, yP2 + 35.5);
-  doc.text(`* Auspicious Direction: ${sanitize(numerology?.favorableDirections?.join(', ')) || 'East / North-East'}`, rightCardInnerX, yP2 + 41.5);
+  doc.text(`* Psychic Number (Mulank): ${mulank} (${mulankPlanet})`, rightCardInnerX, yP2 + 12.0);
+  doc.text(`* Destiny (Bhagyank): ${bhagyank}  |  Namank: ${namank}`, rightCardInnerX, yP2 + 18.0);
+  doc.text(`* Lucky Color Today: ${luckyColorVal}`, rightCardInnerX, yP2 + 24.0);
+  doc.text(`* Primary Gem: ${sanitize(numerology?.luckyGems?.[0]) || 'Ruby / Yellow Sapphire'}`, rightCardInnerX, yP2 + 30.0);
+  doc.text(`* Favorable Days: ${sanitize(numerology?.luckyDays?.join(', ')) || 'Friday, Wednesday'}`, rightCardInnerX, yP2 + 36.0);
+  doc.text(`* Auspicious Direction: ${sanitize(numerology?.favorableDirections?.join(', ')) || 'East / North-East'}`, rightCardInnerX, yP2 + 42.0);
+
+  yP2 += splitCardH + 4;
+
+  // 4. Daily Panchang Advisory Strip
+  doc.setFillColor(255, 255, 255);
+  doc.setDrawColor(201, 160, 80);
+  doc.setLineWidth(0.4);
+  const panchangAdvH = 26;
+  doc.roundedRect(13, yP2, pageWidth - 26, panchangAdvH, 1.5, 1.5, 'FD');
+
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(7.4);
+  doc.setTextColor(126, 95, 24);
+  doc.text('DAILY PANCHANG GUIDANCE & SHUBH TIMINGS ADVISORY', 17, yP2 + 5.2);
+
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(6.2);
+  doc.setTextColor(50, 50, 55);
+  doc.text('* Planetary Transit Rhythm: Moon nakshatra alignment favors routine refinement, strategic planning, and spiritual practices.', 17, yP2 + 11.0);
+  doc.text(`* Auspicious Activity Window: Utilize Abhijit Muhurta (${abhijitVal}) for business contracts, key meetings, and financial transactions.`, 17, yP2 + 16.5);
+  doc.text(`* Energetic Precaution: Maintain composure during Rahu Kaal (${rahuVal}); defer high-risk decisions.`, 17, yP2 + 21.5);
 
   // ==========================================
   // PAGE 3: 5 TRADITIONS & BIRTH CHART
@@ -726,7 +795,7 @@ export async function generateMasterFullReportPdf({
   doc.setFillColor(255, 255, 255);
   doc.setDrawColor(201, 160, 80);
   doc.setLineWidth(0.4);
-  doc.roundedRect(13, yP3, pageWidth - 26, 78, 1.5, 1.5, 'FD');
+  doc.roundedRect(13, yP3, pageWidth - 26, 82, 1.5, 1.5, 'FD');
 
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(7.6);
@@ -771,44 +840,44 @@ export async function generateMasterFullReportPdf({
       ];
 
   rawNinePlanets.forEach((p: any, idx: number) => {
-    const rowY = tblY3 + 6 + idx * 7.2;
+    const rowY = tblY3 + 6 + idx * 7.5;
     if (idx % 2 === 1) {
       doc.setFillColor(253, 252, 250);
-      doc.rect(17, rowY - 1, pageWidth - 34, 7.2, 'F');
+      doc.rect(17, rowY - 1, pageWidth - 34, 7.5, 'F');
     }
 
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(6.4);
     doc.setTextColor(26, 26, 30);
-    doc.text(p.name, 20, rowY + 3.8);
+    doc.text(p.name, 20, rowY + 4.0);
 
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(6.2);
     doc.setTextColor(90, 85, 80);
-    doc.text(p.sanskrit || '', 48, rowY + 3.8);
+    doc.text(p.sanskrit || '', 48, rowY + 4.0);
 
     doc.setTextColor(40, 40, 45);
-    doc.text(p.sign, 78, rowY + 3.8);
-    doc.text(p.deg, 114, rowY + 3.8);
-    doc.text(p.nak, 140, rowY + 3.8);
-    doc.text(p.pada, 170, rowY + 3.8);
+    doc.text(p.sign, 78, rowY + 4.0);
+    doc.text(p.deg, 114, rowY + 4.0);
+    doc.text(p.nak, 140, rowY + 4.0);
+    doc.text(p.pada, 170, rowY + 4.0);
 
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(181, 131, 40);
-    doc.text(p.dignity, 184, rowY + 3.8);
+    doc.text(p.dignity, 184, rowY + 4.0);
 
     doc.setDrawColor(235, 225, 205);
     doc.setLineWidth(0.15);
-    doc.line(17, rowY + 5.8, pageWidth - 17, rowY + 5.8);
+    doc.line(17, rowY + 6.0, pageWidth - 17, rowY + 6.0);
   });
 
-  yP3 += 82;
+  yP3 += 86;
 
   // 2. Twelve Bhavas Grid
   doc.setFillColor(255, 255, 255);
   doc.setDrawColor(201, 160, 80);
   doc.setLineWidth(0.4);
-  doc.roundedRect(13, yP3, pageWidth - 26, 68, 1.5, 1.5, 'FD');
+  doc.roundedRect(13, yP3, pageWidth - 26, 76, 1.5, 1.5, 'FD');
 
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(7.6);
@@ -841,24 +910,46 @@ export async function generateMasterFullReportPdf({
     const colIdx = Math.floor(hIdx / 6);
     const rowIdx = hIdx % 6;
     const hX = 17 + colIdx * (bhavaCols + 2);
-    const hY = yP3 + 9 + rowIdx * 9.5;
+    const hY = yP3 + 9 + rowIdx * 10.8;
 
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(6.4);
     doc.setTextColor(181, 131, 40);
-    doc.text(h.name, hX, hY + 3.2);
+    doc.text(h.name, hX, hY + 3.4);
 
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(6.0);
     doc.setTextColor(40, 40, 45);
-    doc.text(`${h.sign} | Sub: ${h.sub}`, hX + 44, hY + 3.2);
+    doc.text(`${h.sign} | Sub: ${h.sub}`, hX + 44, hY + 3.4);
 
     if (rowIdx < 5) {
       doc.setDrawColor(235, 225, 205);
       doc.setLineWidth(0.15);
-      doc.line(hX, hY + 6.5, hX + bhavaCols - 2, hY + 6.5);
+      doc.line(hX, hY + 7.5, hX + bhavaCols - 2, hY + 7.5);
     }
   });
+
+  yP3 += 80;
+
+  // 3. Bhava Bala & Kendra-Trikona Synthesis Card
+  doc.setFillColor(255, 255, 255);
+  doc.setDrawColor(201, 160, 80);
+  doc.setLineWidth(0.4);
+  const bhavaBalH = 34;
+  doc.roundedRect(13, yP3, pageWidth - 26, bhavaBalH, 1.5, 1.5, 'FD');
+
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(7.4);
+  doc.setTextColor(126, 95, 24);
+  doc.text('BHAVA BALA & KENDRA-TRIKONA STRENGTH SYNTHESIS', 17, yP3 + 5.2);
+
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(6.2);
+  doc.setTextColor(50, 50, 55);
+  doc.text('* Kendra Houses (1, 4, 7, 10): Provide structural foundation, career drive, executive action, and social stability.', 17, yP3 + 11.5);
+  doc.text('* Trikona Houses (1, 5, 9): Infuse creative intelligence, ancestral luck, spiritual wisdom, and dharmic righteousness.', 17, yP3 + 17.5);
+  doc.text('* House Lord Analysis: Strong Ascendant and 9th House lords ensure sustained long-term rise, protection, and prosperity.', 17, yP3 + 23.5);
+  doc.text('* Planetary Aspects (Drishti): Benefic aspects of Jupiter stabilize kendra bhavas, ensuring steady asset accumulation.', 17, yP3 + 29.0);
 
   // ==========================================
   // PAGE 4: YOGAS, DOSHAS & DASHA CYCLES
@@ -883,7 +974,7 @@ export async function generateMasterFullReportPdf({
   doc.setFillColor(255, 255, 255);
   doc.setDrawColor(201, 160, 80);
   doc.setLineWidth(0.4);
-  doc.roundedRect(13, yP4, pageWidth - 26, 32, 1.5, 1.5, 'FD');
+  doc.roundedRect(13, yP4, pageWidth - 26, 38, 1.5, 1.5, 'FD');
 
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(7.6);
@@ -907,7 +998,7 @@ export async function generateMasterFullReportPdf({
       ];
 
   yogasToDisplay.forEach((yg: any, yIdx: number) => {
-    const yOff = yP4 + 11 + yIdx * 10;
+    const yOff = yP4 + 11.5 + yIdx * 12.5;
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(6.8);
     doc.setTextColor(181, 131, 40);
@@ -915,16 +1006,16 @@ export async function generateMasterFullReportPdf({
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(6.2);
     doc.setTextColor(50, 50, 55);
-    doc.text(doc.splitTextToSize(yg.desc, pageWidth - 34)[0] || yg.desc, 17, yOff + 4.5);
+    doc.text(doc.splitTextToSize(yg.desc, pageWidth - 34).slice(0, 2), 17, yOff + 4.5);
   });
 
-  yP4 += 36;
+  yP4 += 42;
 
   // 2. Doshas & Planetary Affliction
   doc.setFillColor(255, 255, 255);
   doc.setDrawColor(201, 160, 80);
   doc.setLineWidth(0.4);
-  doc.roundedRect(13, yP4, pageWidth - 26, 30, 1.5, 1.5, 'FD');
+  doc.roundedRect(13, yP4, pageWidth - 26, 36, 1.5, 1.5, 'FD');
 
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(7.6);
@@ -948,7 +1039,7 @@ export async function generateMasterFullReportPdf({
       ];
 
   doshasToDisplay.forEach((ds: any, dIdx: number) => {
-    const dOff = yP4 + 11 + dIdx * 9.5;
+    const dOff = yP4 + 11.5 + dIdx * 11.5;
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(6.8);
     doc.setTextColor(181, 131, 40);
@@ -956,16 +1047,16 @@ export async function generateMasterFullReportPdf({
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(6.2);
     doc.setTextColor(50, 50, 55);
-    doc.text(doc.splitTextToSize(ds.desc, pageWidth - 34)[0] || ds.desc, 17, dOff + 4.5);
+    doc.text(doc.splitTextToSize(ds.desc, pageWidth - 34).slice(0, 2), 17, dOff + 4.5);
   });
 
-  yP4 += 34;
+  yP4 += 40;
 
   // 3. Vimshottari Dasha Cycles
   doc.setFillColor(255, 255, 255);
   doc.setDrawColor(201, 160, 80);
   doc.setLineWidth(0.4);
-  doc.roundedRect(13, yP4, pageWidth - 26, 36, 1.5, 1.5, 'FD');
+  doc.roundedRect(13, yP4, pageWidth - 26, 40, 1.5, 1.5, 'FD');
 
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(7.6);
@@ -992,31 +1083,31 @@ export async function generateMasterFullReportPdf({
     const colI = idx % 3;
     const rowI = Math.floor(idx / 3);
     const dX = 17 + colI * (dashaColW + 2);
-    const dY = yP4 + 9 + rowI * 12;
+    const dY = yP4 + 9.5 + rowI * 13.5;
 
     doc.setFillColor(d.active ? 252 : 255, d.active ? 249 : 255, d.active ? 240 : 255);
     doc.setDrawColor(d.active ? 181 : 226, d.active ? 131 : 211, d.active ? 40 : 176);
     doc.setLineWidth(0.35);
-    doc.roundedRect(dX, dY, dashaColW, 10, 1, 1, 'FD');
+    doc.roundedRect(dX, dY, dashaColW, 11.5, 1, 1, 'FD');
 
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(6.2);
     doc.setTextColor(d.active ? 140 : 126, d.active ? 60 : 95, d.active ? 0 : 24);
-    doc.text(d.title, dX + 2.5, dY + 4);
+    doc.text(d.title, dX + 2.5, dY + 4.5);
 
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(5.8);
     doc.setTextColor(60, 60, 65);
-    doc.text(d.span, dX + 2.5, dY + 8);
+    doc.text(d.span, dX + 2.5, dY + 8.8);
   });
 
-  yP4 += 40;
+  yP4 += 44;
 
   // 4. Vedic Deep Synthesis & Gemstone Remedies
   doc.setFillColor(255, 255, 255);
   doc.setDrawColor(201, 160, 80);
   doc.setLineWidth(0.4);
-  doc.roundedRect(13, yP4, pageWidth - 26, 42, 1.5, 1.5, 'FD');
+  doc.roundedRect(13, yP4, pageWidth - 26, 44, 1.5, 1.5, 'FD');
 
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(7.6);
@@ -1032,14 +1123,35 @@ export async function generateMasterFullReportPdf({
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(6.8);
   doc.setTextColor(181, 131, 40);
-  doc.text('Recommended Trikona Gemstones & Remedies:', 17, yP4 + 23);
+  doc.text('Recommended Trikona Gemstones & Remedies:', 17, yP4 + 23.5);
 
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(6.2);
   doc.setTextColor(50, 50, 55);
-  doc.text('* Red Coral (Moonga): Life Force, Vitality & Health (Lagna Lord)', 17, yP4 + 28);
-  doc.text('* Ruby (Manikya): Intelligence, Executive Will & Sovereign Focus (5th Lord)', 17, yP4 + 32.5);
-  doc.text('* Yellow Sapphire (Pukhraj): Fortune, Wisdom, Spiritual Protection & Wealth (9th Lord)', 17, yP4 + 37);
+  doc.text('* Red Coral (Moonga): Life Force, Vitality & Health (Lagna Lord)', 17, yP4 + 28.5);
+  doc.text('* Ruby (Manikya): Intelligence, Executive Will & Sovereign Focus (5th Lord)', 17, yP4 + 33.0);
+  doc.text('* Yellow Sapphire (Pukhraj): Fortune, Wisdom, Spiritual Protection & Wealth (9th Lord)', 17, yP4 + 37.5);
+
+  yP4 += 48;
+
+  // 5. Vimshottari Dasha Upaya & Mantra Discipline Card
+  doc.setFillColor(255, 255, 255);
+  doc.setDrawColor(201, 160, 80);
+  doc.setLineWidth(0.4);
+  const dashaUpayaH = 26;
+  doc.roundedRect(13, yP4, pageWidth - 26, dashaUpayaH, 1.5, 1.5, 'FD');
+
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(7.4);
+  doc.setTextColor(126, 95, 24);
+  doc.text('VIMSHOTTARI DASHA UPAYAS & MANTRA DISCIPLINE', 17, yP4 + 5.2);
+
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(6.2);
+  doc.setTextColor(50, 50, 55);
+  doc.text('* Active Mahadasha Upaya: Daily recitation of Gayatri Mantra or Mahadasha lord Beej Mantra elevates positive cosmic vibrations.', 17, yP4 + 11.0);
+  doc.text('* Gemstone Activation: Wear recommended trikona gemstones in gold or copper on auspicious weekday mornings after ritual purification.', 17, yP4 + 16.5);
+  doc.text('* Charitable Seva: Regular Saturday donations of sesame seeds, oil, or footwear harmonize Saturnian and Rahu transits.', 17, yP4 + 21.5);
 
   // ==========================================
   // PAGE 5: SACRED NUMEROLOGY & LO SHU GRID
@@ -1064,7 +1176,7 @@ export async function generateMasterFullReportPdf({
   doc.setFillColor(255, 255, 255);
   doc.setDrawColor(201, 160, 80);
   doc.setLineWidth(0.4);
-  doc.roundedRect(13, yP5, pageWidth - 26, 26, 1.5, 1.5, 'FD');
+  doc.roundedRect(13, yP5, pageWidth - 26, 28, 1.5, 1.5, 'FD');
 
   const numColW = (pageWidth - 26) / 3;
   // Mulank
@@ -1106,13 +1218,13 @@ export async function generateMasterFullReportPdf({
   doc.setTextColor(70, 70, 75);
   doc.text('Chaldean & Pythagorean name vibration. Governs social recognition, client attraction, and wealth flow.', 17 + numColW * 2, yP5 + 17, { maxWidth: numColW - 6 });
 
-  yP5 += 30;
+  yP5 += 32;
 
   // 2. Lo Shu 3x3 Grid & 8 Planes
   doc.setFillColor(255, 255, 255);
   doc.setDrawColor(201, 160, 80);
   doc.setLineWidth(0.4);
-  doc.roundedRect(13, yP5, pageWidth - 26, 110, 1.5, 1.5, 'FD');
+  doc.roundedRect(13, yP5, pageWidth - 26, 116, 1.5, 1.5, 'FD');
 
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(7.6);
@@ -1173,7 +1285,7 @@ export async function generateMasterFullReportPdf({
       ];
 
   dynamicPlanes.forEach((pl: any, pIdx: number) => {
-    const plY = yP5 + 10 + pIdx * 11.5;
+    const plY = yP5 + 10 + pIdx * 12.2;
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(6.4);
     doc.setTextColor(140, 95, 20);
@@ -1184,6 +1296,29 @@ export async function generateMasterFullReportPdf({
     doc.setTextColor(60, 60, 65);
     doc.text(pl.desc, planesStartX + 3, plY + 4, { maxWidth: pageWidth - planesStartX - 20 });
   });
+
+  yP5 += 120;
+
+  // 3. Cosmic Elemental Balance & Lo Shu Frequency Harmony Card
+  doc.setFillColor(255, 255, 255);
+  doc.setDrawColor(201, 160, 80);
+  doc.setLineWidth(0.4);
+  const loShuHarmH = 40;
+  doc.roundedRect(13, yP5, pageWidth - 26, loShuHarmH, 1.5, 1.5, 'FD');
+
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(7.4);
+  doc.setTextColor(126, 95, 24);
+  doc.text('COSMIC ELEMENTAL BALANCE & LO SHU FREQUENCY HARMONY', 17, yP5 + 5.2);
+
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(6.2);
+  doc.setTextColor(50, 50, 55);
+  doc.text('* Water Element (North - Career): Balanced flow enhances professional intuition and business opportunities.', 17, yP5 + 11.5);
+  doc.text('* Wood Element (East/South-East - Health & Wealth): Sustains continuous vitality, family growth, and wealth creation.', 17, yP5 + 17.5);
+  doc.text('* Earth Element (Center/South-West - Stability): Grounds mental focus, emotional relationships, and real estate assets.', 17, yP5 + 23.5);
+  doc.text('* Metal Element (West/North-West - Support): Attracts influential mentors, administrative support, and structured discipline.', 17, yP5 + 29.5);
+  doc.text('* Fire Element (South - Fame): Illuminates public reputation, executive charisma, and leadership prestige.', 17, yP5 + 35.0);
 
   // ==========================================
   // PAGE 6: NAME HARMONICS & NUMEROLOGY REMEDIES
@@ -1208,7 +1343,7 @@ export async function generateMasterFullReportPdf({
   doc.setFillColor(255, 255, 255);
   doc.setDrawColor(201, 160, 80);
   doc.setLineWidth(0.4);
-  doc.roundedRect(13, yP6, pageWidth - 26, 38, 1.5, 1.5, 'FD');
+  doc.roundedRect(13, yP6, pageWidth - 26, 40, 1.5, 1.5, 'FD');
 
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(7.6);
@@ -1223,18 +1358,18 @@ export async function generateMasterFullReportPdf({
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(6.2);
   doc.setTextColor(50, 50, 55);
-  doc.text(`* Chaldean Name Number: ${numerology?.namankChaldean || 7}  |  Pythagorean Name Number: ${numerology?.namankPythagorean || 7}`, 17, yP6 + 16);
-  doc.text(`* Compatibility Assessment: ${sanitize(numerology?.nameCompatibility) || 'Highly Harmonious & Auspicious Vibration for Long-Term Endeavors.'}`, 17, yP6 + 21);
-  doc.text('* Resonance: Amplifies professional authority, legal clarity, commercial negotiations, and public prestige.', 17, yP6 + 26);
-  doc.text('* Correction Guidance: Current phonetic alignment is balanced; no radical spelling modification required.', 17, yP6 + 31);
+  doc.text(`* Chaldean Name Number: ${numerology?.namankChaldean || 7}  |  Pythagorean Name Number: ${numerology?.namankPythagorean || 7}`, 17, yP6 + 16.5);
+  doc.text(`* Compatibility Assessment: ${sanitize(numerology?.nameCompatibility) || 'Highly Harmonious & Auspicious Vibration for Long-Term Endeavors.'}`, 17, yP6 + 22.0);
+  doc.text('* Resonance: Amplifies professional authority, legal clarity, commercial negotiations, and public prestige.', 17, yP6 + 27.5);
+  doc.text('* Correction Guidance: Current phonetic alignment is balanced; no radical spelling modification required.', 17, yP6 + 33.0);
 
-  yP6 += 42;
+  yP6 += 44;
 
   // 2. Missing Numbers Vastu Remedies
   doc.setFillColor(255, 255, 255);
   doc.setDrawColor(201, 160, 80);
   doc.setLineWidth(0.4);
-  doc.roundedRect(13, yP6, pageWidth - 26, 52, 1.5, 1.5, 'FD');
+  doc.roundedRect(13, yP6, pageWidth - 26, 68, 1.5, 1.5, 'FD');
 
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(7.6);
@@ -1254,10 +1389,10 @@ export async function generateMasterFullReportPdf({
   };
 
   const dynamicMissingNums = [1, 2, 3, 4, 5, 6, 7, 8, 9].filter((n) => !numerology?.loShuGrid?.[n]);
-  const missingToDisplay = dynamicMissingNums.length > 0 ? dynamicMissingNums.slice(0, 5) : [1, 2, 3, 4, 5];
+  const missingToDisplay = dynamicMissingNums.length > 0 ? dynamicMissingNums.slice(0, 6) : [1, 2, 3, 4, 5, 6];
 
   missingToDisplay.forEach((num, idx) => {
-    const nrY = yP6 + 10 + idx * 8;
+    const nrY = yP6 + 10 + idx * 9.2;
     const textDesc = missingRemediesMap[num] || `Number ${num}: Practice daily Japa and gemstone balancing.`;
     const parts = textDesc.split(':');
     doc.setFont('helvetica', 'bold');
@@ -1271,13 +1406,13 @@ export async function generateMasterFullReportPdf({
     doc.text(parts[1] || '', 55, nrY, { maxWidth: pageWidth - 75 });
   });
 
-  yP6 += 56;
+  yP6 += 72;
 
   // 3. Sacred Remedial Harmonizers Table
   doc.setFillColor(255, 255, 255);
   doc.setDrawColor(201, 160, 80);
   doc.setLineWidth(0.4);
-  doc.roundedRect(13, yP6, pageWidth - 26, 42, 1.5, 1.5, 'FD');
+  doc.roundedRect(13, yP6, pageWidth - 26, 44, 1.5, 1.5, 'FD');
 
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(7.6);
@@ -1287,11 +1422,32 @@ export async function generateMasterFullReportPdf({
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(6.2);
   doc.setTextColor(50, 50, 55);
-  doc.text(`* Primary Auspicious Colors: ${sanitize(numerology?.luckyColors?.join(', ')) || 'Gold, Yellow, Royal Blue, Saffron'}`, 17, yP6 + 12);
-  doc.text(`* Favorable Days of the Week: ${sanitize(numerology?.luckyDays?.join(', ')) || 'Friday, Wednesday'}`, 17, yP6 + 18);
-  doc.text(`* Beneficial Gemstones: ${sanitize(numerology?.luckyGems?.join(', ')) || 'Ruby, Yellow Sapphire, Red Coral'}`, 17, yP6 + 24);
-  doc.text(`* Optimal Directions: ${sanitize(numerology?.favorableDirections?.join(', ')) || 'East, North-East, and North for study and commerce.'}`, 17, yP6 + 30);
-  doc.text(`* Daily Affirmation: "${sanitize(numerology?.dailyAffirmation) || 'I channel divine harmony, purposeful focus, and grounded prosperity.'}"`, 17, yP6 + 36);
+  doc.text(`* Primary Auspicious Colors: ${sanitize(numerology?.luckyColors?.join(', ')) || 'Gold, Yellow, Royal Blue, Saffron'}`, 17, yP6 + 12.0);
+  doc.text(`* Favorable Days of the Week: ${sanitize(numerology?.luckyDays?.join(', ')) || 'Friday, Wednesday'}`, 17, yP6 + 18.0);
+  doc.text(`* Beneficial Gemstones: ${sanitize(numerology?.luckyGems?.join(', ')) || 'Ruby, Yellow Sapphire, Red Coral'}`, 17, yP6 + 24.0);
+  doc.text(`* Optimal Directions: ${sanitize(numerology?.favorableDirections?.join(', ')) || 'East, North-East, and North for study and commerce.'}`, 17, yP6 + 30.0);
+  doc.text(`* Daily Affirmation: "${sanitize(numerology?.dailyAffirmation) || 'I channel divine harmony, purposeful focus, and grounded prosperity.'}"`, 17, yP6 + 36.0);
+
+  yP6 += 48;
+
+  // 4. Vastu Energy Calibration & Spiritual Protection Card
+  doc.setFillColor(255, 255, 255);
+  doc.setDrawColor(201, 160, 80);
+  doc.setLineWidth(0.4);
+  const vastuProtH = 32;
+  doc.roundedRect(13, yP6, pageWidth - 26, vastuProtH, 1.5, 1.5, 'FD');
+
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(7.4);
+  doc.setTextColor(126, 95, 24);
+  doc.text('VASTU ENERGY CALIBRATION & DAILY SPIRITUAL PROTECTION', 17, yP6 + 5.2);
+
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(6.2);
+  doc.setTextColor(50, 50, 55);
+  doc.text('* Home / Workspace Alignment: Keep North-East zone clean and illuminated with a ghee lamp for intuitive clarity.', 17, yP6 + 11.5);
+  doc.text('* Directional Study / Work Desk: Face East or North-East during key negotiations and strategic planning sessions.', 17, yP6 + 17.5);
+  doc.text('* Daily Energetic Cleansing: Burn camphor or natural dhoop during Sandhya Kriya to dispel negative ambient energies.', 17, yP6 + 23.5);
 
   // ==========================================
   // PAGE 7: 25-YEAR VEDIC DESTINY ROADMAP
@@ -1366,9 +1522,12 @@ export async function generateMasterFullReportPdf({
     }
   ];
 
-  horizons.forEach((h, hIdx) => {
-    const cardY = yP7 + hIdx * 48;
-    const cardH = 45;
+  // Filter out locked premium horizons completely from Full PDF
+  const unlockedHorizons = horizons.filter((_, idx) => !isHorizonLockedForReport(horizonKeys[idx]));
+
+  unlockedHorizons.forEach((h, hIdx) => {
+    const cardY = yP7 + hIdx * 46;
+    const cardH = 43;
     doc.setFillColor(255, 255, 255);
     doc.setDrawColor(201, 160, 80);
     doc.setLineWidth(0.4);
@@ -1393,7 +1552,7 @@ export async function generateMasterFullReportPdf({
 
     // 4 Domain Items
     h.items.forEach((item, itemIdx) => {
-      const itemY = cardY + 11.2 + itemIdx * 8.2;
+      const itemY = cardY + 11.2 + itemIdx * 7.8;
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(6.2);
       doc.setTextColor(181, 131, 40);
@@ -1409,125 +1568,250 @@ export async function generateMasterFullReportPdf({
     });
   });
 
-  // ==========================================
-  // PAGE 8: ROADMAP MILESTONES & CERTIFIED SEAL
-  // ==========================================
-  doc.addPage();
-  drawPageDecorations(
-    doc,
-    pageWidth,
-    pageHeight,
-    bgBase64,
-    logoBase64,
-    8,
-    totalReportPages,
-    'DESTINY MILESTONES & CERTIFICATE OF AUTHENTICITY',
-    'Peak Transit Windows, Remedial Discipline & Official Daivajna Endorsement',
-    todayStr
-  );
-
-  let yP8 = 33;
-
-  // 1. Critical 25-Year Milestone Timeline Card
-  doc.setFillColor(255, 255, 255);
-  doc.setDrawColor(201, 160, 80);
-  doc.setLineWidth(0.4);
-  doc.roundedRect(13, yP8, pageWidth - 26, 56, 1.5, 1.5, 'FD');
-
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(7.6);
-  doc.setTextColor(126, 95, 24);
-  doc.text('CRITICAL 25-YEAR MILESTONE TIMELINE & TIMING INFLECTIONS', 17, yP8 + 5.2);
-
   const milestones25Years = [
-    { domain: 'Career & Executive Breakthrough', window: `Years 0–5 (${currentYear} - ${currentYear + 5})`, text: 'High-visibility corporate promotions, skill consolidation, and strategic leadership ascension.' },
-    { domain: 'Wealth, Enterprise & Real Estate', window: `Years 5–10 (${currentYear + 5} - ${currentYear + 10})`, text: 'Commercial acquisitions, multi-stream asset diversification, and high-yield wealth compounding.' },
-    { domain: 'Institutional Standing & Family Lineage', window: `Years 10–15 (${currentYear + 10} - ${currentYear + 15})`, text: 'Advisory board transitions, children celebrations, and multi-generational trust establishment.' },
-    { domain: 'Philanthropic Dharma & Community Impact', window: `Years 15–20 (${currentYear + 15} - ${currentYear + 20})`, text: 'Establishment of charitable foundations, educational endowments, and sacred pilgrimages.' },
-    { domain: 'Legacy Sovereignty & Spiritual Liberation', window: `Years 20–25 (${currentYear + 20} - ${currentYear + 25})`, text: 'Attainment of complete philosophical peace, revered mentorship, and timeless spiritual fulfillment.' }
+    { key: '0-5', domain: 'Career & Executive Breakthrough', window: `Years 0–5 (${currentYear} - ${currentYear + 5})`, text: 'High-visibility corporate promotions, skill consolidation, and strategic leadership ascension.' },
+    { key: '0-10', domain: 'Wealth, Enterprise & Real Estate', window: `Years 0–10 (${currentYear} - ${currentYear + 10})`, text: 'Commercial acquisitions, multi-stream asset diversification, and high-yield wealth compounding.' },
+    { key: '0-15', domain: 'Institutional Standing & Family Lineage', window: `Years 0–15 (${currentYear} - ${currentYear + 15})`, text: 'Advisory board transitions, children celebrations, and multi-generational trust establishment.' },
+    { key: '0-20', domain: 'Philanthropic Dharma & Community Impact', window: `Years 0–20 (${currentYear} - ${currentYear + 20})`, text: 'Establishment of charitable foundations, educational endowments, and sacred pilgrimages.' },
+    { key: '0-25', domain: 'Legacy Sovereignty & Spiritual Liberation', window: `Years 0–25 (${currentYear} - ${currentYear + 25})`, text: 'Attainment of complete philosophical peace, revered mentorship, and timeless spiritual fulfillment.' }
   ];
 
-  milestones25Years.forEach((ml, idx) => {
-    const mlY = yP8 + 11 + idx * 9;
+  // Filter out locked premium timeline milestones from full PDF
+  const unlockedMilestones25Years = milestones25Years.filter((ml) => !isHorizonLockedForReport(ml.key));
+
+  if (!hasMoreThanTwoHorizons) {
+    // ----------------------------------------------------
+    // FOR USERS WITH ONLY 2 HORIZONS: Render rest of sections on PAGE 7
+    // ----------------------------------------------------
+    yP7 += unlockedHorizons.length * 46 + 2;
+
+    // 1. Critical 25-Year Milestone Timeline Card
+    const timelineCardH = Math.max(26, 10 + unlockedMilestones25Years.length * 8.5);
+    doc.setFillColor(255, 255, 255);
+    doc.setDrawColor(201, 160, 80);
+    doc.setLineWidth(0.4);
+    doc.roundedRect(13, yP7, pageWidth - 26, timelineCardH, 1.5, 1.5, 'FD');
+
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(6.2);
-    doc.setTextColor(181, 131, 40);
-    const domainLabel = `* ${ml.domain} [${ml.window}]: `;
-    doc.text(domainLabel, 17, mlY);
-    const dW = doc.getTextWidth(domainLabel);
+    doc.setFontSize(7.6);
+    doc.setTextColor(126, 95, 24);
+    doc.text('CRITICAL 25-YEAR MILESTONE TIMELINE & TIMING INFLECTIONS', 17, yP7 + 5.2);
+
+    unlockedMilestones25Years.forEach((ml, idx) => {
+      const mlY = yP7 + 11 + idx * 8.5;
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(6.2);
+      doc.setTextColor(181, 131, 40);
+      const domainLabel = `* ${ml.domain} [${ml.window}]: `;
+      doc.text(domainLabel, 17, mlY);
+      const dW = doc.getTextWidth(domainLabel);
+
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(5.8);
+      doc.setTextColor(50, 50, 55);
+      const textLines = doc.splitTextToSize(ml.text, pageWidth - 34 - dW);
+      doc.text(textLines.slice(0, 1), 17 + dW, mlY);
+    });
+
+    yP7 += timelineCardH + 4;
+
+    // 2. Remedial & Strategic Advisory Card
+    doc.setFillColor(255, 255, 255);
+    doc.setDrawColor(201, 160, 80);
+    doc.setLineWidth(0.4);
+    doc.roundedRect(13, yP7, pageWidth - 26, 36, 1.5, 1.5, 'FD');
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(7.6);
+    doc.setTextColor(126, 95, 24);
+    doc.text('STRATEGIC TIMING PRECAUTIONS & REMEDIAL DISCIPLINE', 17, yP7 + 5.2);
 
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(5.8);
+    doc.setFontSize(6.2);
     doc.setTextColor(50, 50, 55);
-    const textLines = doc.splitTextToSize(ml.text, pageWidth - 34 - dW);
-    doc.text(textLines.slice(0, 1), 17 + dW, mlY);
-  });
+    doc.text('* Saturn / Rahu Sub-periods: Exercise enhanced diligence in speculative contracts and long-term litigation.', 17, yP7 + 11.5);
+    doc.text('* Health & Vitality: Maintain seasonal dietary balance, daily pranayama, and adequate restorative sleep.', 17, yP7 + 17.5);
+    doc.text('* Charitable Dharma: Engaging in voluntary education support or feeding birds on Saturdays resolves afflictions.', 17, yP7 + 23.5);
+    doc.text('* Astrological Guidance: Review roadmap milestones annually around solar return (Varshaphala) for optimal calibration.', 17, yP7 + 29.5);
 
-  yP8 += 60;
+    yP7 += 40;
 
-  // 2. Remedial & Strategic Advisory Card
-  doc.setFillColor(255, 255, 255);
-  doc.setDrawColor(201, 160, 80);
-  doc.setLineWidth(0.4);
-  doc.roundedRect(13, yP8, pageWidth - 26, 38, 1.5, 1.5, 'FD');
+    // 3. Traditional Disclaimer & Certified Seal Box
+    doc.setFillColor(255, 255, 255);
+    doc.setDrawColor(201, 160, 80);
+    doc.setLineWidth(0.4);
+    doc.roundedRect(13, yP7, pageWidth - 26, 34, 1.5, 1.5, 'FD');
 
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(7.6);
-  doc.setTextColor(126, 95, 24);
-  doc.text('STRATEGIC TIMING PRECAUTIONS & REMEDIAL DISCIPLINE', 17, yP8 + 5.2);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(7);
+    doc.setTextColor(126, 95, 24);
+    doc.text('CERTIFIED VEDIC VERIFICATION & TRADITIONAL DISCLAIMER', 17, yP7 + 5.2);
 
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(6.2);
-  doc.setTextColor(50, 50, 55);
-  doc.text('* Saturn / Rahu Sub-periods: Exercise enhanced diligence in speculative contracts and long-term litigation.', 17, yP8 + 12);
-  doc.text('* Health & Vitality: Maintain seasonal dietary balance, daily pranayama, and adequate restorative sleep.', 17, yP8 + 18);
-  doc.text('* Charitable Dharma: Engaging in voluntary education support or feeding birds on Saturdays resolves planetary afflictions.', 17, yP8 + 24);
-  doc.text('* Astrological Guidance: Review roadmap milestones annually around solar return (Varshaphala) for optimal calibration.', 17, yP8 + 30);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(5.6);
+    doc.setTextColor(90, 85, 80);
+    doc.text(
+      'This Comprehensive Master Vedic Astrology Report is computationally generated using Swiss Ephemeris mathematical coordinates and Classical Jyotish principles (Lahiri Nirayana). Vedic astrological guidance describes planetary archetypes and cosmic tendencies to foster self-awareness, timing awareness, and proactive wisdom. It does not replace professional medical, legal, or financial counsel.',
+      17,
+      yP7 + 10,
+      { maxWidth: pageWidth - 34 }
+    );
 
-  yP8 += 42;
+    // Daivajna Astrological Seal
+    doc.setDrawColor(226, 211, 176);
+    doc.setLineWidth(0.3);
+    doc.line(17, yP7 + 21, pageWidth - 17, yP7 + 21);
 
-  // 3. Traditional Disclaimer & Certified Seal Box
-  doc.setFillColor(255, 255, 255);
-  doc.setDrawColor(201, 160, 80);
-  doc.setLineWidth(0.4);
-  doc.roundedRect(13, yP8, pageWidth - 26, 34, 1.5, 1.5, 'FD');
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(7.2);
+    doc.setTextColor(140, 95, 20);
+    doc.text('DAIVAJNA DIGITAL ASTROLOGICAL SEAL', 17, yP7 + 27);
+    doc.setFont('helvetica', 'italic');
+    doc.setFontSize(6);
+    doc.setTextColor(110, 105, 95);
+    doc.text('Authenticated via AstroJunction AstroEngine & Classical Ephemeris Coordinates', 17, yP7 + 31);
 
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(7);
-  doc.setTextColor(126, 95, 24);
-  doc.text('CERTIFIED VEDIC VERIFICATION & TRADITIONAL DISCLAIMER', 17, yP8 + 5.2);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(7.5);
+    doc.setTextColor(181, 131, 40);
+    doc.text('DIGITALLY VERIFIED', pageWidth - 17, yP7 + 28, { align: 'right' });
+  } else {
+    // ----------------------------------------------------
+    // FOR PREMIUM USERS (> 2 HORIZONS): Render Page 8
+    // ----------------------------------------------------
+    doc.addPage();
+    drawPageDecorations(
+      doc,
+      pageWidth,
+      pageHeight,
+      bgBase64,
+      logoBase64,
+      8,
+      totalReportPages,
+      'DESTINY MILESTONES & CERTIFICATE OF AUTHENTICITY',
+      'Peak Transit Windows, Remedial Discipline & Official Daivajna Endorsement',
+      todayStr
+    );
 
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(5.6);
-  doc.setTextColor(90, 85, 80);
-  doc.text(
-    'This Comprehensive Master Vedic Astrology Report is computationally generated using Swiss Ephemeris mathematical coordinates and Classical Jyotish principles (Lahiri Nirayana). Vedic astrological guidance describes planetary archetypes and cosmic tendencies to foster self-awareness, timing awareness, and proactive wisdom. It does not replace professional medical, legal, or financial counsel.',
-    17,
-    yP8 + 10,
-    { maxWidth: pageWidth - 34 }
-  );
+    let yP8 = 33;
+    const timelineCardH = Math.max(26, 10 + unlockedMilestones25Years.length * 8.5);
 
-  // Daivajna Astrological Seal
-  doc.setDrawColor(226, 211, 176);
-  doc.setLineWidth(0.3);
-  doc.line(17, yP8 + 21, pageWidth - 17, yP8 + 21);
+    // 1. Critical 25-Year Milestone Timeline Card
+    doc.setFillColor(255, 255, 255);
+    doc.setDrawColor(201, 160, 80);
+    doc.setLineWidth(0.4);
+    doc.roundedRect(13, yP8, pageWidth - 26, timelineCardH, 1.5, 1.5, 'FD');
 
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(7.2);
-  doc.setTextColor(140, 95, 20);
-  doc.text('DAIVAJNA DIGITAL ASTROLOGICAL SEAL', 17, yP8 + 27);
-  doc.setFont('helvetica', 'italic');
-  doc.setFontSize(6);
-  doc.setTextColor(110, 105, 95);
-  doc.text('Authenticated via AstroJunction AstroEngine & Classical Ephemeris Coordinates', 17, yP8 + 31);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(7.6);
+    doc.setTextColor(126, 95, 24);
+    doc.text('CRITICAL 25-YEAR MILESTONE TIMELINE & TIMING INFLECTIONS', 17, yP8 + 5.2);
 
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(7.5);
-  doc.setTextColor(181, 131, 40);
-  doc.text('DIGITALLY VERIFIED', pageWidth - 17, yP8 + 28, { align: 'right' });
+    unlockedMilestones25Years.forEach((ml, idx) => {
+      const mlY = yP8 + 11 + idx * 8.5;
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(6.2);
+      doc.setTextColor(181, 131, 40);
+      const domainLabel = `* ${ml.domain} [${ml.window}]: `;
+      doc.text(domainLabel, 17, mlY);
+      const dW = doc.getTextWidth(domainLabel);
+
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(5.8);
+      doc.setTextColor(50, 50, 55);
+      const textLines = doc.splitTextToSize(ml.text, pageWidth - 34 - dW);
+      doc.text(textLines.slice(0, 1), 17 + dW, mlY);
+    });
+
+    yP8 += timelineCardH + 4;
+
+    // 2. Remedial & Strategic Advisory Card
+    doc.setFillColor(255, 255, 255);
+    doc.setDrawColor(201, 160, 80);
+    doc.setLineWidth(0.4);
+    doc.roundedRect(13, yP8, pageWidth - 26, 38, 1.5, 1.5, 'FD');
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(7.6);
+    doc.setTextColor(126, 95, 24);
+    doc.text('STRATEGIC TIMING PRECAUTIONS & REMEDIAL DISCIPLINE', 17, yP8 + 5.2);
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(6.2);
+    doc.setTextColor(50, 50, 55);
+    doc.text('* Saturn / Rahu Sub-periods: Exercise enhanced diligence in speculative contracts and long-term litigation.', 17, yP8 + 12);
+    doc.text('* Health & Vitality: Maintain seasonal dietary balance, daily pranayama, and adequate restorative sleep.', 17, yP8 + 18);
+    doc.text('* Charitable Dharma: Engaging in voluntary education support or feeding birds on Saturdays resolves planetary afflictions.', 17, yP8 + 24);
+    doc.text('* Astrological Guidance: Review roadmap milestones annually around solar return (Varshaphala) for optimal calibration.', 17, yP8 + 30);
+
+    yP8 += 42;
+
+    // 3. Multi-Year Astrological Transit & Upaya Guidance Card
+    doc.setFillColor(255, 255, 255);
+    doc.setDrawColor(201, 160, 80);
+    doc.setLineWidth(0.4);
+    const upayaCardH = 38;
+    doc.roundedRect(13, yP8, pageWidth - 26, upayaCardH, 1.5, 1.5, 'FD');
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(7.6);
+    doc.setTextColor(126, 95, 24);
+    doc.text('MULTI-YEAR PLANETARY TRANSIT & UPAYA GUIDANCE', 17, yP8 + 5.2);
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(6.2);
+    doc.setTextColor(50, 50, 55);
+    doc.text('* Jupiter Transits: Major expansions occur when transit Jupiter aspects natal Moon, Lagna, or 10th house.', 17, yP8 + 12);
+    doc.text('* Saturn Transits: Saturn Sade Sati / Dhayya periods require disciplined effort, charity, and patient endurance.', 17, yP8 + 18);
+    doc.text('* Rahu-Ketu Axis: 18-year nodal returns trigger pivotal career direction shifts; Hanuman Chalisa offers protection.', 17, yP8 + 24);
+    doc.text('* Annual Varshaphala Calibration: Review roadmap predictions annually around solar return for fine-tuning.', 17, yP8 + 30);
+
+    yP8 += 42;
+
+    // 4. Traditional Disclaimer & Certified Seal Box
+    doc.setFillColor(255, 255, 255);
+    doc.setDrawColor(201, 160, 80);
+    doc.setLineWidth(0.4);
+    doc.roundedRect(13, yP8, pageWidth - 26, 34, 1.5, 1.5, 'FD');
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(7);
+    doc.setTextColor(126, 95, 24);
+    doc.text('CERTIFIED VEDIC VERIFICATION & TRADITIONAL DISCLAIMER', 17, yP8 + 5.2);
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(5.6);
+    doc.setTextColor(90, 85, 80);
+    doc.text(
+      'This Comprehensive Master Vedic Astrology Report is computationally generated using Swiss Ephemeris mathematical coordinates and Classical Jyotish principles (Lahiri Nirayana). Vedic astrological guidance describes planetary archetypes and cosmic tendencies to foster self-awareness, timing awareness, and proactive wisdom. It does not replace professional medical, legal, or financial counsel.',
+      17,
+      yP8 + 10,
+      { maxWidth: pageWidth - 34 }
+    );
+
+    // Daivajna Astrological Seal
+    doc.setDrawColor(226, 211, 176);
+    doc.setLineWidth(0.3);
+    doc.line(17, yP8 + 21, pageWidth - 17, yP8 + 21);
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(7.2);
+    doc.setTextColor(140, 95, 20);
+    doc.text('DAIVAJNA DIGITAL ASTROLOGICAL SEAL', 17, yP8 + 27);
+    doc.setFont('helvetica', 'italic');
+    doc.setFontSize(6);
+    doc.setTextColor(110, 105, 95);
+    doc.text('Authenticated via AstroJunction AstroEngine & Classical Ephemeris Coordinates', 17, yP8 + 31);
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(7.5);
+    doc.setTextColor(181, 131, 40);
+    doc.text('DIGITALLY VERIFIED', pageWidth - 17, yP8 + 28, { align: 'right' });
+  }
 
   // Save PDF with sanitized clean file name
   const safeName = (profile.fullName || 'Seeker').replace(/[^a-zA-Z0-9]/g, '_');
   const fileDateStr = now.toISOString().split('T')[0];
   doc.save(`AstroJunction_Master_Full_Report_${safeName}_${fileDateStr}.pdf`);
 }
+
