@@ -15,6 +15,7 @@ import {
   Activity,
   Clock,
   ShieldCheck,
+  X,
 } from 'lucide-react';
 import { adminApi, LLMConfig } from '../services/adminApi';
 
@@ -88,6 +89,7 @@ export const AdminLLMConfigView: React.FC<AdminLLMConfigViewProps> = ({ theme })
   const [selectedProvider, setSelectedProvider] = useState<LLMProvider>('mistral_local');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [activatingProvider, setActivatingProvider] = useState<string | null>(null);
   const [saveSuccess, setSaveSuccess] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -112,6 +114,13 @@ export const AdminLLMConfigView: React.FC<AdminLLMConfigViewProps> = ({ theme })
   useEffect(() => {
     fetchConfig();
   }, []);
+
+  // Clear any existing error, success, or test notices when switching providers
+  useEffect(() => {
+    setErrorMessage(null);
+    setSaveSuccess(null);
+    setTestResult(null);
+  }, [selectedProvider]);
 
   const fetchConfig = async () => {
     setLoading(true);
@@ -184,14 +193,16 @@ export const AdminLLMConfigView: React.FC<AdminLLMConfigViewProps> = ({ theme })
     setErrorMessage(null);
 
     try {
-      const res: any = await adminApi.updateLLMConfig(formData);
+      // Exclude ACTIVE_LLM so saving settings does not trigger unnecessary active engine re-verification
+      const { ACTIVE_LLM, ...settingsToSave } = formData;
+      const res: any = await adminApi.updateLLMConfig(settingsToSave);
       const updated = res?.settings || res?.data || res;
       if (updated && typeof updated === 'object') {
-        setConfig(updated);
-        setFormData(updated);
+        setConfig((prev) => ({ ...prev, ...updated }));
+        setFormData((prev) => ({ ...prev, ...updated }));
       }
-      setSaveSuccess('Configuration saved to MySQL database successfully.');
-      setTimeout(() => setSaveSuccess(null), 4000);
+      setSaveSuccess('Configuration saved to database successfully.');
+      setTimeout(() => setSaveSuccess(null), 3000);
     } catch (err: any) {
       setErrorMessage(err?.message || 'Failed to save configuration');
     } finally {
@@ -226,6 +237,7 @@ export const AdminLLMConfigView: React.FC<AdminLLMConfigViewProps> = ({ theme })
       return;
     }
 
+    setActivatingProvider(provider);
     setSaving(true);
     setSaveSuccess(null);
     setErrorMessage(null);
@@ -239,15 +251,18 @@ export const AdminLLMConfigView: React.FC<AdminLLMConfigViewProps> = ({ theme })
       const res: any = await adminApi.updateLLMConfig(payload);
       const updated = res?.settings || res?.data || res;
       if (updated && typeof updated === 'object') {
-        setConfig(updated);
-        setFormData(updated);
+        setConfig((prev) => ({ ...prev, ...updated, ACTIVE_LLM: provider }));
+        setFormData((prev) => ({ ...prev, ...updated, ACTIVE_LLM: provider }));
+      } else {
+        setConfig((prev) => prev ? { ...prev, ACTIVE_LLM: provider } : prev);
       }
-      setSaveSuccess(`${pName} is now active and saved to MySQL database.`);
-      setTimeout(() => setSaveSuccess(null), 4000);
+      setSaveSuccess(`${pName} is now active and saved.`);
+      setTimeout(() => setSaveSuccess(null), 3000);
     } catch (err: any) {
       setErrorMessage(err?.message || 'Failed to activate engine');
     } finally {
       setSaving(false);
+      setActivatingProvider(null);
     }
   };
 
@@ -383,16 +398,36 @@ export const AdminLLMConfigView: React.FC<AdminLLMConfigViewProps> = ({ theme })
       {(errorMessage || saveSuccess || testResult) && (
         <div className="space-y-3 animate-in fade-in duration-200">
           {errorMessage && (
-            <div className="p-3.5 bg-rose-500/10 border border-rose-500/30 rounded-xl text-rose-500 text-xs flex items-center space-x-2.5">
-              <AlertCircle className="w-4 h-4 shrink-0" />
-              <span>{errorMessage}</span>
+            <div className="p-3.5 bg-rose-500/10 border border-rose-500/30 rounded-xl text-rose-500 text-xs flex items-center justify-between gap-2">
+              <div className="flex items-center space-x-2.5">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                <span>{errorMessage}</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setErrorMessage(null)}
+                className="text-rose-400 hover:text-rose-200 p-1 rounded-lg hover:bg-rose-500/20 transition-colors shrink-0"
+                title="Dismiss"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
             </div>
           )}
 
           {saveSuccess && (
-            <div className="p-3.5 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-emerald-500 text-xs flex items-center space-x-2.5">
-              <CheckCircle2 className="w-4 h-4 shrink-0" />
-              <span className="font-semibold">{saveSuccess}</span>
+            <div className="p-3.5 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-emerald-500 text-xs flex items-center justify-between gap-2">
+              <div className="flex items-center space-x-2.5">
+                <CheckCircle2 className="w-4 h-4 shrink-0" />
+                <span className="font-semibold">{saveSuccess}</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSaveSuccess(null)}
+                className="text-emerald-400 hover:text-emerald-200 p-1 rounded-lg hover:bg-emerald-500/20 transition-colors shrink-0"
+                title="Dismiss"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
             </div>
           )}
 
@@ -415,11 +450,21 @@ export const AdminLLMConfigView: React.FC<AdminLLMConfigViewProps> = ({ theme })
                   {testResult.message}
                 </span>
               </div>
-              {testResult.latency_ms !== undefined && testResult.latency_ms > 0 && (
-                <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 shrink-0">
-                  {testResult.latency_ms}ms
-                </span>
-              )}
+              <div className="flex items-center space-x-2 shrink-0">
+                {testResult.latency_ms !== undefined && testResult.latency_ms > 0 && (
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300">
+                    {testResult.latency_ms}ms
+                  </span>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setTestResult(null)}
+                  className="p-1 rounded-lg hover:bg-white/10 transition-colors"
+                  title="Dismiss"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
             </div>
           )}
         </div>
@@ -808,10 +853,15 @@ export const AdminLLMConfigView: React.FC<AdminLLMConfigViewProps> = ({ theme })
         {/* Action Buttons (Clean and Sober) */}
         <div className="mt-6 pt-5 border-t border-gray-700/20 flex flex-col sm:flex-row items-center justify-between gap-3">
           <div className="flex items-center space-x-2 text-[11px] text-gray-500">
-            {saving ? (
+            {activatingProvider ? (
               <span className="text-[#C9A050] flex items-center space-x-1.5 animate-pulse font-medium">
                 <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                <span>Saving to MySQL database...</span>
+                <span>Activating {PROVIDERS.find((p) => p.id === activatingProvider)?.name || activatingProvider}...</span>
+              </span>
+            ) : saving ? (
+              <span className="text-[#C9A050] flex items-center space-x-1.5 animate-pulse font-medium">
+                <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                <span>Saving settings to database...</span>
               </span>
             ) : (
               <span>Changes take effect immediately upon saving.</span>
@@ -830,7 +880,7 @@ export const AdminLLMConfigView: React.FC<AdminLLMConfigViewProps> = ({ theme })
                   : 'bg-gray-50 border-gray-200 hover:border-[#C9A050] text-gray-800'
               }`}
             >
-              {saving ? (
+              {saving && !activatingProvider ? (
                 <>
                   <RefreshCw className="w-3.5 h-3.5 animate-spin" />
                   <span>Saving...</span>
@@ -872,8 +922,17 @@ export const AdminLLMConfigView: React.FC<AdminLLMConfigViewProps> = ({ theme })
                 onClick={() => handleSetActive(currentProvider.id)}
                 className="px-5 py-2.5 rounded-xl text-xs font-bold tracking-wider uppercase transition-all shadow-md flex items-center justify-center space-x-1.5 bg-gradient-to-r from-[#C9A050] to-[#DFB76C] text-[#0D0D0F] hover:brightness-110 active:scale-95 disabled:opacity-50 cursor-pointer w-full sm:w-auto font-sans"
               >
-                <Zap className="w-3.5 h-3.5 fill-current" />
-                <span>Set as Active LLM</span>
+                {activatingProvider === currentProvider.id ? (
+                  <>
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                    <span>Activating...</span>
+                  </>
+                ) : (
+                  <>
+                    <Zap className="w-3.5 h-3.5 fill-current" />
+                    <span>Set as Active LLM</span>
+                  </>
+                )}
               </button>
             )}
           </div>

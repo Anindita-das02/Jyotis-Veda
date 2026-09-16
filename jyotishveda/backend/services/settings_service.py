@@ -8,6 +8,7 @@ from database.db_connection import get_db_connection
 # In-memory settings cache: {key: (value, timestamp)}
 _CACHE: Dict[str, tuple[str, float]] = {}
 CACHE_TTL = 30.0  # seconds
+_LAST_BULK_LOAD: float = 0.0
 
 
 def init_settings_table():
@@ -38,9 +39,14 @@ def init_settings_table():
             conn.close()
 
 
-def load_all_settings():
+def load_all_settings(force: bool = False):
     """Loads all settings in ONE single query to avoid multiple remote DB roundtrips."""
+    global _LAST_BULK_LOAD
     now = time.time()
+    if not force and (now - _LAST_BULK_LOAD < CACHE_TTL):
+        return
+
+    _LAST_BULK_LOAD = now
     conn = None
     cursor = None
     try:
@@ -62,7 +68,7 @@ def load_all_settings():
 # Initialize table & warm up settings cache on import
 try:
     init_settings_table()
-    load_all_settings()
+    load_all_settings(force=True)
 except Exception:
     pass
 
@@ -81,14 +87,14 @@ def get_setting(key: str, default: Optional[str] = None) -> str:
         if now - ts < CACHE_TTL:
             return val
 
-    # Bulk reload to refresh all keys in one roundtrip
+    # Bulk reload if TTL expired
     load_all_settings()
 
     if key in _CACHE:
         val, ts = _CACHE[key]
         return val
 
-    # Fallback to .env / os.getenv
+    # Fallback to .env / os.getenv and cache it to prevent repeated misses
     fallback_val = os.getenv(key, default or "")
     _CACHE[key] = (fallback_val, now)
     return fallback_val
@@ -119,6 +125,46 @@ def set_setting(key: str, value: str, updated_by: str = "admin", description: Op
         print(f"[SettingsService] Error saving setting {key}: {e}")
         # Even if DB fails, update local in-memory cache so process can function
         _CACHE[key] = (str(value), time.time())
+        return False
+    finally:
+        if cursor:
+            cursor.close()
+        if conn and conn.is_connected():
+            conn.close()
+
+
+def set_settings_bulk(settings: Dict[str, str], updated_by: str = "admin") -> bool:
+    """
+    Saves multiple settings in a single database roundtrip and updates in-memory cache instantly.
+    This replaces multiple sequential remote database connections with one batched query.
+    """
+    if not settings:
+        return True
+
+    # 1. Update in-memory cache instantly so subsequent reads are immediate (0ms)
+    now = time.time()
+    for k, v in settings.items():
+        _CACHE[k] = (str(v), now)
+
+    # 2. Persist to MySQL in a single roundtrip
+    conn = None
+    cursor = None
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        query = """
+            INSERT INTO system_settings (setting_key, setting_value, updated_by)
+            VALUES (%s, %s, %s)
+            ON DUPLICATE KEY UPDATE
+                setting_value = VALUES(setting_value),
+                updated_by = VALUES(updated_by)
+        """
+        data = [(k, str(v), updated_by) for k, v in settings.items()]
+        cursor.executemany(query, data)
+        conn.commit()
+        return True
+    except Exception as e:
+        print(f"[SettingsService] Error in set_settings_bulk: {e}")
         return False
     finally:
         if cursor:
@@ -210,87 +256,93 @@ def get_llm_config() -> Dict[str, Any]:
 
 
 def update_llm_config(data: Dict[str, Any], updated_by: str = "admin") -> bool:
-    """Updates the LLM configuration in database with credential validation."""
+    """Updates the LLM configuration in database in a single fast batch operation."""
+    settings_to_save: Dict[str, str] = {}
+
     # Local Mistral
     mistral_url = data.get("MISTRAL_LOCAL_URL") or data.get("mistral_local_url")
     if mistral_url is not None and str(mistral_url).strip():
-        set_setting("MISTRAL_LOCAL_URL", str(mistral_url).strip(), updated_by=updated_by)
+        settings_to_save["MISTRAL_LOCAL_URL"] = str(mistral_url).strip()
     mistral_model = data.get("MISTRAL_MODEL") or data.get("mistral_model")
     if mistral_model:
-        set_setting("MISTRAL_MODEL", str(mistral_model).strip(), updated_by=updated_by)
+        settings_to_save["MISTRAL_MODEL"] = str(mistral_model).strip()
 
     # Mistral Cloud
     mc_url = data.get("MISTRAL_CLOUD_URL") or data.get("mistral_cloud_url")
     if mc_url:
-        set_setting("MISTRAL_CLOUD_URL", str(mc_url).strip(), updated_by=updated_by)
+        settings_to_save["MISTRAL_CLOUD_URL"] = str(mc_url).strip()
     mc_key = data.get("MISTRAL_CLOUD_API_KEY") or data.get("mistral_cloud_api_key")
     if mc_key and not mc_key.startswith("***") and "..." not in mc_key:
-        set_setting("MISTRAL_CLOUD_API_KEY", str(mc_key).strip(), updated_by=updated_by)
+        settings_to_save["MISTRAL_CLOUD_API_KEY"] = str(mc_key).strip()
 
     # Gemini
     gem_key = data.get("GEMINI_API_KEY") or data.get("gemini_api_key")
     if gem_key and not gem_key.startswith("***") and "..." not in gem_key:
-        set_setting("GEMINI_API_KEY", str(gem_key).strip(), updated_by=updated_by)
+        settings_to_save["GEMINI_API_KEY"] = str(gem_key).strip()
     gem_model = data.get("GEMINI_MODEL") or data.get("gemini_model")
     if gem_model:
-        set_setting("GEMINI_MODEL", str(gem_model).strip(), updated_by=updated_by)
+        settings_to_save["GEMINI_MODEL"] = str(gem_model).strip()
 
     # OpenAI
     oa_key = data.get("OPENAI_API_KEY") or data.get("openai_api_key")
     if oa_key and not oa_key.startswith("***") and "..." not in oa_key:
-        set_setting("OPENAI_API_KEY", str(oa_key).strip(), updated_by=updated_by)
+        settings_to_save["OPENAI_API_KEY"] = str(oa_key).strip()
     oa_model = data.get("OPENAI_MODEL") or data.get("openai_model")
     if oa_model:
-        set_setting("OPENAI_MODEL", str(oa_model).strip(), updated_by=updated_by)
+        settings_to_save["OPENAI_MODEL"] = str(oa_model).strip()
     oa_base = data.get("OPENAI_BASE_URL") or data.get("openai_base_url")
     if oa_base:
-        set_setting("OPENAI_BASE_URL", str(oa_base).strip(), updated_by=updated_by)
+        settings_to_save["OPENAI_BASE_URL"] = str(oa_base).strip()
 
     # Failover & Runtime parameters
     if "ENABLE_AUTO_FAILOVER" in data:
         val = "true" if str(data["ENABLE_AUTO_FAILOVER"]).lower() in ("true", "1", "yes") else "false"
-        set_setting("ENABLE_AUTO_FAILOVER", val, updated_by=updated_by)
+        settings_to_save["ENABLE_AUTO_FAILOVER"] = val
     if "FALLBACK_LLM" in data and data["FALLBACK_LLM"]:
-        set_setting("FALLBACK_LLM", str(data["FALLBACK_LLM"]).strip(), updated_by=updated_by)
+        settings_to_save["FALLBACK_LLM"] = str(data["FALLBACK_LLM"]).strip()
     if "LLM_TIMEOUT" in data and str(data["LLM_TIMEOUT"]).strip():
-        set_setting("LLM_TIMEOUT", str(data["LLM_TIMEOUT"]).strip(), updated_by=updated_by)
+        settings_to_save["LLM_TIMEOUT"] = str(data["LLM_TIMEOUT"]).strip()
     if "LLM_TEMPERATURE" in data and data["LLM_TEMPERATURE"]:
-        set_setting("LLM_TEMPERATURE", str(data["LLM_TEMPERATURE"]).strip(), updated_by=updated_by)
+        settings_to_save["LLM_TEMPERATURE"] = str(data["LLM_TEMPERATURE"]).strip()
     if "LLM_MAX_TOKENS" in data and data["LLM_MAX_TOKENS"]:
-        set_setting("LLM_MAX_TOKENS", str(data["LLM_MAX_TOKENS"]).strip(), updated_by=updated_by)
+        settings_to_save["LLM_MAX_TOKENS"] = str(data["LLM_MAX_TOKENS"]).strip()
 
-    # Active LLM - ONLY set if provider is fully configured AND key is verified live!
+    # Active LLM
+    current_active = get_setting("ACTIVE_LLM", "mistral_local")
     active_llm = data.get("ACTIVE_LLM") or data.get("active_llm")
+
     if active_llm:
         provider = str(active_llm).strip().lower()
         if provider == "gemini":
-            current_key = get_setting("GEMINI_API_KEY", "")
+            current_key = settings_to_save.get("GEMINI_API_KEY") or get_setting("GEMINI_API_KEY", "")
             if not current_key or not current_key.strip():
                 raise ValueError("Google Gemini cannot be activated without an API Key. Please enter a valid Gemini API Key first.")
         elif provider == "openai":
-            current_key = get_setting("OPENAI_API_KEY", "")
+            current_key = settings_to_save.get("OPENAI_API_KEY") or get_setting("OPENAI_API_KEY", "")
             if not current_key or not current_key.strip():
                 raise ValueError("OpenAI cannot be activated without an API Key. Please enter a valid OpenAI API Key first.")
         elif provider == "mistral_cloud":
-            current_key = get_setting("MISTRAL_CLOUD_API_KEY", "")
+            current_key = settings_to_save.get("MISTRAL_CLOUD_API_KEY") or get_setting("MISTRAL_CLOUD_API_KEY", "")
             if not current_key or not current_key.strip():
                 raise ValueError("Mistral Cloud cannot be activated without an API Key. Please enter a valid Mistral Cloud API Key first.")
         elif provider == "mistral_local":
-            current_url = get_setting("MISTRAL_LOCAL_URL", "")
+            current_url = settings_to_save.get("MISTRAL_LOCAL_URL") or get_setting("MISTRAL_LOCAL_URL", "")
             if not current_url or not current_url.strip():
                 raise ValueError("Mistral Local cannot be activated without a Server Endpoint URL. Please configure the URL first.")
         else:
             raise ValueError(f"Unknown LLM provider: {provider}")
 
-        # Live verification: Test that the key/endpoint is genuinely valid and working
-        test_res = test_llm_connection(provider)
-        if not test_res.get("success"):
-            err_msg = test_res.get("message", "Authentication check failed.")
-            raise ValueError(f"Verification Failed: {err_msg}")
+        # If the provider is actively changing, perform a rapid live ping test
+        if provider != current_active:
+            test_res = test_llm_connection(provider, config=data, timeout=(2.5, 3.5))
+            if not test_res.get("success"):
+                err_msg = test_res.get("message", "Authentication check failed.")
+                raise ValueError(f"Verification Failed: {err_msg}")
 
-        set_setting("ACTIVE_LLM", provider, updated_by=updated_by, description="Active LLM provider")
+        settings_to_save["ACTIVE_LLM"] = provider
 
-    return True
+    # Perform ONE single bulk update to save all settings instantly
+    return set_settings_bulk(settings_to_save, updated_by=updated_by)
 
 
 def test_all_providers() -> Dict[str, Any]:
@@ -298,7 +350,7 @@ def test_all_providers() -> Dict[str, Any]:
     providers = ["mistral_local", "gemini", "mistral_cloud", "openai"]
     results = {}
     with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
-        future_to_prov = {executor.submit(test_llm_connection, p): p for p in providers}
+        future_to_prov = {executor.submit(test_llm_connection, p, None, (2.5, 3.5)): p for p in providers}
         for future in concurrent.futures.as_completed(future_to_prov):
             prov = future_to_prov[future]
             try:
@@ -319,8 +371,12 @@ def test_all_providers() -> Dict[str, Any]:
     return results
 
 
-def test_llm_connection(provider: str, config: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
-    """Tests a single ping connection to the specified LLM provider."""
+def test_llm_connection(
+    provider: str,
+    config: Optional[Dict[str, Any]] = None,
+    timeout: tuple = (2.5, 3.5),
+) -> Dict[str, Any]:
+    """Tests a single fast ping connection to the specified LLM provider."""
     if config is None:
         config = {}
 
@@ -347,14 +403,14 @@ def test_llm_connection(provider: str, config: Optional[Dict[str, Any]] = None) 
                 resp = requests.post(
                     endpoint,
                     json={"model": model, "prompt": test_prompt, "stream": False},
-                    timeout=10,
+                    timeout=(2.0, 3.0),
                 )
             except Exception:
                 # Fallback to OpenAI-compatible /v1/chat/completions
                 resp = requests.post(
                     f"{base_url}/v1/chat/completions",
                     json={"model": model, "messages": [{"role": "user", "content": test_prompt}]},
-                    timeout=10,
+                    timeout=(2.0, 3.0),
                 )
 
             latency = int((time.time() - start_time) * 1000)
@@ -382,7 +438,7 @@ def test_llm_connection(provider: str, config: Optional[Dict[str, Any]] = None) 
             resp = requests.post(
                 url,
                 json={"contents": [{"parts": [{"text": test_prompt}]}]},
-                timeout=10,
+                timeout=timeout,
             )
             latency = int((time.time() - start_time) * 1000)
             if resp.status_code == 200:
@@ -419,7 +475,7 @@ def test_llm_connection(provider: str, config: Optional[Dict[str, Any]] = None) 
                 f"{base_url}/v1/chat/completions",
                 headers={"Authorization": f"Bearer {api_key}"},
                 json={"model": model, "messages": [{"role": "user", "content": test_prompt}]},
-                timeout=10,
+                timeout=timeout,
             )
             latency = int((time.time() - start_time) * 1000)
             if resp.status_code == 200:
@@ -456,7 +512,7 @@ def test_llm_connection(provider: str, config: Optional[Dict[str, Any]] = None) 
                 f"{base_url}/chat/completions",
                 headers={"Authorization": f"Bearer {api_key}"},
                 json={"model": model, "messages": [{"role": "user", "content": test_prompt}]},
-                timeout=10,
+                timeout=timeout,
             )
             latency = int((time.time() - start_time) * 1000)
             if resp.status_code == 200:
@@ -466,11 +522,14 @@ def test_llm_connection(provider: str, config: Optional[Dict[str, Any]] = None) 
                 clean_msg = err_data.get("error", {}).get("message") or resp.text[:150]
             except Exception:
                 clean_msg = resp.text[:150]
-            return {"success": False, "latency_ms": latency, "message": f"OpenAI key invalid ({resp.status_code}): {clean_msg}"}
+            return {"success": False, "latency_ms": latency, "message": f"OpenAI API key invalid ({resp.status_code}): {clean_msg}"}
 
         else:
             return {"success": False, "message": f"Unknown provider: {provider}"}
 
-    except Exception as exc:
-        latency = int((time.time() - start_time) * 1000)
-        return {"success": False, "latency_ms": latency, "message": f"Connection error: {str(exc)}"}
+    except requests.exceptions.Timeout:
+        return {"success": False, "latency_ms": int((time.time() - start_time) * 1000), "message": f"Connection timed out. Server at {provider} is unreachable."}
+    except requests.exceptions.ConnectionError:
+        return {"success": False, "latency_ms": int((time.time() - start_time) * 1000), "message": f"Connection refused. Could not establish connection to {provider}."}
+    except Exception as e:
+        return {"success": False, "latency_ms": int((time.time() - start_time) * 1000), "message": f"Connection error: {str(e)}"}
