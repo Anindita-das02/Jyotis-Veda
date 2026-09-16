@@ -3,6 +3,7 @@ import re
 import os
 import requests
 from dotenv import load_dotenv
+from services.settings_service import get_setting
 
 load_dotenv()
 
@@ -46,8 +47,8 @@ Do NOT output plain text. DO NOT use custom keys like 'planet' or 'sign'. YOU MU
 
 def generate_facts_from_topic(topic):
     """শুধুমাত্র LLM-এর নিজস্ব জ্ঞান থেকে ডাটা আনার ফাংশন"""
-    llm_url = os.getenv("MISTRAL_LOCAL_URL", "http://122.163.121.176:3041")
-    model_name = os.getenv("MISTRAL_MODEL", "mistral:latest")
+    llm_url = get_setting("MISTRAL_LOCAL_URL", "http://122.163.121.176:3041")
+    model_name = get_setting("MISTRAL_MODEL", "mistral:latest")
     
     api_endpoint = f"{llm_url.rstrip('/')}/v1/chat/completions"
     if "api/" not in api_endpoint and "v1/" not in api_endpoint:

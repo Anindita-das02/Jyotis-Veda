@@ -18,6 +18,8 @@ export const API_ENDPOINTS = {
     LOGS_SYSTEM: '/api/admin/logs/system',
     REVENUE_STATS: '/api/admin/revenue/stats',
     REVENUE_TRANSACTIONS: '/api/admin/revenue/transactions',
+    LLM_CONFIG: '/api/admin/llm-config',
+    LLM_TEST: '/api/admin/llm-config/test',
   },
   BLOGS: {
     LIST: '/api/blogs',

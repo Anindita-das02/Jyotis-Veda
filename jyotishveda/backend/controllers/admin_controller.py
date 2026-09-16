@@ -96,3 +96,44 @@ def update_user_status(user_id, is_active):
 
 def delete_user(user_id):
     return _manage_user('delete', user_id)
+
+def get_llm_config():
+    from services.settings_service import get_llm_config as fetch_llm_config
+    try:
+        config = fetch_llm_config()
+        return jsonify({"status": "success", "data": config}), 200
+    except Exception as e:
+        print(f"Error fetching LLM config: {e}")
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+def update_llm_config():
+    from flask import request
+    from services.settings_service import update_llm_config as save_llm_config, get_llm_config as fetch_llm_config
+    try:
+        payload = request.get_json(silent=True) or {}
+        save_llm_config(payload, updated_by="admin")
+        updated_config = fetch_llm_config()
+        return jsonify({
+            "status": "success",
+            "message": "LLM configuration updated successfully",
+            "data": updated_config
+        }), 200
+    except Exception as e:
+        print(f"Error updating LLM config: {e}")
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+def test_llm_connection():
+    from flask import request
+    from services.settings_service import test_llm_connection as run_test
+    try:
+        payload = request.get_json(silent=True) or {}
+        provider = payload.get("provider", "mistral_local")
+        config = payload.get("config", {})
+        result = run_test(provider, config)
+        if result.get("success"):
+            return jsonify({"status": "success", "data": result}), 200
+        else:
+            return jsonify({"status": "error", "message": result.get("message", "Connection failed"), "data": result}), 400
+    except Exception as e:
+        print(f"Error testing LLM connection: {e}")
+        return jsonify({"status": "error", "message": str(e)}), 500

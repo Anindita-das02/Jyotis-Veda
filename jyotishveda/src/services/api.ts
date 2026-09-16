@@ -1,5 +1,16 @@
-export const API_BASE_URL: string =
-  (import.meta as any).env?.VITE_API_BASE_URL || 'http://72.61.226.68:5001';
+export function getApiBaseUrl(): string {
+  // 1. Injected live from .env on disk by liveEnvPlugin
+  if (typeof window !== 'undefined') {
+    const live = (window as any).__VITE_API_BASE_URL__;
+    if (live && typeof live === 'string' && live.trim()) {
+      return live.trim();
+    }
+  }
+  // 2. Standard Vite import.meta.env
+  return ((import.meta as any).env?.VITE_API_BASE_URL || '').trim();
+}
+
+export const API_BASE_URL: string = getApiBaseUrl();
 
 const TOKEN_KEY = 'jyotish_auth_token';
 
@@ -46,7 +57,8 @@ function buildUrl(path: string): string {
   if (path.startsWith('http://') || path.startsWith('https://')) {
     return path;
   }
-  let cleanBase = API_BASE_URL.replace(/\/+$/, '');
+  const currentBase = getApiBaseUrl();
+  let cleanBase = currentBase.replace(/\/+$/, '');
   const cleanPath = path.startsWith('/') ? path : `/${path}`;
   if (cleanBase.endsWith('/api') && cleanPath.startsWith('/api/')) {
     cleanBase = cleanBase.slice(0, -4);
@@ -68,9 +80,10 @@ async function executeFetch(path: string, options: RequestInit = {}): Promise<Re
 
   try {
     return await fetch(url, { ...options, headers });
-  } catch {
+  } catch (err) {
+    console.error('[AstroJunction API Error] Failed to reach:', url, err);
     throw new ApiError(
-      'Could not reach the AstroJunction server. Please check if the backend is running.',
+      `Could not reach the AstroJunction server at ${getApiBaseUrl()}. Please check if the backend is running.`,
       'NETWORK_ERROR',
       0,
     );

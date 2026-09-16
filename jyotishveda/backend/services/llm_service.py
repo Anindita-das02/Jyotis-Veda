@@ -3,6 +3,7 @@ import requests
 import json
 import concurrent.futures
 from datetime import datetime
+from services.settings_service import get_setting
 
 
 class LLMError(Exception):
@@ -46,12 +47,11 @@ def _build_system_prompt(tradition: str, chart_summary: str, numerology_summary:
 
 
 def _call_mistral_local(system_prompt: str, history: list) -> str:
-    base_url = os.getenv("MISTRAL_LOCAL_URL", "").rstrip("/")
-    model = os.getenv("MISTRAL_MODEL", "mistral:latest")
+    base_url = get_setting("MISTRAL_LOCAL_URL", "http://122.163.121.176:3041").rstrip("/")
+    model = get_setting("MISTRAL_MODEL", "mistral:latest")
     if not base_url:
         raise LLMError(
-            "ACTIVE_LLM is set to mistral_local but MISTRAL_LOCAL_URL is not configured. "
-            "Set MISTRAL_LOCAL_URL in backend/.env (e.g. http://localhost:11434 for Ollama)."
+            "ACTIVE_LLM is set to mistral_local but MISTRAL_LOCAL_URL is not configured."
         )
 
     prompt = system_prompt + "\n\n"
@@ -66,8 +66,21 @@ def _call_mistral_local(system_prompt: str, history: list) -> str:
             json={"model": model, "prompt": prompt, "stream": False},
             timeout=60,
         )
-    except requests.RequestException as e:
-        raise LLMError(f"Could not reach local Mistral server at {base_url}: {e}")
+    except requests.RequestException:
+        # Fallback to /v1/chat/completions (OpenAI compatible endpoint)
+        try:
+            messages = [{"role": "system", "content": system_prompt}] + history
+            resp = requests.post(
+                f"{base_url}/v1/chat/completions",
+                json={"model": model, "messages": messages},
+                timeout=60,
+            )
+            if resp.status_code == 200:
+                data = resp.json()
+                return data["choices"][0]["message"]["content"]
+        except Exception as e:
+            raise LLMError(f"Could not reach local Mistral server at {base_url}: {e}")
+        raise LLMError(f"Could not reach local Mistral server at {base_url}")
 
     if resp.status_code != 200:
         raise LLMError(f"Local Mistral server returned HTTP {resp.status_code}: {resp.text[:300]}")
@@ -80,13 +93,13 @@ def _call_mistral_local(system_prompt: str, history: list) -> str:
 
 
 def _call_mistral_cloud(system_prompt: str, history: list) -> str:
-    base_url = os.getenv("MISTRAL_CLOUD_URL", "").rstrip("/")
-    api_key = os.getenv("MISTRAL_CLOUD_API_KEY", "")
-    model = os.getenv("MISTRAL_MODEL", "mistral-large-latest")
+    base_url = get_setting("MISTRAL_CLOUD_URL", "https://api.mistral.ai").rstrip("/")
+    api_key = get_setting("MISTRAL_CLOUD_API_KEY", "")
+    model = get_setting("MISTRAL_MODEL", "mistral-large-latest")
     if not base_url or not api_key:
         raise LLMError(
             "ACTIVE_LLM is set to mistral_cloud but MISTRAL_CLOUD_URL / "
-            "MISTRAL_CLOUD_API_KEY are not fully configured in backend/.env."
+            "MISTRAL_CLOUD_API_KEY are not fully configured."
         )
 
     messages = [{"role": "system", "content": system_prompt}] + history
@@ -111,20 +124,19 @@ def _call_mistral_cloud(system_prompt: str, history: list) -> str:
 
 
 def _call_gemini(system_prompt: str, history: list) -> str:
-    api_key = os.getenv("GEMINI_API_KEY", "")
+    api_key = get_setting("GEMINI_API_KEY", "")
+    model = get_setting("GEMINI_MODEL", "gemini-2.0-flash")
     if not api_key:
         raise LLMError(
-            "ACTIVE_LLM is set to gemini but GEMINI_API_KEY is not configured in backend/.env."
+            "ACTIVE_LLM is set to gemini but GEMINI_API_KEY is not configured."
         )
 
-    # Flatten to a single text block for simplicity — Gemini's multi-turn
-    # `contents` format is supported too but not required for this to work.
     convo_text = "\n".join(f"{m['role'].upper()}: {m['content']}" for m in history)
     full_prompt = f"{system_prompt}\n\n--- Conversation ---\n{convo_text}"
 
     url = (
         "https://generativelanguage.googleapis.com/v1beta/models/"
-        f"gemini-2.0-flash:generateContent?key={api_key}"
+        f"{model}:generateContent?key={api_key}"
     )
     try:
         resp = requests.post(
@@ -145,6 +157,47 @@ def _call_gemini(system_prompt: str, history: list) -> str:
         raise LLMError("Gemini API returned an unexpected response shape.")
 
 
+def _call_openai(system_prompt: str, history: list) -> str:
+    api_key = get_setting("OPENAI_API_KEY", "")
+    base_url = get_setting("OPENAI_BASE_URL", "https://api.openai.com/v1").rstrip("/")
+    model = get_setting("OPENAI_MODEL", "gpt-4o-mini")
+    if not api_key:
+        raise LLMError("ACTIVE_LLM is set to openai but OPENAI_API_KEY is not configured.")
+
+    messages = [{"role": "system", "content": system_prompt}] + history
+    try:
+        resp = requests.post(
+            f"{base_url}/chat/completions",
+            headers={"Authorization": f"Bearer {api_key}"},
+            json={"model": model, "messages": messages},
+            timeout=60,
+        )
+    except requests.RequestException as e:
+        raise LLMError(f"Could not reach OpenAI endpoint: {e}")
+
+    if resp.status_code != 200:
+        raise LLMError(f"OpenAI returned HTTP {resp.status_code}: {resp.text[:300]}")
+
+    data = resp.json()
+    try:
+        return data["choices"][0]["message"]["content"]
+    except (KeyError, IndexError, TypeError):
+        raise LLMError("OpenAI returned an unexpected response shape.")
+
+
+def _execute_llm(system_prompt: str, history: list) -> str:
+    active_llm = get_setting("ACTIVE_LLM", "mistral_local")
+    if active_llm == "mistral_local":
+        return _call_mistral_local(system_prompt, history)
+    elif active_llm == "mistral_cloud":
+        return _call_mistral_cloud(system_prompt, history)
+    elif active_llm == "gemini":
+        return _call_gemini(system_prompt, history)
+    elif active_llm == "openai":
+        return _call_openai(system_prompt, history)
+    raise LLMError(f"Unknown ACTIVE_LLM value: '{active_llm}'. Use mistral_local, gemini, mistral_cloud, or openai.")
+
+
 def get_ai_response(
     history: list,
     tradition: str,
@@ -153,17 +206,9 @@ def get_ai_response(
     rag_context: str,
 ) -> str:
     """history: list of {"role": "user"|"assistant", "content": str}, oldest first."""
-    active_llm = os.getenv("ACTIVE_LLM", "mistral_local")
     system_prompt = _build_system_prompt(tradition, chart_summary, numerology_summary, rag_context)
+    return _execute_llm(system_prompt, history)
 
-    if active_llm == "mistral_local":
-        return _call_mistral_local(system_prompt, history)
-    if active_llm == "mistral_cloud":
-        return _call_mistral_cloud(system_prompt, history)
-    if active_llm == "gemini":
-        return _call_gemini(system_prompt, history)
-
-    raise LLMError(f"Unknown ACTIVE_LLM value: '{active_llm}'. Use mistral_local, mistral_cloud, or gemini.")
 
 
 def get_daily_insights_response(
@@ -172,7 +217,6 @@ def get_daily_insights_response(
     panchang: dict,
     numerology: dict,
 ) -> str:
-    active_llm = os.getenv("ACTIVE_LLM", "mistral_local")
     system_prompt = f"""You are the AstroJunction Daivajna. The user has provided their daily transit data.
 You MUST respond with ONLY a valid JSON object matching exactly this structure, no markdown formatting or backticks around it:
 {{
@@ -193,14 +237,7 @@ Numerology: Mulank {numerology.get("mulank")}, Lucky Number {numerology.get("luc
     history = [{"role": "user", "content": "Generate today's daily insights as JSON."}]
 
     try:
-        if active_llm == "mistral_local":
-            res = _call_mistral_local(system_prompt, history)
-        elif active_llm == "mistral_cloud":
-            res = _call_mistral_cloud(system_prompt, history)
-        elif active_llm == "gemini":
-            res = _call_gemini(system_prompt, history)
-        else:
-            raise LLMError(f"Unknown ACTIVE_LLM value: '{active_llm}'.")
+        res = _execute_llm(system_prompt, history)
         
         # Clean up possible markdown code blocks if the LLM includes them
         res = res.strip()
@@ -275,18 +312,9 @@ def get_zodiac_forecast_response(
     timeframe: str,
     language: str = "en"
 ) -> str:
-    active_llm = os.getenv("ACTIVE_LLM", "mistral_local")
-    
     def fetch_part(system_prompt):
         history = [{"role": "user", "content": f"Generate the {timeframe} JSON forecast for {sign}."}]
-        if active_llm == "mistral_local":
-            res = _call_mistral_local(system_prompt, history)
-        elif active_llm == "mistral_cloud":
-            res = _call_mistral_cloud(system_prompt, history)
-        elif active_llm == "gemini":
-            res = _call_gemini(system_prompt, history)
-        else:
-            raise LLMError(f"Unknown ACTIVE_LLM value: '{active_llm}'.")
+        res = _execute_llm(system_prompt, history)
             
         res = res.strip()
         start = res.find("{")
@@ -345,8 +373,6 @@ def get_zodiac_compatibility_response(
     system: str = "tropical",
     language: str = "en"
 ) -> str:
-    active_llm = os.getenv("ACTIVE_LLM", "mistral_local")
-    
     system_prompt = f"""You are an expert Vedic and Western Astrologer. Calculate the unique compatibility between {sign_a.capitalize()} and {sign_b.capitalize()} using the {system} system.
 Calculate a highly accurate overall compatibility score (0-100) based on elements, modalities, and planetary rulers.
 MUST respond ONLY with valid JSON, in language {language} (if 'bn' use Bengali). Do not include any comments or markdown inside the JSON object:
@@ -363,14 +389,7 @@ IMPORTANT: Replace 68 with the ACTUAL calculated compatibility score between the
     
     history = [{"role": "user", "content": f"Calculate compatibility between {sign_a} and {sign_b}."}]
     try:
-        if active_llm == "mistral_local":
-            res = _call_mistral_local(system_prompt, history)
-        elif active_llm == "mistral_cloud":
-            res = _call_mistral_cloud(system_prompt, history)
-        elif active_llm == "gemini":
-            res = _call_gemini(system_prompt, history)
-        else:
-            raise LLMError(f"Unknown ACTIVE_LLM value: '{active_llm}'.")
+        res = _execute_llm(system_prompt, history)
             
         res = res.strip()
         start = res.find("{")
@@ -401,7 +420,6 @@ def get_numerology_insights_response(
     missing_numbers: list,
     language: str = "en"
 ) -> str:
-    active_llm = os.getenv("ACTIVE_LLM", "mistral_local")
     system_prompt = f"""You are an expert Vedic Numerologist and Vastu Consultant. 
 The user's numerology profile is:
 - Mulank (Psychic Number): {mulank}
@@ -432,14 +450,7 @@ Provide exactly 3 short traits for mulankCharacteristics. Provide customized rem
     history = [{"role": "user", "content": "Generate the Numerology JSON insights."}]
 
     try:
-        if active_llm == "mistral_local":
-            res = _call_mistral_local(system_prompt, history)
-        elif active_llm == "mistral_cloud":
-            res = _call_mistral_cloud(system_prompt, history)
-        elif active_llm == "gemini":
-            res = _call_gemini(system_prompt, history)
-        else:
-            raise LLMError(f"Unknown ACTIVE_LLM value: '{active_llm}'.")
+        res = _execute_llm(system_prompt, history)
         
         # Clean up possible markdown code blocks
         res = res.strip()
@@ -449,6 +460,7 @@ Provide exactly 3 short traits for mulankCharacteristics. Provide customized rem
             res = res[3:]
         if res.endswith("```"):
             res = res[:-3]
+        return res.strip()
     except Exception as e:
         print(f"Warning: Numerology LLM failed ({e}), using dynamic Vedic numerology calculation fallback.")
         return json.dumps({
@@ -472,69 +484,6 @@ Provide exactly 3 short traits for mulankCharacteristics. Provide customized rem
                 "Spiritual Plane (2-5-8)": "Deep contemplative awareness and soul alignment."
             }
         })
-
-
-
-
-
-def get_numerology_insights_response(
-    mulank: int,
-    bhagyank: int,
-    namank: int,
-    missing_numbers: list,
-    language: str = "en"
-) -> str:
-    active_llm = os.getenv("ACTIVE_LLM", "mistral_local")
-    system_prompt = f"""You are an expert Vedic Numerologist and Vastu Consultant. 
-The user's numerology profile is:
-- Mulank (Psychic Number): {mulank}
-- Bhagyank (Destiny Number): {bhagyank}
-- Namank (Name Number): {namank}
-- Missing Numbers in Lo Shu Grid: {missing_numbers}
-
-You MUST respond with ONLY a valid JSON object matching exactly this structure, no markdown formatting or backticks around it:
-{{
-  "mulankCharacteristics": ["Trait 1", "Trait 2", "Trait 3"],
-  "remedies": ["Custom Vastu remedy for missing {missing_numbers[0] if missing_numbers else 'numbers'}", "Custom remedy 2"],
-  "planeMeanings": {{
-    "Mental Plane (4-9-2)": "Dynamic analysis of their mental plane based on their grid.",
-    "Emotional Plane (3-5-7)": "Dynamic analysis...",
-    "Practical Plane (8-1-6)": "Dynamic analysis...",
-    "Thought Plane (4-3-8)": "Dynamic analysis...",
-    "Will Plane (9-5-1)": "Dynamic analysis...",
-    "Action Plane (2-7-6)": "Dynamic analysis...",
-    "Determination Plane (4-5-6)": "Dynamic analysis...",
-    "Spiritual Plane (2-5-8)": "Dynamic analysis..."
-  }}
-}}
-
-All text fields MUST be in the requested language: {language}.
-If the language is 'bn', use natural Bengali script.
-Provide exactly 3 short traits for mulankCharacteristics. Provide customized remedies for the exact missing numbers (or general if none missing). Provide 1-sentence analysis for each of the 8 Lo Shu planes.
-"""
-    history = [{"role": "user", "content": "Generate the Numerology JSON insights."}]
-
-    try:
-        if active_llm == "mistral_local":
-            res = _call_mistral_local(system_prompt, history)
-        elif active_llm == "mistral_cloud":
-            res = _call_mistral_cloud(system_prompt, history)
-        elif active_llm == "gemini":
-            res = _call_gemini(system_prompt, history)
-        else:
-            raise LLMError(f"Unknown ACTIVE_LLM value: '{active_llm}'.")
-        
-        # Clean up possible markdown code blocks
-        res = res.strip()
-        if res.startswith("```json"):
-            res = res[7:]
-        if res.startswith("```"):
-            res = res[3:]
-        if res.endswith("```"):
-            res = res[:-3]
-        return res.strip()
-    except Exception as e:
-        raise LLMError(f"Failed to generate numerology insights: {str(e)}")
 
 
 
@@ -618,14 +567,7 @@ Requirements:
     history = [{"role": "user", "content": "Generate the complete 15-Milestone Roadmap JSON."}]
 
     try:
-        if active_llm == "mistral_local":
-            res = _call_mistral_local(system_prompt, history)
-        elif active_llm == "mistral_cloud":
-            res = _call_mistral_cloud(system_prompt, history)
-        elif active_llm == "gemini":
-            res = _call_gemini(system_prompt, history)
-        else:
-            raise LLMError(f"Unknown ACTIVE_LLM value: '{active_llm}'.")
+        res = _execute_llm(system_prompt, history)
         
         # Clean up possible markdown code blocks
         res = res.strip()
@@ -689,14 +631,7 @@ def get_interpret_response(
     
     def fetch_part(system_prompt):
         history = [{"role": "user", "content": f"Analyze my chart using {tradition}."}]
-        if active_llm == "mistral_local":
-            res = _call_mistral_local(system_prompt, history)
-        elif active_llm == "mistral_cloud":
-            res = _call_mistral_cloud(system_prompt, history)
-        elif active_llm == "gemini":
-            res = _call_gemini(system_prompt, history)
-        else:
-            raise LLMError(f"Unknown ACTIVE_LLM value: '{active_llm}'.")
+        res = _execute_llm(system_prompt, history)
         return res.strip()
     
     prompt1 = f"""You are AstroJunction Daivajna, a Master Astrologer specializing in the {tradition.upper()} tradition.
@@ -742,8 +677,8 @@ Instructions:
 
 def generate_raw_completion(prompt: str, model: str = None) -> str:
     """Directly calls the configured LLM with a raw prompt string."""
-    raw_url = os.getenv("MISTRAL_LOCAL_URL", "http://122.163.121.176:3041/api/generate").strip().rstrip("/")
-    model_name = model or os.getenv("MISTRAL_MODEL", "mistral:latest")
+    raw_url = get_setting("MISTRAL_LOCAL_URL", "http://122.163.121.176:3041/api/generate").strip().rstrip("/")
+    model_name = model or get_setting("MISTRAL_MODEL", "mistral:latest")
     
     if raw_url.endswith("/api/generate") or raw_url.endswith("/api/chat"):
         endpoint_url = raw_url
@@ -779,8 +714,6 @@ def get_filtered_roadmap_predictions_response(
     horizon: str = "0-5 Years",
     language: str = "en"
 ) -> str:
-    active_llm = os.getenv("ACTIVE_LLM", "mistral_local")
-    
     profile_name = profile.get("fullName", "Seeker")
     horoscope_sys = profile.get("horoscopeSystem", "Vedic")
     dob = profile.get("birthDate", "Unknown")
@@ -902,14 +835,7 @@ Requirements:
     history = [{"role": "user", "content": f"Generate the 8-Topic Kundli Prediction JSON for horizon {horizon}."}]
 
     try:
-        if active_llm == "mistral_local":
-            res = _call_mistral_local(system_prompt, history)
-        elif active_llm == "mistral_cloud":
-            res = _call_mistral_cloud(system_prompt, history)
-        elif active_llm == "gemini":
-            res = _call_gemini(system_prompt, history)
-        else:
-            raise LLMError(f"Unknown ACTIVE_LLM value: '{active_llm}'.")
+        res = _execute_llm(system_prompt, history)
         
         res = res.strip()
         if res.startswith("```json"):

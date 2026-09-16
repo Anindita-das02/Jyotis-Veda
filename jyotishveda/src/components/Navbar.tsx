@@ -28,6 +28,7 @@ import {
   Shield,
   Home,
   Loader2,
+  Cpu,
 } from 'lucide-react';
 import { UserProfile, HoroscopeTradition } from '../types';
 import { AncientTraditionLogo } from './AncientTraditionLogo';
@@ -122,6 +123,7 @@ export const Navbar: React.FC<NavbarProps> = ({
         { id: 'admin_dashboard', label: 'Dashboard', icon: Network },
         { id: 'admin_users', label: 'Users', icon: Users },
         { id: 'admin_revenue', label: 'Revenue', icon: Wallet },
+        { id: 'admin_llm', label: 'AI Engine', icon: Cpu },
         { id: 'admin_logs', label: 'Logs', icon: Terminal },
         { id: 'blogs', label: 'Blogs', icon: FileText },
         { id: 'admin', label: t('tab.admin'), icon: Network },
@@ -138,6 +140,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   const mobileQuickTabs = isAdmin
     ? [
         { id: 'admin_dashboard', label: 'Dashboard', icon: Network },
+        { id: 'admin_llm', label: 'AI Engine', icon: Cpu },
         { id: 'admin_users', label: 'Users', icon: Users },
         { id: 'admin_revenue', label: 'Revenue', icon: Wallet },
         { id: 'blogs', label: 'Blogs', icon: FileText },

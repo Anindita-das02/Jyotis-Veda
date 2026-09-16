@@ -87,4 +87,36 @@ export const adminApi = {
   getAllTransactions: async (): Promise<Transaction[]> => {
     return api.get<Transaction[]>(API_ENDPOINTS.ADMIN.REVENUE_TRANSACTIONS);
   },
+
+  getLLMConfig: async (): Promise<LLMConfig> => {
+    return api.get<LLMConfig>(API_ENDPOINTS.ADMIN.LLM_CONFIG);
+  },
+
+  updateLLMConfig: async (config: Partial<LLMConfig>): Promise<{ success: boolean; message: string; settings: LLMConfig }> => {
+    return api.put(API_ENDPOINTS.ADMIN.LLM_CONFIG, config);
+  },
+
+  testLLMConnection: async (provider: string, config?: Partial<LLMConfig>): Promise<LLMTestResult> => {
+    return api.post<LLMTestResult>(API_ENDPOINTS.ADMIN.LLM_TEST, { provider, config });
+  },
 };
+
+export interface LLMConfig {
+  ACTIVE_LLM: 'mistral_local' | 'gemini' | 'mistral_cloud' | 'openai';
+  MISTRAL_LOCAL_URL: string;
+  MISTRAL_MODEL: string;
+  GEMINI_API_KEY: string;
+  GEMINI_MODEL: string;
+  MISTRAL_CLOUD_URL: string;
+  MISTRAL_CLOUD_API_KEY: string;
+  OPENAI_API_KEY: string;
+  OPENAI_MODEL: string;
+  OPENAI_BASE_URL: string;
+}
+
+export interface LLMTestResult {
+  provider: string;
+  status: 'ok' | 'error';
+  message: string;
+  latency_ms: number;
+}

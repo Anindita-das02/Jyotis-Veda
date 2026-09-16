@@ -15,6 +15,7 @@ import { AdminDashboardView } from './components/AdminDashboardView';
 import { AdminUsersView } from './components/AdminUsersView';
 import { AdminLogsView } from './components/AdminLogsView';
 import { AdminRevenueView } from './components/AdminRevenueView';
+import { AdminLLMConfigView } from './components/AdminLLMConfigView';
 import PanjikaCalendarView from './components/PanjikaCalendarView';
 
 import { API_ENDPOINTS } from './config/api_config';
@@ -630,6 +631,10 @@ export function App() {
 
             {activeTab === 'admin_revenue' && (
               <AdminRevenueView theme={theme} />
+            )}
+
+            {activeTab === 'admin_llm' && (
+              <AdminLLMConfigView theme={theme} />
             )}
 
             {activeTab === 'horoscope' && (
