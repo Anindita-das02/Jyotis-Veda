@@ -303,21 +303,6 @@ export const AdminLLMConfigView: React.FC<AdminLLMConfigViewProps> = ({ theme })
         </div>
       </div>
 
-      {/* Notifications */}
-      {errorMessage && (
-        <div className="p-3.5 bg-rose-500/10 border border-rose-500/30 rounded-xl text-rose-500 text-xs flex items-center space-x-2.5">
-          <AlertCircle className="w-4 h-4 shrink-0" />
-          <span>{errorMessage}</span>
-        </div>
-      )}
-
-      {saveSuccess && (
-        <div className="p-3.5 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-emerald-500 text-xs flex items-center space-x-2.5">
-          <CheckCircle2 className="w-4 h-4 shrink-0" />
-          <span className="font-semibold">{saveSuccess}</span>
-        </div>
-      )}
-
       {/* Provider Selection Cards (Clean, sober, no ping clutter) */}
       <div>
         <div className="text-xs font-bold uppercase tracking-wider text-[#C9A050] mb-3">
@@ -357,24 +342,11 @@ export const AdminLLMConfigView: React.FC<AdminLLMConfigViewProps> = ({ theme })
                     </div>
 
                     <div className="flex items-center space-x-1">
-                      {isLive ? (
-                        <span className="px-2 py-0.5 rounded-full text-[9px] font-bold uppercase bg-emerald-500/20 text-emerald-400 border border-emerald-500/40">
+                      {isLive && (
+                        <span className="px-2.5 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider bg-emerald-500/20 text-emerald-400 border border-emerald-500/40">
                           Active
                         </span>
-                      ) : isProviderConfigured(provider.id) ? (
-                        <span className="px-2 py-0.5 rounded-full text-[9px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                          Ready
-                        </span>
-                      ) : (
-                        <span className="px-2 py-0.5 rounded-full text-[9px] font-semibold bg-amber-500/10 text-amber-400 border border-amber-500/20">
-                          {provider.id === 'mistral_local' ? 'URL Missing' : 'Key Missing'}
-                        </span>
                       )}
-                      <span className={`px-2 py-0.5 rounded-full text-[9px] font-semibold ${
-                        isDark ? 'bg-white/5 text-gray-400' : 'bg-gray-100 text-gray-600'
-                      }`}>
-                        {provider.badge}
-                      </span>
                     </div>
                   </div>
 
@@ -407,7 +379,53 @@ export const AdminLLMConfigView: React.FC<AdminLLMConfigViewProps> = ({ theme })
         </div>
       </div>
 
-      {/* Configuration Form for Selected Provider */}
+      {/* Notifications & Live Verification Messages (Placed right between Box 1 and Box 2) */}
+      {(errorMessage || saveSuccess || testResult) && (
+        <div className="space-y-3 animate-in fade-in duration-200">
+          {errorMessage && (
+            <div className="p-3.5 bg-rose-500/10 border border-rose-500/30 rounded-xl text-rose-500 text-xs flex items-center space-x-2.5">
+              <AlertCircle className="w-4 h-4 shrink-0" />
+              <span>{errorMessage}</span>
+            </div>
+          )}
+
+          {saveSuccess && (
+            <div className="p-3.5 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-emerald-500 text-xs flex items-center space-x-2.5">
+              <CheckCircle2 className="w-4 h-4 shrink-0" />
+              <span className="font-semibold">{saveSuccess}</span>
+            </div>
+          )}
+
+          {testResult && (
+            <div
+              className={`p-3.5 rounded-xl text-xs border flex items-center justify-between gap-3 ${
+                testResult.status === 'ok'
+                  ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
+                  : 'bg-rose-500/10 border-rose-500/30 text-rose-400'
+              }`}
+            >
+              <div className="flex items-center space-x-2.5">
+                {testResult.status === 'ok' ? (
+                  <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-400" />
+                ) : (
+                  <AlertCircle className="w-4 h-4 shrink-0 text-rose-400" />
+                )}
+                <span>
+                  <strong>{testResult.status === 'ok' ? 'Key Verified Valid:' : 'Key Invalid / Rejected:'}</strong>{' '}
+                  {testResult.message}
+                </span>
+              </div>
+              {testResult.latency_ms !== undefined && testResult.latency_ms > 0 && (
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 shrink-0">
+                  {testResult.latency_ms}ms
+                </span>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Configuration Form for Selected Provider (Box 2) */}
       <div className={`p-6 sm:p-7 rounded-2xl border transition-all ${
         isDark ? 'bg-[#141418] border-[#2A2A2E]' : 'bg-white border-[#E5E1D8] shadow-sm'
       }`}>
@@ -417,17 +435,9 @@ export const AdminLLMConfigView: React.FC<AdminLLMConfigViewProps> = ({ theme })
               <h2 className="text-lg font-serif font-bold">
                 Configure <span className="text-[#C9A050]">{currentProvider.name}</span>
               </h2>
-              {config?.ACTIVE_LLM === currentProvider.id ? (
+              {config?.ACTIVE_LLM === currentProvider.id && (
                 <span className="px-2 py-0.5 rounded-full text-[9px] font-bold uppercase bg-emerald-500/20 text-emerald-400 border border-emerald-500/40">
                   Active in Production
-                </span>
-              ) : !isProviderConfigured(currentProvider.id) ? (
-                <span className="px-2 py-0.5 rounded-full text-[9px] font-semibold bg-amber-500/10 text-amber-400 border border-amber-500/30">
-                  {currentProvider.id === 'mistral_local' ? 'URL Required' : 'API Key Required'}
-                </span>
-              ) : (
-                <span className="px-2 py-0.5 rounded-full text-[9px] font-semibold bg-blue-500/10 text-blue-400 border border-blue-500/30">
-                  Configured & Ready
                 </span>
               )}
             </div>
@@ -483,34 +493,6 @@ export const AdminLLMConfigView: React.FC<AdminLLMConfigViewProps> = ({ theme })
             </a>
           </div>
         </div>
-
-        {/* Live Verification Result Banner */}
-        {testResult && (
-          <div
-            className={`mb-4 p-3.5 rounded-xl text-xs border flex items-center justify-between gap-3 animate-in fade-in duration-200 ${
-              testResult.status === 'ok'
-                ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
-                : 'bg-rose-500/10 border-rose-500/30 text-rose-400'
-            }`}
-          >
-            <div className="flex items-center space-x-2.5">
-              {testResult.status === 'ok' ? (
-                <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-400" />
-              ) : (
-                <AlertCircle className="w-4 h-4 shrink-0 text-rose-400" />
-              )}
-              <span>
-                <strong>{testResult.status === 'ok' ? 'Key Verified Valid:' : 'Key Invalid / Rejected:'}</strong>{' '}
-                {testResult.message}
-              </span>
-            </div>
-            {testResult.latency_ms !== undefined && testResult.latency_ms > 0 && (
-              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 shrink-0">
-                {testResult.latency_ms}ms
-              </span>
-            )}
-          </div>
-        )}
 
         {/* Inputs */}
         <div className="space-y-4">
