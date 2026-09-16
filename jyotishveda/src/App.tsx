@@ -78,7 +78,7 @@ const DEFAULT_PROFILES: UserProfile[] = [
     notes:
       'Planning global tech expansion and career milestone promotion.',
     createdAt: new Date().toISOString(),
-    isPremium: true,
+    isPremium: false,
     horoscopeSystem: 'vedic',
   },
   {

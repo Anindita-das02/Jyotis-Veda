@@ -1,4 +1,5 @@
 import os
+import re
 import requests
 import json
 import concurrent.futures
@@ -634,42 +635,64 @@ def get_interpret_response(
         res = _execute_llm(system_prompt, history)
         return res.strip()
     
-    prompt1 = f"""You are AstroJunction Daivajna, a Master Astrologer specializing in the {tradition.upper()} tradition.
-Generate Part 1 of a deeply insightful and personalized Vedic astrological interpretation for the user.
+    lang_inst = "All text MUST be 100% in English only. Do NOT output any translations, parenthetical scripts, or other languages."
+    if language == 'bn':
+        lang_inst = "All text MUST be written in fluent, authentic Bengali script."
+    elif language and language != 'en':
+        lang_inst = f"All text MUST be in language code: {language}."
 
-User Details: Name: {profile_name}, Lagna: {lagna_rashi} ({lagna_nak})
+    prompt1 = f"""You are AstroJunction Daivajna, an authentic, revered Vedic Astrologer providing personalized, enlightened astrological counsel for a seeker.
+Deliver a deeply insightful and personalized Vedic astrological interpretation in English. Write warmly and authoritatively like a revered Guru or Daivajna, NOT like a generic chatbot or machine.
+
+Seeker Details: Name: {profile_name}, Lagna (Ascendant): {lagna_rashi} ({lagna_nak})
 
 Instructions:
-1. Output ONLY a section titled: "### 🌟 Cosmic Synthesis & Lagna Archetype".
-2. Explain their life path based on their Ascendant ({lagna_rashi}) and how it shapes their fundamental nature.
-3. Keep the output beautifully formatted using markdown. Use bullet points where appropriate.
-4. All text MUST be translated into the language code: {language}. If 'bn', output in Bengali script.
+1. Begin with a clean heading:
+### Cosmic Synthesis & Lagna Archetype
+2. Present a synthesis of how their Ascendant ({lagna_rashi}) and Nakshatra ({lagna_nak}) shape their core soul vitality and dharma.
+3. Provide 3-4 distinct archetypal dimensions as bullet points with bold titles (for example: - **Communication Mastery**: explanation...).
+4. Do NOT output raw hashtags like ### at random places or multiple stars. Keep the text clean, respectful, and eloquent.
+5. {lang_inst}
 """
 
-    prompt2 = f"""You are AstroJunction Daivajna, a Master Astrologer specializing in the {tradition.upper()} tradition.
-Generate Part 2 of a deeply insightful and personalized Vedic astrological interpretation for the user.
+    prompt2 = f"""You are AstroJunction Daivajna, an authentic, revered Vedic Astrologer specializing in the {tradition.upper()} tradition.
+Deliver an authoritative, personalized timeline analysis of the seeker's active planetary cycles in English. Write warmly and authoritatively like a revered Guru or Daivajna, NOT like a generic chatbot.
 
-User Details: Name: {profile_name}, Active Dasha: {maha_dasha} Mahadasha / {antar_dasha} Antardasha
+Seeker Details: Name: {profile_name}, Active Dasha: {maha_dasha} Mahadasha / {antar_dasha} Antardasha
 
 Instructions:
-1. Output ONLY a section titled: "### 🪐 Tradition-Specific Deep Dive ({tradition.upper()})".
-2. Use the rules of the {tradition.upper()} system to explain their current active Dasha ({maha_dasha}/{antar_dasha}) and what it means for them right now.
-3. Keep the output beautifully formatted using markdown. Use bullet points where appropriate.
-4. All text MUST be translated into the language code: {language}. If 'bn', output in Bengali script.
+1. Begin with a clean heading:
+### Tradition-Specific Deep Dive ({tradition.upper()})
+2. Use the classical principles of {tradition.upper()} astrology to explain the karmic significance and practical guidance for their current active Dasha ({maha_dasha}/{antar_dasha}) right now.
+3. Provide 2-3 focused guidance points as bullet points with bold titles.
+4. Do NOT output raw hashtags like ### at random places or multiple stars. Keep the text clean, respectful, and eloquent.
+5. {lang_inst}
 """
     
+    def clean_output(text: str) -> str:
+        if not text:
+            return ""
+        cleaned = re.sub(r'^[#\s*]+', '### ', text.strip())
+        if language != 'bn':
+            cleaned = re.sub(r'\s*\([^\)]*[\u0980-\u09FF]+[^\)]*\)\s*', '', cleaned)
+            cleaned = re.sub(r'\s*\(In (?:fluent )?[A-Za-z\s]+script:[^\)]*\)\s*', '', cleaned, flags=re.IGNORECASE)
+        return cleaned.strip()
+
     try:
         part1_res = fetch_part(prompt1)
         part2_res = fetch_part(prompt2)
         
-        return f"{part1_res}\n\n{part2_res}"
+        part1_clean = clean_output(part1_res)
+        part2_clean = clean_output(part2_res)
+        
+        return f"{part1_clean}\n\n{part2_clean}"
     except Exception as e:
         print(f"Warning: Interpretation LLM failed ({e}), using dynamic Vedic astrological calculation fallback.")
-        return f"""### 🌟 Cosmic Synthesis & Lagna Archetype
+        return f"""### Cosmic Synthesis & Lagna Archetype
 - **Ascendant ({lagna_rashi})**: Your Lagna governs fundamental vitality, personal resilience, and the primary direction of your karmic expression.
 - **Nakshatra ({lagna_nak})**: Bestows sharp intuition, intellectual depth, and leadership qualities that guide your professional and personal decisions.
 
-### 🪐 Tradition-Specific Deep Dive ({tradition.upper()})
+### Tradition-Specific Deep Dive ({tradition.upper()})
 - **Active Dasha**: Operating under the **{maha_dasha} Mahadasha** and **{antar_dasha} Antardasha**.
 - **Karmic Focus**: This period activates important transformations in career, wealth consolidation, and personal growth. Focus on steady discipline and moral clarity for maximum spiritual and material success."""
 

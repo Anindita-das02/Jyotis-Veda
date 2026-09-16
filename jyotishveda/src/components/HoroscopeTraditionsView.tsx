@@ -12,6 +12,7 @@ import {
   Milestone,
 } from 'lucide-react';
 import { jsPDF } from 'jspdf';
+import ReactMarkdown from 'react-markdown';
 
 import {
   UserProfile,
@@ -248,6 +249,19 @@ export const HoroscopeTraditionsView: React.FC<
     setIsPlayingAudio(true);
 
     window.speechSynthesis.speak(utterance);
+  };
+
+  const cleanAiInterpretation = (rawText: string | null): string => {
+    if (!rawText) return '';
+    return rawText
+      // Strip lines that are just hashes, dashes, or asterisks
+      .replace(/^[\s#*_-]+$/gm, '')
+      // Standardize section headers by stripping leading hashes and emojis so ReactMarkdown parses cleanly
+      .replace(/^#{1,6}\s*(?:[🌟🪐✨💫🔮🌙☀️]|\u2728|\u2B50)?\s*/gmu, '### ')
+      // Strip any unwanted parenthetical translation blocks like "(In fluent Bengali script: ...)"
+      .replace(/\s*\([^)​]*[\u0980-\u09FF]+[^)]*\)\s*/g, '')
+      .replace(/\s*\(In (?:fluent )?[A-Za-z\s]+script:[^)]*\)\s*/gi, '')
+      .trim();
   };
 
   // Comprehensive 5 Vedic Traditions & Birth Chart PDF Report Generator
@@ -2046,17 +2060,23 @@ export const HoroscopeTraditionsView: React.FC<
       </div>
 
       {/* AI COMPREHENSIVE SYNTHESIS (FULL WIDTH ACROSS ENTIRE PAGE) */}
-      <div className="w-full bg-[#141418] border border-[#2A2A2E] rounded-xl p-6 text-[#E5E1D8] shadow-xl space-y-4">
-        <div className="flex items-center justify-between pb-3 border-b border-[#2A2A2E] flex-wrap gap-3">
+      <div className={`w-full border rounded-2xl p-6 sm:p-8 shadow-xl space-y-5 transition-colors ${
+        isDark
+          ? 'bg-[#141418] border-[#2A2A2E] text-[#E5E1D8]'
+          : 'bg-[#FFFDF9] border-[#E5E1D8] text-[#1A1A1E]'
+      }`}>
+        <div className="flex items-center justify-between pb-4 border-b border-[#C9A050]/20 flex-wrap gap-3">
           <div>
-            <h3 className="text-base font-serif font-bold text-[#F0ECE1] flex items-center space-x-2">
+            <h3 className={`text-base sm:text-lg font-serif font-bold flex items-center space-x-2 ${
+              isDark ? 'text-[#F0ECE1]' : 'text-gray-900'
+            }`}>
               <Sparkles className="w-4 h-4 text-[#C9A050]" />
               <span>
                 Comprehensive Vedic Synthesis ({tradition.toUpperCase()})
               </span>
             </h3>
-            <p className="text-xs text-[#9E9A90]">
-              Deep Vedic analysis integrating chart positions, dashas & ancient rules
+            <p className={`text-xs ${isDark ? 'text-[#9E9A90]' : 'text-gray-500'}`}>
+              Deep Vedic analysis integrating chart positions, dashas &amp; ancient rules
             </p>
           </div>
 
@@ -2064,9 +2084,13 @@ export const HoroscopeTraditionsView: React.FC<
             {aiInterpretation && (
               <button
                 onClick={() => handleSpeech(aiInterpretation)}
-                className="p-2 rounded-lg bg-[#1A1A1E] border border-[#2A2A2E] text-[#E5E1D8] hover:text-white transition cursor-pointer text-xs flex items-center space-x-1"
+                className={`p-2 rounded-lg border transition cursor-pointer text-xs flex items-center space-x-1.5 ${
+                  isDark
+                    ? 'bg-[#1A1A1E] border-[#2A2A2E] text-[#E5E1D8] hover:text-white'
+                    : 'bg-white border-[#E5E1D8] text-gray-700 hover:text-black shadow-sm'
+                }`}
               >
-                <Volume2 className="w-4 h-4" />
+                <Volume2 className="w-4 h-4 text-[#C9A050]" />
                 <span>{isPlayingAudio ? 'Stop' : 'Listen'}</span>
               </button>
             )}
@@ -2074,7 +2098,7 @@ export const HoroscopeTraditionsView: React.FC<
             <button
               onClick={handleGenerateAIInterpretation}
               disabled={isLoadingAi}
-              className="px-3.5 py-2 rounded-lg bg-[#C9A050]/15 hover:bg-[#C9A050]/25 border border-[#C9A050]/40 text-[#C9A050] font-bold text-xs shadow-sm transition cursor-pointer flex items-center space-x-1.5 disabled:opacity-50"
+              className="px-4 py-2 rounded-lg bg-gradient-to-r from-[#C9A050] to-[#A07828] hover:from-[#D4AF37] hover:to-[#B38730] text-[#0D0D0F] font-bold text-xs shadow-md shadow-[#C9A050]/20 transition cursor-pointer flex items-center space-x-1.5 disabled:opacity-50"
             >
               <Sparkles
                 className={`w-3.5 h-3.5 ${
@@ -2100,18 +2124,81 @@ export const HoroscopeTraditionsView: React.FC<
             </p>
           </div>
         ) : aiInterpretation ? (
-          <div className="prose prose-invert max-w-none text-[#E5E1D8] text-xs sm:text-sm leading-relaxed space-y-3 whitespace-pre-line bg-[#08080A] p-5 rounded-xl border border-[#2A2A2E] font-serif">
-            {aiInterpretation}
+          <div className={`p-6 sm:p-8 rounded-2xl border shadow-inner ${
+            isDark
+              ? 'bg-[#0B0B0E] border-[#2A2A2E]'
+              : 'bg-[#FAF7F0] border-[#E8E2D5]'
+          }`}>
+            <ReactMarkdown
+              components={{
+                h2: ({ children }) => (
+                  <div className="mt-7 mb-4 pt-5 first:mt-0 first:pt-0 border-t first:border-t-0 border-[#C9A050]/20 flex items-center space-x-3">
+                    <div className="w-7 h-7 rounded-lg bg-[#C9A050]/15 border border-[#C9A050]/30 flex items-center justify-center shrink-0 shadow-sm">
+                      <Sparkles className="w-3.5 h-3.5 text-[#C9A050]" />
+                    </div>
+                    <h2 className={`text-base sm:text-lg font-serif font-bold tracking-wide ${
+                      isDark ? 'text-[#F0ECE1]' : 'text-gray-900'
+                    }`}>
+                      {children}
+                    </h2>
+                  </div>
+                ),
+                h3: ({ children }) => (
+                  <div className="mt-7 mb-4 pt-5 first:mt-0 first:pt-0 border-t first:border-t-0 border-[#C9A050]/20 flex items-center space-x-3">
+                    <div className="w-7 h-7 rounded-lg bg-[#C9A050]/15 border border-[#C9A050]/30 flex items-center justify-center shrink-0 shadow-sm">
+                      <Sparkles className="w-3.5 h-3.5 text-[#C9A050]" />
+                    </div>
+                    <h3 className={`text-base sm:text-lg font-serif font-bold tracking-wide ${
+                      isDark ? 'text-[#F0ECE1]' : 'text-gray-900'
+                    }`}>
+                      {children}
+                    </h3>
+                  </div>
+                ),
+                p: ({ children }) => (
+                  <p className={`text-xs sm:text-sm font-sans leading-relaxed mb-4 ${
+                    isDark ? 'text-[#C5C0B5]' : 'text-gray-700'
+                  }`}>
+                    {children}
+                  </p>
+                ),
+                ul: ({ children }) => (
+                  <ul className="grid grid-cols-1 md:grid-cols-2 gap-3.5 my-4 list-none pl-0">
+                    {children}
+                  </ul>
+                ),
+                li: ({ children }) => (
+                  <li className={`p-4 rounded-xl border transition-all duration-200 shadow-sm leading-relaxed text-xs sm:text-sm flex flex-col justify-start space-y-1.5 ${
+                    isDark
+                      ? 'bg-[#15151A]/90 border-[#2A2A2E] text-[#D0CCC2] hover:border-[#C9A050]/40'
+                      : 'bg-white border-[#E8E2D5] text-gray-800 hover:border-[#C9A050]/50 shadow-sm'
+                  }`}>
+                    {children}
+                  </li>
+                ),
+                strong: ({ children }) => (
+                  <strong className={`font-semibold tracking-wide ${
+                    isDark ? 'text-[#E5B558]' : 'text-[#96721E]'
+                  }`}>
+                    {children}
+                  </strong>
+                ),
+              }}
+            >
+              {cleanAiInterpretation(aiInterpretation)}
+            </ReactMarkdown>
           </div>
         ) : (
-          <div className="text-center py-6 bg-[#1A1A1E]/40 rounded-xl border border-[#2A2A2E]">
-            <p className="text-xs text-[#9E9A90] font-sans">
+          <div className={`text-center py-8 rounded-xl border ${
+            isDark ? 'bg-[#1A1A1E]/40 border-[#2A2A2E]' : 'bg-[#FAF7F0] border-[#E8E2D5]'
+          }`}>
+            <p className={`text-xs font-sans ${isDark ? 'text-[#9E9A90]' : 'text-gray-600'}`}>
               Ready to generate a comprehensive synthesis combining{' '}
               <strong className="text-[#C9A050]">{tradition}</strong> rules with your active Dasha timeline and yogas.
             </p>
             <button
               onClick={handleGenerateAIInterpretation}
-              className="mt-3 px-4 py-2 rounded-lg bg-[#C9A050]/15 hover:bg-[#C9A050]/25 border border-[#C9A050]/40 text-[#C9A050] text-xs font-semibold cursor-pointer transition"
+              className="mt-3.5 px-5 py-2.5 rounded-lg bg-gradient-to-r from-[#C9A050] to-[#A07828] hover:from-[#D4AF37] hover:to-[#B38730] text-[#0D0D0F] font-bold text-xs shadow-md shadow-[#C9A050]/20 cursor-pointer transition"
             >
               Click to Generate Deep Interpretation
             </button>
