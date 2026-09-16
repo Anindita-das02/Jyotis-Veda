@@ -99,6 +99,10 @@ export const adminApi = {
   testLLMConnection: async (provider: string, config?: Partial<LLMConfig>): Promise<LLMTestResult> => {
     return api.post<LLMTestResult>(API_ENDPOINTS.ADMIN.LLM_TEST, { provider, config });
   },
+
+  testAllProviders: async (): Promise<Record<string, LLMTestResult>> => {
+    return api.post<Record<string, LLMTestResult>>(API_ENDPOINTS.ADMIN.LLM_TEST, { provider: 'all' });
+  },
 };
 
 export interface LLMConfig {
@@ -112,6 +116,21 @@ export interface LLMConfig {
   OPENAI_API_KEY: string;
   OPENAI_MODEL: string;
   OPENAI_BASE_URL: string;
+  ENABLE_AUTO_FAILOVER?: string | boolean;
+  FALLBACK_LLM?: 'mistral_local' | 'gemini' | 'mistral_cloud' | 'openai';
+  LLM_TIMEOUT?: string | number;
+  LLM_TEMPERATURE?: string | number;
+  LLM_MAX_TOKENS?: string | number;
+  is_configured?: {
+    mistral_local?: boolean;
+    gemini?: boolean;
+    mistral_cloud?: boolean;
+    openai?: boolean;
+  };
+  gemini?: { is_configured: boolean; model?: string; masked_key?: string };
+  openai?: { is_configured: boolean; model?: string; masked_key?: string };
+  mistral_cloud?: { is_configured: boolean; model?: string; masked_key?: string };
+  mistral_local?: { url?: string; model?: string };
 }
 
 export interface LLMTestResult {

@@ -1,6 +1,7 @@
 import os
 import time
 import requests
+import concurrent.futures
 from typing import Dict, Any, Optional
 from database.db_connection import get_db_connection
 
@@ -138,7 +139,7 @@ def mask_key(k: str) -> str:
 def get_llm_config() -> Dict[str, Any]:
     """Returns the complete LLM configuration with masked credentials."""
     active_llm = get_setting("ACTIVE_LLM", "mistral_local")
-    mistral_local_url = get_setting("MISTRAL_LOCAL_URL", "http://122.163.121.176:3041")
+    mistral_local_url = get_setting("MISTRAL_LOCAL_URL", "")
     mistral_model = get_setting("MISTRAL_MODEL", "mistral:latest")
 
     mistral_cloud_url = get_setting("MISTRAL_CLOUD_URL", "https://api.mistral.ai")
@@ -150,6 +151,13 @@ def get_llm_config() -> Dict[str, Any]:
     openai_api_key = get_setting("OPENAI_API_KEY", "")
     openai_model = get_setting("OPENAI_MODEL", "gpt-4o-mini")
     openai_base_url = get_setting("OPENAI_BASE_URL", "https://api.openai.com/v1")
+
+    # High-Availability & Tuning parameters
+    enable_failover = get_setting("ENABLE_AUTO_FAILOVER", "true")
+    fallback_llm = get_setting("FALLBACK_LLM", "gemini")
+    llm_timeout = get_setting("LLM_TIMEOUT", "30")
+    llm_temperature = get_setting("LLM_TEMPERATURE", "0.7")
+    llm_max_tokens = get_setting("LLM_MAX_TOKENS", "2048")
 
     return {
         # Flat format matching LLMConfig TypeScript interface:
@@ -163,6 +171,17 @@ def get_llm_config() -> Dict[str, Any]:
         "OPENAI_API_KEY": mask_key(openai_api_key),
         "OPENAI_MODEL": openai_model,
         "OPENAI_BASE_URL": openai_base_url,
+        "ENABLE_AUTO_FAILOVER": enable_failover,
+        "FALLBACK_LLM": fallback_llm,
+        "LLM_TIMEOUT": llm_timeout,
+        "LLM_TEMPERATURE": llm_temperature,
+        "LLM_MAX_TOKENS": llm_max_tokens,
+        "is_configured": {
+            "mistral_local": bool(mistral_local_url and mistral_local_url.strip()),
+            "gemini": bool(gemini_api_key and gemini_api_key.strip()),
+            "mistral_cloud": bool(mistral_cloud_key and mistral_cloud_key.strip()),
+            "openai": bool(openai_api_key and openai_api_key.strip()),
+        },
         # Nested format for backward compatibility:
         "active_llm": active_llm,
         "mistral_local": {
@@ -191,48 +210,113 @@ def get_llm_config() -> Dict[str, Any]:
 
 
 def update_llm_config(data: Dict[str, Any], updated_by: str = "admin") -> bool:
-    """Updates the LLM configuration in database."""
-    # Active LLM
-    active_llm = data.get("ACTIVE_LLM") or data.get("active_llm")
-    if active_llm:
-        set_setting("ACTIVE_LLM", active_llm.strip(), updated_by=updated_by, description="Active LLM provider")
-
+    """Updates the LLM configuration in database with credential validation."""
     # Local Mistral
     mistral_url = data.get("MISTRAL_LOCAL_URL") or data.get("mistral_local_url")
-    if mistral_url:
-        set_setting("MISTRAL_LOCAL_URL", mistral_url.strip(), updated_by=updated_by)
+    if mistral_url is not None and str(mistral_url).strip():
+        set_setting("MISTRAL_LOCAL_URL", str(mistral_url).strip(), updated_by=updated_by)
     mistral_model = data.get("MISTRAL_MODEL") or data.get("mistral_model")
     if mistral_model:
-        set_setting("MISTRAL_MODEL", mistral_model.strip(), updated_by=updated_by)
+        set_setting("MISTRAL_MODEL", str(mistral_model).strip(), updated_by=updated_by)
 
     # Mistral Cloud
     mc_url = data.get("MISTRAL_CLOUD_URL") or data.get("mistral_cloud_url")
     if mc_url:
-        set_setting("MISTRAL_CLOUD_URL", mc_url.strip(), updated_by=updated_by)
+        set_setting("MISTRAL_CLOUD_URL", str(mc_url).strip(), updated_by=updated_by)
     mc_key = data.get("MISTRAL_CLOUD_API_KEY") or data.get("mistral_cloud_api_key")
     if mc_key and not mc_key.startswith("***") and "..." not in mc_key:
-        set_setting("MISTRAL_CLOUD_API_KEY", mc_key.strip(), updated_by=updated_by)
+        set_setting("MISTRAL_CLOUD_API_KEY", str(mc_key).strip(), updated_by=updated_by)
 
     # Gemini
     gem_key = data.get("GEMINI_API_KEY") or data.get("gemini_api_key")
     if gem_key and not gem_key.startswith("***") and "..." not in gem_key:
-        set_setting("GEMINI_API_KEY", gem_key.strip(), updated_by=updated_by)
+        set_setting("GEMINI_API_KEY", str(gem_key).strip(), updated_by=updated_by)
     gem_model = data.get("GEMINI_MODEL") or data.get("gemini_model")
     if gem_model:
-        set_setting("GEMINI_MODEL", gem_model.strip(), updated_by=updated_by)
+        set_setting("GEMINI_MODEL", str(gem_model).strip(), updated_by=updated_by)
 
     # OpenAI
     oa_key = data.get("OPENAI_API_KEY") or data.get("openai_api_key")
     if oa_key and not oa_key.startswith("***") and "..." not in oa_key:
-        set_setting("OPENAI_API_KEY", oa_key.strip(), updated_by=updated_by)
+        set_setting("OPENAI_API_KEY", str(oa_key).strip(), updated_by=updated_by)
     oa_model = data.get("OPENAI_MODEL") or data.get("openai_model")
     if oa_model:
-        set_setting("OPENAI_MODEL", oa_model.strip(), updated_by=updated_by)
+        set_setting("OPENAI_MODEL", str(oa_model).strip(), updated_by=updated_by)
     oa_base = data.get("OPENAI_BASE_URL") or data.get("openai_base_url")
     if oa_base:
-        set_setting("OPENAI_BASE_URL", oa_base.strip(), updated_by=updated_by)
+        set_setting("OPENAI_BASE_URL", str(oa_base).strip(), updated_by=updated_by)
+
+    # Failover & Runtime parameters
+    if "ENABLE_AUTO_FAILOVER" in data:
+        val = "true" if str(data["ENABLE_AUTO_FAILOVER"]).lower() in ("true", "1", "yes") else "false"
+        set_setting("ENABLE_AUTO_FAILOVER", val, updated_by=updated_by)
+    if "FALLBACK_LLM" in data and data["FALLBACK_LLM"]:
+        set_setting("FALLBACK_LLM", str(data["FALLBACK_LLM"]).strip(), updated_by=updated_by)
+    if "LLM_TIMEOUT" in data and str(data["LLM_TIMEOUT"]).strip():
+        set_setting("LLM_TIMEOUT", str(data["LLM_TIMEOUT"]).strip(), updated_by=updated_by)
+    if "LLM_TEMPERATURE" in data and data["LLM_TEMPERATURE"]:
+        set_setting("LLM_TEMPERATURE", str(data["LLM_TEMPERATURE"]).strip(), updated_by=updated_by)
+    if "LLM_MAX_TOKENS" in data and data["LLM_MAX_TOKENS"]:
+        set_setting("LLM_MAX_TOKENS", str(data["LLM_MAX_TOKENS"]).strip(), updated_by=updated_by)
+
+    # Active LLM - ONLY set if provider is fully configured AND key is verified live!
+    active_llm = data.get("ACTIVE_LLM") or data.get("active_llm")
+    if active_llm:
+        provider = str(active_llm).strip().lower()
+        if provider == "gemini":
+            current_key = get_setting("GEMINI_API_KEY", "")
+            if not current_key or not current_key.strip():
+                raise ValueError("Google Gemini cannot be activated without an API Key. Please enter a valid Gemini API Key first.")
+        elif provider == "openai":
+            current_key = get_setting("OPENAI_API_KEY", "")
+            if not current_key or not current_key.strip():
+                raise ValueError("OpenAI cannot be activated without an API Key. Please enter a valid OpenAI API Key first.")
+        elif provider == "mistral_cloud":
+            current_key = get_setting("MISTRAL_CLOUD_API_KEY", "")
+            if not current_key or not current_key.strip():
+                raise ValueError("Mistral Cloud cannot be activated without an API Key. Please enter a valid Mistral Cloud API Key first.")
+        elif provider == "mistral_local":
+            current_url = get_setting("MISTRAL_LOCAL_URL", "")
+            if not current_url or not current_url.strip():
+                raise ValueError("Mistral Local cannot be activated without a Server Endpoint URL. Please configure the URL first.")
+        else:
+            raise ValueError(f"Unknown LLM provider: {provider}")
+
+        # Live verification: Test that the key/endpoint is genuinely valid and working
+        test_res = test_llm_connection(provider)
+        if not test_res.get("success"):
+            err_msg = test_res.get("message", "Authentication check failed.")
+            raise ValueError(f"Verification Failed: {err_msg}")
+
+        set_setting("ACTIVE_LLM", provider, updated_by=updated_by, description="Active LLM provider")
 
     return True
+
+
+def test_all_providers() -> Dict[str, Any]:
+    """Runs concurrent health checks on all supported LLM providers."""
+    providers = ["mistral_local", "gemini", "mistral_cloud", "openai"]
+    results = {}
+    with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
+        future_to_prov = {executor.submit(test_llm_connection, p): p for p in providers}
+        for future in concurrent.futures.as_completed(future_to_prov):
+            prov = future_to_prov[future]
+            try:
+                res = future.result()
+                results[prov] = {
+                    "provider": prov,
+                    "status": "ok" if res.get("success") else "error",
+                    "message": res.get("message", ""),
+                    "latency_ms": res.get("latency_ms", 0),
+                }
+            except Exception as e:
+                results[prov] = {
+                    "provider": prov,
+                    "status": "error",
+                    "message": str(e),
+                    "latency_ms": 0,
+                }
+    return results
 
 
 def test_llm_connection(provider: str, config: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
@@ -248,7 +332,7 @@ def test_llm_connection(provider: str, config: Optional[Dict[str, Any]] = None) 
             base_url = (
                 config.get("MISTRAL_LOCAL_URL")
                 or config.get("url")
-                or get_setting("MISTRAL_LOCAL_URL", "http://122.163.121.176:3041")
+                or get_setting("MISTRAL_LOCAL_URL", "")
             ).rstrip("/")
             model = (
                 config.get("MISTRAL_MODEL")
@@ -258,26 +342,25 @@ def test_llm_connection(provider: str, config: Optional[Dict[str, Any]] = None) 
             if not base_url:
                 return {"success": False, "message": "Local Mistral URL is empty"}
 
-            # Try /v1/chat/completions or /api/generate
             endpoint = f"{base_url}/api/generate"
             try:
                 resp = requests.post(
                     endpoint,
                     json={"model": model, "prompt": test_prompt, "stream": False},
-                    timeout=15,
+                    timeout=10,
                 )
             except Exception:
                 # Fallback to OpenAI-compatible /v1/chat/completions
                 resp = requests.post(
                     f"{base_url}/v1/chat/completions",
                     json={"model": model, "messages": [{"role": "user", "content": test_prompt}]},
-                    timeout=15,
+                    timeout=10,
                 )
 
             latency = int((time.time() - start_time) * 1000)
             if resp.status_code == 200:
                 return {"success": True, "latency_ms": latency, "message": f"Connected to {model} successfully ({latency}ms)"}
-            return {"success": False, "message": f"Server returned HTTP {resp.status_code}: {resp.text[:150]}"}
+            return {"success": False, "latency_ms": latency, "message": f"Server error (HTTP {resp.status_code}): {resp.text[:150]}"}
 
         elif provider == "gemini":
             api_key = (
@@ -299,12 +382,17 @@ def test_llm_connection(provider: str, config: Optional[Dict[str, Any]] = None) 
             resp = requests.post(
                 url,
                 json={"contents": [{"parts": [{"text": test_prompt}]}]},
-                timeout=15,
+                timeout=10,
             )
             latency = int((time.time() - start_time) * 1000)
             if resp.status_code == 200:
                 return {"success": True, "latency_ms": latency, "message": f"Connected to Gemini ({model}) successfully ({latency}ms)"}
-            return {"success": False, "message": f"Gemini API returned HTTP {resp.status_code}: {resp.text[:150]}"}
+            try:
+                err_data = resp.json()
+                clean_msg = err_data.get("error", {}).get("message") or resp.text[:150]
+            except Exception:
+                clean_msg = resp.text[:150]
+            return {"success": False, "latency_ms": latency, "message": f"Gemini API key invalid ({resp.status_code}): {clean_msg}"}
 
         elif provider == "mistral_cloud":
             base_url = (
@@ -331,12 +419,17 @@ def test_llm_connection(provider: str, config: Optional[Dict[str, Any]] = None) 
                 f"{base_url}/v1/chat/completions",
                 headers={"Authorization": f"Bearer {api_key}"},
                 json={"model": model, "messages": [{"role": "user", "content": test_prompt}]},
-                timeout=15,
+                timeout=10,
             )
             latency = int((time.time() - start_time) * 1000)
             if resp.status_code == 200:
                 return {"success": True, "latency_ms": latency, "message": f"Connected to Mistral Cloud ({model}) successfully ({latency}ms)"}
-            return {"success": False, "message": f"Mistral Cloud returned HTTP {resp.status_code}: {resp.text[:150]}"}
+            try:
+                err_data = resp.json()
+                clean_msg = err_data.get("detail") or err_data.get("message") or resp.text[:150]
+            except Exception:
+                clean_msg = resp.text[:150]
+            return {"success": False, "latency_ms": latency, "message": f"Mistral Cloud key invalid ({resp.status_code}): {clean_msg}"}
 
         elif provider == "openai":
             base_url = (
@@ -363,12 +456,17 @@ def test_llm_connection(provider: str, config: Optional[Dict[str, Any]] = None) 
                 f"{base_url}/chat/completions",
                 headers={"Authorization": f"Bearer {api_key}"},
                 json={"model": model, "messages": [{"role": "user", "content": test_prompt}]},
-                timeout=15,
+                timeout=10,
             )
             latency = int((time.time() - start_time) * 1000)
             if resp.status_code == 200:
                 return {"success": True, "latency_ms": latency, "message": f"Connected to OpenAI ({model}) successfully ({latency}ms)"}
-            return {"success": False, "message": f"OpenAI returned HTTP {resp.status_code}: {resp.text[:150]}"}
+            try:
+                err_data = resp.json()
+                clean_msg = err_data.get("error", {}).get("message") or resp.text[:150]
+            except Exception:
+                clean_msg = resp.text[:150]
+            return {"success": False, "latency_ms": latency, "message": f"OpenAI key invalid ({resp.status_code}): {clean_msg}"}
 
         else:
             return {"success": False, "message": f"Unknown provider: {provider}"}

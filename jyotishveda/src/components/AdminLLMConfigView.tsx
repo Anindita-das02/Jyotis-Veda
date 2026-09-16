@@ -10,18 +10,19 @@ import {
   RefreshCw,
   Eye,
   EyeOff,
-  ShieldCheck,
   Check,
   ExternalLink,
-  Activity
+  Activity,
+  Clock,
+  ShieldCheck,
 } from 'lucide-react';
-import { adminApi, LLMConfig, LLMTestResult } from '../services/adminApi';
+import { adminApi, LLMConfig } from '../services/adminApi';
 
 interface AdminLLMConfigViewProps {
   theme: 'dark' | 'light';
 }
 
-type LLMProvider = 'mistral_local' | 'gemini' | 'mistral_cloud' | 'openai';
+export type LLMProvider = 'mistral_local' | 'gemini' | 'mistral_cloud' | 'openai';
 
 interface ProviderMeta {
   id: LLMProvider;
@@ -31,44 +32,54 @@ interface ProviderMeta {
   icon: React.ElementType;
   badge: string;
   accentColor: string;
+  docsUrl: string;
+  docsName: string;
 }
 
 const PROVIDERS: ProviderMeta[] = [
   {
     id: 'mistral_local',
-    name: 'Mistral Local (Self-Hosted)',
-    tagline: 'Ollama / vLLM Server',
-    description: 'On-premises or custom cloud server running open-weights Mistral. Zero external API costs and full data privacy.',
+    name: 'Mistral Local',
+    tagline: 'Self-Hosted / Ollama',
+    description: 'On-premises server running open-weights Mistral. Full data privacy and zero cloud API fees.',
     icon: Server,
     badge: 'Self-Hosted',
     accentColor: '#3B82F6',
+    docsUrl: 'https://ollama.com/library',
+    docsName: 'Ollama Models',
   },
   {
     id: 'gemini',
     name: 'Google Gemini',
     tagline: 'Gemini 2.5 Flash / Pro',
-    description: 'Ultra-fast multimodal model with excellent Bengali and Indic language fluency, high quota, and low latency.',
+    description: 'Fast multimodal model with high rate limits, low latency, and excellent accuracy.',
     icon: Sparkles,
     badge: 'Recommended',
     accentColor: '#10B981',
+    docsUrl: 'https://aistudio.google.com/app/apikey',
+    docsName: 'Get Gemini Key',
   },
   {
     id: 'mistral_cloud',
-    name: 'Mistral Cloud API',
-    tagline: 'Official Mistral AI API',
-    description: 'Cloud-hosted Mistral Large/Small models directly from Mistral AI in Paris. High astrological synthesis accuracy.',
+    name: 'Mistral Cloud',
+    tagline: 'Official Mistral API',
+    description: 'Cloud-hosted Mistral Large/Small models directly from Mistral AI with high synthesis accuracy.',
     icon: Cloud,
     badge: 'Cloud API',
     accentColor: '#F59E0B',
+    docsUrl: 'https://console.mistral.ai',
+    docsName: 'Get Mistral Key',
   },
   {
     id: 'openai',
     name: 'OpenAI (ChatGPT)',
     tagline: 'GPT-4o / GPT-4o-mini',
-    description: 'State-of-the-art reasoning and conversational depth. Supports custom base URLs for Azure or OpenAI proxies.',
+    description: 'Industry-standard reasoning models supporting standard endpoints and custom proxies.',
     icon: Zap,
-    badge: 'Industry Standard',
+    badge: 'Cloud API',
     accentColor: '#8B5CF6',
+    docsUrl: 'https://platform.openai.com/api-keys',
+    docsName: 'Get OpenAI Key',
   },
 ];
 
@@ -77,20 +88,26 @@ export const AdminLLMConfigView: React.FC<AdminLLMConfigViewProps> = ({ theme })
   const [selectedProvider, setSelectedProvider] = useState<LLMProvider>('mistral_local');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [saveSuccess, setSaveSuccess] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  // Password visibility states
+  // Key verification state
+  const [testingKey, setTestingKey] = useState(false);
+  const [testResult, setTestResult] = useState<{
+    status: 'ok' | 'error';
+    message: string;
+    latency_ms?: number;
+  } | null>(null);
+
+  // Password visibility
   const [showGeminiKey, setShowGeminiKey] = useState(false);
   const [showMistralCloudKey, setShowMistralCloudKey] = useState(false);
   const [showOpenAIKey, setShowOpenAIKey] = useState(false);
 
-  // Testing states
-  const [testingProvider, setTestingProvider] = useState<string | null>(null);
-  const [testResults, setTestResults] = useState<Record<string, LLMTestResult>>({});
-
-  // Editable form fields
+  // Form data
   const [formData, setFormData] = useState<Partial<LLMConfig>>({});
+
+  const isDark = theme === 'dark';
 
   useEffect(() => {
     fetchConfig();
@@ -99,6 +116,7 @@ export const AdminLLMConfigView: React.FC<AdminLLMConfigViewProps> = ({ theme })
   const fetchConfig = async () => {
     setLoading(true);
     setErrorMessage(null);
+    setTestResult(null);
     try {
       const data = await adminApi.getLLMConfig();
       setConfig(data);
@@ -111,54 +129,69 @@ export const AdminLLMConfigView: React.FC<AdminLLMConfigViewProps> = ({ theme })
     }
   };
 
-  const handleInputChange = (field: keyof LLMConfig, value: string) => {
+  const handleInputChange = (field: keyof LLMConfig, value: any) => {
+    setTestResult(null);
     setFormData((prev) => ({
       ...prev,
       [field]: value,
     }));
   };
 
-  const handleTestConnection = async (provider: LLMProvider) => {
-    setTestingProvider(provider);
-    try {
-      const res = await adminApi.testLLMConnection(provider, formData);
-      setTestResults((prev) => ({
-        ...prev,
-        [provider]: res,
-      }));
-    } catch (err: any) {
-      setTestResults((prev) => ({
-        ...prev,
-        [provider]: {
-          provider,
-          status: 'error',
-          message: err?.message || 'Connection test failed',
-          latency_ms: 0,
-        },
-      }));
-    } finally {
-      setTestingProvider(null);
+  // Live test to check if the entered API Key / URL is right or wrong
+  const handleVerifyKey = async () => {
+    const pName = PROVIDERS.find((p) => p.id === selectedProvider)?.name || selectedProvider;
+    if (!isProviderConfigured(selectedProvider)) {
+      setTestResult({
+        status: 'error',
+        message: `Please enter the ${selectedProvider === 'mistral_local' ? 'Server URL' : 'API Key'} before verifying.`,
+      });
+      return;
     }
-  };
 
-  const handleSaveAndActivate = async () => {
-    setSaving(true);
-    setSaveSuccess(false);
+    setTestingKey(true);
+    setTestResult(null);
     setErrorMessage(null);
 
     try {
-      const payload: Partial<LLMConfig> = {
-        ...formData,
-        ACTIVE_LLM: selectedProvider,
-      };
-
-      const res = await adminApi.updateLLMConfig(payload);
-      if (res?.settings) {
-        setConfig(res.settings);
-        setFormData(res.settings);
+      const res: any = await adminApi.testLLMConnection(selectedProvider, formData);
+      if (res?.status === 'ok' || res?.success) {
+        setTestResult({
+          status: 'ok',
+          message: res.message || `${pName} credentials are valid and connection is live!`,
+          latency_ms: res.latency_ms,
+        });
+      } else {
+        setTestResult({
+          status: 'error',
+          message: res?.message || `Invalid ${pName} credentials: Authentication rejected.`,
+          latency_ms: res?.latency_ms,
+        });
       }
-      setSaveSuccess(true);
-      setTimeout(() => setSaveSuccess(false), 4000);
+    } catch (err: any) {
+      setTestResult({
+        status: 'error',
+        message: err?.message || `Verification check failed. Could not reach ${pName}.`,
+      });
+    } finally {
+      setTestingKey(false);
+    }
+  };
+
+  // Save settings without changing active engine
+  const handleSaveSettings = async () => {
+    setSaving(true);
+    setSaveSuccess(null);
+    setErrorMessage(null);
+
+    try {
+      const res: any = await adminApi.updateLLMConfig(formData);
+      const updated = res?.settings || res?.data || res;
+      if (updated && typeof updated === 'object') {
+        setConfig(updated);
+        setFormData(updated);
+      }
+      setSaveSuccess('Configuration saved to MySQL database successfully.');
+      setTimeout(() => setSaveSuccess(null), 4000);
     } catch (err: any) {
       setErrorMessage(err?.message || 'Failed to save configuration');
     } finally {
@@ -166,213 +199,206 @@ export const AdminLLMConfigView: React.FC<AdminLLMConfigViewProps> = ({ theme })
     }
   };
 
-  const isDark = theme === 'dark';
+  const isProviderConfigured = (providerId: LLMProvider): boolean => {
+    switch (providerId) {
+      case 'gemini':
+        return Boolean(formData.GEMINI_API_KEY?.trim() || config?.gemini?.is_configured || config?.is_configured?.gemini);
+      case 'openai':
+        return Boolean(formData.OPENAI_API_KEY?.trim() || config?.openai?.is_configured || config?.is_configured?.openai);
+      case 'mistral_cloud':
+        return Boolean(formData.MISTRAL_CLOUD_API_KEY?.trim() || config?.mistral_cloud?.is_configured || config?.is_configured?.mistral_cloud);
+      case 'mistral_local':
+        return Boolean(formData.MISTRAL_LOCAL_URL?.trim() || config?.mistral_local?.url?.trim() || config?.is_configured?.mistral_local);
+      default:
+        return false;
+    }
+  };
+
+  // Set selected provider as the live active engine
+  const handleSetActive = async (provider: LLMProvider) => {
+    const pName = PROVIDERS.find((p) => p.id === provider)?.name || provider;
+    if (!isProviderConfigured(provider)) {
+      setErrorMessage(
+        `Cannot activate ${pName}: Please enter the required ${
+          provider === 'mistral_local' ? 'Server URL' : 'API Key'
+        } first.`
+      );
+      return;
+    }
+
+    setSaving(true);
+    setSaveSuccess(null);
+    setErrorMessage(null);
+
+    try {
+      const payload: Partial<LLMConfig> = {
+        ...formData,
+        ACTIVE_LLM: provider,
+      };
+
+      const res: any = await adminApi.updateLLMConfig(payload);
+      const updated = res?.settings || res?.data || res;
+      if (updated && typeof updated === 'object') {
+        setConfig(updated);
+        setFormData(updated);
+      }
+      setSaveSuccess(`${pName} is now active and saved to MySQL database.`);
+      setTimeout(() => setSaveSuccess(null), 4000);
+    } catch (err: any) {
+      setErrorMessage(err?.message || 'Failed to activate engine');
+    } finally {
+      setSaving(false);
+    }
+  };
 
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center h-[55vh] space-y-4">
-        <Activity className="w-10 h-10 text-[#C9A050] animate-spin" />
-        <p className={`text-sm ${isDark ? 'text-[#9E9A90]' : 'text-gray-600'}`}>
-          Loading AI engine configurations...
+      <div className="flex flex-col items-center justify-center h-[50vh] space-y-4">
+        <Activity className="w-8 h-8 text-[#C9A050] animate-spin" />
+        <p className={`text-xs ${isDark ? 'text-[#9E9A90]' : 'text-gray-500'}`}>
+          Loading AI engine settings...
         </p>
       </div>
     );
   }
 
-  const activeProviderMeta = PROVIDERS.find((p) => p.id === (config?.ACTIVE_LLM || 'mistral_local'));
+  const activeProvider = PROVIDERS.find((p) => p.id === (config?.ACTIVE_LLM || 'mistral_local'))!;
+  const currentProvider = PROVIDERS.find((p) => p.id === selectedProvider)!;
 
   return (
-    <div className="max-w-7xl mx-auto space-y-8 animate-in fade-in duration-500 pb-16">
-      {/* Top Header & Status */}
-      <div className={`p-6 sm:p-8 rounded-3xl border transition-all ${
+    <div className="max-w-6xl mx-auto space-y-6 pb-16 animate-in fade-in duration-300">
+      {/* Clean Top Header */}
+      <div className={`p-6 sm:p-7 rounded-2xl border transition-all ${
         isDark ? 'bg-[#141418] border-[#2A2A2E]' : 'bg-white border-[#E5E1D8] shadow-sm'
       }`}>
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-          <div className="space-y-2">
-            <div className="flex items-center space-x-3">
-              <div className="p-3 bg-[#C9A050]/15 rounded-2xl border border-[#C9A050]/30 text-[#C9A050]">
-                <Cpu className="w-7 h-7" />
-              </div>
-              <div>
-                <h1 className="text-2xl sm:text-3xl font-serif font-bold tracking-wide">
-                  AI Engine & <span className="text-[#C9A050]">LLM Control Center</span>
-                </h1>
-                <p className={`text-xs sm:text-sm ${isDark ? 'text-[#9E9A90]' : 'text-gray-500'}`}>
-                  সরাসরি অ্যাডমিন প্যানেল থেকে যেকোনো LLM সক্রিয় ও কনফিগার করুন (Zero Server Restart)
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* Current Live Active Provider Badge */}
-          <div className={`px-5 py-3.5 rounded-2xl border flex items-center space-x-3.5 ${
-            isDark ? 'bg-[#1C1C22] border-[#2A2A2E]' : 'bg-[#FAF8F5] border-[#E8E4DC]'
-          }`}>
-            <div className="relative flex h-3.5 w-3.5">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-emerald-500"></span>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-center space-x-3.5">
+            <div className="p-3 bg-[#C9A050]/15 rounded-xl border border-[#C9A050]/30 text-[#C9A050]">
+              <Cpu className="w-6 h-6" />
             </div>
             <div>
-              <div className={`text-[10px] font-bold uppercase tracking-wider ${isDark ? 'text-[#9E9A90]' : 'text-gray-400'}`}>
-                Active Live Provider
-              </div>
-              <div className="text-sm font-bold text-[#C9A050] flex items-center space-x-1.5">
-                <span>{activeProviderMeta?.name || config?.ACTIVE_LLM}</span>
-              </div>
+              <h1 className="text-xl sm:text-2xl font-serif font-bold tracking-wide">
+                AI Engine <span className="text-[#C9A050]">Settings</span>
+              </h1>
+              <p className={`text-xs font-sans mt-0.5 ${isDark ? 'text-[#9E9A90]' : 'text-gray-500'}`}>
+                Configure and select the LLM powering all predictions and Vedic counsel.
+              </p>
             </div>
           </div>
-        </div>
 
-        {/* Informative Banner */}
-        <div className={`mt-6 p-4 rounded-xl flex items-start space-x-3 text-xs ${
-          isDark ? 'bg-[#1B1B20] text-[#A6A298] border border-[#2D2D35]' : 'bg-[#F9F7F2] text-[#6A665D] border border-[#E8E4DC]'
-        }`}>
-          <ShieldCheck className="w-4 h-4 text-[#C9A050] shrink-0 mt-0.5" />
-          <div>
-            <span className="font-semibold text-[#C9A050]">Zero Downtime Hot-Swap: </span>
-            When you switch the provider here, all AstroJunction AI features (Daivajna Counsellor, Daily Transit Predictions, Kundli Milan Synthesis, Numerology Vastu, and 25-Year Roadmap) immediately use the selected engine. Keys not modified will preserve existing values.
+          {/* Current Active Badge */}
+          <div className={`px-4 py-2.5 rounded-xl border flex items-center space-x-2.5 self-start sm:self-auto ${
+            isDark ? 'bg-[#1C1C22] border-[#2A2A2E]' : 'bg-[#FAF8F5] border-[#E8E4DC]'
+          }`}>
+            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+            <div>
+              <div className={`text-[10px] font-bold uppercase tracking-wider ${isDark ? 'text-[#9E9A90]' : 'text-gray-400'}`}>
+                Active Engine
+              </div>
+              <div className="text-xs font-bold text-[#C9A050]">
+                {activeProvider.name}
+              </div>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Alert Messages */}
+      {/* Notifications */}
       {errorMessage && (
-        <div className="p-4 bg-rose-500/10 border border-rose-500/40 rounded-2xl text-rose-500 text-sm flex items-center space-x-3">
-          <AlertCircle className="w-5 h-5 shrink-0" />
+        <div className="p-3.5 bg-rose-500/10 border border-rose-500/30 rounded-xl text-rose-500 text-xs flex items-center space-x-2.5">
+          <AlertCircle className="w-4 h-4 shrink-0" />
           <span>{errorMessage}</span>
         </div>
       )}
 
       {saveSuccess && (
-        <div className="p-4 bg-emerald-500/10 border border-emerald-500/40 rounded-2xl text-emerald-500 text-sm flex items-center space-x-3">
-          <CheckCircle2 className="w-5 h-5 shrink-0" />
-          <span className="font-semibold">AI Engine updated successfully! Live traffic is now routed through {PROVIDERS.find(p => p.id === selectedProvider)?.name}.</span>
+        <div className="p-3.5 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-emerald-500 text-xs flex items-center space-x-2.5">
+          <CheckCircle2 className="w-4 h-4 shrink-0" />
+          <span className="font-semibold">{saveSuccess}</span>
         </div>
       )}
 
-      {/* Provider Selection Grid */}
+      {/* Provider Selection Cards (Clean, sober, no ping clutter) */}
       <div>
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-serif font-bold tracking-wide">
-            Select Active <span className="text-[#C9A050]">AI Provider</span>
-          </h2>
-          <span className={`text-xs ${isDark ? 'text-[#9E9A90]' : 'text-gray-500'}`}>
-            Click a card to configure its settings
-          </span>
+        <div className="text-xs font-bold uppercase tracking-wider text-[#C9A050] mb-3">
+          Select Engine to Configure
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
           {PROVIDERS.map((provider) => {
             const isSelected = selectedProvider === provider.id;
             const isLive = config?.ACTIVE_LLM === provider.id;
             const Icon = provider.icon;
-            const testResult = testResults[provider.id];
 
             return (
               <div
                 key={provider.id}
                 onClick={() => setSelectedProvider(provider.id)}
-                className={`relative rounded-2xl p-5 cursor-pointer transition-all duration-300 flex flex-col justify-between border ${
+                className={`rounded-2xl p-4 sm:p-5 cursor-pointer transition-all duration-200 border flex flex-col justify-between ${
                   isSelected
                     ? isDark
-                      ? 'bg-[#1C1C22] border-[#C9A050] shadow-[0_0_20px_rgba(201,160,80,0.15)] ring-1 ring-[#C9A050]'
-                      : 'bg-white border-[#C9A050] shadow-[0_4px_20px_rgba(201,160,80,0.18)] ring-1 ring-[#C9A050]'
+                      ? 'bg-[#1C1C22] border-[#C9A050] shadow-md ring-1 ring-[#C9A050]'
+                      : 'bg-white border-[#C9A050] shadow-md ring-1 ring-[#C9A050]'
                     : isDark
                     ? 'bg-[#141418] border-[#2A2A2E] hover:border-[#3E3E46]'
-                    : 'bg-white border-[#E5E1D8] hover:border-[#C9A050]/40'
+                    : 'bg-white border-[#E5E1D8] hover:border-[#C9A050]/50'
                 }`}
               >
                 <div>
-                  {/* Top row: Icon & Badges */}
                   <div className="flex items-center justify-between mb-3">
                     <div
-                      className="p-2.5 rounded-xl transition-colors"
+                      className="p-2 rounded-lg"
                       style={{
                         backgroundColor: `${provider.accentColor}18`,
                         color: provider.accentColor,
                       }}
                     >
-                      <Icon className="w-5 h-5" />
+                      <Icon className="w-4 h-4" />
                     </div>
 
-                    <div className="flex items-center space-x-1.5">
-                      {isLive && (
-                        <span className="px-2 py-0.5 rounded-full text-[9px] font-bold tracking-wider uppercase bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-                          LIVE
+                    <div className="flex items-center space-x-1">
+                      {isLive ? (
+                        <span className="px-2 py-0.5 rounded-full text-[9px] font-bold uppercase bg-emerald-500/20 text-emerald-400 border border-emerald-500/40">
+                          Active
+                        </span>
+                      ) : isProviderConfigured(provider.id) ? (
+                        <span className="px-2 py-0.5 rounded-full text-[9px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                          Ready
+                        </span>
+                      ) : (
+                        <span className="px-2 py-0.5 rounded-full text-[9px] font-semibold bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                          {provider.id === 'mistral_local' ? 'URL Missing' : 'Key Missing'}
                         </span>
                       )}
-                      <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold tracking-wider uppercase ${
-                        isDark ? 'bg-white/5 text-[#A6A298]' : 'bg-gray-100 text-gray-600'
+                      <span className={`px-2 py-0.5 rounded-full text-[9px] font-semibold ${
+                        isDark ? 'bg-white/5 text-gray-400' : 'bg-gray-100 text-gray-600'
                       }`}>
                         {provider.badge}
                       </span>
                     </div>
                   </div>
 
-                  {/* Title & Tagline */}
-                  <h3 className="text-base font-bold tracking-tight">
+                  <h3 className="text-sm font-bold tracking-tight">
                     {provider.name}
                   </h3>
-                  <div className={`text-xs font-medium mb-2 ${isDark ? 'text-[#C9A050]' : 'text-amber-700'}`}>
+                  <div className={`text-[11px] font-medium mb-1.5 ${isDark ? 'text-[#C9A050]' : 'text-amber-800'}`}>
                     {provider.tagline}
                   </div>
-                  <p className={`text-xs leading-relaxed line-clamp-3 mb-4 ${isDark ? 'text-[#9E9A90]' : 'text-gray-500'}`}>
+                  <p className={`text-[11px] leading-relaxed line-clamp-2 ${isDark ? 'text-[#9E9A90]' : 'text-gray-500'}`}>
                     {provider.description}
                   </p>
                 </div>
 
-                {/* Bottom Test & Selection indicator */}
-                <div className="pt-3 border-t border-dashed border-gray-700/30">
-                  <div className="flex items-center justify-between">
-                    <button
-                      type="button"
-                      disabled={testingProvider === provider.id}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleTestConnection(provider.id);
-                      }}
-                      className={`text-xs font-semibold px-2.5 py-1 rounded-lg border transition-all flex items-center space-x-1.5 ${
-                        testingProvider === provider.id
-                          ? 'opacity-60 cursor-not-allowed'
-                          : isDark
-                          ? 'border-[#33333C] hover:bg-white/5 text-[#E5E1D8]'
-                          : 'border-gray-200 hover:bg-gray-50 text-gray-700'
-                      }`}
-                    >
-                      {testingProvider === provider.id ? (
-                        <>
-                          <RefreshCw className="w-3 h-3 animate-spin text-[#C9A050]" />
-                          <span>Pinging...</span>
-                        </>
-                      ) : (
-                        <>
-                          <Activity className="w-3 h-3 text-[#C9A050]" />
-                          <span>Test</span>
-                        </>
-                      )}
-                    </button>
-
-                    <div className="flex items-center space-x-1.5">
-                      {testResult && (
-                        <span
-                          className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
-                            testResult.status === 'ok'
-                              ? 'bg-emerald-500/20 text-emerald-400'
-                              : 'bg-rose-500/20 text-rose-400'
-                          }`}
-                          title={testResult.message}
-                        >
-                          {testResult.status === 'ok' ? `${testResult.latency_ms}ms` : 'Error'}
-                        </span>
-                      )}
-                      <div className={`w-4 h-4 rounded-full flex items-center justify-center border transition-all ${
-                        isSelected
-                          ? 'bg-[#C9A050] border-[#C9A050] text-[#0D0D0F]'
-                          : isDark ? 'border-gray-600' : 'border-gray-300'
-                      }`}>
-                        {isSelected && <Check className="w-2.5 h-2.5 stroke-[3]" />}
-                      </div>
-                    </div>
+                <div className="pt-3 mt-3 border-t border-gray-700/20 flex items-center justify-between text-[11px]">
+                  <span className={isSelected ? 'text-[#C9A050] font-semibold' : 'text-gray-500'}>
+                    {isSelected ? 'Editing Settings' : 'Click to Edit'}
+                  </span>
+                  <div className={`w-3.5 h-3.5 rounded-full flex items-center justify-center border ${
+                    isSelected
+                      ? 'bg-[#C9A050] border-[#C9A050] text-[#0D0D0F]'
+                      : isDark ? 'border-gray-700' : 'border-gray-300'
+                  }`}>
+                    {isSelected && <Check className="w-2 h-2 stroke-[3]" />}
                   </div>
                 </div>
               </div>
@@ -381,108 +407,140 @@ export const AdminLLMConfigView: React.FC<AdminLLMConfigViewProps> = ({ theme })
         </div>
       </div>
 
-      {/* Selected Provider Details Configuration Form */}
-      <div className={`p-6 sm:p-8 rounded-3xl border transition-all ${
+      {/* Configuration Form for Selected Provider */}
+      <div className={`p-6 sm:p-7 rounded-2xl border transition-all ${
         isDark ? 'bg-[#141418] border-[#2A2A2E]' : 'bg-white border-[#E5E1D8] shadow-sm'
       }`}>
-        <div className="flex items-center justify-between mb-6 pb-4 border-b border-gray-700/20">
-          <div className="flex items-center space-x-3">
-            <div className="p-2.5 bg-[#C9A050]/15 rounded-xl text-[#C9A050]">
-              <Cpu className="w-5 h-5" />
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-5 mb-5 border-b border-gray-700/20 gap-2">
+          <div>
+            <div className="flex items-center space-x-2">
+              <h2 className="text-lg font-serif font-bold">
+                Configure <span className="text-[#C9A050]">{currentProvider.name}</span>
+              </h2>
+              {config?.ACTIVE_LLM === currentProvider.id ? (
+                <span className="px-2 py-0.5 rounded-full text-[9px] font-bold uppercase bg-emerald-500/20 text-emerald-400 border border-emerald-500/40">
+                  Active in Production
+                </span>
+              ) : !isProviderConfigured(currentProvider.id) ? (
+                <span className="px-2 py-0.5 rounded-full text-[9px] font-semibold bg-amber-500/10 text-amber-400 border border-amber-500/30">
+                  {currentProvider.id === 'mistral_local' ? 'URL Required' : 'API Key Required'}
+                </span>
+              ) : (
+                <span className="px-2 py-0.5 rounded-full text-[9px] font-semibold bg-blue-500/10 text-blue-400 border border-blue-500/30">
+                  Configured & Ready
+                </span>
+              )}
             </div>
-            <div>
-              <h3 className="text-xl font-serif font-bold">
-                Configure <span className="text-[#C9A050]">{PROVIDERS.find(p => p.id === selectedProvider)?.name}</span>
-              </h3>
-              <p className={`text-xs ${isDark ? 'text-[#9E9A90]' : 'text-gray-500'}`}>
-                Customize the endpoint address, model parameter, and authentication secrets for this provider.
-              </p>
-            </div>
+            <p className={`text-xs ${isDark ? 'text-[#9E9A90]' : 'text-gray-500'}`}>
+              Enter the endpoint and authentication credentials below.
+            </p>
           </div>
 
-          <button
-            type="button"
-            disabled={testingProvider === selectedProvider}
-            onClick={() => handleTestConnection(selectedProvider)}
-            className={`px-4 py-2 rounded-xl text-xs font-bold border transition-all flex items-center space-x-2 ${
-              testingProvider === selectedProvider
-                ? 'opacity-60 cursor-not-allowed'
-                : isDark
-                ? 'bg-[#1C1C22] border-[#2A2A2E] hover:border-[#C9A050] text-[#E5E1D8]'
-                : 'bg-gray-50 border-gray-200 hover:border-[#C9A050] text-gray-800'
-            }`}
-          >
-            {testingProvider === selectedProvider ? (
-              <>
-                <RefreshCw className="w-3.5 h-3.5 animate-spin text-[#C9A050]" />
-                <span>Testing Connection...</span>
-              </>
-            ) : (
-              <>
-                <Activity className="w-3.5 h-3.5 text-[#C9A050]" />
-                <span>Test Current Settings</span>
-              </>
-            )}
-          </button>
+          <div className="flex items-center space-x-2.5 self-start sm:self-auto">
+            {/* Live Key Verification Test Button */}
+            <button
+              type="button"
+              disabled={testingKey || !isProviderConfigured(currentProvider.id)}
+              onClick={handleVerifyKey}
+              title={
+                !isProviderConfigured(currentProvider.id)
+                  ? 'Please enter credentials before verifying'
+                  : 'Test if this API key is genuine and active with the provider'
+              }
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold border flex items-center space-x-1.5 transition-all ${
+                testingKey
+                  ? 'opacity-80 cursor-wait bg-[#C9A050]/15 text-[#C9A050] border-[#C9A050]/40'
+                  : !isProviderConfigured(currentProvider.id)
+                  ? 'opacity-40 cursor-not-allowed border-gray-700 text-gray-500'
+                  : isDark
+                  ? 'bg-[#1C1C22] border-[#C9A050]/50 text-[#C9A050] hover:bg-[#C9A050]/15'
+                  : 'bg-amber-50 border-amber-300 text-amber-900 hover:bg-amber-100'
+              }`}
+            >
+              {testingKey ? (
+                <>
+                  <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                  <span>Verifying Key...</span>
+                </>
+              ) : (
+                <>
+                  <ShieldCheck className="w-3.5 h-3.5" />
+                  <span>Verify {currentProvider.id === 'mistral_local' ? 'URL' : 'API Key'}</span>
+                </>
+              )}
+            </button>
+
+            <a
+              href={currentProvider.docsUrl}
+              target="_blank"
+              rel="noreferrer"
+              className={`px-3 py-1.5 rounded-lg text-xs border transition-colors inline-flex items-center space-x-1.5 ${
+                isDark ? 'border-[#2A2A2E] text-[#9E9A90] hover:text-white' : 'border-gray-200 text-gray-600 hover:text-black'
+              }`}
+            >
+              <span>{currentProvider.docsName}</span>
+              <ExternalLink className="w-3 h-3" />
+            </a>
+          </div>
         </div>
 
-        {/* Live Test Feedback Banner for Current Provider */}
-        {testResults[selectedProvider] && (
-          <div className={`mb-6 p-4 rounded-2xl border text-xs flex items-start space-x-3 ${
-            testResults[selectedProvider].status === 'ok'
-              ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
-              : 'bg-rose-500/10 border-rose-500/30 text-rose-400'
-          }`}>
-            {testResults[selectedProvider].status === 'ok' ? (
-              <CheckCircle2 className="w-5 h-5 shrink-0 mt-0.5" />
-            ) : (
-              <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
-            )}
-            <div className="space-y-1">
-              <div className="font-bold flex items-center space-x-2">
-                <span>
-                  {testResults[selectedProvider].status === 'ok' ? 'Connection Successful' : 'Connection Failed'}
-                </span>
-                {testResults[selectedProvider].latency_ms > 0 && (
-                  <span className="px-2 py-0.5 bg-black/20 rounded-full text-[10px]">
-                    Latency: {testResults[selectedProvider].latency_ms} ms
-                  </span>
-                )}
-              </div>
-              <p className="opacity-90">{testResults[selectedProvider].message}</p>
+        {/* Live Verification Result Banner */}
+        {testResult && (
+          <div
+            className={`mb-4 p-3.5 rounded-xl text-xs border flex items-center justify-between gap-3 animate-in fade-in duration-200 ${
+              testResult.status === 'ok'
+                ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
+                : 'bg-rose-500/10 border-rose-500/30 text-rose-400'
+            }`}
+          >
+            <div className="flex items-center space-x-2.5">
+              {testResult.status === 'ok' ? (
+                <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-400" />
+              ) : (
+                <AlertCircle className="w-4 h-4 shrink-0 text-rose-400" />
+              )}
+              <span>
+                <strong>{testResult.status === 'ok' ? 'Key Verified Valid:' : 'Key Invalid / Rejected:'}</strong>{' '}
+                {testResult.message}
+              </span>
             </div>
+            {testResult.latency_ms !== undefined && testResult.latency_ms > 0 && (
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 shrink-0">
+                {testResult.latency_ms}ms
+              </span>
+            )}
           </div>
         )}
 
-        {/* Form Inputs according to selected provider */}
-        <div className="space-y-6">
-          {/* Provider 1: Mistral Local */}
+        {/* Inputs */}
+        <div className="space-y-4">
+          {/* Mistral Local */}
           {selectedProvider === 'mistral_local' && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className={`block text-xs font-bold uppercase tracking-wider mb-2 ${
+                <label className={`block text-xs font-bold uppercase tracking-wider mb-1.5 ${
                   isDark ? 'text-[#C9A050]' : 'text-amber-800'
                 }`}>
-                  Local Server Endpoint (URL)
+                  Server Endpoint URL
                 </label>
                 <input
                   type="text"
                   value={formData.MISTRAL_LOCAL_URL || ''}
                   onChange={(e) => handleInputChange('MISTRAL_LOCAL_URL', e.target.value)}
-                  placeholder="http://122.163.121.176:3041 or http://localhost:11434"
-                  className={`w-full px-4 py-3 rounded-xl border text-sm transition-colors ${
+                  placeholder="http://localhost:11434 or http://<server-ip>:<port>"
+                  className={`w-full px-3.5 py-2.5 rounded-xl border text-xs font-mono transition-colors ${
                     isDark
                       ? 'bg-[#1C1C22] border-[#2A2A2E] text-white focus:border-[#C9A050] focus:outline-none'
                       : 'bg-gray-50 border-gray-200 text-gray-900 focus:border-[#C9A050] focus:outline-none'
                   }`}
                 />
-                <p className={`mt-1.5 text-xs ${isDark ? 'text-[#9E9A90]' : 'text-gray-500'}`}>
-                  Points to your Ollama or OpenAI-compatible server. Default: <code>http://122.163.121.176:3041</code>
+                <p className={`mt-1 text-[11px] ${isDark ? 'text-[#9E9A90]' : 'text-gray-500'}`}>
+                  Root URL of your Ollama or OpenAI-compatible local server.
                 </p>
               </div>
 
               <div>
-                <label className={`block text-xs font-bold uppercase tracking-wider mb-2 ${
+                <label className={`block text-xs font-bold uppercase tracking-wider mb-1.5 ${
                   isDark ? 'text-[#C9A050]' : 'text-amber-800'
                 }`}>
                   Model Name
@@ -492,24 +550,24 @@ export const AdminLLMConfigView: React.FC<AdminLLMConfigViewProps> = ({ theme })
                   value={formData.MISTRAL_MODEL || ''}
                   onChange={(e) => handleInputChange('MISTRAL_MODEL', e.target.value)}
                   placeholder="mistral:latest"
-                  className={`w-full px-4 py-3 rounded-xl border text-sm transition-colors ${
+                  className={`w-full px-3.5 py-2.5 rounded-xl border text-xs font-mono transition-colors ${
                     isDark
                       ? 'bg-[#1C1C22] border-[#2A2A2E] text-white focus:border-[#C9A050] focus:outline-none'
                       : 'bg-gray-50 border-gray-200 text-gray-900 focus:border-[#C9A050] focus:outline-none'
                   }`}
                 />
-                <p className={`mt-1.5 text-xs ${isDark ? 'text-[#9E9A90]' : 'text-gray-500'}`}>
-                  Name of the pulled model in Ollama (e.g. <code>mistral:latest</code>, <code>llama3</code>, etc.)
+                <p className={`mt-1 text-[11px] ${isDark ? 'text-[#9E9A90]' : 'text-gray-500'}`}>
+                  e.g. <code>mistral:latest</code>, <code>llama3:latest</code>, etc.
                 </p>
               </div>
             </div>
           )}
 
-          {/* Provider 2: Google Gemini */}
+          {/* Gemini */}
           {selectedProvider === 'gemini' && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className={`block text-xs font-bold uppercase tracking-wider mb-2 ${
+                <label className={`block text-xs font-bold uppercase tracking-wider mb-1.5 ${
                   isDark ? 'text-[#C9A050]' : 'text-amber-800'
                 }`}>
                   Gemini API Key
@@ -520,7 +578,7 @@ export const AdminLLMConfigView: React.FC<AdminLLMConfigViewProps> = ({ theme })
                     value={formData.GEMINI_API_KEY || ''}
                     onChange={(e) => handleInputChange('GEMINI_API_KEY', e.target.value)}
                     placeholder="AIzaSy..."
-                    className={`w-full px-4 py-3 pr-12 rounded-xl border text-sm font-mono transition-colors ${
+                    className={`w-full px-3.5 py-2.5 pr-10 rounded-xl border text-xs font-mono transition-colors ${
                       isDark
                         ? 'bg-[#1C1C22] border-[#2A2A2E] text-white focus:border-[#C9A050] focus:outline-none'
                         : 'bg-gray-50 border-gray-200 text-gray-900 focus:border-[#C9A050] focus:outline-none'
@@ -529,45 +587,45 @@ export const AdminLLMConfigView: React.FC<AdminLLMConfigViewProps> = ({ theme })
                   <button
                     type="button"
                     onClick={() => setShowGeminiKey(!showGeminiKey)}
-                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-200"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-200"
                   >
-                    {showGeminiKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    {showGeminiKey ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                   </button>
                 </div>
-                <p className={`mt-1.5 text-xs ${isDark ? 'text-[#9E9A90]' : 'text-gray-500'}`}>
-                  Get your free API Key from <a href="https://aistudio.google.com" target="_blank" rel="noreferrer" className="text-[#C9A050] underline">Google AI Studio</a>.
+                <p className={`mt-1 text-[11px] ${isDark ? 'text-[#9E9A90]' : 'text-gray-500'}`}>
+                  Encrypted in database. Masked for security.
                 </p>
               </div>
 
               <div>
-                <label className={`block text-xs font-bold uppercase tracking-wider mb-2 ${
+                <label className={`block text-xs font-bold uppercase tracking-wider mb-1.5 ${
                   isDark ? 'text-[#C9A050]' : 'text-amber-800'
                 }`}>
-                  Gemini Model
+                  Model Name
                 </label>
                 <input
                   type="text"
                   value={formData.GEMINI_MODEL || ''}
                   onChange={(e) => handleInputChange('GEMINI_MODEL', e.target.value)}
-                  placeholder="gemini-2.5-flash or gemini-1.5-pro"
-                  className={`w-full px-4 py-3 rounded-xl border text-sm transition-colors ${
+                  placeholder="gemini-2.5-flash"
+                  className={`w-full px-3.5 py-2.5 rounded-xl border text-xs font-mono transition-colors ${
                     isDark
                       ? 'bg-[#1C1C22] border-[#2A2A2E] text-white focus:border-[#C9A050] focus:outline-none'
                       : 'bg-gray-50 border-gray-200 text-gray-900 focus:border-[#C9A050] focus:outline-none'
                   }`}
                 />
-                <p className={`mt-1.5 text-xs ${isDark ? 'text-[#9E9A90]' : 'text-gray-500'}`}>
-                  Recommended: <code>gemini-2.5-flash</code> for lightning fast responses and low costs.
+                <p className={`mt-1 text-[11px] ${isDark ? 'text-[#9E9A90]' : 'text-gray-500'}`}>
+                  Recommended: <code>gemini-2.5-flash</code> or <code>gemini-1.5-pro</code>.
                 </p>
               </div>
             </div>
           )}
 
-          {/* Provider 3: Mistral Cloud */}
+          {/* Mistral Cloud */}
           {selectedProvider === 'mistral_cloud' && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className={`block text-xs font-bold uppercase tracking-wider mb-2 ${
+                <label className={`block text-xs font-bold uppercase tracking-wider mb-1.5 ${
                   isDark ? 'text-[#C9A050]' : 'text-amber-800'
                 }`}>
                   Mistral Cloud API Key
@@ -578,7 +636,7 @@ export const AdminLLMConfigView: React.FC<AdminLLMConfigViewProps> = ({ theme })
                     value={formData.MISTRAL_CLOUD_API_KEY || ''}
                     onChange={(e) => handleInputChange('MISTRAL_CLOUD_API_KEY', e.target.value)}
                     placeholder="mis_..."
-                    className={`w-full px-4 py-3 pr-12 rounded-xl border text-sm font-mono transition-colors ${
+                    className={`w-full px-3.5 py-2.5 pr-10 rounded-xl border text-xs font-mono transition-colors ${
                       isDark
                         ? 'bg-[#1C1C22] border-[#2A2A2E] text-white focus:border-[#C9A050] focus:outline-none'
                         : 'bg-gray-50 border-gray-200 text-gray-900 focus:border-[#C9A050] focus:outline-none'
@@ -587,18 +645,15 @@ export const AdminLLMConfigView: React.FC<AdminLLMConfigViewProps> = ({ theme })
                   <button
                     type="button"
                     onClick={() => setShowMistralCloudKey(!showMistralCloudKey)}
-                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-200"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-200"
                   >
-                    {showMistralCloudKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    {showMistralCloudKey ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                   </button>
                 </div>
-                <p className={`mt-1.5 text-xs ${isDark ? 'text-[#9E9A90]' : 'text-gray-500'}`}>
-                  Issued by <a href="https://console.mistral.ai" target="_blank" rel="noreferrer" className="text-[#C9A050] underline">Mistral AI Console</a>.
-                </p>
               </div>
 
               <div>
-                <label className={`block text-xs font-bold uppercase tracking-wider mb-2 ${
+                <label className={`block text-xs font-bold uppercase tracking-wider mb-1.5 ${
                   isDark ? 'text-[#C9A050]' : 'text-amber-800'
                 }`}>
                   Cloud Model
@@ -608,46 +663,40 @@ export const AdminLLMConfigView: React.FC<AdminLLMConfigViewProps> = ({ theme })
                   value={formData.MISTRAL_MODEL || ''}
                   onChange={(e) => handleInputChange('MISTRAL_MODEL', e.target.value)}
                   placeholder="mistral-large-latest"
-                  className={`w-full px-4 py-3 rounded-xl border text-sm transition-colors ${
+                  className={`w-full px-3.5 py-2.5 rounded-xl border text-xs font-mono transition-colors ${
                     isDark
                       ? 'bg-[#1C1C22] border-[#2A2A2E] text-white focus:border-[#C9A050] focus:outline-none'
                       : 'bg-gray-50 border-gray-200 text-gray-900 focus:border-[#C9A050] focus:outline-none'
                   }`}
                 />
-                <p className={`mt-1.5 text-xs ${isDark ? 'text-[#9E9A90]' : 'text-gray-500'}`}>
-                  Available: <code>mistral-large-latest</code>, <code>mistral-small-latest</code>, <code>codestral-latest</code>
-                </p>
               </div>
 
               <div className="md:col-span-2">
-                <label className={`block text-xs font-bold uppercase tracking-wider mb-2 ${
+                <label className={`block text-xs font-bold uppercase tracking-wider mb-1.5 ${
                   isDark ? 'text-[#C9A050]' : 'text-amber-800'
                 }`}>
-                  Mistral Cloud URL
+                  Mistral Base URL
                 </label>
                 <input
                   type="text"
                   value={formData.MISTRAL_CLOUD_URL || ''}
                   onChange={(e) => handleInputChange('MISTRAL_CLOUD_URL', e.target.value)}
                   placeholder="https://api.mistral.ai"
-                  className={`w-full px-4 py-3 rounded-xl border text-sm transition-colors ${
+                  className={`w-full px-3.5 py-2.5 rounded-xl border text-xs font-mono transition-colors ${
                     isDark
                       ? 'bg-[#1C1C22] border-[#2A2A2E] text-white focus:border-[#C9A050] focus:outline-none'
                       : 'bg-gray-50 border-gray-200 text-gray-900 focus:border-[#C9A050] focus:outline-none'
                   }`}
                 />
-                <p className={`mt-1.5 text-xs ${isDark ? 'text-[#9E9A90]' : 'text-gray-500'}`}>
-                  Default: <code>https://api.mistral.ai</code>
-                </p>
               </div>
             </div>
           )}
 
-          {/* Provider 4: OpenAI */}
+          {/* OpenAI */}
           {selectedProvider === 'openai' && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className={`block text-xs font-bold uppercase tracking-wider mb-2 ${
+                <label className={`block text-xs font-bold uppercase tracking-wider mb-1.5 ${
                   isDark ? 'text-[#C9A050]' : 'text-amber-800'
                 }`}>
                   OpenAI API Key
@@ -658,7 +707,7 @@ export const AdminLLMConfigView: React.FC<AdminLLMConfigViewProps> = ({ theme })
                     value={formData.OPENAI_API_KEY || ''}
                     onChange={(e) => handleInputChange('OPENAI_API_KEY', e.target.value)}
                     placeholder="sk-proj-..."
-                    className={`w-full px-4 py-3 pr-12 rounded-xl border text-sm font-mono transition-colors ${
+                    className={`w-full px-3.5 py-2.5 pr-10 rounded-xl border text-xs font-mono transition-colors ${
                       isDark
                         ? 'bg-[#1C1C22] border-[#2A2A2E] text-white focus:border-[#C9A050] focus:outline-none'
                         : 'bg-gray-50 border-gray-200 text-gray-900 focus:border-[#C9A050] focus:outline-none'
@@ -667,18 +716,15 @@ export const AdminLLMConfigView: React.FC<AdminLLMConfigViewProps> = ({ theme })
                   <button
                     type="button"
                     onClick={() => setShowOpenAIKey(!showOpenAIKey)}
-                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-200"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-200"
                   >
-                    {showOpenAIKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    {showOpenAIKey ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                   </button>
                 </div>
-                <p className={`mt-1.5 text-xs ${isDark ? 'text-[#9E9A90]' : 'text-gray-500'}`}>
-                  From <a href="https://platform.openai.com/api-keys" target="_blank" rel="noreferrer" className="text-[#C9A050] underline">OpenAI Platform</a>.
-                </p>
               </div>
 
               <div>
-                <label className={`block text-xs font-bold uppercase tracking-wider mb-2 ${
+                <label className={`block text-xs font-bold uppercase tracking-wider mb-1.5 ${
                   isDark ? 'text-[#C9A050]' : 'text-amber-800'
                 }`}>
                   OpenAI Model
@@ -688,81 +734,166 @@ export const AdminLLMConfigView: React.FC<AdminLLMConfigViewProps> = ({ theme })
                   value={formData.OPENAI_MODEL || ''}
                   onChange={(e) => handleInputChange('OPENAI_MODEL', e.target.value)}
                   placeholder="gpt-4o-mini"
-                  className={`w-full px-4 py-3 rounded-xl border text-sm transition-colors ${
+                  className={`w-full px-3.5 py-2.5 rounded-xl border text-xs font-mono transition-colors ${
                     isDark
                       ? 'bg-[#1C1C22] border-[#2A2A2E] text-white focus:border-[#C9A050] focus:outline-none'
                       : 'bg-gray-50 border-gray-200 text-gray-900 focus:border-[#C9A050] focus:outline-none'
                   }`}
                 />
-                <p className={`mt-1.5 text-xs ${isDark ? 'text-[#9E9A90]' : 'text-gray-500'}`}>
-                  Default: <code>gpt-4o-mini</code> (cost-efficient and high speed). Also supports <code>gpt-4o</code>.
-                </p>
               </div>
 
               <div className="md:col-span-2">
-                <label className={`block text-xs font-bold uppercase tracking-wider mb-2 ${
+                <label className={`block text-xs font-bold uppercase tracking-wider mb-1.5 ${
                   isDark ? 'text-[#C9A050]' : 'text-amber-800'
                 }`}>
-                  Custom Base URL (Optional)
+                  Custom Base URL (Optional for Proxies / Azure)
                 </label>
                 <input
                   type="text"
                   value={formData.OPENAI_BASE_URL || ''}
                   onChange={(e) => handleInputChange('OPENAI_BASE_URL', e.target.value)}
                   placeholder="https://api.openai.com/v1"
-                  className={`w-full px-4 py-3 rounded-xl border text-sm transition-colors ${
+                  className={`w-full px-3.5 py-2.5 rounded-xl border text-xs font-mono transition-colors ${
                     isDark
                       ? 'bg-[#1C1C22] border-[#2A2A2E] text-white focus:border-[#C9A050] focus:outline-none'
                       : 'bg-gray-50 border-gray-200 text-gray-900 focus:border-[#C9A050] focus:outline-none'
                   }`}
                 />
-                <p className={`mt-1.5 text-xs ${isDark ? 'text-[#9E9A90]' : 'text-gray-500'}`}>
-                  Useful for Azure OpenAI Service, OpenRouter, or local proxies.
-                </p>
               </div>
             </div>
           )}
+        </div>
 
-          {/* Action Footer */}
-          <div className="pt-6 border-t border-gray-700/20 flex flex-col sm:flex-row items-center justify-between gap-4">
-            <div className={`text-xs ${isDark ? 'text-[#9E9A90]' : 'text-gray-500'}`}>
-              Provider to activate: <span className="font-bold text-[#C9A050]">{PROVIDERS.find(p => p.id === selectedProvider)?.name}</span>
+        {/* Global LLM Execution Setting: Request Timeout */}
+        <div className="mt-6 pt-5 border-t border-gray-700/20">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <div className="flex items-center space-x-2">
+                <Clock className="w-4 h-4 text-[#C9A050]" />
+                <label className={`text-xs font-bold uppercase tracking-wider ${
+                  isDark ? 'text-[#C9A050]' : 'text-amber-800'
+                }`}>
+                  Request Timeout (Seconds)
+                </label>
+              </div>
+              <p className={`mt-0.5 text-[11px] ${isDark ? 'text-[#9E9A90]' : 'text-gray-500'}`}>
+                Maximum duration to wait for AI response before timing out (saved in MySQL).
+              </p>
             </div>
 
-            <div className="flex items-center space-x-3 w-full sm:w-auto">
-              <button
-                type="button"
-                onClick={fetchConfig}
-                disabled={saving}
-                className={`px-5 py-3 rounded-xl text-xs font-bold border transition-colors flex items-center justify-center space-x-2 w-full sm:w-auto ${
-                  isDark
-                    ? 'border-[#2A2A2E] hover:bg-white/5 text-gray-300'
-                    : 'border-gray-200 hover:bg-gray-100 text-gray-700'
-                }`}
-              >
-                <RefreshCw className="w-4 h-4" />
-                <span>Reset</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={handleSaveAndActivate}
-                disabled={saving}
-                className="px-6 py-3 rounded-xl text-xs font-bold tracking-wider uppercase transition-all shadow-md flex items-center justify-center space-x-2 bg-gradient-to-r from-[#C9A050] to-[#DFB76C] text-[#0D0D0F] hover:brightness-110 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed w-full sm:w-auto font-sans"
-              >
-                {saving ? (
-                  <>
-                    <RefreshCw className="w-4 h-4 animate-spin" />
-                    <span>Applying Changes...</span>
-                  </>
-                ) : (
-                  <>
-                    <Check className="w-4 h-4 stroke-[3]" />
-                    <span>Apply & Set as Active LLM</span>
-                  </>
-                )}
-              </button>
+            <div className="flex items-center space-x-2">
+              {[15, 30, 60, 120].map((sec) => {
+                const isSelected = Number(formData.LLM_TIMEOUT || 30) === sec;
+                return (
+                  <button
+                    key={sec}
+                    type="button"
+                    onClick={() => handleInputChange('LLM_TIMEOUT', sec)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-mono font-semibold transition-all border ${
+                      isSelected
+                        ? 'bg-[#C9A050] text-[#0D0D0F] border-[#C9A050] shadow-sm'
+                        : isDark
+                        ? 'bg-[#1C1C22] border-[#2A2A2E] text-gray-300 hover:border-gray-600'
+                        : 'bg-gray-100 border-gray-200 text-gray-700 hover:border-gray-300'
+                    }`}
+                  >
+                    {sec}s
+                  </button>
+                );
+              })}
+              <div className="flex items-center space-x-1 pl-1">
+                <input
+                  type="number"
+                  min="5"
+                  max="300"
+                  value={formData.LLM_TIMEOUT ?? 30}
+                  onChange={(e) => handleInputChange('LLM_TIMEOUT', e.target.value)}
+                  className={`w-16 px-2.5 py-1.5 rounded-lg border text-xs font-mono text-center transition-colors ${
+                    isDark
+                      ? 'bg-[#1C1C22] border-[#2A2A2E] text-white focus:border-[#C9A050] focus:outline-none'
+                      : 'bg-gray-50 border-gray-200 text-gray-900 focus:border-[#C9A050] focus:outline-none'
+                  }`}
+                  placeholder="30"
+                />
+                <span className={`text-[11px] font-medium ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                  sec
+                </span>
+              </div>
             </div>
+          </div>
+        </div>
+
+        {/* Action Buttons (Clean and Sober) */}
+        <div className="mt-6 pt-5 border-t border-gray-700/20 flex flex-col sm:flex-row items-center justify-between gap-3">
+          <div className="flex items-center space-x-2 text-[11px] text-gray-500">
+            {saving ? (
+              <span className="text-[#C9A050] flex items-center space-x-1.5 animate-pulse font-medium">
+                <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                <span>Saving to MySQL database...</span>
+              </span>
+            ) : (
+              <span>Changes take effect immediately upon saving.</span>
+            )}
+          </div>
+
+          <div className="flex items-center space-x-3 w-full sm:w-auto">
+            {/* Save Config */}
+            <button
+              type="button"
+              disabled={saving}
+              onClick={handleSaveSettings}
+              className={`px-4 py-2.5 rounded-xl text-xs font-bold border transition-colors flex items-center justify-center space-x-1.5 w-full sm:w-auto ${
+                isDark
+                  ? 'bg-[#1C1C22] border-[#2A2A2E] hover:border-[#C9A050] text-[#E5E1D8]'
+                  : 'bg-gray-50 border-gray-200 hover:border-[#C9A050] text-gray-800'
+              }`}
+            >
+              {saving ? (
+                <>
+                  <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                  <span>Saving...</span>
+                </>
+              ) : (
+                <>
+                  <Check className="w-3.5 h-3.5 text-[#C9A050]" />
+                  <span>Save Settings</span>
+                </>
+              )}
+            </button>
+
+            {/* Set as Active */}
+            {config?.ACTIVE_LLM === currentProvider.id ? (
+              <div className="px-5 py-2.5 rounded-xl text-xs font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 flex items-center justify-center space-x-1.5 w-full sm:w-auto">
+                <CheckCircle2 className="w-3.5 h-3.5" />
+                <span>Active Live Engine</span>
+              </div>
+            ) : !isProviderConfigured(currentProvider.id) ? (
+              <button
+                type="button"
+                disabled
+                title={
+                  currentProvider.id === 'mistral_local'
+                    ? 'Please configure Endpoint URL and save before activating'
+                    : 'Please enter API Key and save before activating'
+                }
+                className="px-5 py-2.5 rounded-xl text-xs font-bold tracking-wider uppercase transition-all flex items-center justify-center space-x-1.5 bg-amber-500/10 border border-amber-500/30 text-amber-400/80 cursor-not-allowed opacity-75 w-full sm:w-auto font-sans"
+              >
+                <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                <span>
+                  {currentProvider.id === 'mistral_local' ? 'URL Required to Activate' : 'API Key Required to Activate'}
+                </span>
+              </button>
+            ) : (
+              <button
+                type="button"
+                disabled={saving}
+                onClick={() => handleSetActive(currentProvider.id)}
+                className="px-5 py-2.5 rounded-xl text-xs font-bold tracking-wider uppercase transition-all shadow-md flex items-center justify-center space-x-1.5 bg-gradient-to-r from-[#C9A050] to-[#DFB76C] text-[#0D0D0F] hover:brightness-110 active:scale-95 disabled:opacity-50 cursor-pointer w-full sm:w-auto font-sans"
+              >
+                <Zap className="w-3.5 h-3.5 fill-current" />
+                <span>Set as Active LLM</span>
+              </button>
+            )}
           </div>
         </div>
       </div>

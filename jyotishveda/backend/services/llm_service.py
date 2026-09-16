@@ -47,12 +47,21 @@ def _build_system_prompt(tradition: str, chart_summary: str, numerology_summary:
     )
 
 
+def _get_llm_timeout() -> int:
+    """Reads LLM timeout in seconds from MySQL system_settings (default 30s)."""
+    try:
+        val = int(get_setting("LLM_TIMEOUT", "30"))
+        return max(5, min(val, 300))
+    except Exception:
+        return 30
+
+
 def _call_mistral_local(system_prompt: str, history: list) -> str:
-    base_url = get_setting("MISTRAL_LOCAL_URL", "http://122.163.121.176:3041").rstrip("/")
+    base_url = get_setting("MISTRAL_LOCAL_URL", "").rstrip("/")
     model = get_setting("MISTRAL_MODEL", "mistral:latest")
     if not base_url:
         raise LLMError(
-            "ACTIVE_LLM is set to mistral_local but MISTRAL_LOCAL_URL is not configured."
+            "ACTIVE_LLM is set to mistral_local but MISTRAL_LOCAL_URL is not configured in Admin Settings."
         )
 
     prompt = system_prompt + "\n\n"
@@ -61,11 +70,12 @@ def _call_mistral_local(system_prompt: str, history: list) -> str:
         content = msg.get("content", "")
         prompt += f"{role}: {content}\n\n"
 
+    timeout = _get_llm_timeout()
     try:
         resp = requests.post(
             f"{base_url}/api/generate",
             json={"model": model, "prompt": prompt, "stream": False},
-            timeout=60,
+            timeout=timeout,
         )
     except requests.RequestException:
         # Fallback to /v1/chat/completions (OpenAI compatible endpoint)
@@ -74,7 +84,7 @@ def _call_mistral_local(system_prompt: str, history: list) -> str:
             resp = requests.post(
                 f"{base_url}/v1/chat/completions",
                 json={"model": model, "messages": messages},
-                timeout=60,
+                timeout=timeout,
             )
             if resp.status_code == 200:
                 data = resp.json()
@@ -103,13 +113,14 @@ def _call_mistral_cloud(system_prompt: str, history: list) -> str:
             "MISTRAL_CLOUD_API_KEY are not fully configured."
         )
 
+    timeout = _get_llm_timeout()
     messages = [{"role": "system", "content": system_prompt}] + history
     try:
         resp = requests.post(
             f"{base_url}/v1/chat/completions",
             headers={"Authorization": f"Bearer {api_key}"},
             json={"model": model, "messages": messages},
-            timeout=60,
+            timeout=timeout,
         )
     except requests.RequestException as e:
         raise LLMError(f"Could not reach Mistral cloud endpoint: {e}")
@@ -139,11 +150,12 @@ def _call_gemini(system_prompt: str, history: list) -> str:
         "https://generativelanguage.googleapis.com/v1beta/models/"
         f"{model}:generateContent?key={api_key}"
     )
+    timeout = _get_llm_timeout()
     try:
         resp = requests.post(
             url,
             json={"contents": [{"parts": [{"text": full_prompt}]}]},
-            timeout=60,
+            timeout=timeout,
         )
     except requests.RequestException as e:
         raise LLMError(f"Could not reach Gemini API: {e}")
@@ -165,13 +177,14 @@ def _call_openai(system_prompt: str, history: list) -> str:
     if not api_key:
         raise LLMError("ACTIVE_LLM is set to openai but OPENAI_API_KEY is not configured.")
 
+    timeout = _get_llm_timeout()
     messages = [{"role": "system", "content": system_prompt}] + history
     try:
         resp = requests.post(
             f"{base_url}/chat/completions",
             headers={"Authorization": f"Bearer {api_key}"},
             json={"model": model, "messages": messages},
-            timeout=60,
+            timeout=timeout,
         )
     except requests.RequestException as e:
         raise LLMError(f"Could not reach OpenAI endpoint: {e}")
@@ -188,15 +201,31 @@ def _call_openai(system_prompt: str, history: list) -> str:
 
 def _execute_llm(system_prompt: str, history: list) -> str:
     active_llm = get_setting("ACTIVE_LLM", "mistral_local")
-    if active_llm == "mistral_local":
-        return _call_mistral_local(system_prompt, history)
-    elif active_llm == "mistral_cloud":
-        return _call_mistral_cloud(system_prompt, history)
-    elif active_llm == "gemini":
-        return _call_gemini(system_prompt, history)
-    elif active_llm == "openai":
-        return _call_openai(system_prompt, history)
-    raise LLMError(f"Unknown ACTIVE_LLM value: '{active_llm}'. Use mistral_local, gemini, mistral_cloud, or openai.")
+    failover_enabled = get_setting("ENABLE_AUTO_FAILOVER", "true").lower() in ("true", "1", "yes")
+    fallback_llm = get_setting("FALLBACK_LLM", "gemini")
+
+    providers = [active_llm]
+    if failover_enabled and fallback_llm and fallback_llm != active_llm:
+        providers.append(fallback_llm)
+
+    last_error = None
+    for prov in providers:
+        try:
+            if prov == "mistral_local":
+                return _call_mistral_local(system_prompt, history)
+            elif prov == "mistral_cloud":
+                return _call_mistral_cloud(system_prompt, history)
+            elif prov == "gemini":
+                return _call_gemini(system_prompt, history)
+            elif prov == "openai":
+                return _call_openai(system_prompt, history)
+            else:
+                raise LLMError(f"Unknown LLM provider: '{prov}'")
+        except Exception as e:
+            last_error = e
+            print(f"[LLMService] Provider '{prov}' encountered error: {e}. Trying fallback if available...")
+
+    raise last_error or LLMError("All configured LLM engines failed.")
 
 
 def get_ai_response(
@@ -700,7 +729,9 @@ Instructions:
 
 def generate_raw_completion(prompt: str, model: str = None) -> str:
     """Directly calls the configured LLM with a raw prompt string."""
-    raw_url = get_setting("MISTRAL_LOCAL_URL", "http://122.163.121.176:3041/api/generate").strip().rstrip("/")
+    raw_url = get_setting("MISTRAL_LOCAL_URL", "").strip().rstrip("/")
+    if not raw_url:
+        raise LLMError("MISTRAL_LOCAL_URL is not configured in Admin Settings.")
     model_name = model or get_setting("MISTRAL_MODEL", "mistral:latest")
     
     if raw_url.endswith("/api/generate") or raw_url.endswith("/api/chat"):

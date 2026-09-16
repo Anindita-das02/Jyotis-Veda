@@ -118,22 +118,42 @@ def update_llm_config():
             "message": "LLM configuration updated successfully",
             "data": updated_config
         }), 200
+    except ValueError as ve:
+        return jsonify({"status": "error", "message": str(ve)}), 400
     except Exception as e:
         print(f"Error updating LLM config: {e}")
         return jsonify({"status": "error", "message": str(e)}), 500
 
 def test_llm_connection():
     from flask import request
-    from services.settings_service import test_llm_connection as run_test
+    from services.settings_service import test_llm_connection as run_test, test_all_providers
     try:
         payload = request.get_json(silent=True) or {}
         provider = payload.get("provider", "mistral_local")
         config = payload.get("config", {})
+
+        if provider == "all":
+            results = test_all_providers()
+            return jsonify({"status": "success", "data": results}), 200
+
         result = run_test(provider, config)
-        if result.get("success"):
-            return jsonify({"status": "success", "data": result}), 200
-        else:
-            return jsonify({"status": "error", "message": result.get("message", "Connection failed"), "data": result}), 400
+        return jsonify({
+            "status": "success",
+            "data": {
+                "provider": provider,
+                "status": "ok" if result.get("success") else "error",
+                "message": result.get("message", "Test completed"),
+                "latency_ms": result.get("latency_ms", 0),
+            }
+        }), 200
     except Exception as e:
         print(f"Error testing LLM connection: {e}")
-        return jsonify({"status": "error", "message": str(e)}), 500
+        return jsonify({
+            "status": "success",
+            "data": {
+                "provider": provider if 'provider' in locals() else "unknown",
+                "status": "error",
+                "message": str(e),
+                "latency_ms": 0,
+            }
+        }), 200
