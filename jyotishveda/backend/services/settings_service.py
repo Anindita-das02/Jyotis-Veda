@@ -383,6 +383,7 @@ def test_llm_connection(
     start_time = time.time()
     test_prompt = "Respond with 'OK' only."
 
+    resp = None
     try:
         if provider == "mistral_local":
             base_url = (
@@ -399,22 +400,33 @@ def test_llm_connection(
                 return {"success": False, "message": "Local Mistral URL is empty"}
 
             endpoint = f"{base_url}/api/generate"
+            print(f"\n{'='*60}")
+            print(f"[LLM TEST CALL] Provider: mistral_local | Model/Version: {model} | URL: {endpoint}")
+            print(f"{'='*60}\n")
             try:
                 resp = requests.post(
                     endpoint,
+                    headers={"Connection": "close"},
                     json={"model": model, "prompt": test_prompt, "stream": False},
                     timeout=(2.0, 3.0),
                 )
             except Exception:
                 # Fallback to OpenAI-compatible /v1/chat/completions
+                print(f"[LLM TEST FALLBACK CALL] Provider: mistral_local | Model/Version: {model} | URL: {base_url}/v1/chat/completions")
                 resp = requests.post(
                     f"{base_url}/v1/chat/completions",
+                    headers={"Connection": "close"},
                     json={"model": model, "messages": [{"role": "user", "content": test_prompt}]},
                     timeout=(2.0, 3.0),
                 )
 
             latency = int((time.time() - start_time) * 1000)
             if resp.status_code == 200:
+                try:
+                    resolved_model = resp.json().get("model", model)
+                except Exception:
+                    resolved_model = model
+                print(f"[LLM TEST RESPONSE] Provider: mistral_local | Resolved Model/Version: {resolved_model}")
                 return {"success": True, "latency_ms": latency, "message": f"Connected to {model} successfully ({latency}ms)"}
             return {"success": False, "latency_ms": latency, "message": f"Server error (HTTP {resp.status_code}): {resp.text[:150]}"}
 
@@ -434,14 +446,24 @@ def test_llm_connection(
             if not api_key:
                 return {"success": False, "message": "Gemini API key is required"}
 
-            url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
+            api_version = "v1beta"
+            url = f"https://generativelanguage.googleapis.com/{api_version}/models/{model}:generateContent?key={api_key}"
+            print(f"\n{'='*60}")
+            print(f"[LLM TEST CALL] Provider: gemini | Model: {model} | API Version: {api_version} | Endpoint: generativelanguage.googleapis.com/{api_version}/models/{model}")
+            print(f"{'='*60}\n")
             resp = requests.post(
                 url,
+                headers={"Connection": "close"},
                 json={"contents": [{"parts": [{"text": test_prompt}]}]},
                 timeout=timeout,
             )
             latency = int((time.time() - start_time) * 1000)
             if resp.status_code == 200:
+                try:
+                    resolved_version = resp.json().get("modelVersion", model)
+                except Exception:
+                    resolved_version = model
+                print(f"[LLM TEST RESPONSE] Provider: gemini | Configured Model: {model} | Resolved Version: {resolved_version}")
                 return {"success": True, "latency_ms": latency, "message": f"Connected to Gemini ({model}) successfully ({latency}ms)"}
             try:
                 err_data = resp.json()
@@ -471,14 +493,22 @@ def test_llm_connection(
             if not api_key:
                 return {"success": False, "message": "Mistral Cloud API key is required"}
 
+            print(f"\n{'='*60}")
+            print(f"[LLM TEST CALL] Provider: mistral_cloud | Model/Version: {model} | URL: {base_url}/v1/chat/completions")
+            print(f"{'='*60}\n")
             resp = requests.post(
                 f"{base_url}/v1/chat/completions",
-                headers={"Authorization": f"Bearer {api_key}"},
+                headers={"Authorization": f"Bearer {api_key}", "Connection": "close"},
                 json={"model": model, "messages": [{"role": "user", "content": test_prompt}]},
                 timeout=timeout,
             )
             latency = int((time.time() - start_time) * 1000)
             if resp.status_code == 200:
+                try:
+                    resolved_model = resp.json().get("model", model)
+                except Exception:
+                    resolved_model = model
+                print(f"[LLM TEST RESPONSE] Provider: mistral_cloud | Resolved Model/Version: {resolved_model}")
                 return {"success": True, "latency_ms": latency, "message": f"Connected to Mistral Cloud ({model}) successfully ({latency}ms)"}
             try:
                 err_data = resp.json()
@@ -508,14 +538,22 @@ def test_llm_connection(
             if not api_key:
                 return {"success": False, "message": "OpenAI API key is required"}
 
+            print(f"\n{'='*60}")
+            print(f"[LLM TEST CALL] Provider: openai | Model/Version: {model} | URL: {base_url}/chat/completions")
+            print(f"{'='*60}\n")
             resp = requests.post(
                 f"{base_url}/chat/completions",
-                headers={"Authorization": f"Bearer {api_key}"},
+                headers={"Authorization": f"Bearer {api_key}", "Connection": "close"},
                 json={"model": model, "messages": [{"role": "user", "content": test_prompt}]},
                 timeout=timeout,
             )
             latency = int((time.time() - start_time) * 1000)
             if resp.status_code == 200:
+                try:
+                    resolved_model = resp.json().get("model", model)
+                except Exception:
+                    resolved_model = model
+                print(f"[LLM TEST RESPONSE] Provider: openai | Resolved Model/Version: {resolved_model}")
                 return {"success": True, "latency_ms": latency, "message": f"Connected to OpenAI ({model}) successfully ({latency}ms)"}
             try:
                 err_data = resp.json()
@@ -533,3 +571,6 @@ def test_llm_connection(
         return {"success": False, "latency_ms": int((time.time() - start_time) * 1000), "message": f"Connection refused. Could not establish connection to {provider}."}
     except Exception as e:
         return {"success": False, "latency_ms": int((time.time() - start_time) * 1000), "message": f"Connection error: {str(e)}"}
+    finally:
+        if resp is not None:
+            resp.close()

@@ -64,6 +64,10 @@ def _call_mistral_local(system_prompt: str, history: list) -> str:
             "ACTIVE_LLM is set to mistral_local but MISTRAL_LOCAL_URL is not configured in Admin Settings."
         )
 
+    print(f"\n{'='*60}")
+    print(f"[LLM CALL] Provider: mistral_local | Model/Version: {model} | URL: {base_url}/api/generate")
+    print(f"{'='*60}\n")
+
     prompt = system_prompt + "\n\n"
     for msg in history:
         role = msg.get("role", "user").capitalize()
@@ -71,36 +75,48 @@ def _call_mistral_local(system_prompt: str, history: list) -> str:
         prompt += f"{role}: {content}\n\n"
 
     timeout = _get_llm_timeout()
+    resp = None
     try:
-        resp = requests.post(
-            f"{base_url}/api/generate",
-            json={"model": model, "prompt": prompt, "stream": False},
-            timeout=timeout,
-        )
-    except requests.RequestException:
-        # Fallback to /v1/chat/completions (OpenAI compatible endpoint)
         try:
-            messages = [{"role": "system", "content": system_prompt}] + history
             resp = requests.post(
-                f"{base_url}/v1/chat/completions",
-                json={"model": model, "messages": messages},
+                f"{base_url}/api/generate",
+                headers={"Connection": "close"},
+                json={"model": model, "prompt": prompt, "stream": False},
                 timeout=timeout,
             )
-            if resp.status_code == 200:
-                data = resp.json()
-                return data["choices"][0]["message"]["content"]
-        except Exception as e:
-            raise LLMError(f"Could not reach local Mistral server at {base_url}: {e}")
-        raise LLMError(f"Could not reach local Mistral server at {base_url}")
+        except requests.RequestException:
+            # Fallback to /v1/chat/completions (OpenAI compatible endpoint)
+            try:
+                print(f"[LLM FALLBACK CALL] Provider: mistral_local | Model/Version: {model} | URL: {base_url}/v1/chat/completions")
+                messages = [{"role": "system", "content": system_prompt}] + history
+                resp = requests.post(
+                    f"{base_url}/v1/chat/completions",
+                    headers={"Connection": "close"},
+                    json={"model": model, "messages": messages},
+                    timeout=timeout,
+                )
+                if resp.status_code == 200:
+                    data = resp.json()
+                    returned_model = data.get("model", model)
+                    print(f"[LLM RESPONSE] Provider: mistral_local (chat fallback) | Resolved Model/Version: {returned_model}")
+                    return data["choices"][0]["message"]["content"]
+            except Exception as e:
+                raise LLMError(f"Could not reach local Mistral server at {base_url}: {e}")
+            raise LLMError(f"Could not reach local Mistral server at {base_url}")
 
-    if resp.status_code != 200:
-        raise LLMError(f"Local Mistral server returned HTTP {resp.status_code}: {resp.text[:300]}")
+        if resp.status_code != 200:
+            raise LLMError(f"Local Mistral server returned HTTP {resp.status_code}: {resp.text[:300]}")
 
-    data = resp.json()
-    content = data.get("response", "")
-    if not content:
-        raise LLMError("Local Mistral server returned an unexpected response shape (no response field).")
-    return content
+        data = resp.json()
+        returned_model = data.get("model", model)
+        print(f"[LLM RESPONSE] Provider: mistral_local | Resolved Model/Version: {returned_model}")
+        content = data.get("response", "")
+        if not content:
+            raise LLMError("Local Mistral server returned an unexpected response shape (no response field).")
+        return content
+    finally:
+        if resp is not None:
+            resp.close()
 
 
 def _call_mistral_cloud(system_prompt: str, history: list) -> str:
@@ -113,26 +129,35 @@ def _call_mistral_cloud(system_prompt: str, history: list) -> str:
             "MISTRAL_CLOUD_API_KEY are not fully configured."
         )
 
+    print(f"\n{'='*60}")
+    print(f"[LLM CALL] Provider: mistral_cloud | Model/Version: {model} | URL: {base_url}/v1/chat/completions")
+    print(f"{'='*60}\n")
+
     timeout = _get_llm_timeout()
     messages = [{"role": "system", "content": system_prompt}] + history
+    resp = None
     try:
         resp = requests.post(
             f"{base_url}/v1/chat/completions",
-            headers={"Authorization": f"Bearer {api_key}"},
+            headers={"Authorization": f"Bearer {api_key}", "Connection": "close"},
             json={"model": model, "messages": messages},
             timeout=timeout,
         )
+        if resp.status_code != 200:
+            raise LLMError(f"Mistral cloud API returned HTTP {resp.status_code}: {resp.text[:300]}")
+
+        data = resp.json()
+        returned_model = data.get("model", model)
+        print(f"[LLM RESPONSE] Provider: mistral_cloud | Resolved Model/Version: {returned_model}")
+        try:
+            return data["choices"][0]["message"]["content"]
+        except (KeyError, IndexError, TypeError):
+            raise LLMError("Mistral cloud API returned an unexpected response shape.")
     except requests.RequestException as e:
         raise LLMError(f"Could not reach Mistral cloud endpoint: {e}")
-
-    if resp.status_code != 200:
-        raise LLMError(f"Mistral cloud API returned HTTP {resp.status_code}: {resp.text[:300]}")
-
-    data = resp.json()
-    try:
-        return data["choices"][0]["message"]["content"]
-    except (KeyError, IndexError, TypeError):
-        raise LLMError("Mistral cloud API returned an unexpected response shape.")
+    finally:
+        if resp is not None:
+            resp.close()
 
 
 def _call_gemini(system_prompt: str, history: list) -> str:
@@ -143,31 +168,42 @@ def _call_gemini(system_prompt: str, history: list) -> str:
             "ACTIVE_LLM is set to gemini but GEMINI_API_KEY is not configured."
         )
 
+    api_version = "v1beta"
+    url = (
+        f"https://generativelanguage.googleapis.com/{api_version}/models/"
+        f"{model}:generateContent?key={api_key}"
+    )
+    print(f"\n{'='*60}")
+    print(f"[LLM CALL] Provider: gemini | Model: {model} | API Version: {api_version} | Endpoint: generativelanguage.googleapis.com/{api_version}/models/{model}:generateContent")
+    print(f"{'='*60}\n")
+
     convo_text = "\n".join(f"{m['role'].upper()}: {m['content']}" for m in history)
     full_prompt = f"{system_prompt}\n\n--- Conversation ---\n{convo_text}"
 
-    url = (
-        "https://generativelanguage.googleapis.com/v1beta/models/"
-        f"{model}:generateContent?key={api_key}"
-    )
     timeout = _get_llm_timeout()
+    resp = None
     try:
         resp = requests.post(
             url,
+            headers={"Connection": "close"},
             json={"contents": [{"parts": [{"text": full_prompt}]}]},
             timeout=timeout,
         )
+        if resp.status_code != 200:
+            raise LLMError(f"Gemini API returned HTTP {resp.status_code}: {resp.text[:300]}")
+
+        data = resp.json()
+        model_version = data.get("modelVersion", model)
+        print(f"[LLM RESPONSE] Provider: gemini | Configured Model: {model} | Resolved Version: {model_version}")
+        try:
+            return data["candidates"][0]["content"]["parts"][0]["text"]
+        except (KeyError, IndexError, TypeError):
+            raise LLMError("Gemini API returned an unexpected response shape.")
     except requests.RequestException as e:
         raise LLMError(f"Could not reach Gemini API: {e}")
-
-    if resp.status_code != 200:
-        raise LLMError(f"Gemini API returned HTTP {resp.status_code}: {resp.text[:300]}")
-
-    data = resp.json()
-    try:
-        return data["candidates"][0]["content"]["parts"][0]["text"]
-    except (KeyError, IndexError, TypeError):
-        raise LLMError("Gemini API returned an unexpected response shape.")
+    finally:
+        if resp is not None:
+            resp.close()
 
 
 def _call_openai(system_prompt: str, history: list) -> str:
@@ -177,26 +213,35 @@ def _call_openai(system_prompt: str, history: list) -> str:
     if not api_key:
         raise LLMError("ACTIVE_LLM is set to openai but OPENAI_API_KEY is not configured.")
 
+    print(f"\n{'='*60}")
+    print(f"[LLM CALL] Provider: openai | Model/Version: {model} | URL: {base_url}/chat/completions")
+    print(f"{'='*60}\n")
+
     timeout = _get_llm_timeout()
     messages = [{"role": "system", "content": system_prompt}] + history
+    resp = None
     try:
         resp = requests.post(
             f"{base_url}/chat/completions",
-            headers={"Authorization": f"Bearer {api_key}"},
+            headers={"Authorization": f"Bearer {api_key}", "Connection": "close"},
             json={"model": model, "messages": messages},
             timeout=timeout,
         )
+        if resp.status_code != 200:
+            raise LLMError(f"OpenAI returned HTTP {resp.status_code}: {resp.text[:300]}")
+
+        data = resp.json()
+        returned_model = data.get("model", model)
+        print(f"[LLM RESPONSE] Provider: openai | Resolved Model/Version: {returned_model}")
+        try:
+            return data["choices"][0]["message"]["content"]
+        except (KeyError, IndexError, TypeError):
+            raise LLMError("OpenAI returned an unexpected response shape.")
     except requests.RequestException as e:
         raise LLMError(f"Could not reach OpenAI endpoint: {e}")
-
-    if resp.status_code != 200:
-        raise LLMError(f"OpenAI returned HTTP {resp.status_code}: {resp.text[:300]}")
-
-    data = resp.json()
-    try:
-        return data["choices"][0]["message"]["content"]
-    except (KeyError, IndexError, TypeError):
-        raise LLMError("OpenAI returned an unexpected response shape.")
+    finally:
+        if resp is not None:
+            resp.close()
 
 
 def _execute_llm(system_prompt: str, history: list) -> str:
@@ -207,6 +252,8 @@ def _execute_llm(system_prompt: str, history: list) -> str:
     providers = [active_llm]
     if failover_enabled and fallback_llm and fallback_llm != active_llm:
         providers.append(fallback_llm)
+
+    print(f"[LLMService] Executing LLM request | Active: '{active_llm}' | Failover: {'Enabled (Fallback: ' + fallback_llm + ')' if failover_enabled else 'Disabled'} | Providers: {providers}")
 
     last_error = None
     for prov in providers:
@@ -745,19 +792,28 @@ def generate_raw_completion(prompt: str, model: str = None) -> str:
         "stream": False,
     }
 
+    print(f"\n{'='*60}")
+    print(f"[LLM CALL - Raw Completion] Provider: mistral_local | Model/Version: {model_name} | Endpoint: {endpoint_url}")
+    print(f"{'='*60}\n")
+
+    resp = None
     try:
-        resp = requests.post(endpoint_url, json=payload, timeout=120)
+        resp = requests.post(endpoint_url, headers={"Connection": "close"}, json=payload, timeout=120)
+        if resp.status_code != 200:
+            raise LLMError(f"LLM server returned HTTP {resp.status_code}: {resp.text[:300]}")
+
+        data = resp.json()
+        returned_model = data.get("model", model_name)
+        print(f"[LLM RESPONSE - Raw Completion] Resolved Model/Version: {returned_model}")
+        content = data.get("response") or (data.get("message") or {}).get("content") or data.get("text")
+        if not content:
+            raise LLMError("LLM server returned an unexpected response shape.")
+        return content
     except requests.RequestException as e:
         raise LLMError(f"Could not reach LLM endpoint at {endpoint_url}: {e}")
-
-    if resp.status_code != 200:
-        raise LLMError(f"LLM server returned HTTP {resp.status_code}: {resp.text[:300]}")
-
-    data = resp.json()
-    content = data.get("response") or (data.get("message") or {}).get("content") or data.get("text")
-    if not content:
-        raise LLMError("LLM server returned an unexpected response shape.")
-    return content
+    finally:
+        if resp is not None:
+            resp.close()
 
 
 def get_filtered_roadmap_predictions_response(
